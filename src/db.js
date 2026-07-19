@@ -156,6 +156,8 @@ CREATE TABLE IF NOT EXISTS cheers (
   seen INTEGER DEFAULT 0,
   ts TEXT DEFAULT (datetime('now'))
 );
+
+CREATE INDEX IF NOT EXISTS idx_challenges_open ON challenges(to_kid, game, status);
 `);
 
 // Column migrations for existing databases (safe to re-run)
