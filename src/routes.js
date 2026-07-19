@@ -22,6 +22,7 @@ router.post('/auth/signup', (req, res) => {
     return res.status(400).json({ error: 'Need email, name, and a password of 6+ characters.' });
   try {
     const id = auth.createParent(email, name, password);
+    auth.syncAdminFlag(db.prepare('SELECT * FROM parents WHERE id=?').get(id));
     const token = auth.createSession('parent', id);
     res.cookie('bp_session', token, COOKIE_OPTS);
     res.json({ ok: true });
@@ -87,7 +88,7 @@ router.get('/auth/me', (req, res) => {
   const s = auth.getSession(req.cookies.bp_session);
   if (!s) return res.json({ role: 'guest' });
   if (s.kind === 'parent') {
-    const p = db.prepare('SELECT id, email, name, sub_status, sub_plan, trial_ends FROM parents WHERE id=?').get(s.ref_id);
+    const p = db.prepare('SELECT id, email, name, sub_status, sub_plan, trial_ends, is_admin FROM parents WHERE id=?').get(s.ref_id);
     if (!p) return res.json({ role: 'guest' });
     const kids = db.prepare('SELECT * FROM kids WHERE parent_id=?').all(p.id).map(publicKid);
     return res.json({ role: 'parent', parent: p, kids, billingMode: billing.billingMode(), plans: billing.PLANS });
@@ -240,6 +241,31 @@ router.post('/learn/:kidId/placement/:subject/retake', auth.requireKid, (req, re
   db.prepare('UPDATE subject_state SET placed=0 WHERE kid_id=? AND subject=?').run(req.kid.id, subject);
   placements.delete(`${req.kid.id}:${subject}`);
   res.json({ ok: true });
+});
+
+// ---------- admin (owner only) ----------
+router.get('/admin/overview', auth.requireAdmin, (req, res) => {
+  const g = q => db.prepare(q).get();
+  const totals = {
+    parents: g('SELECT COUNT(*) AS n FROM parents').n,
+    kids: g('SELECT COUNT(*) AS n FROM kids').n,
+    answersAllTime: g('SELECT COUNT(*) AS n FROM activity_log').n,
+    answersWeek: g("SELECT COUNT(*) AS n FROM activity_log WHERE ts >= datetime('now','-7 days')").n,
+    answersToday: g("SELECT COUNT(*) AS n FROM activity_log WHERE date(ts)=date('now')").n,
+    activeKidsWeek: g("SELECT COUNT(DISTINCT kid_id) AS n FROM activity_log WHERE ts >= datetime('now','-7 days')").n,
+    certificates: g('SELECT COUNT(*) AS n FROM certificates').n
+  };
+  const byStatus = Object.fromEntries(db.prepare('SELECT sub_status, COUNT(*) AS n FROM parents GROUP BY sub_status').all().map(r => [r.sub_status, r.n]));
+  const activeByPlan = db.prepare("SELECT sub_plan, COUNT(*) AS n FROM parents WHERE sub_status='active' GROUP BY sub_plan").all();
+  const PRICES = { solo: 29, family: 49 };
+  const mrr = activeByPlan.reduce((t, r) => t + (PRICES[r.sub_plan] || 0) * r.n, 0);
+  const signups = db.prepare("SELECT date(created_at) AS d, COUNT(*) AS n FROM parents WHERE created_at >= datetime('now','-14 days') GROUP BY date(created_at)").all();
+  const recent = db.prepare(`SELECT p.id, p.email, p.name, p.sub_status, p.sub_plan, p.trial_ends, p.created_at,
+      (SELECT COUNT(*) FROM kids k WHERE k.parent_id=p.id) AS kids,
+      (SELECT COUNT(*) FROM activity_log a JOIN kids k2 ON a.kid_id=k2.id WHERE k2.parent_id=p.id AND a.ts >= datetime('now','-7 days')) AS weekAnswers
+    FROM parents p ORDER BY p.created_at DESC LIMIT 25`).all();
+  const gradeBands = db.prepare(`SELECT CASE WHEN grade<=2 THEN 'K-2' WHEN grade<=5 THEN '3-5' WHEN grade<=8 THEN '6-8' ELSE '9-12' END AS band, COUNT(*) AS n FROM kids GROUP BY band`).all();
+  res.json({ totals, byStatus, mrr, signups, recent, gradeBands });
 });
 
 // ---------- family weekly stats (sibling leaderboard) ----------

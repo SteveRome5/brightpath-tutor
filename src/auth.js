@@ -20,7 +20,28 @@ function verifyParent(email, password) {
   if (!p) return null;
   const hash = hashPassword(password, p.salt);
   const ok = crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(p.password_hash));
+  if (ok) syncAdminFlag(p);
   return ok ? p : null;
+}
+
+// The account whose email matches ADMIN_EMAIL (env) is the owner/admin.
+function syncAdminFlag(p) {
+  const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
+  if (adminEmail && p.email === adminEmail && !p.is_admin) {
+    db.prepare('UPDATE parents SET is_admin=1 WHERE id=?').run(p.id);
+    p.is_admin = 1;
+  }
+}
+
+function requireAdmin(req, res, next) {
+  const s = getSession(req.cookies.bp_session);
+  if (!s || s.kind !== 'parent') return res.status(401).json({ error: 'Not signed in' });
+  const p = db.prepare('SELECT * FROM parents WHERE id=?').get(s.ref_id);
+  if (!p) return res.status(401).json({ error: 'Account not found' });
+  syncAdminFlag(p);
+  if (!p.is_admin) return res.status(403).json({ error: 'Admin access only' });
+  req.parent = p;
+  next();
 }
 
 function createSession(kind, refId) {
@@ -74,4 +95,4 @@ function requireActiveSub(req, res, next) {
   return res.status(402).json({ error: 'subscription_required', message: 'Your free trial has ended. Subscribe to keep learning!' });
 }
 
-module.exports = { createParent, verifyParent, createSession, getSession, destroySession, requireParent, requireKid, requireActiveSub };
+module.exports = { createParent, verifyParent, createSession, getSession, destroySession, requireParent, requireKid, requireActiveSub, requireAdmin, syncAdminFlag };
