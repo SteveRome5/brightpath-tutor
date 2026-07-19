@@ -94,6 +94,52 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_activity_kid_ts ON activity_log(kid_id, ts);
+
+CREATE TABLE IF NOT EXISTS avatar_items (
+  kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+  item_id TEXT NOT NULL,
+  bought_at TEXT DEFAULT (datetime('now')),
+  PRIMARY KEY (kid_id, item_id)
+);
+
+CREATE TABLE IF NOT EXISTS game_scores (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+  game TEXT NOT NULL,
+  score INTEGER NOT NULL,
+  ts TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS buddy_invites (
+  code TEXT PRIMARY KEY,
+  kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS buddies (
+  kid_a INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+  kid_b INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+  created_at TEXT DEFAULT (datetime('now')),
+  PRIMARY KEY (kid_a, kid_b)
+);
+
+CREATE TABLE IF NOT EXISTS cheers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  from_kid INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+  to_kid INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+  cheer_id TEXT NOT NULL,
+  seen INTEGER DEFAULT 0,
+  ts TEXT DEFAULT (datetime('now'))
+);
 `);
+
+// Column migrations for existing databases (safe to re-run)
+for (const stmt of [
+  "ALTER TABLE kids ADD COLUMN avatar_config TEXT",
+  "ALTER TABLE kids ADD COLUMN play_tokens INTEGER DEFAULT 3",
+  "ALTER TABLE kids ADD COLUMN correct_since_token INTEGER DEFAULT 0"
+]) {
+  try { db.exec(stmt); } catch (e) { /* column already exists */ }
+}
 
 module.exports = db;

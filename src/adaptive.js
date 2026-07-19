@@ -155,6 +155,17 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
   updateStreak(kidId);
 
   const events = [];
+  // Learn-to-play: every 5 correct answers earns a Play Zone token (max 9 banked)
+  if (correct) {
+    const k = db.prepare('SELECT play_tokens, correct_since_token FROM kids WHERE id=?').get(kidId);
+    let cst = (k.correct_since_token || 0) + 1;
+    if (cst >= 5 && (k.play_tokens || 0) < 9) {
+      db.prepare('UPDATE kids SET play_tokens = play_tokens + 1, correct_since_token = 0 WHERE id=?').run(kidId);
+      events.push({ type: 'token', tokens: (k.play_tokens || 0) + 1 });
+    } else {
+      db.prepare('UPDATE kids SET correct_since_token = ? WHERE id=?').run(cst >= 5 ? 0 : cst, kidId);
+    }
+  }
   // level-up check: all current-level skills mastered
   const state = getSubjectState(kidId, subject);
   const lvl = Math.round(state.level);

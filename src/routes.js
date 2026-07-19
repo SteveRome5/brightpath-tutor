@@ -5,8 +5,10 @@ const auth = require('./auth');
 const adaptive = require('./adaptive');
 const content = require('./content');
 const billing = require('./stripe');
+const play = require('./play');
 
 const router = express.Router();
+router.use(play.router);
 const COOKIE_OPTS = { httpOnly: true, sameSite: 'lax', maxAge: 90 * 86400000, secure: process.env.NODE_ENV === 'production' };
 const AVATARS = ['fox', 'panda', 'dragon', 'unicorn', 'robot', 'astronaut', 'tiger', 'octopus'];
 
@@ -78,7 +80,8 @@ router.get('/auth/me', (req, res) => {
 });
 
 function publicKid(k) {
-  return { id: k.id, name: k.name, avatar: k.avatar, grade: k.grade, xp: k.xp, coins: k.coins, streak: k.streak, calendar_mode: k.calendar_mode, weekly_goal: k.weekly_goal };
+  let cfg = null; try { cfg = k.avatar_config ? JSON.parse(k.avatar_config) : null; } catch (e) {}
+  return { id: k.id, name: k.name, avatar: k.avatar, avatar_config: cfg, grade: k.grade, xp: k.xp, coins: k.coins, streak: k.streak, play_tokens: k.play_tokens || 0, calendar_mode: k.calendar_mode, weekly_goal: k.weekly_goal };
 }
 
 // ---------- kid management (parent) ----------
