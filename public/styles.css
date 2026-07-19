@@ -310,6 +310,29 @@ body[data-theme="academy"] .zone-card .zemoji { font-size: 1.5rem; }
 body[data-theme="academy"] .kid-header h1 { font-size: 1.5rem; }
 body[data-theme="academy"] .big-emoji { font-size: 3.4rem; }
 
+/* ===== Printable certificate ===== */
+.cert-frame { background: #fdfcf8; border: 10px solid #1f5e46; border-radius: 6px; padding: 10px; box-shadow: var(--shadow); }
+.cert-inner { border: 2px solid #c9971c; border-radius: 2px; padding: 44px 40px 36px; text-align: center; position: relative; }
+.cert-inner::before, .cert-inner::after { content: '✦'; position: absolute; color: #c9971c; font-size: 1.1rem; top: 12px; }
+.cert-inner::before { left: 16px; } .cert-inner::after { right: 16px; }
+.cert-crest { width: 92px; height: 92px; margin-bottom: 10px; }
+.cert-academy { font-family: var(--font-display); font-weight: 700; letter-spacing: .32em; font-size: .85rem; color: #1f5e46; }
+.cert-title { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.9rem, 5vw, 2.8rem); color: #16213a; margin: 10px 0 2px; }
+.cert-rule { width: 120px; height: 3px; background: #c9971c; margin: 12px auto 18px; border-radius: 2px; }
+.cert-line { color: #7d8496; font-size: .98rem; margin: 6px 0; }
+.cert-name { font-family: var(--font-display); font-weight: 800; font-size: clamp(2rem, 6vw, 3.2rem); color: #1f5e46; margin: 6px 0; }
+.cert-achievement { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.2rem, 3.5vw, 1.7rem); color: #16213a; margin: 6px 0 4px; }
+.cert-date { color: #7d8496; font-size: .9rem; margin-top: 14px; }
+.cert-footer { display: flex; justify-content: space-between; gap: 30px; margin-top: 34px; }
+.cert-sig { flex: 1; font-size: .8rem; color: #7d8496; font-weight: 600; }
+.cert-sigline { display: block; border-top: 1.5px solid #16213a; margin-bottom: 6px; }
+@media print {
+  .topbar, .no-print { display: none !important; }
+  body { background: #fff !important; }
+  .container { max-width: none !important; padding: 0 !important; }
+  .cert-frame { box-shadow: none; margin: 0; }
+}
+
 /* Lightning Round */
 .blitz-timer { height: 12px; border-radius: 999px; background: rgba(255,255,255,.25); overflow: hidden; margin-bottom: 14px; }
 .blitz-fill { height: 100%; background: linear-gradient(90deg, #2fae7d, #c9971c); transition: width 1s linear; }

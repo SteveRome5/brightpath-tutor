@@ -934,6 +934,25 @@ route('report', async (kidId) => {
         </div>`).join('')}
       </div>
     </div>
+    ${isParent && r.history ? (() => {
+      const H = r.history, max = Math.max(1, ...H.map(x => x.answers));
+      const total = H.reduce((t, x) => t + x.answers, 0);
+      const corr = H.reduce((t, x) => t + x.correct, 0);
+      const activeDays = H.filter(x => x.answers > 0).length;
+      const bars = H.map((x, i) => {
+        const h = Math.round(x.answers / max * 70);
+        const acc = x.answers ? x.correct / x.answers : 0;
+        const col = !x.answers ? '#e3e0d8' : acc >= 0.8 ? '#1f8a5f' : acc >= 0.55 ? '#c9971c' : '#d97b4f';
+        return `<g><rect x="${i * 34 + 4}" y="${86 - h}" width="26" height="${Math.max(3, h)}" rx="4" fill="${col}"/>
+          <text x="${i * 34 + 17}" y="99" font-size="8" text-anchor="middle" fill="#98a0af">${x.day.slice(8)}</text></g>`;
+      }).join('');
+      return `<div class="card">
+        <h3>📈 Last 14 days</h3>
+        <p class="muted" style="margin:4px 0 10px">${total} questions · ${total ? Math.round(corr / total * 100) : 0}% correct · active ${activeDays} of 14 days</p>
+        <svg viewBox="0 0 480 104" style="width:100%;height:auto" role="img" aria-label="Daily activity chart">${bars}</svg>
+        <p class="muted" style="font-size:.78rem;margin-top:6px">Bar height = questions answered · <span style="color:#1f8a5f">■</span> 80%+ correct · <span style="color:#c9971c">■</span> 55–79% · <span style="color:#d97b4f">■</span> below 55%</p>
+      </div>`;
+    })() : ''}
     <div class="card">
       <h3>🏅 Badges</h3>
       <div class="badge-shelf" style="margin-top:10px">
@@ -944,12 +963,13 @@ route('report', async (kidId) => {
       <h3>🎓 Certificates</h3>
       <div style="margin-top:10px">
         ${r.certificates.length ? r.certificates.map(c => `
-          <div class="cert"><b>🎓 ${esc(c.title)}</b><br><span class="muted">Awarded ${esc(c.issued_at.slice(0, 10))} · Gallop Learning Academy certifies mastery of ${esc(c.title.replace(' Complete!', ''))}</span></div>`).join('')
+          <div class="cert" style="cursor:pointer" data-cert="${c.id}"><b>🎓 ${esc(c.title)}</b><br><span class="muted">Awarded ${esc(c.issued_at.slice(0, 10))} · tap to view & print the certificate 🖨️</span></div>`).join('')
         : '<p class="muted">Complete every skill in a grade level to earn a printable certificate!</p>'}
       </div>
     </div>
   </div>`);
   wireChrome();
+  document.querySelectorAll('[data-cert]').forEach(el => el.onclick = () => { Sound.click(); location.hash = `#certificate/${kidId}/${el.dataset.cert}`; });
   document.querySelectorAll('[data-retake]').forEach(b => b.onclick = async () => {
     const sub = b.dataset.retake;
     if (!confirm(`Retake the ${sub} placement quiz? ${esc(k.name)} will re-do the short assessment next time they open ${sub} — progress and badges are kept.`)) return;
@@ -958,6 +978,39 @@ route('report', async (kidId) => {
     b.textContent = '✅ Placement reset — quiz runs on next visit';
     b.disabled = true;
   });
+});
+
+// ======================= printable certificate =======================
+route('certificate', async (kidId, certId) => {
+  const r = await api(`/learn/${kidId}/report`);
+  const c = (r.certificates || []).find(x => String(x.id) === String(certId));
+  if (!c) { location.hash = '#report/' + kidId; return; }
+  const achievement = c.title.replace(' Complete!', '');
+  const date = new Date(c.issued_at + 'Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  app().innerHTML = topbar(`<div class="container" style="max-width:860px">
+    <div class="cert-frame">
+      <div class="cert-inner">
+        <img src="/logo-roundel.svg" alt="" class="cert-crest">
+        <div class="cert-academy">GALLOP LEARNING ACADEMY</div>
+        <div class="cert-title">Certificate of Mastery</div>
+        <div class="cert-rule"></div>
+        <p class="cert-line">This certifies that</p>
+        <div class="cert-name">${esc(r.kid.name)}</div>
+        <p class="cert-line">has demonstrated complete mastery of every skill in</p>
+        <div class="cert-achievement">${esc(achievement)}</div>
+        <p class="cert-date">Awarded ${esc(date)}</p>
+        <div class="cert-footer">
+          <div class="cert-sig"><span class="cert-sigline"></span>Gallop Learning Academy</div>
+          <div class="cert-sig"><span class="cert-sigline"></span>The Tutor That Knows Your Kid</div>
+        </div>
+      </div>
+    </div>
+    <div class="center no-print" style="margin-top:18px">
+      <button class="btn" onclick="window.print()">🖨️ Print Certificate</button>
+      <button class="btn ghost small" style="color:#1f5e46;border-color:#1f5e46;margin-left:8px" onclick="location.hash='#report/${kidId}'">← Back to Report</button>
+    </div>
+  </div>`);
+  wireChrome();
 });
 
 // ======================= paywall =======================
