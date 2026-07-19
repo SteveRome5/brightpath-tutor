@@ -109,6 +109,20 @@ function maxGrade(subject) {
 // (3) sprinkle review of mastered skills to keep them fresh.
 function nextActivity(kidId, subject) {
   const { state, zone } = activeSkills(kidId, subject);
+  // Spaced retention: ~1 in 8 questions resurfaces an old mastered skill
+  // (last seen 3+ days ago) so learning actually STICKS — the science of review.
+  if (Math.random() < 0.12) {
+    const old = db.prepare(`SELECT * FROM skill_state WHERE kid_id=? AND subject=? AND mastery >= ?
+      AND (last_seen IS NULL OR last_seen < datetime('now','-3 days'))`).all(kidId, subject, MASTERED);
+    if (old.length) {
+      const r = old[Math.floor(Math.random() * old.length)];
+      const sk = content.getSkill(subject, r.skill_id);
+      if (sk) {
+        const question = content.generateQuestion(subject, sk.id, Math.max(0.3, r.mastery - 0.2));
+        if (question) return { question, mode: 'retention', level: state.level, skill: { id: sk.id, name: sk.name, grade: sk.grade, mastery: r.mastery } };
+      }
+    }
+  }
   const states = zone.map(s => ({ skill: s, st: getSkillState(kidId, subject, s.id) }));
 
   const struggling = states.filter(x => x.st.attempts >= 3 && x.st.mastery < STRUGGLING);
