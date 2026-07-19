@@ -20,25 +20,33 @@ const AVATAR_CATALOG = {
     { id: 'none', emoji: '', price: 0 }, { id: 'crown', emoji: '👑', price: 25 },
     { id: 'tophat', emoji: '🎩', price: 15 }, { id: 'cap', emoji: '🧢', price: 10 },
     { id: 'party', emoji: '🥳', price: 15 }, { id: 'grad', emoji: '🎓', price: 20 },
-    { id: 'cowboy', emoji: '🤠', price: 15 }, { id: 'halo', emoji: '😇', price: 30 }
+    { id: 'cowboy', emoji: '🤠', price: 15 }, { id: 'halo', emoji: '😇', price: 30 },
+    { id: 'headphones', emoji: '🎧', price: 20 }, { id: 'flower', emoji: '🌺', price: 15 },
+    { id: 'helmet', emoji: '⛑️', price: 15 }, { id: 'santa', emoji: '🎅', price: 30 }
   ],
   accessory: [
     { id: 'none', emoji: '', price: 0 }, { id: 'glasses', emoji: '👓', price: 10 },
     { id: 'sunglasses', emoji: '🕶️', price: 15 }, { id: 'bowtie', emoji: '🎀', price: 10 },
     { id: 'medal', emoji: '🏅', price: 20 }, { id: 'guitar', emoji: '🎸', price: 25 },
-    { id: 'wand', emoji: '🪄', price: 25 }, { id: 'skateboard', emoji: '🛹', price: 20 }
+    { id: 'wand', emoji: '🪄', price: 25 }, { id: 'skateboard', emoji: '🛹', price: 20 },
+    { id: 'trophy', emoji: '🏆', price: 35 }, { id: 'books', emoji: '📚', price: 15 },
+    { id: 'soccer', emoji: '⚽', price: 15 }, { id: 'controller', emoji: '🎮', price: 25 }
   ],
   bg: [
     { id: 'purple', emoji: '💜', price: 0 }, { id: 'rainbow', emoji: '🌈', price: 20 },
     { id: 'space', emoji: '🌌', price: 25 }, { id: 'beach', emoji: '🏖️', price: 20 },
     { id: 'castle', emoji: '🏰', price: 30 }, { id: 'volcano', emoji: '🌋', price: 30 },
-    { id: 'city', emoji: '🌆', price: 20 }, { id: 'garden', emoji: '🌻', price: 15 }
+    { id: 'city', emoji: '🌆', price: 20 }, { id: 'garden', emoji: '🌻', price: 15 },
+    { id: 'sunset', emoji: '🌅', price: 20 }, { id: 'winter', emoji: '❄️', price: 25 },
+    { id: 'spooky', emoji: '🎃', price: 30 }, { id: 'holiday', emoji: '🎄', price: 30 }
   ],
   pet: [
     { id: 'none', emoji: '', price: 0 }, { id: 'pup', emoji: '🐶', price: 30 },
     { id: 'kitten', emoji: '🐱', price: 30 }, { id: 'bunny', emoji: '🐰', price: 25 },
     { id: 'turtle', emoji: '🐢', price: 25 }, { id: 'butterfly', emoji: '🦋', price: 20 },
-    { id: 'dino', emoji: '🦕', price: 40 }, { id: 'sloth', emoji: '🦥', price: 35 }
+    { id: 'dino', emoji: '🦕', price: 40 }, { id: 'sloth', emoji: '🦥', price: 35 },
+    { id: 'owl', emoji: '🦉', price: 30 }, { id: 'hamster', emoji: '🐹', price: 25 },
+    { id: 'parrot', emoji: '🦜', price: 30 }, { id: 'pony', emoji: '🐴', price: 45 }
   ]
 };
 const CHEER_LIST = [
