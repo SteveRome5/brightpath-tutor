@@ -182,7 +182,12 @@ const skills = [
       { p: 'For FEELINGS and locations ("I am tired," "I am at home"), use…', a: 'estar', w: ['ser', 'hablar', 'comer'], h: 'How you feel and where you are — estar.', e: 'Estoy cansado = I am tired (right now).' },
       { p: 'Pick the correct one: "Yo ___ estudiante." (I am a student)', a: 'soy', w: ['estoy', 'eres', 'está'], h: 'Being a student is your identity → ser.', e: 'Yo soy estudiante — identity uses ser!' },
       { p: 'Pick the correct one: "La sopa ___ caliente." (The soup is hot right now)', a: 'está', w: ['es', 'soy', 'eres'], h: 'Temperature right now = a current state.', e: 'La sopa está caliente — current conditions use estar! 🍜' },
-      { p: '"¿Dónde estás?" asks…', a: 'Where are you?', w: ['Who are you?', 'How old are you?', 'What do you want?'], h: 'Location → estar.', e: '¿Dónde estás? = Where are you (located)?' }
+      { p: '"¿Dónde estás?" asks…', a: 'Where are you?', w: ['Who are you?', 'How old are you?', 'What do you want?'], h: 'Location → estar.', e: '¿Dónde estás? = Where are you (located)?' },
+      { p: 'Pick the correct one: "Mi abuela ___ de México." (My grandma is from Mexico)', a: 'es', w: ['está', 'estoy', 'estás'], h: 'Origin is permanent → ser.', e: 'Where you\'re FROM never changes → ser: es de México.' },
+      { p: 'Pick the correct one: "Los niños ___ en el parque." (The kids are at the park)', a: 'están', w: ['son', 'es', 'soy'], h: 'Location right now → estar.', e: 'Location always takes estar: están en el parque. 🌳' },
+      { p: '"Estoy feliz" vs "Soy feliz" — what\'s the difference?', a: 'Estoy = happy right now; Soy = a happy person in general', w: ['They mean exactly the same', 'Estoy is past tense', 'Soy is a question'], h: 'Temporary mood vs permanent personality!', e: 'Estar = state today; ser = who you are. Both happy! 😊' },
+      { p: 'Pick the correct one: "El café ___ frío." (The coffee has gone cold)', a: 'está', w: ['es', 'eres', 'somos'], h: 'It wasn\'t always cold — current condition!', e: 'A changeable condition → está frío. ☕' },
+      { p: '"Mis padres son doctores" uses SER because being a doctor is…', a: 'a profession/identity (lasting)', w: ['a temporary mood', 'a location', 'a question'], h: 'Jobs and identity take ser.', e: 'Professions use ser: son doctores. 🩺' }
     ])
   },
   {
@@ -210,7 +215,12 @@ const skills = [
       { p: '"¿Cuándo es la fiesta?" asks ___ the party is.', a: 'when', w: ['where', 'why', 'whose'], h: 'It\'s about time/dates.', e: '¿Cuándo? = When? 🗓️' },
       { p: '"¿Por qué?" asks…', a: 'Why?', w: ['How many?', 'Which?', 'Where?'], h: 'The answer often starts with "porque" (because)!', e: '¿Por qué? = Why? Porque = because. Twins with different jobs!' },
       { p: '"¿Cuánto cuesta?" is essential for shopping. It means…', a: 'How much does it cost?', w: ['Where is the store?', 'What color is it?', 'Can I try it on?'], h: 'You ask it at the register. 💰', e: '¿Cuánto cuesta? = How much? Your travel-shopping superpower!' },
-      { p: '"¿Quién es tu maestro favorito?" asks about your favorite…', a: 'teacher (who?)', w: ['food (what?)', 'place (where?)', 'time (when?)'], h: '¿Quién? asks about a person.', e: '¿Quién? = Who? Maestro = teacher!' }
+      { p: '"¿Quién es tu maestro favorito?" asks about your favorite…', a: 'teacher (who?)', w: ['food (what?)', 'place (where?)', 'time (when?)'], h: '¿Quién? asks about a person.', e: '¿Quién? = Who? Maestro = teacher!' },
+      { p: '"¿Cómo se dice \'library\' en español?" is THE question for learners. It asks…', a: 'How do you say "library" in Spanish?', w: ['Where is the library?', 'Do you like libraries?', 'When does the library open?'], h: '¿Cómo se dice...? = How do you say...?', e: 'Your best learning tool! (Answer: la biblioteca 📚)' },
+      { p: '"¿Cuántos años tienes?" asks…', a: 'How old are you?', w: ['How tall are you?', 'How many pets do you have?', 'What year is it?'], h: 'Literally "how many years do you have?"', e: '¿Cuántos años tienes? = How old are you? Tengo diez años!' },
+      { p: '"¿Dónde está el aeropuerto?" would you ask when you need…', a: 'directions to the airport', w: ['a plane ticket price', 'the flight time', 'a taxi\'s name'], h: '¿Dónde? = where!', e: '¿Dónde está...? = Where is...? Travel essential! ✈️' },
+      { p: 'Which question word asks "WHICH one?"', a: '¿Cuál?', w: ['¿Quién?', '¿Cuándo?', '¿Por qué?'], h: '¿Cuál es tu color favorito?', e: '¿Cuál? = Which? ¿Cuál prefieres? = Which do you prefer?' },
+      { p: 'Spanish questions start with an upside-down mark: ¿ — why?', a: 'It signals a question is coming before you read it', w: ['It\'s a typo tradition', 'It marks loud speech', 'It replaces the period'], h: 'Helpful warning at the START!', e: 'Spanish brackets questions ¿like this? — you know the tone from word one!' }
     ])
   },
   {
