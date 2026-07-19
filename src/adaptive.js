@@ -281,7 +281,16 @@ function reportCard(kidId) {
       placed: !!state.placed, avgMastery: avg, letter: avg == null ? '—' : letterGrade(avg),
       questionsAnswered: agg.n || 0, accuracy: agg.n ? (agg.c / agg.n) : null,
       strengths: strengths.map(r => nameOf(r.skill_id)),
-      focusAreas: focus.map(r => nameOf(r.skill_id))
+      focusAreas: focus.map(r => nameOf(r.skill_id)),
+      // full per-skill drill-down for parents
+      skills: rows.sort((a, b) => b.mastery - a.mastery).slice(0, 24).map(r => {
+        const sk = content.getSkill(sub, r.skill_id);
+        return {
+          name: sk ? sk.name : r.skill_id, grade: sk ? sk.grade : null,
+          mastery: r.mastery, attempts: r.attempts,
+          accuracy: r.attempts ? r.correct / r.attempts : null
+        };
+      })
     };
   });
   const badges = db.prepare(`SELECT badge_id, earned_at FROM badges WHERE kid_id=?`).all(kidId)

@@ -180,6 +180,29 @@ router.post('/buddies/accept', auth.requireParent, (req, res) => {
   res.json({ ok: true, buddyName: other ? other.name : 'buddy' });
 });
 
+// ---------- Team Gallop: co-op weekly goal per buddy pair ----------
+const TEAM_GOAL = 100;       // combined answers in the last 7 days
+const TEAM_REWARD = 10;      // coins for EACH kid
+function weekKey() { return db.prepare("SELECT strftime('%Y-%W','now') AS w").get().w; }
+function teamProgress(kidId, buddyId) {
+  const row = db.prepare(`SELECT COUNT(*) AS n FROM activity_log WHERE kid_id IN (?,?) AND ts >= datetime('now','-7 days')`).get(kidId, buddyId);
+  const [a, b] = [Math.min(kidId, buddyId), Math.max(kidId, buddyId)];
+  const claimed = db.prepare('SELECT 1 FROM team_rewards WHERE kid_a=? AND kid_b=? AND week=?').get(a, b, weekKey());
+  return { combined: row.n || 0, goal: TEAM_GOAL, reward: TEAM_REWARD, done: (row.n || 0) >= TEAM_GOAL, claimed: !!claimed };
+}
+
+router.post('/buddies/:kidId/team-claim', auth.requireKid, (req, res) => {
+  const buddyId = Number((req.body || {}).buddyId);
+  const [a, b] = [Math.min(req.kid.id, buddyId), Math.max(req.kid.id, buddyId)];
+  if (!db.prepare('SELECT 1 FROM buddies WHERE kid_a=? AND kid_b=?').get(a, b)) return res.status(403).json({ error: 'Not buddies' });
+  const t = teamProgress(req.kid.id, buddyId);
+  if (!t.done) return res.status(400).json({ error: `Team goal not reached yet — ${t.combined}/${t.goal} answers this week!` });
+  if (t.claimed) return res.json({ ok: true, alreadyClaimed: true });
+  db.prepare('INSERT INTO team_rewards (kid_a, kid_b, week) VALUES (?,?,?)').run(a, b, weekKey());
+  db.prepare('UPDATE kids SET coins = coins + ? WHERE id IN (?,?)').run(TEAM_REWARD, a, b);
+  res.json({ ok: true, coinsEach: TEAM_REWARD });
+});
+
 // Kid: list buddies with friendly stats + cheer inbox
 router.get('/buddies/:kidId', auth.requireKid, (req, res) => {
   const rows = db.prepare('SELECT * FROM buddies WHERE kid_a=? OR kid_b=?').all(req.kid.id, req.kid.id);
@@ -188,7 +211,7 @@ router.get('/buddies/:kidId', auth.requireKid, (req, res) => {
     const k = db.prepare('SELECT * FROM kids WHERE id=?').get(otherId);
     if (!k) return null;
     const badges = db.prepare('SELECT COUNT(*) AS n FROM badges WHERE kid_id=?').get(otherId).n;
-    return { id: k.id, name: k.name, avatar: k.avatar, avatar_config: safeJson(k.avatar_config), streak: k.streak, xp: k.xp, badges };
+    return { id: k.id, name: k.name, avatar: k.avatar, avatar_config: safeJson(k.avatar_config), streak: k.streak, xp: k.xp, badges, team: teamProgress(req.kid.id, otherId) };
   }).filter(Boolean);
   const inbox = db.prepare(`SELECT c.id, c.cheer_id, c.seen, c.ts, k.name AS from_name, k.avatar AS from_avatar
     FROM cheers c JOIN kids k ON k.id = c.from_kid WHERE c.to_kid=? ORDER BY c.id DESC LIMIT 30`).all(req.kid.id);

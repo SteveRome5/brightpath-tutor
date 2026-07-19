@@ -134,6 +134,13 @@ CREATE TABLE IF NOT EXISTS challenges (
   resolved_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS team_rewards (
+  kid_a INTEGER NOT NULL,
+  kid_b INTEGER NOT NULL,
+  week TEXT NOT NULL,                       -- ISO year-week
+  PRIMARY KEY (kid_a, kid_b, week)
+);
+
 CREATE TABLE IF NOT EXISTS daily_quests (
   kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
   day TEXT NOT NULL,                        -- YYYY-MM-DD (UTC)
