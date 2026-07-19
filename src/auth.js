@@ -9,7 +9,8 @@ function hashPassword(password, salt) {
 function createParent(email, name, password) {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = hashPassword(password, salt);
-  const info = db.prepare('INSERT INTO parents (email, name, password_hash, salt) VALUES (?,?,?,?)')
+  // trial_ends set explicitly (7-day trial) — existing DBs may carry an old schema default
+  const info = db.prepare("INSERT INTO parents (email, name, password_hash, salt, trial_ends) VALUES (?,?,?,?, datetime('now', '+7 days'))")
     .run(email.toLowerCase().trim(), name.trim(), hash, salt);
   return info.lastInsertRowid;
 }

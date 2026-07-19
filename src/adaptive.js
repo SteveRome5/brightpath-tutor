@@ -49,10 +49,13 @@ function placementNext(kidId, subject, history) {
   // not 2nd — starting at material they know builds confidence, and strong kids
   // step up within two questions anyway.
   let probe = subject === 'spanish' ? 0 : Math.min(Math.max(0, kid.grade - 1), maxG);
+  // Probes never climb more than 3 grades above enrollment — a strong 2nd-grade
+  // reader should NOT be shown high-school vocabulary during placement.
+  const probeCap = subject === 'spanish' ? maxG : Math.min(maxG, kid.grade + 3);
   if (history.length) {
     const last = history[history.length - 1];
     const streak = tailStreak(history);
-    if (last.correct) probe = Math.min(maxG, last.grade + (streak >= 2 ? 2 : 1));
+    if (last.correct) probe = Math.min(probeCap, last.grade + (streak >= 2 ? 2 : 1));
     else probe = Math.max(0, last.grade - (streak >= 2 ? 2 : 1));
   }
   const done = history.length >= 8 || oscillating(history);
@@ -70,7 +73,9 @@ function placementNext(kidId, subject, history) {
   const skillsAt = content.skillsForSubject(subject).filter(s => s.grade === probe);
   const pickFrom = skillsAt.length ? skillsAt : content.skillsForSubject(subject);
   const skill = pickFrom[Math.floor(Math.random() * pickFrom.length)];
-  const question = content.generateQuestion(subject, skill.id, 0.5);
+  // Placement questions run gentle (0.35): we're measuring the level, not stress-testing it.
+  // Kids prove understanding on basics first; lessons ramp difficulty afterward.
+  const question = content.generateQuestion(subject, skill.id, 0.35);
   return { done: false, probeGrade: probe, question };
 }
 
@@ -294,6 +299,16 @@ function pace(kid) {
   } else {
     start = new Date(now.getFullYear(), 7, 25); if (now < start) start = new Date(now.getFullYear() - 1, 7, 25);
     end = new Date(start.getFullYear() + 1, 5, 12); label = 'Traditional school year';
+  }
+  // Summer break (traditional & homeschool): last year ended, next hasn't started.
+  if (now > end) {
+    const nextStart = new Date(end.getFullYear(), start.getMonth(), start.getDate());
+    return {
+      label: label + ' · Summer break', summer: true,
+      startISO: nextStart.toISOString().slice(0, 10), endISO: end.toISOString().slice(0, 10),
+      pctThroughYear: 1,
+      note: `School's out! Summer practice keeps skills sharp — the ${nextStart.getFullYear()}–${nextStart.getFullYear() + 1} year starts ${nextStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.`
+    };
   }
   const pct = Math.max(0, Math.min(1, (now - start) / (end - start)));
   return { label, startISO: start.toISOString().slice(0, 10), endISO: end.toISOString().slice(0, 10), pctThroughYear: pct };

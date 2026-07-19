@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS parents (
   stripe_customer_id TEXT,
   sub_status TEXT DEFAULT 'trial',          -- trial | active | past_due | canceled
   sub_plan TEXT DEFAULT 'family',           -- solo | family
-  trial_ends TEXT DEFAULT (datetime('now', '+14 days'))
+  trial_ends TEXT DEFAULT (datetime('now', '+7 days'))
 );
 
 CREATE TABLE IF NOT EXISTS kids (

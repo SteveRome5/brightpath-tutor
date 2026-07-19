@@ -26,9 +26,27 @@ router.post('/auth/signup', (req, res) => {
     res.cookie('bp_session', token, COOKIE_OPTS);
     res.json({ ok: true });
   } catch (e) {
-    if (String(e).includes('UNIQUE')) return res.status(400).json({ error: 'That email already has an account. Try logging in!' });
+    if (String(e).includes('UNIQUE')) {
+      // Account exists — if the password matches, just log them in (no second form!)
+      const p = auth.verifyParent(email, password);
+      if (p) {
+        const token = auth.createSession('parent', p.id);
+        res.cookie('bp_session', token, COOKIE_OPTS);
+        return res.json({ ok: true, existing: true });
+      }
+      return res.status(400).json({ error: 'That email already has an account (and that password didn\'t match it). Try logging in!' });
+    }
     res.status(500).json({ error: 'Could not create account.' });
   }
+});
+
+// Parent jumps straight into their kid's session (no re-login, no PIN dance)
+router.post('/auth/enter-kid', auth.requireParent, (req, res) => {
+  const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number((req.body || {}).kidId), req.parent.id);
+  if (!kid) return res.status(404).json({ error: 'Learner not found.' });
+  const token = auth.createSession('kid', kid.id);
+  res.cookie('bp_session', token, COOKIE_OPTS);
+  res.json({ ok: true, kid: publicKid(kid) });
 });
 
 router.post('/auth/login', (req, res) => {
