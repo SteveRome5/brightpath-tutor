@@ -147,17 +147,26 @@ const Sound = (() => {
 // ======================= voice (read-aloud) =======================
 const Voice = (() => {
   let pref = localStorage.bp_autoread; // '1' on, '0' off, undefined = smart default
+  // Pick the most natural, friendly voice the device has (default robots are boring!)
+  function bestVoice(lang) {
+    const voices = speechSynthesis.getVoices();
+    const base = (lang || 'en').split('-')[0];
+    const pool = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith(base));
+    const favorites = ['Samantha', 'Google US English', 'Microsoft Aria', 'Microsoft Ava', 'Karen', 'Moira', 'Google UK English Female', 'Monica', 'Paulina', 'Google español'];
+    for (const f of favorites) { const v = pool.find(v => v.name.includes(f)); if (v) return v; }
+    return pool.find(v => /female|natural/i.test(v.name)) || pool[0] || null;
+  }
   function speak(text, lang) {
     try {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text.replace(/[🍎⭐🐤🎈🚗🐞🍓🐟🍪🐸\u{1F300}-\u{1FAFF}]/gu, ''));
-      u.rate = 0.95; u.pitch = 1.05;
+      // Little kids get a bouncy, upbeat storyteller voice; teens get a calm natural one.
+      const young = (() => { try { return State.me && State.me.kid && State.me.kid.grade <= 5; } catch (e) { return false; } })();
+      u.rate = young ? 0.92 : 1.0;
+      u.pitch = young ? 1.25 : 1.0;
       if (lang) u.lang = lang;
-      const voices = speechSynthesis.getVoices();
-      if (lang && lang.startsWith('es')) {
-        const v = voices.find(v => v.lang.startsWith('es'));
-        if (v) u.voice = v;
-      }
+      const v = bestVoice(lang || 'en-US');
+      if (v) u.voice = v;
       speechSynthesis.speak(u);
     } catch (e) { /* voice unsupported — fine */ }
   }
@@ -268,7 +277,7 @@ route('landing', async () => {
     <div class="eyebrow">Adaptive K–12 Tutoring · Math · English · Science · Spanish</div>
     <h1>A personal tutor for every child, at every level.</h1>
     <p>Gallop Learning Academy places each student precisely — subject by subject — then adapts every lesson to how they actually learn. Real-world teaching, honest progress reports, and a curriculum that grows up with your child.</p>
-    <button class="btn" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start your 14-day free trial</button>
+    <button class="btn" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start your 7-day free trial</button>
     <button class="btn ghost" style="margin-left:8px" onclick="location.hash='#kid-login'">Student sign-in</button>
     <div class="horse-runner">🐎</div>
   </div>
@@ -310,7 +319,7 @@ route('landing', async () => {
     </div>
     <div class="card reveal" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:6px">Simple plans</h2>
-      <p class="center muted" style="margin-bottom:20px">14-day free trial. Cancel anytime.</p>
+      <p class="center muted" style="margin-bottom:20px">7-day free trial. Cancel anytime.</p>
       <div class="plans">
         <div class="plan"><h3>Solo</h3><div class="price">$19<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">One student · all four subjects · full adaptive tutor & reports</p></div>
         <div class="plan hot"><span class="tag">MOST POPULAR</span><h3>Family</h3><div class="price">$29<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">Up to four students · all subjects · reports, certificates & buddies</p></div>
@@ -339,7 +348,7 @@ route('signup', async () => {
   $('#f-go').onclick = async () => {
     try {
       await api('/auth/signup', { method: 'POST', body: { name: $('#f-name').value, email: $('#f-email').value, password: $('#f-pass').value } });
-      await refreshMe(); Sound.levelup(); location.hash = '#parent';
+      await refreshMe(); Sound.levelup(); State.onboard = true; location.hash = '#parent';
     } catch (e) { showError('#f-err', e.message); }
   };
 });
@@ -497,7 +506,7 @@ route('placement', async (subject) => {
         <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}
           <button class="choice idk" data-i="-1">🤷 ${playful() ? "I haven't learned this yet" : "Haven't covered this yet"}</button>
         </div>
-        <p class="muted" style="margin-top:16px">${playful() ? 'No guessing needed! Saying "I haven\'t learned this yet" is a SMART answer — it helps me find lessons that fit you perfectly. 💜' : 'Skip anything you haven\'t covered — honest answers give you an accurate starting level.'}</p>
+        ${data.progress === 0 ? `<p class="muted" style="margin-top:16px">${playful() ? 'No guessing needed! Saying "I haven\'t learned this yet" is a SMART answer — it helps me find lessons that fit you.' : 'Skip anything you haven\'t covered — honest answers give you an accurate starting level.'}</p>` : ''}
       </div>
     </div>`);
     wireChrome();
@@ -578,14 +587,31 @@ route('lesson', async (subject) => {
       b.classList.add(correct ? 'correct' : 'wrong');
       if (!correct) document.querySelectorAll('.choice')[qn.answerIndex].classList.add('reveal');
       const fb = $('#feedback');
+      const why = whyLine(subject);
       if (correct) {
         Sound.correct(); Confetti.burst(40);
+        const praise = (playful() ? PRAISE : PRAISE_TEEN)[Math.floor(Math.random() * (playful() ? PRAISE : PRAISE_TEEN).length)];
         fb.className = 'feedback good';
-        fb.innerHTML = `<b>${(playful() ? PRAISE : PRAISE_TEEN)[Math.floor(Math.random() * (playful() ? PRAISE : PRAISE_TEEN).length)]}</b> ${esc(qn.explain || "")}<div class="why-line">🌍 <b>Real world:</b> ${esc(whyLine(subject))}</div>`;
+        fb.innerHTML = `<b>${praise}</b> ${esc(qn.explain || "")}<div class="why-line">🌍 <b>Real world:</b> ${esc(why)}</div>`;
+        if (Voice.auto && playful()) Voice.speak(praise.replace(/[^\w\s'!¡.,á-úÁ-Ú-]/g, ''));
       } else {
         Sound.wrong();
+        const enc = (playful() ? ENCOURAGE : ENCOURAGE_TEEN)[Math.floor(Math.random() * (playful() ? ENCOURAGE : ENCOURAGE_TEEN).length)];
         fb.className = 'feedback bad';
-        fb.innerHTML = `<b>${(playful() ? ENCOURAGE : ENCOURAGE_TEEN)[Math.floor(Math.random() * (playful() ? ENCOURAGE : ENCOURAGE_TEEN).length)]}</b><br>${esc(qn.explain || "")}<div class="why-line">🌍 <b>Real world:</b> ${esc(whyLine(subject))}</div>`;
+        fb.innerHTML = `<b>${enc}</b><br>${esc(qn.explain || "")}`;
+        // Big teaching moment: pop the explanation up LARGE, and make sure they saw it.
+        const pop = document.createElement('div');
+        pop.className = 'celebrate';
+        pop.innerHTML = `<div class="explain-pop">
+          <div class="big-emoji">${style.emoji}</div>
+          <h2>${playful() ? 'Let\'s learn it! 💡' : 'Here\'s the idea'}</h2>
+          <p class="explain-text">The answer is <b>${esc(qn.choices[qn.answerIndex])}</b>.<br>${esc(qn.explain || qn.hint || '')}</p>
+          <div class="why-line">🌍 <b>Real world:</b> ${esc(why)}</div>
+          <button class="btn sun" style="margin-top:14px">${playful() ? 'Got it! 👍' : 'Understood →'}</button>
+        </div>`;
+        pop.querySelector('button').onclick = () => { pop.remove(); Sound.click(); };
+        setTimeout(() => document.body.appendChild(pop), 650);
+        if (Voice.auto) Voice.speak(`The answer is ${qn.choices[qn.answerIndex]}. ${qn.explain || ''}`, 'en-US');
       }
       session.n++; if (correct) session.correct++;
       try {
@@ -660,7 +686,7 @@ route('report', async (kidId) => {
           ${isParent ? `<button class="btn ghost small no-print" style="color:#6C5CE7;border-color:#6C5CE7" onclick="location.hash='#parent'">← Dashboard</button>` : ''}
         </div>
       </div>
-      <p class="muted">${esc(r.pace.label)} · ${Math.round(r.pace.pctThroughYear * 100)}% through the year · ${r.weekAnswers} question${r.weekAnswers === 1 ? '' : 's'} this week (goal: ${k.weekly_goal * 10})</p>
+      <p class="muted">${r.pace.summer ? `☀️ ${esc(r.pace.note)}` : `${esc(r.pace.label)} · ${Math.round(r.pace.pctThroughYear * 100)}% through the year`} · ${r.weekAnswers} question${r.weekAnswers === 1 ? '' : 's'} this week (goal: ${k.weekly_goal * 10})</p>
       <div style="margin-top:18px">
       ${r.subjects.map(s => `
         <div class="subject-report">
@@ -729,15 +755,16 @@ route('parent', async () => {
       : `🔒 Subscription ${esc(p.sub_status)}`;
 
   app().innerHTML = topbar(`<div class="container">
-    <div style="color:#fff;margin-bottom:14px"><h1>Welcome, ${esc(p.name)} 👋</h1><p>${subLine} ${me.billingMode === 'demo' ? '· <i>(demo billing — add Stripe keys to charge real cards)</i>' : ''}</p></div>
+    <div class="dash-welcome" style="margin-bottom:14px"><h1>Welcome, ${esc(p.name)} 👋</h1><p>${subLine} ${me.billingMode === 'demo' ? '· <i>(demo billing — add Stripe keys to charge real cards)</i>' : ''}</p></div>
     <div class="dash-grid">
       <div class="card">
         <h3>👧 Your Learners</h3>
         <div id="kid-list" style="margin-top:12px">
           ${me.kids.length ? me.kids.map(k => `
             <div class="kid-row">
-              <span class="avatar-sm">${AVATARS[k.avatar] || '🦊'}</span>
+              <span class="avatar-sm">${avatarHTML(k)}</span>
               <div style="flex:1"><b>${esc(k.name)}</b><br><span class="muted" style="font-size:.85rem">Grade ${k.grade === 0 ? 'K' : k.grade} · 🔥${k.streak} streak · ⚡${k.xp} XP · ${esc(k.calendar_mode)}</span></div>
+              <button class="btn green small" data-start="${k.id}">▶ Start</button>
               <button class="btn small" data-report="${k.id}">📊 Report</button>
               <button class="btn coral small" data-del="${k.id}">✕</button>
             </div>`).join('') : '<p class="muted">Add your first learner below! 👇</p>'}
@@ -753,6 +780,7 @@ route('parent', async () => {
         </select>
         <label>Pick an avatar</label>
         <div class="avatar-pick" id="nk-avatars">${Object.entries(AVATARS).map(([k, e], i) => `<div class="avatar-opt${i === 0 ? ' sel' : ''}" data-a="${k}">${e}</div>`).join('')}</div>
+        <p class="muted" style="font-size:.83rem;margin-top:6px">This is just their starting look — kids fully customize it in the Avatar Builder with hats, pets & worlds they buy with coins they earn by learning. 🎨</p>
         <div class="error-msg" id="nk-err"></div>
         <button class="btn green" style="margin-top:14px;width:100%" id="nk-go">Add Learner ✨</button>
       </div>
@@ -809,10 +837,46 @@ route('parent', async () => {
   });
   $('#nk-go').onclick = async () => {
     try {
-      await api('/kids', { method: 'POST', body: { name: $('#nk-name').value, grade: Number($('#nk-grade').value), pin: $('#nk-pin').value, avatar, calendar_mode: $('#nk-cal').value } });
-      Sound.badge(); navigate();
+      const wasFirst = me.kids.length === 0;
+      const kidName = $('#nk-name').value.trim();
+      const r = await api('/kids', { method: 'POST', body: { name: kidName, grade: Number($('#nk-grade').value), pin: $('#nk-pin').value, avatar, calendar_mode: $('#nk-cal').value } });
+      Sound.badge();
+      if (wasFirst) { timeToGallop(r.kidId, kidName); return; }
+      navigate();
     } catch (e) { showError('#nk-err', e.message); }
   };
+  async function enterKid(kidId, dest) {
+    await api('/auth/enter-kid', { method: 'POST', body: { kidId } });
+    await refreshMe();
+    Sound.levelup();
+    location.hash = dest || '#home';
+    if (location.hash === (dest || '#home')) navigate();
+  }
+  // "Time to Gallop!" — straight from signup into learning, no re-login needed.
+  function timeToGallop(kidId, kidName) {
+    Confetti.burst(180); Sound.levelup();
+    const div = document.createElement('div');
+    div.className = 'celebrate';
+    div.innerHTML = `<div class="big-emoji">🐎</div><h2>Time to Gallop!</h2>
+      <p style="font-size:1.15rem;max-width:440px">${esc(kidName)} is all set up. Jump straight in — the first stop in each subject is a friendly placement quiz that finds ${esc(kidName)}'s perfect starting level.</p>
+      <button class="btn sun" id="tg-go" style="margin-top:6px">Start Learning as ${esc(kidName)} →</button>
+      <button class="btn ghost" id="tg-later" style="margin-top:10px">I'll explore the dashboard first</button>`;
+    div.querySelector('#tg-go').onclick = () => { div.remove(); enterKid(kidId, '#home'); };
+    div.querySelector('#tg-later').onclick = () => { div.remove(); navigate(); };
+    document.body.appendChild(div);
+  }
+  // Fresh signup with no learners yet? Point them at the one thing to do.
+  if (State.onboard && !me.kids.length) {
+    State.onboard = false;
+    const div = document.createElement('div');
+    div.className = 'celebrate';
+    div.innerHTML = `<div class="big-emoji">👋</div><h2>Let's get started!</h2>
+      <p style="font-size:1.15rem;max-width:420px">Welcome to Gallop Learning Academy! First step: add your learner — name, grade, and a 4-digit PIN they'll use to log in on any device.</p>
+      <button class="btn sun">Add my learner →</button>`;
+    div.querySelector('button').onclick = () => { div.remove(); const f = $('#nk-name'); if (f) { f.scrollIntoView({ behavior: 'smooth', block: 'center' }); f.focus(); } };
+    document.body.appendChild(div);
+  }
+  document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => enterKid(Number(b.dataset.start)));
   document.querySelectorAll('[data-report]').forEach(b => b.onclick = () => location.hash = '#report/' + b.dataset.report);
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
     if (confirm('Remove this learner and all their progress?')) { await api('/kids/' + b.dataset.del, { method: 'DELETE' }); navigate(); }

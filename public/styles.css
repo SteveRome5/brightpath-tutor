@@ -268,6 +268,12 @@ body[data-theme="academy"] .feedback.bad { background: #3a3222; color: #e6c877; 
 .why-line { margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(0,0,0,.15); font-weight: 500; font-size: .92rem; opacity: .92; }
 .choice.idk { border-style: dashed; opacity: .85; font-size: .95rem; background: transparent; }
 .choice.idk:hover { opacity: 1; }
+.dash-welcome { color: var(--ink); }
+.dash-welcome p { color: var(--muted, #667085); }
+.explain-pop { display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 560px; }
+.explain-pop .explain-text { font-size: 1.35rem; line-height: 1.6; font-weight: 600; }
+body[data-theme="junior"] .explain-pop .explain-text { font-size: 1.55rem; line-height: 1.65; }
+.explain-pop .why-line { border-top-color: rgba(255,255,255,.35); color: #fff; opacity: .95; font-size: 1.02rem; }
 body[data-theme="academy"] .why-line { border-top-color: rgba(255,255,255,.18); }
 .stock-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(0,0,0,.04); margin-bottom: 8px; flex-wrap: wrap; }
 body[data-theme="academy"] .stock-row { background: rgba(255,255,255,.06); }
