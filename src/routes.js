@@ -241,6 +241,16 @@ router.post('/learn/:kidId/placement/:subject/retake', auth.requireKid, (req, re
   res.json({ ok: true });
 });
 
+// ---------- family weekly stats (sibling leaderboard) ----------
+router.get('/family/stats', auth.requireParent, (req, res) => {
+  const kids = db.prepare('SELECT * FROM kids WHERE parent_id=?').all(req.parent.id);
+  const stats = kids.map(k => {
+    const w = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-7 days')").get(k.id);
+    return { id: k.id, name: k.name, avatar: k.avatar, streak: k.streak, weekAnswers: w.n || 0, weekAccuracy: w.n ? Math.round((w.c || 0) / w.n * 100) : null };
+  }).sort((a, b) => b.weekAnswers - a.weekAnswers);
+  res.json({ stats });
+});
+
 // ---------- billing ----------
 router.post('/billing/checkout', auth.requireParent, async (req, res) => {
   try {

@@ -43,6 +43,7 @@ function activeSkills(kidId, subject) {
 // Adaptive placement: start at declared grade, step up/down based on answers.
 function placementNext(kidId, subject, history) {
   // history: [{grade, correct}]
+  getSubjectState(kidId, subject); // ensure the row exists so the final UPDATE always lands
   const kid = db.prepare('SELECT grade FROM kids WHERE id=?').get(kidId);
   const maxG = maxGrade(subject);
   // Start one grade BELOW enrollment: a kid entering 2nd grade has finished 1st,
