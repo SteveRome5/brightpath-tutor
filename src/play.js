@@ -47,7 +47,7 @@ const CHEER_LIST = [
   { id: 'rocket', text: 'To the moon! 🚀' }, { id: 'clap', text: 'Amazing streak! 👏' },
   { id: 'race', text: 'Race you to the next badge! 🏁' }, { id: 'hi', text: 'Hi from your buddy! 👋' }
 ];
-const GAMES = ['memory', 'wordsearch', 'code', 'room', 'art'];
+const GAMES = ['memory', 'wordsearch', 'code', 'room', 'art', 'lemonade', 'market'];
 
 function itemFor(slot, id) { return (AVATAR_CATALOG[slot] || []).find(i => i.id === id) || null; }
 function kidPublic(k) {

@@ -45,7 +45,10 @@ function placementNext(kidId, subject, history) {
   // history: [{grade, correct}]
   const kid = db.prepare('SELECT grade FROM kids WHERE id=?').get(kidId);
   const maxG = maxGrade(subject);
-  let probe = subject === 'spanish' ? 0 : Math.min(kid.grade, maxG);
+  // Start one grade BELOW enrollment: a kid entering 2nd grade has finished 1st,
+  // not 2nd — starting at material they know builds confidence, and strong kids
+  // step up within two questions anyway.
+  let probe = subject === 'spanish' ? 0 : Math.min(Math.max(0, kid.grade - 1), maxG);
   if (history.length) {
     const last = history[history.length - 1];
     const streak = tailStreak(history);
