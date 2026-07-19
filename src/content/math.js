@@ -60,7 +60,7 @@ const skills = [
       const a = rint(1, 3), b = rint(1, d > 0.5 ? 4 : 2);
       const toy = pick(TOYS), name = pick(KID_NAMES);
       return q({
-        prompt: `${name} has ${a} ${toy}. A friend gives ${name} ${b} more. How many now?`,
+        prompt: `${name} has ${a} ${toy}.\n${name} gets ${b} more.\nHow many now?`,
         choices: numChoices(a + b, () => Math.max(1, a + b + pick([-2, -1, 1, 2]))),
         answer: a + b,
         hint: `Start at ${a} and count up ${b} more.`,
@@ -76,7 +76,7 @@ const skills = [
       const a = rint(2, d > 0.5 ? 12 : 8), b = rint(2, d > 0.5 ? 8 : 6);
       const f = pick(FOODS), name = pick(KID_NAMES);
       return q({
-        prompt: `Snack time! ${name} baked ${a} ${f} and then ${b} more. How many ${f} in all?`,
+        prompt: `${name} has ${a} ${f}.\n${name} gets ${b} more.\nHow many ${f} now?`,
         choices: numChoices(a + b),
         answer: a + b,
         hint: 'Put the bigger number in your head and count up.',
@@ -90,7 +90,7 @@ const skills = [
       const a = rint(8, d > 0.5 ? 18 : 12), b = rint(2, a - 2);
       const name = pick(KID_NAMES);
       return q({
-        prompt: `${name} had ${a} balloons at ${pick(PLACES)}. ${b} floated away! 🎈 How many are left?`,
+        prompt: `${name} had ${a} balloons. 🎈\n${b} floated away!\nHow many are left?`,
         choices: numChoices(a - b),
         answer: a - b,
         hint: `Count back from ${a}.`,
@@ -103,7 +103,7 @@ const skills = [
     gen(d) {
       const t = rint(1, d > 0.5 ? 9 : 5), o = rint(0, 9);
       return q({
-        prompt: `A juice box pack holds 10. You have ${t} full packs and ${o} extra juice boxes. How many juice boxes?`,
+        prompt: `${t} tens and ${o} ones.\nWhat number is that? 🧃`,
         choices: numChoices(t * 10 + o, () => t * 10 + o + pick([-10, 10, -1, 1, 9, -9])),
         answer: t * 10 + o,
         hint: `${t} tens is ${t * 10}. Then add the ones.`,
@@ -118,7 +118,7 @@ const skills = [
       const half = d > 0.5 && Math.random() > 0.5;
       const ans = half ? `${h}:30` : `${h}:00`;
       return q({
-        prompt: `Movie night starts when the little hand points to ${h} ${half ? 'and the big hand points to 6' : 'and the big hand points to 12'}. What time is that?`,
+        prompt: `Little hand: ${h}.\nBig hand: ${half ? '6' : '12'}.\nWhat time is it? 🕐`,
         choices: textChoices(ans, [`${h}:00`, `${h}:30`, `${(h % 12) + 1}:00`, `${(h % 12) + 1}:30`, `${h}:15`]),
         answer: ans,
         hint: 'Big hand at 12 = o’clock. Big hand at 6 = thirty.',
@@ -133,7 +133,7 @@ const skills = [
       const total = dimes * 10 + nickels * 5 + pennies;
       if (total === 0) return this.gen(d);
       return q({
-        prompt: `Piggy bank check! 🐷 You have ${dimes} dime(s), ${nickels} nickel(s), and ${pennies} penn${pennies === 1 ? 'y' : 'ies'}. How many cents?`,
+        prompt: `Your piggy bank 🐷 has:\n${dimes} dime${dimes === 1 ? '' : 's'}, ${nickels} nickel${nickels === 1 ? '' : 's'}, ${pennies} penn${pennies === 1 ? 'y' : 'ies'}.\nHow many cents?`,
         choices: numChoices(total, () => total + pick([-5, 5, -10, 10, -1, 1])).map(c => `${c}¢`),
         answer: `${total}¢`,
         hint: 'Dimes = 10¢, nickels = 5¢, pennies = 1¢.',
