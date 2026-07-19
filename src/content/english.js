@@ -27,7 +27,12 @@ const skills = [
       { p: 'Which letter makes the first sound in 🌞 "sun"?', a: 'S', w: ['Z', 'C', 'N'], h: 'Sss like a snake.', e: 'S starts sun!' },
       { p: 'Which letter makes the first sound in 🪁 "kite"?', a: 'K', w: ['C', 'T', 'I'], h: 'Kuh-kuh-kite.', e: 'K starts kite!' },
       { p: 'Which letter makes the first sound in 🌙 "moon"?', a: 'M', w: ['N', 'W', 'U'], h: 'Mmm like yummy food.', e: 'M starts moon!' },
-      { p: 'Which letter makes the first sound in 🐸 "frog"?', a: 'F', w: ['V', 'P', 'R'], h: 'Fff-frog.', e: 'F starts frog!' }
+      { p: 'Which letter makes the first sound in 🐸 "frog"?', a: 'F', w: ['V', 'P', 'R'], h: 'Fff-frog.', e: 'F starts frog!' },
+      { p: 'Which letter makes the first sound in 🍎 "apple"?', a: 'A', w: ['E', 'O', 'H'], h: 'Ah-ah-apple.', e: 'A starts apple!' },
+      { p: 'Which letter makes the first sound in 🐢 "turtle"?', a: 'T', w: ['D', 'P', 'C'], h: 'Tuh-tuh-turtle.', e: 'T starts turtle!' },
+      { p: 'Which letter makes the LAST sound in "bus" 🚌?', a: 'S', w: ['B', 'U', 'T'], h: 'Bussss…', e: 'Bus ends with the S sound!' },
+      { p: 'Which letter makes the first sound in 🌈 "rainbow"?', a: 'R', w: ['W', 'L', 'N'], h: 'Rrr-rainbow.', e: 'R starts rainbow!' },
+      { p: 'Which TWO letters together make the first sound in "ship" 🚢?', a: 'SH', w: ['CH', 'TH', 'SP'], h: 'Shhh… like being quiet!', e: 'S+H = the "sh" sound in ship!' }
     ])
   },
   {
@@ -38,7 +43,12 @@ const skills = [
       { p: 'Which word rhymes with "tree"? 🌳', a: 'bee', w: ['leaf', 'bark', 'tall'], h: 'Listen for -ee.', e: 'Tree and bee rhyme!' },
       { p: 'Which word rhymes with "cake"? 🎂', a: 'lake', w: ['cook', 'pie', 'kite'], h: 'Listen for -ake.', e: 'Cake, lake!' },
       { p: 'Which word rhymes with "star"? ⭐', a: 'car', w: ['sky', 'moon', 'stop'], h: 'Listen for -ar.', e: 'Star, car!' },
-      { p: 'Which word rhymes with "ball"? ⚽', a: 'tall', w: ['bat', 'run', 'net'], h: 'Listen for -all.', e: 'Ball, tall!' }
+      { p: 'Which word rhymes with "ball"? ⚽', a: 'tall', w: ['bat', 'run', 'net'], h: 'Listen for -all.', e: 'Ball, tall!' },
+      { p: 'Which word rhymes with "dog"? 🐶', a: 'frog', w: ['cat', 'dig', 'den'], h: 'Listen for -og.', e: 'Dog, frog — ribbit! 🐸' },
+      { p: 'Which word rhymes with "night"? 🌙', a: 'light', w: ['dark', 'sleep', 'note'], h: 'Listen for -ight.', e: 'Night, light!' },
+      { p: 'Which word does NOT rhyme with the others: bake, lake, cake, book?', a: 'book', w: ['bake', 'lake', 'cake'], h: 'Three end in -ake…', e: 'Book breaks the rhyme — it ends differently!' },
+      { p: 'Which word rhymes with "goat"? 🐐', a: 'boat', w: ['barn', 'grass', 'got'], h: 'Listen for -oat.', e: 'Goat, boat — off they float!' },
+      { p: 'Finish the silly rhyme: "The bear sat on a ___!" 🐻', a: 'chair', w: ['couch', 'log', 'floor'], h: 'It must rhyme with bear!', e: 'Bear, chair! Rhymes make poems fun.' }
     ])
   },
   {
@@ -48,7 +58,12 @@ const skills = [
       { p: 'Finish: "We ___ to the park."', a: 'go', w: ['goo', 'got', 'do'], h: 'It means to move somewhere.', e: '"We go to the park."' },
       { p: 'Finish: "___ you like pizza?" 🍕', a: 'Do', w: ['Did', 'Done', 'To'], h: 'It starts a question.', e: '"Do you like pizza?"' },
       { p: 'Finish: "The cat is ___ the box." 📦', a: 'in', w: ['on top off', 'inn', 'an'], h: 'Where do cats love to sit?', e: '"The cat is in the box."' },
-      { p: 'Finish: "I like ___ play outside."', a: 'to', w: ['too', 'two', 'so'], h: 'It comes before an action word.', e: '"I like to play."' }
+      { p: 'Finish: "I like ___ play outside."', a: 'to', w: ['too', 'two', 'so'], h: 'It comes before an action word.', e: '"I like to play."' },
+      { p: 'Finish: "She ___ my best friend."', a: 'is', w: ['are', 'am', 'be'], h: 'One person → is.', e: '"She is my best friend."' },
+      { p: 'Finish: "Look ___ the butterfly!" 🦋', a: 'at', w: ['an', 'it', 'up of'], h: 'You look ___ something.', e: '"Look at the butterfly!"' },
+      { p: 'Finish: "Can you ___ me?"', a: 'help', w: ['halp', 'helps I', 'hulp'], h: 'What do you ask when you need a hand?', e: '"Can you help me?"' },
+      { p: 'Finish: "The bird ___ fly high." 🐦', a: 'can', w: ['con', 'kan', 'must to'], h: 'It means "is able to".', e: '"The bird can fly high."' },
+      { p: 'Finish: "___ dog is fluffy."', a: 'The', w: ['A the', 'Them', 'Thee'], h: 'The most common little word in English!', e: '"The dog is fluffy."' }
     ])
   },
 
@@ -61,7 +76,12 @@ const skills = [
       { p: 'Which word has a SHORT "i" sound like in "igloo"?', a: 'fish', w: ['kite', 'time', 'ride'], h: 'Short i says "ih".', e: 'Fish has short i.' },
       { p: 'Which word has a LONG "o" sound like in "boat"? ⛵', a: 'rope', w: ['hot', 'top', 'box'], h: 'Long o says "oh".', e: 'Rope has long o.' },
       { p: 'Silent E magic! Add an e: "cap" becomes…', a: 'cape (like a superhero!)', w: ['capp', 'caps', 'cup'], h: 'The magic e makes the a say its name.', e: 'cap → cape. The e is magic! 🦸' },
-      { p: 'Silent E magic! Add an e: "kit" becomes…', a: 'kite', w: ['kitt', 'kits', 'cat'], h: 'The magic e makes the i say its name.', e: 'kit → kite. Go fly it! 🪁' }
+      { p: 'Silent E magic! Add an e: "kit" becomes…', a: 'kite', w: ['kitt', 'kits', 'cat'], h: 'The magic e makes the i say its name.', e: 'kit → kite. Go fly it! 🪁' },
+      { p: 'Which word has a LONG "a" sound like in "cake"?', a: 'rain', w: ['cat', 'map', 'bag'], h: 'Long a says its name: "ay".', e: 'Rain has the long a sound!' },
+      { p: 'Which word has a SHORT "u" sound like in "umbrella"? ☂️', a: 'duck', w: ['cute', 'use', 'tube'], h: 'Short u says "uh".', e: 'Duck has short u!' },
+      { p: 'Silent E magic! Add an e: "pin" becomes…', a: 'pine (a tall tree!)', w: ['pinn', 'pins', 'pan'], h: 'The magic e makes the i say its name.', e: 'pin → pine. 🌲' },
+      { p: 'How many vowels are in the alphabet (a, e, i, o, u)?', a: '5', w: ['3', '7', '21'], h: 'Count them: a, e, i, o, u!', e: 'Five vowels — every word needs at least one!' },
+      { p: 'Which word has TWO vowels working together: "boat", "big", or "bat"?', a: 'boat', w: ['big', 'bat', 'none of them'], h: 'Look for two vowels side by side.', e: 'Boat has o+a teaming up for the long o sound! ⛵' }
     ])
   },
   {
@@ -71,7 +91,12 @@ const skills = [
       { p: 'Which sentence is written correctly?', a: 'I like ice cream.', w: ['i like ice cream', 'I like ice cream', 'i Like Ice Cream.'], h: 'Capital letter at the start, period at the end.', e: 'Capital "I" + period = correct!' },
       { p: 'What goes at the end of a question?', a: '? (question mark)', w: ['. (period)', '! (exclamation point)', ', (comma)'], h: 'Questions ask something.', e: 'Questions always end with ?' },
       { p: 'Put it in order: "school / We / to / walk"', a: 'We walk to school.', w: ['School we to walk.', 'Walk school we to.', 'To we walk school.'], h: 'Start with WHO.', e: '"We walk to school." makes sense!' },
-      { p: 'Which word needs a CAPITAL letter? "on monday we swim"', a: 'monday', w: ['on', 'we', 'swim'], h: 'Days of the week are special names.', e: 'Days like Monday always get capitals.' }
+      { p: 'Which word needs a CAPITAL letter? "on monday we swim"', a: 'monday', w: ['on', 'we', 'swim'], h: 'Days of the week are special names.', e: 'Days like Monday always get capitals.' },
+      { p: 'What goes at the end of "Watch out for that wave"?', a: '! (exclamation point)', w: ['? (question mark)', ', (comma)', 'nothing'], h: 'It is shouted with excitement or warning!', e: 'Exclamation points show strong feeling! 🌊' },
+      { p: 'Which sentence is a QUESTION?', a: 'Where is my backpack?', w: ['I lost my backpack.', 'Find the backpack!', 'The backpack is blue.'], h: 'Questions ask for an answer.', e: 'It asks something — that is a question!' },
+      { p: 'Fix it: "my birthday is in june" — which TWO words need capitals?', a: 'My and June', w: ['my and is', 'birthday and in', 'is and in'], h: 'First word + month names.', e: 'Sentences start with capitals, and months are proper nouns!' },
+      { p: 'Which telling sentence needs a period at the end?', a: 'We planted a garden', w: ['Did you plant it', 'Wow, what a garden', 'Plant it now, hurry'], h: 'Telling sentences just share information.', e: '"We planted a garden." — statement, period!' },
+      { p: 'How many sentences: "The sun set. The stars came out. We made a wish."', a: '3', w: ['1', '2', '5'], h: 'Count the periods!', e: 'Three periods = three sentences! ⭐' }
     ])
   },
   {
@@ -80,7 +105,11 @@ const skills = [
       { p: 'Read: "Max the dog dug a hole. He hid his bone inside. Then he took a nap." What did Max hide?', a: 'his bone', w: ['his ball', 'a stick', 'his food bowl'], h: 'Read the middle sentence again.', e: 'Max hid his bone in the hole!' },
       { p: 'Read: "Lily planted a seed. She watered it every day. A sunflower grew tall!" What grew?', a: 'a sunflower', w: ['a rose', 'a tree', 'grass'], h: 'Check the last sentence.', e: 'Watering every day made the sunflower grow! 🌻' },
       { p: 'Read: "Sam lost his red mitten. He looked under the bed. It was in the dog\'s bed!" Where was the mitten?', a: "in the dog's bed", w: ['under the bed', 'in his backpack', 'outside'], h: 'The last sentence tells you.', e: 'The dog took it! 🐶' },
-      { p: 'Read: "It was raining. Mia grabbed her umbrella and boots. She jumped in every puddle." What was the weather?', a: 'rainy', w: ['sunny', 'snowy', 'windy'], h: 'The first sentence says it.', e: 'Raining — perfect puddle weather! ☔' }
+      { p: 'Read: "It was raining. Mia grabbed her umbrella and boots. She jumped in every puddle." What was the weather?', a: 'rainy', w: ['sunny', 'snowy', 'windy'], h: 'The first sentence says it.', e: 'Raining — perfect puddle weather! ☔' },
+      { p: 'Read: "Ben built a tower of blocks up to his chin. His baby sister crawled over. CRASH!" What probably happened?', a: 'His sister knocked the tower down', w: ['The blocks flew away', 'Ben grew taller', 'The tower turned real'], h: 'What do babies do to towers?', e: 'CRASH = tower down. Baby sisters! 😄' },
+      { p: 'Read: "Nora fed the fish. She fed the cat. She fed the hamster. Whew!" What is Nora doing?', a: 'taking care of her pets', w: ['eating dinner', 'playing games', 'cleaning her room'], h: 'Fed, fed, fed…', e: 'Nora is the family pet helper!' },
+      { p: 'Read: "Theo put on his helmet. He kicked off the ground and rolled down the sidewalk." What is Theo riding?', a: 'something with wheels (like a bike or scooter)', w: ['a horse', 'a boat', 'a sled'], h: 'Helmet + rolling on a sidewalk…', e: 'Rolling + helmet = wheels! Safety first. 🛴' },
+      { p: 'Read: "The popcorn popped. The lights went dark. Everyone got quiet." Where is this story happening?', a: 'at a movie', w: ['at the beach', 'at school', 'in a garden'], h: 'Popcorn + dark room + quiet…', e: 'All the clues point to movie time! 🍿' }
     ])
   },
 
@@ -93,7 +122,11 @@ const skills = [
       { p: 'Read: "First, Leo filled the bird feeder. Next, he hung it on a branch. Finally, blue jays came to eat." What happened LAST?', a: 'Blue jays came to eat', w: ['Leo filled the feeder', 'Leo hung it on a branch', 'Leo bought seeds'], h: 'Look for the word "finally".', e: '"Finally" signals the last event.' },
       { p: 'Read: "The library was silent. Zoe tiptoed past the shelves, hugging her stack of books." Why did Zoe tiptoe?', a: 'To stay quiet in the library', w: ['Her feet hurt', 'She was playing a game', 'The floor was wet'], h: 'What are libraries like?', e: 'Libraries are quiet places, so she tiptoed. 🤫' },
       { p: 'Read: "Dark clouds rolled in. The wind picked up. Everyone at the picnic started packing quickly." What will PROBABLY happen next?', a: 'It will rain', w: ['It will snow', 'The sun will shine', 'They will start eating'], h: 'Dark clouds + wind = ?', e: 'Good prediction! Those are storm signs. ⛈️' },
-      { p: 'Read: "A penguin cannot fly, but it is an amazing swimmer. It uses its wings like flippers to zoom through icy water." How does a penguin use its wings?', a: 'Like flippers for swimming', w: ['For flying high', 'To keep warm', 'To catch fish in the air'], h: 'Find the sentence about wings.', e: 'Wings = flippers underwater! 🐧' }
+      { p: 'Read: "A penguin cannot fly, but it is an amazing swimmer. It uses its wings like flippers to zoom through icy water." How does a penguin use its wings?', a: 'Like flippers for swimming', w: ['For flying high', 'To keep warm', 'To catch fish in the air'], h: 'Find the sentence about wings.', e: 'Wings = flippers underwater! 🐧' },
+      { p: 'Read: "Bats sleep all day hanging upside down. At night they wake up and hunt for insects." When do bats hunt?', a: 'at night', w: ['in the morning', 'all day', 'never'], h: '"At night they wake up…"', e: 'Bats are nocturnal — night hunters! 🦇' },
+      { p: 'Read: "Kim lost the game. She shook hands with the other team and said good game." What kind of person is Kim?', a: 'a good sport', w: ['a sore loser', 'a show-off', 'a quitter'], h: 'How did she act after LOSING?', e: 'Congratulating the winners = great sportsmanship! 🤝' },
+      { p: 'Read: "The desert gets very little rain. Cactus plants store water inside their thick stems. That is how they survive." WHY do cactuses store water?', a: 'because the desert has very little rain', w: ['because they like swimming', 'to share with animals', 'to grow flowers'], h: 'The first sentence gives the reason.', e: 'Little rain → store water. Cause and effect!' },
+      { p: 'Read: "First we mixed the flour and eggs. Then we poured the batter. Soon golden pancakes were ready!" What is this passage about?', a: 'how pancakes get made', w: ['why eggs are healthy', 'where flour comes from', 'when to eat dinner'], h: 'First… then… soon…', e: 'A how-it-happens sequence! 🥞' }
     ])
   },
   {
@@ -104,7 +137,12 @@ const skills = [
       { p: 'Which word is a PROPER noun (needs a capital)?', a: 'Texas', w: ['city', 'dog', 'teacher'], h: 'Proper nouns are specific names.', e: 'Texas is a specific place name.' },
       { p: 'Choose the right verb: "Yesterday, we ___ to the museum."', a: 'went', w: ['go', 'goes', 'going'], h: '"Yesterday" means past tense.', e: 'Past tense of go = went.' },
       { p: 'In "The gray kitten sleeps in a warm basket," which word DESCRIBES the kitten?', a: 'gray', w: ['sleeps', 'basket', 'in'], h: 'Describing words are adjectives.', e: 'Gray describes the kitten — it\'s an adjective!' },
-      { p: 'Plural time! One mouse, two ___?', a: 'mice', w: ['mouses', 'mouse', 'mices'], h: 'Some plurals are irregular — they change completely.', e: 'Mouse → mice. Tricky English! 🐭' }
+      { p: 'Plural time! One mouse, two ___?', a: 'mice', w: ['mouses', 'mouse', 'mices'], h: 'Some plurals are irregular — they change completely.', e: 'Mouse → mice. Tricky English! 🐭' },
+      { p: 'In "The children giggled loudly," which word tells HOW they giggled?', a: 'loudly', w: ['children', 'giggled', 'the'], h: 'Words ending in -ly often describe actions.', e: 'Loudly is an adverb — it describes the giggling!' },
+      { p: 'Plural time! One box, two ___?', a: 'boxes', w: ['boxs', 'boxies', 'box'], h: 'Words ending in x add -es.', e: 'box → boxes. 📦📦' },
+      { p: 'Which sentence uses the verb correctly?', a: 'The dogs bark at the mailman.', w: ['The dogs barks at the mailman.', 'The dog bark at the mailman.', 'The dogs barking the mailman.'], h: 'Many dogs → bark (no s).', e: 'Plural subject + plural verb = match!' },
+      { p: 'In "We visited the enormous aquarium," which word is the ADJECTIVE?', a: 'enormous', w: ['visited', 'aquarium', 'we'], h: 'Which word describes the aquarium?', e: 'Enormous describes the aquarium — adjective!' },
+      { p: 'Choose the right verb: "Tomorrow we ___ swim at the lake."', a: 'will', w: ['did', 'was', 'were'], h: '"Tomorrow" = future!', e: 'Will = future tense. See you at the lake! 🏊' }
     ])
   },
   {
@@ -114,7 +152,12 @@ const skills = [
       { p: '"She will win the race!" — Which contraction means "she will"?', a: "she'll", w: ["she's", "shell", "she'd"], h: 'she + will, drop the wi.', e: "she + will = she'll" },
       { p: 'What does "can\'t" mean?', a: 'cannot', w: ['can it', 'could not', 'care not'], h: 'Break it apart.', e: "can't = cannot." },
       { p: '"It is snowing!" — Which contraction fits: "___ snowing!"', a: "It's", w: ['Its', "It'is", 'Itss'], h: 'It + is, with an apostrophe.', e: "It's = it is. (Its without apostrophe means belonging to it!)" },
-      { p: 'What does "we\'re" mean?', a: 'we are', w: ['we were', 'we care', 'where'], h: 'Break it apart: we + ?', e: "we're = we are." }
+      { p: 'What does "we\'re" mean?', a: 'we are', w: ['we were', 'we care', 'where'], h: 'Break it apart: we + ?', e: "we're = we are." },
+      { p: '"I have finished my homework!" — Which contraction means "I have"?', a: "I've", w: ["I'm", "I'll", "Ive"], h: 'I + have, squished with an apostrophe.', e: "I've = I have. Homework done! 🎉" },
+      { p: 'What does "won\'t" mean?', a: 'will not', w: ['want not', 'was not', 'would not'], h: 'The trickiest contraction — it changes spelling!', e: "won't = will not. English is sneaky sometimes!" },
+      { p: '"They are coming to the party." — Which contraction means "they are"?', a: "they're", w: ['their', 'there', 'theyare'], h: 'they + are.', e: "they're = they are. (Not their or there!)" },
+      { p: 'What does "let\'s" mean in "Let\'s go!"?', a: 'let us', w: ['let is', 'lots', 'later'], h: 'Let + us, squished!', e: "Let's = let us. Let's learn more!" },
+      { p: 'Which is correct?', a: "You shouldn't run by the pool.", w: ["You should'nt run by the pool.", 'You shouldnt run by the pool.', "You sh'ouldnt run by the pool."], h: 'The apostrophe replaces the missing o in "not".', e: "should + not = shouldn't — apostrophe where the o vanished!" }
     ])
   },
   {
@@ -125,7 +168,12 @@ const skills = [
       { p: 'The kitten was TIMID and hid behind the couch. Timid means…', a: 'shy or easily scared', w: ['brave', 'sleepy', 'playful'], h: 'It HID behind the couch.', e: 'Timid = shy. The opposite of bold!' },
       { p: 'Grandpa\'s joke was HILARIOUS — everyone laughed for a minute straight! Hilarious means…', a: 'very funny', w: ['very long', 'confusing', 'quiet'], h: 'Everyone LAUGHED.', e: 'Hilarious = super funny! 😂' },
       { p: 'The detective found a CLUE under the rug. A clue is…', a: 'a hint that helps solve a mystery', w: ['a type of glue', 'a loud sound', 'a secret door'], h: 'Detectives collect these to crack the case.', e: 'Clues help solve mysteries! 🔍' },
-      { p: 'What is the OPPOSITE of "ancient"?', a: 'brand-new', w: ['very old', 'broken', 'dusty'], h: 'Ancient means very, very old.', e: 'Ancient ↔ brand-new.' }
+      { p: 'What is the OPPOSITE of "ancient"?', a: 'brand-new', w: ['very old', 'broken', 'dusty'], h: 'Ancient means very, very old.', e: 'Ancient ↔ brand-new.' },
+      { p: 'The trail was RUGGED, full of rocks and roots. Rugged means…', a: 'rough and uneven', w: ['smooth', 'short', 'colorful'], h: 'Rocks and roots everywhere!', e: 'Rugged = rough. Wear good boots! 🥾' },
+      { p: 'Dad was FAMISHED after the long hike. Famished means…', a: 'very hungry', w: ['very famous', 'very tired', 'very lost'], h: 'What do you want most after a long hike?', e: 'Famished = starving hungry!' },
+      { p: 'The magician VANISHED in a puff of smoke! Vanished means…', a: 'disappeared', w: ['danced', 'shouted', 'bowed'], h: 'Poof — gone!', e: 'Vanished = disappeared completely. 🎩✨' },
+      { p: 'Lena felt JUBILANT when her team won the championship. Jubilant means…', a: 'extremely happy', w: ['jealous', 'nervous', 'sleepy'], h: 'They WON — how would you feel?', e: 'Jubilant = bursting with joy! 🏆' },
+      { p: 'The instructions were BAFFLING — nobody could figure them out. Baffling means…', a: 'very confusing', w: ['very clear', 'very short', 'very funny'], h: 'NOBODY could figure them out.', e: 'Baffling = super confusing.' }
     ])
   },
 
@@ -138,7 +186,12 @@ const skills = [
       { p: 'Teach + er = teacher. What does the suffix "-er" mean here?', a: 'a person who does it', w: ['more of it', 'without it', 'the past'], h: 'A teacher is a person who ___.', e: '-er = the person who does it (baker, singer, gamer).' },
       { p: 'Which word means "not possible"?', a: 'impossible', w: ['unpossible', 'repossible', 'possibleless'], h: 'The prefix im- means not.', e: 'Impossible = not possible.' },
       { p: 'Care + ful = careful. What does "-ful" mean?', a: 'full of', w: ['without', 'against', 'again'], h: 'Careful = full of ___.', e: '-ful = full of. Careful = full of care.' },
-      { p: 'What does "preheat" the oven mean?', a: 'heat it BEFORE cooking', w: ['heat it twice', 'not heat it', 'heat it too much'], h: 'Pre- means before.', e: 'Pre- = before. You preheat before baking! 🍪' }
+      { p: 'What does "preheat" the oven mean?', a: 'heat it BEFORE cooking', w: ['heat it twice', 'not heat it', 'heat it too much'], h: 'Pre- means before.', e: 'Pre- = before. You preheat before baking! 🍪' },
+      { p: 'MIS-spell, MIS-place, MIS-take… What does "mis-" mean?', a: 'wrongly / badly', w: ['again', 'more', 'before'], h: 'A misspelled word is spelled ___.', e: 'Mis- = wrongly. Misplace = put in the wrong place!' },
+      { p: 'Hope + less = hopeless. What does "-less" mean?', a: 'without', w: ['full of', 'smaller', 'again'], h: 'Hopeless = ___ hope.', e: '-less = without. Fearless = without fear!' },
+      { p: 'What does "biCYCLE" literally mean? (bi- = two)', a: 'two wheels', w: ['fast wheels', 'big wheels', 'one wheel'], h: 'Bi- means two!', e: 'Bi + cycle = two wheels. A unicycle has one! 🚲' },
+      { p: 'Slow + ly = slowly. The suffix "-ly" usually makes…', a: 'a word that describes HOW something happens', w: ['a person word', 'a place word', 'the past tense'], h: 'She walked slowly = HOW she walked.', e: '-ly makes adverbs: quickly, quietly, bravely!' },
+      { p: 'Which word means "heat something AGAIN"?', a: 'reheat', w: ['preheat', 'unheat', 'misheat'], h: 're- = again.', e: 'Reheat = heat again. Leftover pizza! 🍕' }
     ])
   },
   {
@@ -149,7 +202,12 @@ const skills = [
       { p: 'Synonym for "furious"?', a: 'very angry', w: ['curious', 'furry', 'joyful'], h: 'A furious dragon breathes fire! 🐉', e: 'Furious = extremely angry.' },
       { p: 'Antonym of "victory"?', a: 'defeat', w: ['win', 'trophy', 'battle'], h: 'What\'s the opposite of winning?', e: 'Victory ↔ defeat.' },
       { p: 'Your story says "nice" 5 times! Which is the STRONGEST replacement for "The view was nice"?', a: 'breathtaking', w: ['okay', 'fine', 'good'], h: 'Which word paints the biggest picture?', e: 'Breathtaking makes writing come alive! ✨' },
-      { p: 'Synonym for "brave"?', a: 'courageous', w: ['afraid', 'careful', 'strong-smelling'], h: 'Think of a firefighter. 🚒', e: 'Brave = courageous = fearless.' }
+      { p: 'Synonym for "brave"?', a: 'courageous', w: ['afraid', 'careful', 'strong-smelling'], h: 'Think of a firefighter. 🚒', e: 'Brave = courageous = fearless.' },
+      { p: 'Antonym of "expand"?', a: 'shrink', w: ['grow', 'stretch', 'explode'], h: 'Expand means get bigger.', e: 'Expand ↔ shrink.' },
+      { p: 'Synonym for "difficult"?', a: 'challenging', w: ['easy', 'boring', 'quick'], h: 'A challenging puzzle is a ___ one.', e: 'Difficult = challenging = tough — and you can handle all three!' },
+      { p: 'Antonym of "whisper"?', a: 'shout', w: ['murmur', 'talk', 'breathe'], h: 'From quietest to loudest…', e: 'Whisper ↔ shout! 📣' },
+      { p: 'Synonym for "begin"?', a: 'commence', w: ['finish', 'pause', 'cancel'], h: 'Fancy word for start!', e: 'Begin = start = commence. Let the games commence!' },
+      { p: 'Your story says "said" 10 times! Which replacement shows the character is ANGRY?', a: 'snapped', w: ['whispered', 'giggled', 'mumbled'], h: 'Which word sounds sharp and mad?', e: '"Snapped" shows anger without saying angry — a writer trick!' }
     ])
   },
   {
@@ -159,7 +217,11 @@ const skills = [
       { p: 'Read: "The old lighthouse had guided ships for 100 years. Now its light was dark, but visitors climbed its stairs every day to see the view." What is the lighthouse used for NOW?', a: 'a place for visitors to see the view', w: ['guiding ships', 'a home', 'storing boats'], h: '"Now" starts the key sentence.', e: 'It went from guiding ships to hosting visitors.' },
       { p: 'Read: "Jamal practiced his lines every night for two weeks. On opening night, he didn\'t miss a single word." What LESSON does this story teach?', a: 'Practice leads to success', w: ['Plays are scary', 'Never memorize lines', 'Luck is everything'], h: 'What did practicing every night lead to?', e: 'Two weeks of practice = a perfect performance. 🎭' },
       { p: 'Read: "Unlike her noisy brother, June loved silent mornings with a book and cocoa." The word "Unlike" shows the author is…', a: 'comparing two different people', w: ['telling a joke', 'giving directions', 'asking a question'], h: '"Unlike" sets up a contrast.', e: 'The author contrasts June with her brother.' },
-      { p: 'Read: "The market buzzed like a beehive." This sentence is an example of…', a: 'a simile (comparing with "like")', w: ['a fact', 'dialogue', 'a question'], h: 'It compares using the word "like".', e: 'Similes compare with like/as — busy market = buzzing hive! 🐝' }
+      { p: 'Read: "The market buzzed like a beehive." This sentence is an example of…', a: 'a simile (comparing with "like")', w: ['a fact', 'dialogue', 'a question'], h: 'It compares using the word "like".', e: 'Similes compare with like/as — busy market = buzzing hive! 🐝' },
+      { p: 'Read: "Every Saturday, Pop and I fix things in his garage. He says broken things are just puzzles waiting to be solved." What does Pop think about broken things?', a: 'They are fun problems to solve', w: ['They should be thrown away', 'They are dangerous', 'They fix themselves'], h: '"Broken things are just puzzles."', e: 'Pop sees fixing as puzzle-solving — a growth mindset! 🔧' },
+      { p: 'Read: "The recipe said one CUP of sugar. Milo added one BAG. The cookies came out like candy bricks." What caused the candy bricks?', a: 'Milo used way too much sugar', w: ['The oven was broken', 'The recipe was wrong', 'Milo forgot the sugar'], h: 'Compare what the recipe said vs what Milo did.', e: 'One bag is not one cup! Careful reading matters — even in cookies.' },
+      { p: 'Read: "At first, Ava dreaded the violin. Squeak, screech! But she practiced daily, and by spring her notes flowed like water." How did Ava change?', a: 'She improved from squeaky to smooth through practice', w: ['She quit the violin', 'She got worse', 'She switched to drums'], h: 'Compare the beginning and the end.', e: 'Daily practice turned screeches into music! 🎻' },
+      { p: 'Read: "Recycling one can saves enough energy to run a TV for three hours." Why would an author include this fact?', a: 'to convince readers that recycling matters', w: ['to sell TVs', 'to make readers laugh', 'to describe a character'], h: 'Surprising facts PERSUADE.', e: 'Authors use facts to persuade readers! ♻️' }
     ])
   },
   {
@@ -170,7 +232,12 @@ const skills = [
       { p: '"___ going to love this game!" Which is correct?', a: "You're", w: ['Your', 'Yore', 'Youre'], h: "You're = you are.", e: "You're = you are. Your = belongs to you." },
       { p: '"The knight rode his horse for an ___." Which is correct?', a: 'hour', w: ['our', 'howr', 'or'], h: 'The clock kind, with a silent h.', e: 'Hour = 60 minutes. Our = belongs to us.' },
       { p: '"I can ___ the ocean from here!" Which is correct?', a: 'see', w: ['sea', 'cee', 'si'], h: 'The sea is what you see!', e: 'See = with your eyes. Sea = the ocean.' },
-      { p: '"___ backpacks are on the bus." Which is correct?', a: 'Their', w: ["They're", 'There', 'Theyre'], h: 'It shows the backpacks belong to them.', e: 'Their = ownership. There = a place. They\'re = they are.' }
+      { p: '"___ backpacks are on the bus." Which is correct?', a: 'Their', w: ["They're", 'There', 'Theyre'], h: 'It shows the backpacks belong to them.', e: 'Their = ownership. There = a place. They\'re = they are.' },
+      { p: '"The ___ baked fresh bread." Which is correct?', a: 'baker', w: ['bakker', 'backer', 'bakir'], h: 'The person who bakes!', e: 'Baker = bread maker. (A backer supports a project!)' },
+      { p: '"Let\'s meet at the park over ___." Which is correct?', a: 'there', w: ['their', "they're", 'thier'], h: 'It names a PLACE.', e: 'There = place. Their = ownership.' },
+      { p: '"I ___ a letter to grandma." Which is correct?', a: 'wrote', w: ['rote', 'root', 'wroute'], h: 'Past tense of write, with a silent w!', e: 'Wrote = past of write.' },
+      { p: '"The ___ blew my hat off!" Which is correct?', a: 'wind', w: ['wined', 'whined', 'winned'], h: 'The weather kind!', e: 'Wind = moving air. Whined = complained!' },
+      { p: '"Would you like a ___ of cake?" Which is correct?', a: 'piece', w: ['peace', 'peice', 'pees'], h: 'Remember: "a PIEce of PIE".', e: 'Piece = a slice. Peace = calm and quiet. 🍰' }
     ])
   },
 
