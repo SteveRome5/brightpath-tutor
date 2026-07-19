@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<circle cx="256" cy="256" r="248" fill="#1f5e46"/>
+<circle cx="256" cy="256" r="234" fill="none" stroke="#c9971c" stroke-width="7"/>
+<g transform="translate(46,72) scale(0.82)">
+  <g fill="#f7f4ee" stroke="#f7f4ee">
+    <path d="M 142 222 C 168 202, 214 194, 258 198 C 300 202, 330 214, 342 232 C 350 246, 348 262, 334 274 C 312 290, 268 296, 226 292 C 186 288, 152 274, 140 254 C 134 242, 134 232, 142 222 Z" stroke="none"/>
+    <path d="M 306 216 C 326 198, 346 172, 358 146 L 392 162 C 384 190, 366 222, 344 244 C 330 240, 314 230, 306 216 Z" stroke="none"/>
+    <path d="M 356 146 C 358 130, 366 118, 380 114 C 391 111, 400 115, 409 125 C 419 136, 430 148, 437 158 C 441 165, 438 170, 431 169 L 419 166 C 420 173, 415 177, 407 175 C 397 172, 388 165, 381 157 C 370 158, 360 155, 356 146 Z" stroke="none"/>
+    <path d="M 370 118 L 364 96 L 380 112 Z" stroke="none"/>
+    <path d="M 383 114 L 384 92 L 396 112 Z" stroke="none"/>
+    <path d="M 370 120 C 354 130, 340 148, 328 170 C 320 184, 312 197, 302 209 C 316 205, 330 193, 340 179 C 334 195, 324 210, 312 222 C 330 214, 346 198, 356 178 C 364 160, 370 140, 370 120 Z" stroke="none"/>
+    <path d="M 150 226 C 122 212, 90 206, 58 212 C 76 217, 92 224, 102 233 C 80 233, 60 240, 46 252 C 68 250, 90 253, 106 261 C 122 266, 138 258, 146 246 C 150 240, 152 233, 150 226 Z" stroke="none"/>
+    <path d="M 322 260 C 352 268, 386 271, 416 268 L 440 260" fill="none" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 304 274 C 310 288, 320 298, 334 303 L 352 305" fill="none" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 172 262 C 140 280, 106 290, 72 291 L 50 287" fill="none" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 198 276 C 182 292, 164 303, 142 309" fill="none" stroke-width="15" stroke-linecap="round"/>
+  </g>
+  <path d="M 448 74 L 455 94 L 475 101 L 455 108 L 448 128 L 441 108 L 421 101 L 441 94 Z" fill="#c9971c"/>
+</g>
+</svg>
