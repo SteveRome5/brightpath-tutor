@@ -680,6 +680,29 @@ route('home', async () => {
       navigate();
     } catch (e) { Sound.wrong(); }
   };
+  // Monday-style weekly recap: once per week, celebrate LAST week's work
+  try {
+    const wk = (() => { const d = new Date(); const o = new Date(d.getFullYear(), 0, 1); return d.getFullYear() + '-' + Math.ceil(((d - o) / 864e5 + o.getDay() + 1) / 7); })();
+    const recapKey = `bp_recap_${k.id}_${wk}`;
+    if (data.lastWeek && data.lastWeek.answers >= 10 && !localStorage[recapKey]) {
+      localStorage[recapKey] = '1';
+      const lw = data.lastWeek;
+      const acc = Math.round(lw.correct / lw.answers * 100);
+      const div = document.createElement('div');
+      div.className = 'celebrate';
+      div.innerHTML = `<img src="/logo-roundel.svg" alt="" style="width:100px;height:100px">
+        <h2>${playful() ? 'Look what you did last week!' : 'Last week, logged.'}</h2>
+        <div class="summary-stats" style="background:rgba(255,255,255,.12)">
+          <div class="sstat" style="color:#fff"><div class="n" style="color:#fff">${lw.answers}</div>questions</div>
+          <div class="sstat" style="color:#fff"><div class="n" style="color:#fff">${acc}%</div>correct</div>
+          <div class="sstat" style="color:#fff"><div class="n" style="color:#fff">🔥${k.streak}</div>streak</div>
+        </div>
+        <p style="font-size:1.05rem;max-width:420px">${playful() ? 'A brand-new week of quests starts NOW. Let\'s make this one even bigger! 🐎' : 'New week, fresh targets. Keep the compound interest going.'}</p>
+        <button class="btn sun">${playful() ? 'Let\'s go! 🐎' : 'Start the week →'}</button>`;
+      div.querySelector('button').onclick = () => { div.remove(); Sound.levelup(); Confetti.burst(120); };
+      document.body.appendChild(div);
+    }
+  } catch (e) { /* recap is a nice-to-have */ }
   document.querySelectorAll('[data-focus]').forEach(b => b.onclick = () => { Sound.click(); location.hash = '#lesson/' + b.dataset.focus + '/focus'; });
   document.querySelectorAll('.subject-card').forEach(el => el.onclick = () => {
     Sound.click();
@@ -801,7 +824,7 @@ route('lesson', async (subject, mode) => {
 
   function render(data) {
     const qn = data.question;
-    const modeLabel = { boost: '💪 Power-Up (extra practice!)', learn: '🌱 New Challenge', review: '✨ Quick Review' }[data.mode] || '';
+    const modeLabel = { boost: '💪 Power-Up (extra practice!)', learn: '🌱 New Challenge', review: '✨ Quick Review', retention: '🧠 Memory Check (keeping it sharp!)' }[data.mode] || '';
     const qStart = Date.now();
     let answered = false;
     app().innerHTML = topbar(`<div class="container lesson-wrap">
