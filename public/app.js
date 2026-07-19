@@ -647,6 +647,11 @@ route('home', async () => {
       ${gallopTrack(Math.min(100, (data.weekAnswers || 0) / ((k.weekly_goal || 12) * 10) * 100))}
     </div>
     ${questCard}
+    ${(k.grade >= 6 && data.subjects.some(s => s.placed)) ? `
+    <div class="focus-launch">
+      <div><b>🎯 Focus Session</b><span class="muted-inv"> — 15 minutes, one subject, zero distractions. Serious progress, tracked.</span></div>
+      <div class="focus-btns">${data.subjects.filter(s => s.placed).map(s => `<button class="btn ghost small" data-focus="${s.subject}">${s.emoji} ${esc(s.label)}</button>`).join('')}</div>
+    </div>` : ''}
     <div class="subject-grid">
       ${data.subjects.map(s => `
         <div class="subject-card" style="background:linear-gradient(135deg, ${s.color}, ${s.color}cc)" data-sub="${s.subject}" data-placed="${s.placed ? 1 : 0}">
@@ -674,6 +679,7 @@ route('home', async () => {
       navigate();
     } catch (e) { Sound.wrong(); }
   };
+  document.querySelectorAll('[data-focus]').forEach(b => b.onclick = () => { Sound.click(); location.hash = '#lesson/' + b.dataset.focus + '/focus'; });
   document.querySelectorAll('.subject-card').forEach(el => el.onclick = () => {
     Sound.click();
     location.hash = (el.dataset.placed === '1' ? '#lesson/' : '#placement/') + el.dataset.sub;
@@ -745,14 +751,29 @@ route('placement', async (subject) => {
 });
 
 // ======================= lesson player =======================
-route('lesson', async (subject) => {
+route('lesson', async (subject, mode) => {
   if (State.me.role !== 'kid') { location.hash = '#kid-login'; return; }
   const kidId = State.me.kid.id;
   const style = SUBJECT_STYLE[subject];
-  const SESSION_LEN = 10;
-  const session = { n: 0, correct: 0, xp: 0, startedAt: Date.now(), events: [] };
+  const focus = mode === 'focus';
+  const FOCUS_MIN = 15;
+  const SESSION_LEN = focus ? 9999 : 10;
+  const session = { n: 0, correct: 0, xp: 0, startedAt: Date.now(), events: [], endAt: focus ? Date.now() + FOCUS_MIN * 60000 : null };
+  let focusTimer = null;
+  const fmtLeft = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+  if (focus) {
+    focusTimer = setInterval(() => {
+      const el = $('#focus-left');
+      if (!el) { clearInterval(focusTimer); return; }   // navigated away
+      const left = session.endAt - Date.now();
+      if (left <= 0) { clearInterval(focusTimer); summary(); return; }
+      el.textContent = fmtLeft(left);
+      if (left < 60000) el.style.color = '#d97b4f';
+    }, 1000);
+  }
 
   async function nextQuestion() {
+    if (focus && Date.now() >= session.endAt) return summary();
     if (session.n >= SESSION_LEN) return summary();
     try {
       const data = await api(`/learn/${kidId}/next/${subject}`);
@@ -784,9 +805,9 @@ route('lesson', async (subject) => {
     let answered = false;
     app().innerHTML = topbar(`<div class="container lesson-wrap">
       <div class="lesson-top">
-        <b>${style.emoji} ${style.cheer}</b>
-        ${gallopTrack(session.n / SESSION_LEN * 100)}
-        <b>${session.n}/${SESSION_LEN}</b>
+        <b>${focus ? '🎯 Focus Session — ' + esc(SUBJECT_STYLE[subject] === style ? subject.charAt(0).toUpperCase() + subject.slice(1) : subject) : style.emoji + ' ' + style.cheer}</b>
+        ${focus ? '' : gallopTrack(session.n / SESSION_LEN * 100)}
+        <b>${focus ? `⏱ <span id="focus-left">${fmtLeft(session.endAt - Date.now())}</span> · ${session.n} answered` : session.n + '/' + SESSION_LEN}</b>
       </div>
       <div class="q-card">
         <span class="q-skill" style="background:${style.color}">${esc(qn.skillName)} · ${esc(modeLabel)}</span>
@@ -881,20 +902,25 @@ route('lesson', async (subject) => {
   }
 
   function summary() {
-    const pct = Math.round(session.correct / SESSION_LEN * 100);
+    if (focusTimer) clearInterval(focusTimer);
+    const denom = focus ? Math.max(1, session.n) : SESSION_LEN;
+    const pct = Math.round(session.correct / denom * 100);
     const mins = Math.max(1, Math.round((Date.now() - session.startedAt) / 60000));
-    const emoji = pct >= 80 ? '🌟' : pct >= 60 ? '💪' : '🌱';
-    const msg = pct >= 80 ? 'Outstanding! Your brain is glowing!' : pct >= 60 ? 'Strong work — you\'re growing fast!' : 'Every try makes you smarter. Let\'s keep building!';
-    Confetti.burst(pct >= 80 ? 200 : 80); if (pct >= 60) Sound.levelup();
+    const emoji = focus ? '🎯' : pct >= 80 ? '🌟' : pct >= 60 ? '💪' : '🌱';
+    const msg = focus
+      ? (session.n >= 15 ? 'Focus session complete — that was real studying.' : 'Focus session complete.')
+      : pct >= 80 ? 'Outstanding! Your brain is glowing!' : pct >= 60 ? 'Strong work — you\'re growing fast!' : 'Every try makes you smarter. Let\'s keep building!';
+    Confetti.burst(focus ? 120 : pct >= 80 ? 200 : 80); if (pct >= 60) Sound.levelup();
     app().innerHTML = topbar(`<div class="container lesson-wrap"><div class="card center">
       <div class="big-emoji">${emoji}</div>
       <h2>${msg}</h2>
       <div class="summary-stats">
-        <div class="sstat"><div class="n">${session.correct}/${SESSION_LEN}</div>correct</div>
+        <div class="sstat"><div class="n">${session.correct}/${focus ? session.n : SESSION_LEN}</div>correct</div>
         <div class="sstat"><div class="n">+${session.xp}</div>XP earned</div>
         <div class="sstat"><div class="n">${mins}</div>min${mins > 1 ? 's' : ''}</div>
       </div>
-      <button class="btn green" onclick="location.hash='#lesson/${subject}';location.reload()">Play Again 🔁</button>
+      ${focus ? `<p class="muted" style="margin:6px 0 2px">${session.n} questions in ${FOCUS_MIN} minutes${pct ? ` · ${pct}% accuracy` : ''}. ${pct >= 80 && session.n >= 15 ? 'Elite session. 🏆' : 'Consistency compounds — same time tomorrow?'}</p>` : ''}
+      <button class="btn green" onclick="location.hash='#lesson/${subject}${focus ? '/focus' : ''}';location.reload()">${focus ? 'New Session 🎯' : 'Play Again 🔁'}</button>
       <button class="btn" style="margin-left:8px" onclick="location.hash='#home'">More Subjects →</button>
     </div></div>`);
     wireChrome();
@@ -1090,6 +1116,7 @@ route('parent', async () => {
         <button class="btn green" style="margin-top:14px;width:100%" id="nk-go">Add Learner ✨</button>
       </div>
       <div>
+        <div id="family-week"></div>
         <div class="card">
           <h3>💳 Subscription</h3>
           <p class="muted" style="margin:8px 0 14px">${subLine}</p>
@@ -1190,6 +1217,24 @@ route('parent', async () => {
   if (fam) fam.onclick = () => checkout('family');
   if (solo) solo.onclick = () => checkout('solo');
   if (portal) portal.onclick = async () => { const o = await api('/billing/portal', { method: 'POST' }); location.href = o.url; };
+  // Sibling leaderboard — only interesting with 2+ kids
+  if (me.kids.length >= 2) {
+    api('/family/stats').then(({ stats }) => {
+      const medals = ['🥇', '🥈', '🥉', '🎗️'];
+      const box = $('#family-week');
+      if (!box) return;
+      box.innerHTML = `<div class="card">
+        <h3>🏆 This Week at Home</h3>
+        <p class="muted" style="margin:4px 0 10px">Questions answered in the last 7 days — a little friendly sibling rivalry never hurt!</p>
+        ${stats.map((s, i) => `
+          <div class="kid-row">
+            <span style="font-size:1.3rem">${medals[i] || '⭐'}</span>
+            <span class="avatar-sm">${AVATARS[s.avatar] || '🦊'}</span>
+            <div style="flex:1"><b>${esc(s.name)}</b><br><span class="muted" style="font-size:.83rem">${s.weekAnswers} answers${s.weekAccuracy != null ? ' · ' + s.weekAccuracy + '% correct' : ''} · 🔥${s.streak}</span></div>
+          </div>`).join('')}
+      </div>`;
+    }).catch(() => {});
+  }
 });
 
 // ======================= shared API for games.js =======================

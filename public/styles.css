@@ -310,6 +310,15 @@ body[data-theme="academy"] .zone-card .zemoji { font-size: 1.5rem; }
 body[data-theme="academy"] .kid-header h1 { font-size: 1.5rem; }
 body[data-theme="academy"] .big-emoji { font-size: 3.4rem; }
 
+/* Focus Session launcher (teens) */
+.focus-launch { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 16px; color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+.focus-launch .muted-inv { opacity: .8; font-size: .88rem; }
+.focus-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.focus-btns .btn.ghost { color: #fff; border-color: rgba(255,255,255,.45); }
+body[data-theme="scholar"] .focus-launch { background: var(--card-bg); border-color: var(--card-border); color: var(--ink); box-shadow: var(--shadow); }
+body[data-theme="scholar"] .focus-btns .btn.ghost { color: var(--brand); border-color: var(--brand); }
+body[data-theme="academy"] .focus-launch { background: rgba(255,255,255,.06); }
+
 /* Team Gallop co-op goal */
 .team-goal { margin: 10px auto 2px; max-width: 260px; text-align: left; background: var(--soft-bg, #f4f1ea); border-radius: 12px; padding: 10px 12px; }
 .team-goal.ready { box-shadow: 0 0 0 2px var(--accent); }
