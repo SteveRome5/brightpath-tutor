@@ -17,7 +17,11 @@ function numChoices(answer, spreadFn) {
     const d = spreadFn ? spreadFn() : answer + pick([-1, 1]) * rint(1, Math.max(2, Math.round(Math.abs(answer) * 0.3) + 1));
     if (d !== answer && (typeof d !== 'number' || isFinite(d))) set.add(d);
   }
-  while (set.size < 4) set.add(answer + set.size + guard);
+  // Guaranteed-terminating filler: keep incrementing until we find unused values.
+  // (The old `answer + set.size + guard` could collide with an existing member
+  //  and spin forever — e.g. complementary angles 13°/77° — freezing the server.)
+  let filler = answer + guard;
+  while (set.size < 4) { filler++; if (!set.has(filler)) set.add(filler); }
   return shuffle([...set]).map(String);
 }
 function textChoices(answer, distractors) {
