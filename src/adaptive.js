@@ -127,7 +127,15 @@ function nextActivity(kidId, subject) {
   } else {
     chosen = states[Math.floor(Math.random() * states.length)] || null; mode = 'review';
   }
-  if (!chosen) return null;
+  if (!chosen) {
+    // Never dead-end a session: fall back to the nearest grade with content.
+    const all = content.skillsForSubject(subject);
+    if (!all.length) return null;
+    const target = Math.round(state.level);
+    const near = all.slice().sort((a, b) => Math.abs(a.grade - target) - Math.abs(b.grade - target))[0];
+    chosen = { skill: near, st: getSkillState(kidId, subject, near.id) };
+    mode = 'review';
+  }
 
   // difficulty scales with mastery — easier when struggling, harder when hot
   const d = Math.max(0.15, Math.min(0.95, chosen.st.mastery + (mode === 'boost' ? -0.15 : 0.1)));

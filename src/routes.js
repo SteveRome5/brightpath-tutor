@@ -172,8 +172,12 @@ router.post('/learn/:kidId/placement/:subject', auth.requireKid, auth.requireAct
 router.get('/learn/:kidId/next/:subject', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { subject } = req.params;
   if (!content.SUBJECTS[subject]) return res.status(404).json({ error: 'Unknown subject' });
-  const activity = adaptive.nextActivity(req.kid.id, subject);
-  if (!activity) return res.status(404).json({ error: 'No content available' });
+  let activity = null;
+  // A single flaky generator must never freeze a kid's session — retry, then fail soft.
+  for (let attempt = 0; attempt < 3 && !activity; attempt++) {
+    try { activity = adaptive.nextActivity(req.kid.id, subject); } catch (e) { activity = null; }
+  }
+  if (!activity) return res.status(503).json({ error: 'Hiccup loading the next question — tap to try again!' });
   const qn = activity.question;
   const answerIdx = qn.choices.indexOf(qn.answer);
   res.json({
@@ -198,6 +202,15 @@ router.post('/learn/:kidId/answer', auth.requireKid, auth.requireActiveSub, (req
 // report card (kid-safe view + parent view share this)
 router.get('/learn/:kidId/report', auth.requireKid, (req, res) => {
   res.json(adaptive.reportCard(req.kid.id));
+});
+
+// Retake a placement assessment (fresh start for that subject's level)
+router.post('/learn/:kidId/placement/:subject/retake', auth.requireKid, (req, res) => {
+  const { subject } = req.params;
+  if (!content.SUBJECTS[subject]) return res.status(404).json({ error: 'Unknown subject' });
+  db.prepare('UPDATE subject_state SET placed=0 WHERE kid_id=? AND subject=?').run(req.kid.id, subject);
+  placements.delete(`${req.kid.id}:${subject}`);
+  res.json({ ok: true });
 });
 
 // ---------- billing ----------
