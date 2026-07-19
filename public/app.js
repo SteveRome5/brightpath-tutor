@@ -38,6 +38,15 @@ const SUBJECT_STYLE = {
 };
 const PRAISE = ['¡Fantástico!', 'Nailed it!', 'You’re on fire! 🔥', 'Brain power!', 'Boom! Correct!', 'Genius move!', 'Crushed it!', 'Superstar!'];
 const ENCOURAGE = ['Almost! Every mistake grows your brain 🧠', 'Good try — let’s look at why:', 'So close! Here’s the trick:', 'No worries — even scientists mess up daily!'];
+const PRAISE_TEEN = ['Correct.', 'Nice — exactly right.', 'Clean solve.', 'That’s it.', 'Solid.', 'Right on the first read.'];
+const ENCOURAGE_TEEN = ['Not quite — here’s the reasoning:', 'Close. The key detail:', 'Miss logged. Why:', 'Wrong turn — walk it back:'];
+
+// ---- age-adaptive themes: the app grows up with the student ----
+function themeForGrade(g) { return g <= 2 ? 'junior' : g <= 5 ? 'explorer' : g <= 8 ? 'scholar' : 'academy'; }
+function applyTheme() {
+  document.body.dataset.theme = State.me.role === 'kid' ? themeForGrade(State.me.kid.grade) : 'pro';
+}
+function playful() { const t = document.body.dataset.theme; return t === 'junior' || t === 'explorer'; }
 
 // ======================= sound engine =======================
 const Sound = (() => {
@@ -132,6 +141,7 @@ async function navigate() {
   const [name, ...args] = hash.split('/');
   speechSynthesis && speechSynthesis.cancel();
   document.querySelectorAll('.celebrate').forEach(el => el.remove());
+  applyTheme();
   const fn = routes[name] || routes.landing;
   try { await fn(...args); } catch (e) {
     if (e.status === 401) { location.hash = State.me.role === 'kid' ? '#kid-login' : '#login'; return; }
@@ -171,29 +181,51 @@ route('landing', async () => {
   if (State.me.role === 'kid') { location.hash = '#home'; return; }
   app().innerHTML = topbar(`
   <div class="hero">
-    <h1>Gallop Learning Academy 🐎 — the tutor that <em>knows</em> your kid</h1>
-    <p>Adaptive K-12 learning in <b>Math, English, Science & Spanish</b> — with real-life examples, voice, sound, streaks and certificates. Like your favorite teacher, available every day.</p>
-    <button class="btn sun" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start Free 14-Day Trial</button>
-    <button class="btn ghost" style="margin-left:8px" onclick="location.hash='#kid-login'">I'm a Kid — Let Me In! 🚀</button>
+    <div class="eyebrow">Adaptive K–12 Tutoring · Math · English · Science · Spanish</div>
+    <h1>A personal tutor for every child, at every level.</h1>
+    <p>Gallop Learning Academy places each student precisely — subject by subject — then adapts every lesson to how they actually learn. Real-world teaching, honest progress reports, and a curriculum that grows up with your child.</p>
+    <button class="btn" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start your 14-day free trial</button>
+    <button class="btn ghost" style="margin-left:8px" onclick="location.hash='#kid-login'">Student sign-in</button>
   </div>
   <div class="container">
+    <div class="statband">
+      <div><b>K–12</b><span>Every grade level</span></div>
+      <div><b>4</b><span>Core subjects</span></div>
+      <div><b>131</b><span>Skill areas</span></div>
+      <div><b>1:1</b><span>Adaptive pacing</span></div>
+    </div>
+    <h2 class="section-title">How it works</h2>
+    <p class="section-sub">Three principles, borrowed from the best teachers you ever had.</p>
     <div class="feature-grid">
-      <div class="feature"><div class="femoji">🎯</div><h3>Places, then adapts</h3><p>A quick placement quiz finds each child's true level in <b>every subject separately</b> — an advanced reader can be a math beginner, and that's fine. Lessons auto-adjust with every answer.</p></div>
-      <div class="feature"><div class="femoji">🍕</div><h3>Real-life learning</h3><p>Fractions with pizza slices, percentages at the sneaker sale, physics on the roller coaster. Kids see <b>why it matters</b>, not just how to bubble an answer.</p></div>
-      <div class="feature"><div class="femoji">🧠</div><h3>More help when stuck</h3><p>Struggling on a skill? Gallop slows down, gives friendlier hints, easier versions, and extra practice — like a patient teacher who never sighs.</p></div>
-      <div class="feature"><div class="femoji">🏆</div><h3>Report cards & certificates</h3><p>Parents get honest progress reports with strengths and focus areas. Kids earn printable certificates when they complete a grade level.</p></div>
-      <div class="feature"><div class="femoji">🗓️</div><h3>Follows your calendar</h3><p>Traditional school year, year-round, or homeschool schedule — weekly goals pace learning to your family's rhythm.</p></div>
-      <div class="feature"><div class="femoji">💻</div><h3>Log in anywhere</h3><p>PC, Mac, iPad, or tablet — one family account, a fun PIN login for each kid, progress synced everywhere.</p></div>
+      <div class="feature"><div class="fnum">01 — PLACE</div><h3>Find the true starting line</h3><p>A short placement assessment measures each subject independently. A strong reader who's average in math starts exactly where she should — in both.</p></div>
+      <div class="feature"><div class="fnum">02 — ADAPT</div><h3>Adjust with every answer</h3><p>Mastered skills accelerate and deepen. Shaky skills get gentler questions, clearer hints, and extra repetition — automatically, without shame.</p></div>
+      <div class="feature"><div class="fnum">03 — PROGRESS</div><h3>Prove it, then advance</h3><p>Students level up only when every skill in a grade is demonstrated. Parents see letter grades, strengths, and focus areas. Certificates mark real milestones.</p></div>
     </div>
-    <div class="card" style="margin-top:22px">
-      <h2 class="center" style="margin-bottom:18px">Simple plans, whole-family value</h2>
+    <h2 class="section-title">The curriculum</h2>
+    <p class="section-sub">Every concept taught through the real world — money, sports, cooking, travel, technology.</p>
+    <div class="subject-strip">
+      <div class="sub" style="background:var(--math)"><h4>Mathematics</h4><p>Counting to pre-calculus. Lemonade-stand arithmetic, sale-rack percentages, roller-coaster physics of functions.</p></div>
+      <div class="sub" style="background:var(--english)"><h4>English</h4><p>Phonics to rhetoric and college-level analysis. Reading that builds thinkers, grammar that builds writers.</p></div>
+      <div class="sub" style="background:var(--science)"><h4>Science</h4><p>Five senses to chemistry and physics. Why the mirror fogs, why the soda can sweats, how vaccines train the body.</p></div>
+      <div class="sub" style="background:var(--spanish)"><h4>Spanish</h4><p>First greetings to real fluency. Order in a Madrid café by month two — conjugation follows conversation.</p></div>
+    </div>
+    <h2 class="section-title">Built for families</h2>
+    <div class="feature-grid">
+      <div class="feature"><h3>An experience that grows up</h3><p>A 1st grader gets color, sound, and celebration. An 11th grader gets a clean, serious study environment. Same engine, age-appropriate design.</p></div>
+      <div class="feature"><h3>Motivation, done right</h3><p>Correct answers earn tokens for a games arcade and coins for avatar customization. Learning is always the engine — play is the reward.</p></div>
+      <div class="feature"><h3>Safe connection</h3><p>Students connect only with buddies their parents approve, and encourage each other with pre-written cheers. No open chat, no strangers, ever.</p></div>
+      <div class="feature"><h3>Your schedule</h3><p>Traditional school year, year-round, or homeschool calendar — weekly goals pace the work to your family's rhythm, on any device.</p></div>
+    </div>
+    <div class="card" style="margin-top:40px">
+      <h2 class="center" style="margin-bottom:6px">Simple plans</h2>
+      <p class="center muted" style="margin-bottom:20px">14-day free trial. Cancel anytime.</p>
       <div class="plans">
-        <div class="plan"><h3>Solo Learner</h3><div class="price">$19<span style="font-size:1rem">/mo</span></div><p class="muted">1 child · all 4 subjects · full adaptive tutor</p></div>
-        <div class="plan hot"><span class="tag">MOST POPULAR</span><h3>Family</h3><div class="price">$29<span style="font-size:1rem">/mo</span></div><p class="muted">Up to 4 children · all subjects · report cards & certificates</p></div>
+        <div class="plan"><h3>Solo</h3><div class="price">$19<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">One student · all four subjects · full adaptive tutor & reports</p></div>
+        <div class="plan hot"><span class="tag">MOST POPULAR</span><h3>Family</h3><div class="price">$29<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">Up to four students · all subjects · reports, certificates & buddies</p></div>
       </div>
-      <p class="center muted" style="margin-top:14px">14-day free trial · cancel anytime</p>
     </div>
-  </div>`);
+  </div>
+  <div class="site-footer">© ${new Date().getFullYear()} Gallop Learning Academy · Adaptive tutoring for grades K–12</div>`);
   wireChrome();
 });
 
@@ -305,12 +337,12 @@ route('home', async () => {
     <div class="kid-header">
       <div class="avatar-big" onclick="location.hash='#avatar'" style="cursor:pointer" title="Customize me!">${avatarHTML(k)}</div>
       <div>
-        <h1>Hi ${esc(k.name)}! Ready to level up? ⚡</h1>
+        <h1>${playful() ? `Hi ${esc(k.name)}! Ready to level up? ⚡` : `Welcome back, ${esc(k.name)}.`}</h1>
         <div class="stat-chips" style="margin-top:8px">
-          <span class="chip">🔥 ${k.streak}-day streak</span>
-          <span class="chip">⚡ ${k.xp} XP</span>
-          <span class="chip">🪙 ${k.coins} coins</span>
-          <span class="chip">🎟️ ${k.play_tokens || 0} tokens</span>
+          <span class="chip">${playful() ? '🔥 ' : ''}${k.streak}-day streak</span>
+          <span class="chip">${playful() ? '⚡ ' : ''}${k.xp} XP</span>
+          <span class="chip">${playful() ? '🪙 ' : ''}${k.coins} coins</span>
+          <span class="chip">${playful() ? '🎟️ ' : ''}${k.play_tokens || 0} tokens</span>
         </div>
       </div>
       <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#report/${k.id}'">📊 My Progress</button>
@@ -322,14 +354,14 @@ route('home', async () => {
           <div class="blob"></div>
           <div class="semoji">${s.emoji}</div>
           <h3>${esc(s.label)}</h3>
-          <div class="lvl">${s.placed ? '📍 ' + esc(s.levelName) : '✨ Take placement quiz!'}</div>
-          <button class="btn sun small" style="margin-top:14px">${s.placed ? 'Play →' : 'Find my level →'}</button>
+          <div class="lvl">${s.placed ? (playful() ? '📍 ' : 'Working at ') + esc(s.levelName) : (playful() ? '✨ Take placement quiz!' : 'Placement assessment needed')}</div>
+          <button class="btn sun small" style="margin-top:14px">${s.placed ? (playful() ? 'Play →' : 'Continue →') : 'Find my level →'}</button>
         </div>`).join('')}
     </div>
     <div class="zone-row">
-      <div class="zone-card" onclick="location.hash='#play'"><span class="zemoji">🕹️</span><b>Play Zone</b><span class="muted">Games cost 1 🎟️ — earn tokens by learning!</span></div>
-      <div class="zone-card" onclick="location.hash='#avatar'"><span class="zemoji">🎨</span><b>My Avatar</b><span class="muted">Spend coins on hats, pets & worlds</span></div>
-      <div class="zone-card" onclick="location.hash='#buddies'"><span class="zemoji">💌</span><b>Buddies</b><span class="muted">Cheer on your friends!</span></div>
+      <div class="zone-card" onclick="location.hash='#play'"><span class="zemoji">🕹️</span><b>${playful() ? 'Play Zone' : 'Arcade'}</b><span class="muted">${playful() ? 'Games cost 1 🎟️ — earn tokens by learning!' : 'Break games — 1 token each, earned by correct answers'}</span></div>
+      <div class="zone-card" onclick="location.hash='#avatar'"><span class="zemoji">🎨</span><b>${playful() ? 'My Avatar' : 'Avatar'}</b><span class="muted">${playful() ? 'Spend coins on hats, pets & worlds' : 'Customize your profile with earned coins'}</span></div>
+      <div class="zone-card" onclick="location.hash='#buddies'"><span class="zemoji">💌</span><b>Buddies</b><span class="muted">${playful() ? 'Cheer on your friends!' : 'See your crew’s streaks and send props'}</span></div>
     </div>
   </div>`);
   wireChrome();
@@ -449,11 +481,11 @@ route('lesson', async (subject) => {
       if (correct) {
         Sound.correct(); Confetti.burst(40);
         fb.className = 'feedback good';
-        fb.innerHTML = `<b>${PRAISE[Math.floor(Math.random() * PRAISE.length)]}</b> ${esc(qn.explain || '')}`;
+        fb.innerHTML = `<b>${(playful() ? PRAISE : PRAISE_TEEN)[Math.floor(Math.random() * (playful() ? PRAISE : PRAISE_TEEN).length)]}</b> ${esc(qn.explain || "")}`;
       } else {
         Sound.wrong();
         fb.className = 'feedback bad';
-        fb.innerHTML = `<b>${ENCOURAGE[Math.floor(Math.random() * ENCOURAGE.length)]}</b><br>${esc(qn.explain || '')}`;
+        fb.innerHTML = `<b>${(playful() ? ENCOURAGE : ENCOURAGE_TEEN)[Math.floor(Math.random() * (playful() ? ENCOURAGE : ENCOURAGE_TEEN).length)]}</b><br>${esc(qn.explain || "")}`;
       }
       session.n++; if (correct) session.correct++;
       try {
