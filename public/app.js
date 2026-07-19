@@ -282,6 +282,7 @@ async function navigate() {
   const hash = location.hash.replace(/^#\/?/, '') || 'landing';
   const [name, ...args] = hash.split('/');
   speechSynthesis && speechSynthesis.cancel();
+  document.onkeydown = null;
   document.querySelectorAll('.celebrate').forEach(el => el.remove());
   applyTheme();
   const fn = routes[name] || routes.landing;
@@ -295,6 +296,12 @@ async function navigate() {
     document.querySelectorAll('.reveal:not(.in)').forEach(el => revealObs.observe(el));
   });
 }
+// Any celebration overlay: tapping the backdrop (not a button/link) dismisses it.
+// Kids tap everywhere — never let a popup feel stuck.
+document.addEventListener('click', e => {
+  const cel = e.target.closest('.celebrate');
+  if (cel && !e.target.closest('button, a, input, [data-cid], [data-g]')) cel.remove();
+});
 const revealObs = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); revealObs.unobserve(e.target); } });
 }, { threshold: 0.15 });
@@ -854,6 +861,13 @@ route('lesson', async (subject, mode) => {
     $('#say-btn').onclick = () => Voice.speak(qn.voice || qn.prompt, subject === 'spanish' ? 'es-ES' : 'en-US');
     if (Voice.auto) Voice.speak(qn.voice || qn.prompt, subject === 'spanish' ? 'es-ES' : 'en-US');
     $('#hint-btn').onclick = () => { $('#hint-box').classList.add('show'); Sound.click(); };
+    // Keyboard: 1-4 answer, Enter = next, H = hint (great for desktop & teens)
+    document.onkeydown = e => {
+      if (document.querySelector('.celebrate')) return;
+      if (e.key >= '1' && e.key <= '4') { const c = document.querySelectorAll('.choice')[Number(e.key) - 1]; if (c && !c.disabled) c.click(); }
+      else if (e.key === 'Enter') { const nb = $('#next-btn'); if (nb && nb.style.display !== 'none') nb.click(); }
+      else if (e.key.toLowerCase() === 'h') { const hb = $('#hint-btn'); if (hb) hb.click(); }
+    };
 
     document.querySelectorAll('.choice').forEach(b => b.onclick = async () => {
       if (answered) return; answered = true;
@@ -911,6 +925,12 @@ route('lesson', async (subject, mode) => {
   function celebrate(ev) {
     const div = document.createElement('div');
     div.className = 'celebrate';
+    // Never stack on top of the teaching popup (or another celebration) —
+    // wait politely until the current overlay is dismissed.
+    const showWhenClear = () => {
+      if (document.querySelector('.celebrate')) { setTimeout(showWhenClear, 400); return; }
+      document.body.appendChild(div);
+    };
     if (ev.type === 'levelup') {
       Sound.levelup(); Confetti.burst(220);
       div.innerHTML = `<div class="big-emoji">🏆</div><h2>LEVEL UP!</h2><p style="font-size:1.2rem">You completed ${esc(ev.certificate || 'a level')}!<br>A certificate was added for you & your parents. 🎓</p><button class="btn sun">Keep Going →</button>`;
@@ -922,7 +942,7 @@ route('lesson', async (subject, mode) => {
       div.innerHTML = `<div class="big-emoji">${ev.badge.emoji}</div><h2>New Badge!</h2><p style="font-size:1.2rem">${esc(ev.badge.name)}</p><button class="btn sun">Awesome →</button>`;
     }
     div.querySelector('button').onclick = () => div.remove();
-    document.body.appendChild(div);
+    showWhenClear();
   }
 
   function summary() {
