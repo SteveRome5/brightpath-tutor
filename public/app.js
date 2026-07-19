@@ -311,7 +311,7 @@ addEventListener('hashchange', navigate);
 function topbar(inner = '') {
   const me = State.me;
   let right = '';
-  if (me.role === 'parent') right = `<button class="btn ghost small" onclick="location.hash='#parent'">Dashboard</button><button class="btn ghost small" id="logout-btn">Log out</button>`;
+  if (me.role === 'parent') right = `${me.parent && me.parent.is_admin ? `<button class="btn ghost small" onclick="location.hash='#admin'">🛡️ Admin</button>` : ''}<button class="btn ghost small" onclick="location.hash='#parent'">Dashboard</button><button class="btn ghost small" id="logout-btn">Log out</button>`;
   else if (me.role === 'kid') right = `<button class="btn ghost small" onclick="location.hash='#home'">My Subjects</button><button class="btn ghost small" id="logout-btn">Log out</button>`;
   else right = `<button class="btn ghost small" onclick="location.hash='#kid-login'">Kid Login</button><button class="btn sun small" onclick="location.hash='#login'">Parent Login</button>`;
   return `
@@ -1338,6 +1338,63 @@ route('parent', async () => {
       </div>`;
     }).catch(() => {});
   }
+});
+
+// ======================= admin (owner) =======================
+route('admin', async () => {
+  await refreshMe();
+  if (State.me.role !== 'parent' || !State.me.parent.is_admin) { location.hash = '#parent'; return; }
+  const d = await api('/admin/overview');
+  const t = d.totals;
+  const fmtDate = s => s ? s.slice(0, 10) : '—';
+  const statusPill = st => st === 'active' ? '<span class="pill strength">active</span>' : st === 'trial' ? '<span class="pill" style="background:#fdf3d7;color:#7a5b00">trial</span>' : `<span class="pill focus">${esc(st)}</span>`;
+  const maxSign = Math.max(1, ...d.signups.map(x => x.n));
+  app().innerHTML = topbar(`<div class="container">
+    <div class="dash-welcome" style="margin-bottom:14px"><h1>🛡️ Gallop Command Center</h1><p>Owner dashboard — live business & learning metrics</p></div>
+    <div class="statband" style="margin-bottom:18px">
+      <div><b>${t.parents}</b><span>Families</span></div>
+      <div><b>${t.kids}</b><span>Learners</span></div>
+      <div><b>$${d.mrr}</b><span>MRR (active subs)</span></div>
+      <div><b>${d.byStatus.active || 0}</b><span>Paying</span></div>
+      <div><b>${d.byStatus.trial || 0}</b><span>On trial</span></div>
+    </div>
+    <div class="dash-grid">
+      <div>
+        <div class="card">
+          <h3>📚 Learning activity</h3>
+          <div class="summary-stats" style="margin-top:10px">
+            <div class="sstat"><div class="n">${t.answersToday}</div>today</div>
+            <div class="sstat"><div class="n">${t.answersWeek}</div>this week</div>
+            <div class="sstat"><div class="n">${t.answersAllTime}</div>all-time</div>
+            <div class="sstat"><div class="n">${t.activeKidsWeek}</div>active kids/wk</div>
+          </div>
+          <p class="muted" style="margin-top:10px">🎓 ${t.certificates} certificate${t.certificates === 1 ? '' : 's'} earned platform-wide</p>
+        </div>
+        <div class="card">
+          <h3>👧 Learners by grade band</h3>
+          ${d.gradeBands.length ? d.gradeBands.map(b => `<div class="kid-row"><b style="min-width:50px">${b.band}</b><span class="sk-bar" style="flex:1"><span class="sk-fill hi" style="width:${Math.round(b.n / t.kids * 100)}%"></span></span><span class="muted">${b.n}</span></div>`).join('') : '<p class="muted">No learners yet.</p>'}
+        </div>
+        <div class="card">
+          <h3>📈 Signups — last 14 days</h3>
+          ${d.signups.length ? `<svg viewBox="0 0 480 80" style="width:100%;height:auto">${d.signups.map((x, i) => `<g><rect x="${i * 34 + 4}" y="${62 - Math.round(x.n / maxSign * 55)}" width="26" height="${Math.max(3, Math.round(x.n / maxSign * 55))}" rx="4" fill="#1f8a5f"/><text x="${i * 34 + 17}" y="76" font-size="8" text-anchor="middle" fill="#98a0af">${x.d.slice(5)}</text></g>`).join('')}</svg>` : '<p class="muted">No signups in the last 14 days.</p>'}
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h3>🧾 Recent families</h3>
+          <div style="margin-top:10px;overflow-x:auto">
+            ${d.recent.map(p => `
+              <div class="kid-row" style="flex-wrap:wrap">
+                <div style="flex:1;min-width:180px"><b>${esc(p.name)}</b> ${statusPill(p.sub_status)}${p.sub_status === 'active' ? ` <span class="muted">$${p.sub_plan === 'family' ? 49 : 29}/mo</span>` : ''}<br>
+                  <span class="muted" style="font-size:.82rem">${esc(p.email)} · joined ${fmtDate(p.created_at)}${p.sub_status === 'trial' ? ` · trial ends ${fmtDate(p.trial_ends)}` : ''}</span></div>
+                <div class="muted" style="font-size:.83rem;text-align:right">${p.kids} kid${p.kids === 1 ? '' : 's'}<br>${p.weekAnswers} ans/wk</div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`);
+  wireChrome();
 });
 
 // ======================= shared API for games.js =======================
