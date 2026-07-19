@@ -375,9 +375,10 @@ route('landing', async () => {
     <div class="card reveal" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:6px">Simple plans</h2>
       <p class="center muted" style="margin-bottom:20px">7-day free trial. Cancel anytime.</p>
+      <p class="center" style="margin:-8px 0 20px;font-weight:600">Tutoring centers charge $150–200 per month <i>per subject</i>. Gallop covers all four — for less than one week of Kumon.</p>
       <div class="plans">
-        <div class="plan"><h3>Solo</h3><div class="price">$19<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">One student · all four subjects · full adaptive tutor & reports</p></div>
-        <div class="plan hot"><span class="tag">MOST POPULAR</span><h3>Family</h3><div class="price">$29<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">Up to four students · all subjects · reports, certificates & buddies</p></div>
+        <div class="plan"><h3>Solo</h3><div class="price">$29<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">One student · all four subjects · full adaptive tutor & reports</p></div>
+        <div class="plan hot"><span class="tag">MOST POPULAR</span><h3>Family</h3><div class="price">$49<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">Up to four students · all subjects · reports, certificates & buddies</p></div>
       </div>
     </div>
   </div>
@@ -821,7 +822,7 @@ function renderPaywall() {
     <h2>Your free trial has ended</h2>
     <p class="muted" style="margin:10px 0 18px">Subscribe to keep the learning adventure going — all 4 subjects, unlimited practice, report cards & certificates.</p>
     ${State.me.role === 'parent'
-      ? `<button class="btn green" id="sub-family">Family — $29/mo</button> <button class="btn" id="sub-solo">Solo — $19/mo</button>`
+      ? `<button class="btn green" id="sub-family">Family — $49/mo</button> <button class="btn" id="sub-solo">Solo — $29/mo</button>`
       : `<p><b>Ask your parent to log in and subscribe!</b></p><button class="btn" onclick="location.hash='#login'">Parent Login</button>`}
   </div></div>`);
   wireChrome();
@@ -883,8 +884,8 @@ route('parent', async () => {
           <h3>💳 Subscription</h3>
           <p class="muted" style="margin:8px 0 14px">${subLine}</p>
           ${p.sub_status !== 'active' ? `
-            <button class="btn green" style="width:100%" id="sub-family">Family — $29/mo (up to 4 kids)</button>
-            <button class="btn" style="width:100%;margin-top:8px" id="sub-solo">Solo — $19/mo (1 kid)</button>` : `
+            <button class="btn green" style="width:100%" id="sub-family">Family — $49/mo (up to 4 kids)</button>
+            <button class="btn" style="width:100%;margin-top:8px" id="sub-solo">Solo — $29/mo (1 kid)</button>` : `
             <button class="btn" style="width:100%" id="sub-portal">Manage Billing</button>`}
           <p class="muted center" style="margin-top:10px;font-size:.85rem">${me.billingMode === 'stripe' ? 'Payments powered by Stripe' : 'Demo mode: clicking subscribe activates instantly, no card needed. Set STRIPE_SECRET_KEY to enable real payments.'}</p>
         </div>
