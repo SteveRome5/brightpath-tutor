@@ -23,7 +23,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get(/.*/, (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 app.listen(PORT, () => {
-  console.log(`\n  🌟 BrightPath Tutor is running!`);
+  console.log(`\n  🐎 Gallop Learning Academy is running!`);
   console.log(`  → http://localhost:${PORT}`);
   console.log(`  Billing mode: ${process.env.STRIPE_SECRET_KEY ? 'Stripe (' + (process.env.STRIPE_SECRET_KEY.startsWith('sk_test') ? 'TEST' : 'LIVE') + ')' : 'demo (no Stripe keys set)'}\n`);
 });
