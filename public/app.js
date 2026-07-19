@@ -19,7 +19,7 @@ async function api(path, opts = {}) {
 }
 
 const AVATARS = { fox: '🦊', panda: '🐼', dragon: '🐉', unicorn: '🦄', robot: '🤖', astronaut: '🧑‍🚀', tiger: '🐯', octopus: '🐙', axolotl: '🦎', narwhal: '🦭', phoenix: '🐦‍🔥', alien: '👽' };
-const ITEM_EMOJI = { crown: '👑', tophat: '🎩', cap: '🧢', party: '🥳', grad: '🎓', cowboy: '🤠', halo: '😇', glasses: '👓', sunglasses: '🕶️', bowtie: '🎀', medal: '🏅', guitar: '🎸', wand: '🪄', skateboard: '🛹', rainbow: '🌈', space: '🌌', beach: '🏖️', castle: '🏰', volcano: '🌋', city: '🌆', garden: '🌻', pup: '🐶', kitten: '🐱', bunny: '🐰', turtle: '🐢', butterfly: '🦋', dino: '🦕', sloth: '🦥' };
+const ITEM_EMOJI = { crown: '👑', tophat: '🎩', cap: '🧢', party: '🥳', grad: '🎓', cowboy: '🤠', halo: '😇', headphones: '🎧', flower: '🌺', helmet: '⛑️', santa: '🎅', glasses: '👓', sunglasses: '🕶️', bowtie: '🎀', medal: '🏅', guitar: '🎸', wand: '🪄', skateboard: '🛹', trophy: '🏆', books: '📚', soccer: '⚽', controller: '🎮', rainbow: '🌈', space: '🌌', beach: '🏖️', castle: '🏰', volcano: '🌋', city: '🌆', garden: '🌻', sunset: '🌅', winter: '❄️', spooky: '🎃', holiday: '🎄', pup: '🐶', kitten: '🐱', bunny: '🐰', turtle: '🐢', butterfly: '🦋', dino: '🦕', sloth: '🦥', owl: '🦉', hamster: '🐹', parrot: '🦜', pony: '🐴' };
 // Render a kid's customized avatar (base + hat + accessory + pet + background)
 function avatarHTML(k) {
   const cfg = (k && k.avatar_config) || {};
@@ -342,6 +342,7 @@ route('landing', async () => {
       <div><b>K–12</b><span>Every grade level</span></div>
       <div><b>4</b><span>Core subjects</span></div>
       <div><b>131</b><span>Skill areas</span></div>
+      <div><b>8</b><span>Learning games</span></div>
       <div><b>1:1</b><span>Adaptive pacing</span></div>
     </div>
     <h2 class="section-title reveal">How it works</h2>
@@ -368,10 +369,10 @@ route('landing', async () => {
     </div>
     <h2 class="section-title reveal">Built for families</h2>
     <div class="feature-grid">
-      <div class="feature reveal"><h3>An experience that grows up</h3><p>A 1st grader gets color, sound, and celebration. An 11th grader gets a clean, serious study environment. Same engine, age-appropriate design.</p></div>
-      <div class="feature reveal"><h3>Motivation, done right</h3><p>Correct answers earn tokens for a games arcade and coins for avatar customization. Learning is always the engine — play is the reward.</p></div>
-      <div class="feature reveal"><h3>Safe connection</h3><p>Students connect only with buddies their parents approve, and encourage each other with pre-written cheers. No open chat, no strangers, ever.</p></div>
-      <div class="feature reveal"><h3>Your schedule</h3><p>Traditional school year, year-round, or homeschool calendar — weekly goals pace the work to your family's rhythm, on any device.</p></div>
+      <div class="feature reveal"><h3>An experience that grows up</h3><p>A 1st grader gets big friendly type, read-aloud questions, and celebrations. A teen gets 15-minute Focus Sessions in a clean, serious study environment. Same engine, age-appropriate design.</p></div>
+      <div class="feature reveal"><h3>Motivation, done right</h3><p>Daily quests, streaks, an 8-game arcade (tokens earned by learning), and avatar customization with coins. Play is always the reward — learning is always the engine.</p></div>
+      <div class="feature reveal"><h3>Safe, social learning</h3><p>Parent-approved buddies only. Kids send pre-written cheers, race each other's high scores, and team up on weekly goals where both win. No open chat, no strangers, ever.</p></div>
+      <div class="feature reveal"><h3>Proof on the fridge</h3><p>Printable Certificates of Mastery, a weekly one-page report, a 14-day activity chart, and per-skill mastery bars — you'll always know exactly how it's going.</p></div>
     </div>
     <div class="card reveal" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:6px">Simple plans</h2>
@@ -1018,6 +1019,63 @@ route('report', async (kidId) => {
   });
 });
 
+// ======================= weekly fridge report =======================
+route('weekly', async (kidId) => {
+  const r = await api(`/learn/${kidId}/report`);
+  const k = r.kid;
+  const week = (r.history || []).slice(-7);
+  const total = week.reduce((t, x) => t + x.answers, 0);
+  const corr = week.reduce((t, x) => t + x.correct, 0);
+  const acc = total ? Math.round(corr / total * 100) : 0;
+  const activeDays = week.filter(x => x.answers > 0).length;
+  const best = r.subjects.filter(s => s.placed && s.avgMastery != null).sort((a, b) => b.avgMastery - a.avgMastery)[0];
+  const focusList = r.subjects.flatMap(s => s.focusAreas.map(f => `${f} (${s.label})`)).slice(0, 3);
+  const strengthList = r.subjects.flatMap(s => s.strengths.map(f => `${f} (${s.label})`)).slice(0, 3);
+  const max = Math.max(1, ...week.map(x => x.answers));
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const bars = week.map((x, i) => {
+    const h = Math.round(x.answers / max * 60);
+    const a2 = x.answers ? x.correct / x.answers : 0;
+    const col = !x.answers ? '#e3e0d8' : a2 >= 0.8 ? '#1f8a5f' : a2 >= 0.55 ? '#c9971c' : '#d97b4f';
+    const dn = dayNames[new Date(x.day + 'T12:00:00Z').getUTCDay()];
+    return `<g><rect x="${i * 64 + 10}" y="${72 - h}" width="44" height="${Math.max(3, h)}" rx="5" fill="${col}"/>
+      <text x="${i * 64 + 32}" y="86" font-size="10" text-anchor="middle" fill="#7d8496">${dn}</text>
+      <text x="${i * 64 + 32}" y="${66 - h}" font-size="10" text-anchor="middle" fill="#16213a" font-weight="700">${x.answers || ''}</text></g>`;
+  }).join('');
+  const stars = total >= 100 ? '🌟🌟🌟' : total >= 50 ? '🌟🌟' : total >= 15 ? '🌟' : '';
+  app().innerHTML = topbar(`<div class="container" style="max-width:820px">
+    <div class="cert-frame">
+      <div class="cert-inner" style="padding:30px 34px 26px;text-align:left">
+        <div style="display:flex;align-items:center;gap:14px;justify-content:space-between;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:12px">
+            <img src="/logo-roundel.svg" alt="" style="width:58px;height:58px">
+            <div><div class="cert-academy" style="font-size:.7rem">GALLOP LEARNING ACADEMY</div>
+            <h2 style="margin:2px 0 0;font-family:var(--font-display)">${esc(k.name)}'s Week ${stars}</h2></div>
+          </div>
+          <div style="text-align:right;color:#7d8496;font-size:.85rem">${new Date(Date.now() - 6 * 864e5).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}<br>🔥 ${k.streak}-day streak</div>
+        </div>
+        <div class="summary-stats" style="margin:16px 0 6px">
+          <div class="sstat"><div class="n">${total}</div>questions</div>
+          <div class="sstat"><div class="n">${acc}%</div>correct</div>
+          <div class="sstat"><div class="n">${activeDays}/7</div>days active</div>
+          ${best ? `<div class="sstat"><div class="n">${best.letter}</div>${esc(best.label)}</div>` : ''}
+        </div>
+        <svg viewBox="0 0 458 92" style="width:100%;height:auto;margin:8px 0">${bars}</svg>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+          <div><b style="color:#1f8a5f">💪 Shining at</b><br><span class="muted" style="font-size:.9rem">${strengthList.length ? strengthList.map(esc).join('<br>') : 'Building the basics — stars incoming!'}</span></div>
+          <div><b style="color:#c9971c">🎯 Working on</b><br><span class="muted" style="font-size:.9rem">${focusList.length ? focusList.map(esc).join('<br>') : 'No trouble spots this week!'}</span></div>
+        </div>
+        <p style="margin-top:16px;font-size:.85rem;color:#7d8496;border-top:1px dashed #ddd;padding-top:10px">${total >= 100 ? `Outstanding week, ${esc(k.name)} — over 100 questions! The gallop is real. 🐎` : total >= 50 ? `Great consistency, ${esc(k.name)} — keep that streak alive! 🐎` : total > 0 ? `Every question counts, ${esc(k.name)} — let's pick up the pace next week! 🐎` : `A fresh week awaits — first quest starts today! 🐎`}</p>
+      </div>
+    </div>
+    <div class="center no-print" style="margin-top:16px">
+      <button class="btn" onclick="window.print()">🖨️ Print for the Fridge</button>
+      <button class="btn ghost small" style="color:#1f5e46;border-color:#1f5e46;margin-left:8px" onclick="location.hash='#${State.me.role === 'parent' ? 'parent' : 'home'}'">← Back</button>
+    </div>
+  </div>`);
+  wireChrome();
+});
+
 // ======================= printable certificate =======================
 route('certificate', async (kidId, certId) => {
   const r = await api(`/learn/${kidId}/report`);
@@ -1097,6 +1155,7 @@ route('parent', async () => {
               <div style="flex:1"><b>${esc(k.name)}</b><br><span class="muted" style="font-size:.85rem">Grade ${k.grade === 0 ? 'K' : k.grade} · 🔥${k.streak} streak · ⚡${k.xp} XP · ${esc(k.calendar_mode)}</span></div>
               <button class="btn green small" data-start="${k.id}">▶ Start</button>
               <button class="btn small" data-report="${k.id}">📊 Report</button>
+              <button class="btn small" data-weekly="${k.id}" title="Printable weekly summary">📄</button>
               <button class="btn coral small" data-del="${k.id}">✕</button>
             </div>`).join('') : '<p class="muted">Add your first learner below! 👇</p>'}
         </div>
@@ -1210,6 +1269,7 @@ route('parent', async () => {
   }
   document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => enterKid(Number(b.dataset.start)));
   document.querySelectorAll('[data-report]').forEach(b => b.onclick = () => location.hash = '#report/' + b.dataset.report);
+  document.querySelectorAll('[data-weekly]').forEach(b => b.onclick = () => location.hash = '#weekly/' + b.dataset.weekly);
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
     if (confirm('Remove this learner and all their progress?')) { await api('/kids/' + b.dataset.del, { method: 'DELETE' }); navigate(); }
   });
