@@ -8,8 +8,8 @@ const KEY = process.env.STRIPE_SECRET_KEY || '';
 const stripe = KEY ? require('stripe')(KEY) : null;
 
 const PLANS = {
-  solo:   { name: 'Solo Learner',  priceMonthly: 19, kids: 1,  envPrice: process.env.STRIPE_PRICE_SOLO },
-  family: { name: 'Family',        priceMonthly: 29, kids: 4,  envPrice: process.env.STRIPE_PRICE_FAMILY }
+  solo:   { name: 'Solo Learner',  priceMonthly: 29, kids: 1,  envPrice: process.env.STRIPE_PRICE_SOLO },
+  family: { name: 'Family',        priceMonthly: 49, kids: 4,  envPrice: process.env.STRIPE_PRICE_FAMILY }
 };
 
 function billingMode() { return stripe ? 'stripe' : 'demo'; }
