@@ -106,7 +106,62 @@ const WHY = {
     ]
   }
 };
-function whyLine(subject) {
+// Topic-matched real-world lines — the shape question gets a BUILDER line, not a money line!
+const WHY_TOPICS = {
+  math: [
+    { match: /shape|geometr|area|perimeter|angle|symmetr|volume/i,
+      young: ['Builders use shapes to make houses and bridges strong! 🏗️', 'Artists and video game designers build whole worlds out of shapes! 🎮'],
+      teen: ['Architects, engineers, and game developers work in geometry every day.', '3D printing, CAD design, graphics engines — it\'s all geometry.'] },
+    { match: /money|coin|cent|dollar|change|percent|interest|discount|budget/i,
+      young: ['This is how you make sure you get the right change at the store! 🪙', 'Kids who run lemonade stands use this to count their profit! 🍋'],
+      teen: ['This is the math behind every budget, paycheck, and smart purchase.', 'Investors and founders live in percentages — margins, growth, interest.'] },
+    { match: /clock|time|calendar|schedule/i,
+      young: ['Reading clocks means you always know when the fun starts! ⏰', 'Pilots and train drivers read time like this to keep everyone safe!'],
+      teen: ['Schedules, time zones, deadlines — adults run their lives on this.'] },
+    { match: /fraction|ratio|divid|division/i,
+      young: ['Chefs split recipes with fractions every single day! 👩‍🍳', 'Sharing pizza fairly with friends IS fractions! 🍕'],
+      teen: ['Ratios drive recipes, medicine doses, and financial models.'] },
+    { match: /graph|data|chart|probab|statist|mean|median/i,
+      young: ['Sports announcers use stats like these during every game! 🏀', 'Weather forecasters use data to predict rain or shine! ⛅'],
+      teen: ['Data science — one of the best-paid careers — is built on this.', 'Reading data correctly means nobody can fool you with a chart.'] },
+    { match: /measur|length|weight|unit/i,
+      young: ['Carpenters measure twice and cut once — just like this! 📏', 'Bakers measure ingredients so cookies come out perfect! 🍪'],
+      teen: ['Engineering, medicine, construction — measurement is the foundation.'] }
+  ],
+  english: [
+    { match: /read|comprehen|story|detail|main idea|inference/i,
+      young: ['Great readers become great leaders — words are how ideas travel! 📚', 'Reading well makes EVERY other subject easier. 🚀'],
+      teen: ['Careful reading is how you win at contracts, colleges, and careers.'] },
+    { match: /vocab|word|synonym|antonym|prefix|suffix/i,
+      young: ['Knowing lots of words helps you say exactly what you mean!', 'Word detectives can figure out ANY new word they meet! 🔍'],
+      teen: ['A precise vocabulary is a negotiation and interview superpower.'] },
+    { match: /grammar|sentence|punctuat|noun|verb|contraction/i,
+      young: ['Clear sentences make sure everyone understands your great ideas! ✍️'],
+      teen: ['CEOs say clear writing is the #1 skill they hire for.'] },
+    { match: /writ|essay|persua|figurative|poet/i,
+      young: ['Every movie, game, and book you love started with someone writing well!'],
+      teen: ['Persuasion — essays, pitches, interviews — is a superpower built here.', 'The best thinkers write well, because writing IS thinking made visible.'] }
+  ],
+  science: [
+    { match: /animal|plant|habitat|body|sense|living/i,
+      young: ['Doctors and vets use this science to help people and pets! 🩺', 'Knowing how living things work makes you a nature explorer! 🌍'],
+      teen: ['Medicine, biotech, and conservation careers all start right here.'] },
+    { match: /matter|solid|liquid|gas|chemi|mix/i,
+      young: ['Chefs use this science — heat, mixing, freezing — every time they cook! 👩‍🍳'],
+      teen: ['Chemistry powers everything from clean water to phone batteries.'] },
+    { match: /weather|space|earth|planet|rock|water cycle/i,
+      young: ['Weather scientists use this to tell you when to grab an umbrella! ☔', 'Astronauts study this to explore space! 🚀'],
+      teen: ['Climate science and space exploration are hiring this generation.'] },
+    { match: /force|motion|energy|electric|magnet|physic/i,
+      young: ['Roller coaster designers use this science to make rides thrilling AND safe! 🎢'],
+      teen: ['Every rocket, EV, and power grid runs on these principles.'] }
+  ],
+  spanish: []
+};
+function whyLine(subject, skillName) {
+  const topics = WHY_TOPICS[subject] || [];
+  const hit = skillName ? topics.find(t => t.match.test(skillName)) : null;
+  if (hit) { const list = playful() ? hit.young : (hit.teen.length ? hit.teen : hit.young); return list[Math.floor(Math.random() * list.length)]; }
   const bank = WHY[subject];
   if (!bank) return '';
   const list = playful() ? bank.young : bank.teen;
@@ -487,10 +542,21 @@ route('placement', async (subject) => {
   let current = null;
 
   async function step(body) {
-    const data = await api(`/learn/${kidId}/placement/${subject}`, { method: 'POST', body: body || { reset: current === null } });
-    if (data.done) return finish(data);
-    current = data;
-    render(data);
+    try {
+      const data = await api(`/learn/${kidId}/placement/${subject}`, { method: 'POST', body: body || { reset: current === null } });
+      if (data.done) return finish(data);
+      current = data;
+      render(data);
+    } catch (e) {
+      if (e.status === 402) { renderPaywall(); return; }
+      app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="card center">
+        <div class="big-emoji">🐎</div><h2>Quick hiccup!</h2>
+        <p class="muted" style="margin:10px 0 18px">That didn't load. Tap below to continue your placement quiz.</p>
+        <button class="btn green" id="retry-p">Continue →</button>
+      </div></div>`);
+      wireChrome();
+      $('#retry-p').onclick = () => { Sound.click(); step(body); };
+    }
   }
   function render(data) {
     const qn = data.question;
@@ -542,8 +608,27 @@ route('lesson', async (subject) => {
 
   async function nextQuestion() {
     if (session.n >= SESSION_LEN) return summary();
-    const data = await api(`/learn/${kidId}/next/${subject}`);
-    render(data);
+    try {
+      const data = await api(`/learn/${kidId}/next/${subject}`);
+      render(data);
+    } catch (e) {
+      if (e.status === 402) { renderPaywall(); return; }
+      // Never leave a kid stuck: one auto-retry, then a friendly tap-to-retry card.
+      try {
+        await new Promise(r => setTimeout(r, 800));
+        const data = await api(`/learn/${kidId}/next/${subject}`);
+        render(data);
+      } catch (e2) {
+        app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="card center">
+          <div class="big-emoji">🐎</div><h2>Whoa — quick water break!</h2>
+          <p class="muted" style="margin:10px 0 18px">The next question didn't load. Your progress is saved — tap below to keep going.</p>
+          <button class="btn green" id="retry-q">Keep Going →</button>
+          <button class="btn ghost small" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px" onclick="location.hash='#home'">Back to Subjects</button>
+        </div></div>`);
+        wireChrome();
+        $('#retry-q').onclick = () => { Sound.click(); nextQuestion(); };
+      }
+    }
   }
 
   function render(data) {
@@ -587,7 +672,7 @@ route('lesson', async (subject) => {
       b.classList.add(correct ? 'correct' : 'wrong');
       if (!correct) document.querySelectorAll('.choice')[qn.answerIndex].classList.add('reveal');
       const fb = $('#feedback');
-      const why = whyLine(subject);
+      const why = whyLine(subject, qn.skillName);
       if (correct) {
         Sound.correct(); Confetti.burst(40);
         const praise = (playful() ? PRAISE : PRAISE_TEEN)[Math.floor(Math.random() * (playful() ? PRAISE : PRAISE_TEEN).length)];
@@ -698,6 +783,7 @@ route('report', async (kidId) => {
             <p class="muted" style="margin:6px 0">${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} · ${s.accuracy != null ? Math.round(s.accuracy * 100) + '% accuracy' : 'just getting started'}</p>
             ${s.strengths.length ? `<p>💪 Strengths: ${s.strengths.map(x => `<span class="pill strength">${esc(x)}</span>`).join(' ')}</p>` : ''}
             ${s.focusAreas.length ? `<p style="margin-top:6px">🎯 Focus areas (getting extra help): ${s.focusAreas.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')}</p>` : ''}
+            ${isParent ? `<button class="btn ghost small no-print" style="margin-top:8px;color:#7f8c9b;border-color:#dfe6e9" data-retake="${s.subject}">🔄 Retake placement</button>` : ''}
           ` : `<p class="muted">Placement quiz not taken yet — jump in to find the right level!</p>`}
         </div>`).join('')}
       </div>
@@ -718,6 +804,14 @@ route('report', async (kidId) => {
     </div>
   </div>`);
   wireChrome();
+  document.querySelectorAll('[data-retake]').forEach(b => b.onclick = async () => {
+    const sub = b.dataset.retake;
+    if (!confirm(`Retake the ${sub} placement quiz? ${esc(k.name)} will re-do the short assessment next time they open ${sub} — progress and badges are kept.`)) return;
+    await api(`/learn/${kidId}/placement/${sub}/retake`, { method: 'POST', body: {} });
+    Sound.badge();
+    b.textContent = '✅ Placement reset — quiz runs on next visit';
+    b.disabled = true;
+  });
 });
 
 // ======================= paywall =======================
