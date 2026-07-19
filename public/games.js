@@ -730,6 +730,13 @@
               <div class="avatar-big" style="margin:0 auto">${avatarHTML(b)}</div>
               <h3 style="margin:8px 0 4px">${esc(b.name)}</h3>
               <p class="muted">🔥 ${b.streak}-day streak · ⚡ ${b.xp} XP · 🏅 ${b.badges} badges</p>
+              ${b.team ? `<div class="team-goal ${b.team.done && !b.team.claimed ? 'ready' : ''}">
+                <div class="tg-head">🏇 Team Gallop: <b>${Math.min(b.team.combined, b.team.goal)}/${b.team.goal}</b> answers this week</div>
+                <div class="tg-bar"><div class="tg-fill" style="width:${Math.min(100, b.team.combined / b.team.goal * 100)}%"></div></div>
+                ${b.team.claimed ? '<div class="tg-note">✅ Team bonus collected — new goal next week!</div>'
+                  : b.team.done ? `<button class="btn sun small" style="margin-top:6px" data-teamclaim="${b.id}">Collect team bonus! +${b.team.reward} 🪙 each</button>`
+                  : `<div class="tg-note">Answer questions together — you BOTH win ${b.team.reward} coins!</div>`}
+              </div>` : ''}
               <button class="btn sun small" style="margin-top:10px" data-cheer="${b.id}">Cheer 📣</button>
               <button class="btn green small" style="margin-top:10px" data-challenge="${b.id}" data-bname="${esc(b.name)}">Challenge ⚔️</button>
             </div>`).join('')}
@@ -753,6 +760,14 @@
       </div>
     </div>`);
     wireChrome();
+    document.querySelectorAll('[data-teamclaim]').forEach(b => b.onclick = async () => {
+      try {
+        await api(`/buddies/${kidId()}/team-claim`, { method: 'POST', body: { buddyId: Number(b.dataset.teamclaim) } });
+        Sound.levelup(); Confetti.burst(160);
+        await window.BP.refreshMe();
+        navigate();
+      } catch (e) { Sound.wrong(); }
+    });
     document.querySelectorAll('[data-challenge]').forEach(b => b.onclick = () => {
       const toKid = Number(b.dataset.challenge), bname = b.dataset.bname;
       const names = data.games || {};

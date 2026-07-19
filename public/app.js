@@ -929,6 +929,18 @@ route('report', async (kidId) => {
             <p class="muted" style="margin:6px 0">${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} · ${s.accuracy != null ? Math.round(s.accuracy * 100) + '% accuracy' : 'just getting started'}</p>
             ${s.strengths.length ? `<p>💪 Strengths: ${s.strengths.map(x => `<span class="pill strength">${esc(x)}</span>`).join(' ')}</p>` : ''}
             ${s.focusAreas.length ? `<p style="margin-top:6px">🎯 Focus areas (getting extra help): ${s.focusAreas.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')}</p>` : ''}
+            ${isParent && s.skills && s.skills.length ? `
+            <details class="skill-detail no-print">
+              <summary>🔬 See all ${s.skills.length} skills</summary>
+              <div class="skill-rows">
+                ${s.skills.map(sk => `
+                  <div class="skill-row">
+                    <span class="sk-name">${esc(sk.name)}${sk.grade != null ? ` <span class="sk-grade">${sk.grade === 0 ? 'K' : 'G' + sk.grade}</span>` : ''}</span>
+                    <span class="sk-meta">${sk.attempts} tries${sk.accuracy != null ? ' · ' + Math.round(sk.accuracy * 100) + '%' : ''}</span>
+                    <span class="sk-bar"><span class="sk-fill ${sk.mastery >= 0.8 ? 'hi' : sk.mastery >= 0.45 ? 'mid' : 'lo'}" style="width:${Math.round(sk.mastery * 100)}%"></span></span>
+                  </div>`).join('')}
+              </div>
+            </details>` : ''}
             ${isParent ? `<button class="btn ghost small no-print" style="margin-top:8px;color:#7f8c9b;border-color:#dfe6e9" data-retake="${s.subject}">🔄 Retake placement</button>` : ''}
           ` : `<p class="muted">Placement quiz not taken yet — jump in to find the right level!</p>`}
         </div>`).join('')}

@@ -310,6 +310,28 @@ body[data-theme="academy"] .zone-card .zemoji { font-size: 1.5rem; }
 body[data-theme="academy"] .kid-header h1 { font-size: 1.5rem; }
 body[data-theme="academy"] .big-emoji { font-size: 3.4rem; }
 
+/* Team Gallop co-op goal */
+.team-goal { margin: 10px auto 2px; max-width: 260px; text-align: left; background: var(--soft-bg, #f4f1ea); border-radius: 12px; padding: 10px 12px; }
+.team-goal.ready { box-shadow: 0 0 0 2px var(--accent); }
+.tg-head { font-size: .82rem; font-weight: 600; color: var(--ink); margin-bottom: 5px; }
+.tg-bar { height: 9px; border-radius: 999px; background: rgba(0,0,0,.1); overflow: hidden; }
+.tg-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #1f8a5f, #c9971c); transition: width .5s ease; }
+.tg-note { font-size: .74rem; color: #7d8496; margin-top: 5px; }
+body[data-theme="academy"] .team-goal { background: rgba(255,255,255,.07); }
+body[data-theme="academy"] .tg-head { color: #e8ebf2; }
+
+/* Parent per-skill drill-down */
+.skill-detail { margin-top: 10px; }
+.skill-detail summary { cursor: pointer; font-weight: 600; font-size: .88rem; color: #1f5e46; }
+.skill-rows { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.skill-row { display: grid; grid-template-columns: 1fr auto 110px; gap: 10px; align-items: center; font-size: .84rem; }
+.sk-name { font-weight: 600; }
+.sk-grade { font-size: .7rem; color: #98a0af; font-weight: 700; }
+.sk-meta { color: #7d8496; font-size: .78rem; white-space: nowrap; }
+.sk-bar { height: 8px; border-radius: 999px; background: #eceae3; overflow: hidden; }
+.sk-fill { display: block; height: 100%; border-radius: 999px; }
+.sk-fill.hi { background: #1f8a5f; } .sk-fill.mid { background: #c9971c; } .sk-fill.lo { background: #d97b4f; }
+
 /* ===== Printable certificate ===== */
 .cert-frame { background: #fdfcf8; border: 10px solid #1f5e46; border-radius: 6px; padding: 10px; box-shadow: var(--shadow); }
 .cert-inner { border: 2px solid #c9971c; border-radius: 2px; padding: 44px 40px 36px; text-align: center; position: relative; }
