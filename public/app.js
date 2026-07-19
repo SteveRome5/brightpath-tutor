@@ -231,7 +231,9 @@ route('landing', async () => {
       </div>
     </div>
   </div>
-  <div class="site-footer">© ${new Date().getFullYear()} Gallop Learning Academy · Adaptive tutoring for grades K–12</div>`);
+  <div class="site-footer">© ${new Date().getFullYear()} Gallop Learning Academy · Adaptive tutoring for grades K–12<br>
+    <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow us on Instagram — @learnwithgallop</a>
+  </div>`);
   wireChrome();
 });
 
