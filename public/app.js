@@ -30,6 +30,12 @@ function avatarHTML(k) {
   const pet = cfg.pet && cfg.pet !== 'none' ? ITEM_EMOJI[cfg.pet] || '' : '';
   return `<span class="av-wrap">${bg ? `<span class="av-bg">${bg}</span>` : ''}<span class="av-base">${base}</span>${hat ? `<span class="av-hat">${hat}</span>` : ''}${acc ? `<span class="av-acc">${acc}</span>` : ''}${pet ? `<span class="av-pet">${pet}</span>` : ''}</span>`;
 }
+// The Gallop track — our horse IS the progress bar 🐎
+function gallopTrack(pct, label) {
+  pct = Math.max(0, Math.min(100, pct));
+  const flags = [25, 50, 75].map(f => `<span class="g-flag ${pct >= f ? 'passed' : ''}" style="left:${f}%">🚩</span>`).join('');
+  return `<div class="gallop-wrap">${label ? `<span class="gallop-label">${esc(label)}</span>` : ''}<div class="gallop-rail"></div><div class="gallop-done" style="width:${pct}%"></div>${flags}<span class="g-finish">🏁</span><span class="gallop-horse ${pct >= 100 ? 'finished' : ''}" style="left:${Math.min(pct, 98)}%">🐎</span></div>`;
+}
 const SUBJECT_STYLE = {
   math: { color: '#6C5CE7', emoji: '🔢', cheer: 'Math Mission' },
   english: { color: '#00B894', emoji: '📚', cheer: 'Word Quest' },
@@ -345,8 +351,12 @@ route('home', async () => {
           <span class="chip">${playful() ? '🎟️ ' : ''}${k.play_tokens || 0} tokens</span>
         </div>
       </div>
-      <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#report/${k.id}'">📊 My Progress</button>
+      <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#report/${k.id}'">${playful() ? '📊 ' : ''}My Progress</button>
       <button class="btn ghost small" id="autoread-btn">${Voice.auto ? '🗣️ Read-aloud ON' : '🗣️ Read-aloud off'}</button></div>
+    </div>
+    <div class="week-gallop">
+      <div class="wg-head"><span>${playful() ? '🏇 This week’s gallop' : 'This week'}</span><span>${data.weekAnswers || 0} / ${(k.weekly_goal || 12) * 10} answers</span></div>
+      ${gallopTrack(Math.min(100, (data.weekAnswers || 0) / ((k.weekly_goal || 12) * 10) * 100))}
     </div>
     <div class="subject-grid">
       ${data.subjects.map(s => `
@@ -390,7 +400,7 @@ route('placement', async (subject) => {
     app().innerHTML = topbar(`<div class="container lesson-wrap">
       <div class="lesson-top">
         <b>${style.emoji} Finding your ${esc(subject)} level…</b>
-        <div class="progress-track"><div class="progress-fill" style="width:${Math.min(100, data.progress / 8 * 100)}%"></div></div>
+        ${gallopTrack(Math.min(100, data.progress / 8 * 100))}
       </div>
       <div class="q-card">
         <span class="q-skill" style="background:${style.color}">${esc(qn.skillName)}</span>
@@ -445,7 +455,7 @@ route('lesson', async (subject) => {
     app().innerHTML = topbar(`<div class="container lesson-wrap">
       <div class="lesson-top">
         <b>${style.emoji} ${style.cheer}</b>
-        <div class="progress-track"><div class="progress-fill" style="width:${session.n / SESSION_LEN * 100}%"></div></div>
+        ${gallopTrack(session.n / SESSION_LEN * 100)}
         <b>${session.n}/${SESSION_LEN}</b>
       </div>
       <div class="q-card">

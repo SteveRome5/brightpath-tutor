@@ -187,6 +187,47 @@ body[data-theme="scholar"] .subject-card .blob, body[data-theme="academy"] .subj
 body[data-theme="junior"] .progress-track { height: 16px; background: rgba(255,255,255,.25); }
 .progress-fill { height: 100%; border-radius: 999px; background: var(--accent); width: 0%; transition: width .4s ease; }
 body[data-theme="junior"] .progress-fill { background: linear-gradient(90deg, #ffeaa7, #fdcb6e); }
+
+/* ---------- the Gallop track: our horse IS the progress bar ---------- */
+.gallop-wrap { flex: 1; min-width: 180px; position: relative; height: 40px; }
+.gallop-rail {
+  position: absolute; left: 0; right: 0; bottom: 6px; height: 6px; border-radius: 999px;
+  background: rgba(127,127,127,.25);
+}
+body[data-theme="junior"] .gallop-rail, body[data-theme="explorer"] .gallop-rail { background: rgba(255,255,255,.3); }
+.gallop-done {
+  position: absolute; left: 0; bottom: 6px; height: 6px; border-radius: 999px;
+  background: var(--accent); transition: width .5s ease; max-width: 100%;
+}
+.g-flag {
+  position: absolute; bottom: 10px; transform: translateX(-50%); font-size: .8rem;
+  opacity: .45; transition: opacity .3s, transform .3s;
+}
+.g-flag.passed { opacity: 1; transform: translateX(-50%) scale(1.25); }
+.g-finish { position: absolute; right: -4px; bottom: 10px; font-size: 1rem; }
+.gallop-horse {
+  position: absolute; bottom: 8px; font-size: 1.7rem; line-height: 1;
+  transform: translateX(-50%) scaleX(-1);   /* face the finish line */
+  transition: left .6s cubic-bezier(.34,1.4,.64,1);
+  animation: gallop-bounce .5s ease;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.25));
+}
+.gallop-horse.finished { animation: gallop-rear .8s ease; }
+.gallop-label { position: absolute; top: -4px; right: 0; font-size: .75rem; font-weight: 700; color: var(--chrome-sub); }
+@keyframes gallop-bounce {
+  0% { transform: translateX(-50%) scaleX(-1) translateY(0); }
+  25% { transform: translateX(-50%) scaleX(-1) translateY(-9px) rotate(-6deg); }
+  50% { transform: translateX(-50%) scaleX(-1) translateY(0); }
+  75% { transform: translateX(-50%) scaleX(-1) translateY(-5px) rotate(-3deg); }
+  100% { transform: translateX(-50%) scaleX(-1) translateY(0); }
+}
+@keyframes gallop-rear {
+  0%,100% { transform: translateX(-50%) scaleX(-1) rotate(0); }
+  40% { transform: translateX(-50%) scaleX(-1) rotate(-18deg) translateY(-8px); }
+}
+.week-gallop { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 20px 10px; margin: 4px 0 16px; }
+.week-gallop .wg-head { display: flex; justify-content: space-between; font-size: .85rem; font-weight: 600; color: #7d8496; margin-bottom: 2px; }
+body[data-theme="academy"] .week-gallop .wg-head { color: #8b94a7; }
 .q-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 30px; }
 .q-skill { display: inline-block; font-size: .8rem; font-weight: 700; padding: 5px 13px; border-radius: 999px; margin-bottom: 14px; color: #fff; }
 .q-prompt { font-size: 1.3rem; font-weight: 600; white-space: pre-line; line-height: 1.5; font-family: var(--font-body); }
