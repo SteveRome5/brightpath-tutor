@@ -178,12 +178,12 @@ const skills = [
   {
     id: 'e.4.figurative', name: 'Figurative Language', grade: 4,
     gen: fromBank([
-      { p: '"The classroom was a zoo before the teacher arrived." This is a…', a: 'metaphor', w: ['simile', 'fact', 'onomatopoeia'], h: 'It says the room WAS a zoo (no "like" or "as").', e: 'Metaphors say something IS another thing.' },
-      { p: '"Her smile was as bright as the sun." This is a…', a: 'simile', w: ['metaphor', 'idiom', 'hyperbole'], h: 'Look for "as ___ as".', e: 'Similes compare with like or as. ☀️' },
+      { p: '"The classroom was a zoo before the teacher arrived." This is a…', a: 'metaphor (says one thing IS another)', w: ['simile (compares with like/as)', 'a plain fact', 'onomatopoeia (a sound word)'], h: 'It says the room WAS a zoo (no "like" or "as").', e: 'Metaphors say something IS another thing.' },
+      { p: '"Her smile was as bright as the sun." This is a…', a: 'simile (compares with like/as)', w: ['metaphor (says it IS the thing)', 'idiom (a saying)', 'hyperbole (huge exaggeration)'], h: 'Look for "as ___ as".', e: 'Similes compare with like or as. ☀️' },
       { p: '"I\'ve told you a MILLION times to clean your room!" This is…', a: 'hyperbole (huge exaggeration)', w: ['a fact', 'a simile', 'personification'], h: 'Was it really a million?', e: 'Hyperbole exaggerates for effect.' },
-      { p: '"The wind whispered through the trees." This gives the wind a human ability — that\'s…', a: 'personification', w: ['a simile', 'alliteration', 'a fact'], h: 'Can wind really whisper?', e: 'Personification = giving human traits to non-human things.' },
-      { p: '"BOOM! CRASH! The thunder rolled." Words that imitate sounds are called…', a: 'onomatopoeia', w: ['metaphors', 'synonyms', 'pronouns'], h: 'Buzz, pop, bang…', e: 'Onomatopoeia = sound-effect words! 💥' },
-      { p: '"Peter Piper picked a peck of pickled peppers" repeats the P sound. That\'s…', a: 'alliteration', w: ['onomatopoeia', 'a metaphor', 'rhyme'], h: 'Same starting sound, over and over.', e: 'Alliteration = repeated beginning sounds.' }
+      { p: '"The wind whispered through the trees." This gives the wind a human ability — that\'s…', a: 'personification (making a thing act human)', w: ['a simile (compares with like/as)', 'alliteration (repeated first sounds)', 'a plain fact'], h: 'Can wind really whisper?', e: 'Personification = giving human traits to non-human things.' },
+      { p: '"BOOM! CRASH! The thunder rolled." Words that imitate sounds are called…', a: 'onomatopoeia (words that imitate sounds)', w: ['metaphors (says one thing IS another)', 'synonyms (words that mean the same)', 'pronouns (he, she, it)'], h: 'Buzz, pop, bang…', e: 'Onomatopoeia = sound-effect words! 💥' },
+      { p: '"Peter Piper picked a peck of pickled peppers" repeats the P sound. That\'s…', a: 'alliteration (repeated first sounds)', w: ['onomatopoeia (sound-effect words)', 'a metaphor (says it IS the thing)', 'rhyme (matching end sounds)'], h: 'Same starting sound, over and over.', e: 'Alliteration = repeated beginning sounds.' }
     ])
   },
   {
