@@ -1,0 +1,22 @@
+{
+  "name": "brightpath-tutor",
+  "version": "1.0.0",
+  "description": "BrightPath — the adaptive K-12 tutor that feels like your favorite teacher. Math, English, Science & Spanish with real-life examples.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.2.1",
+    "stripe": "^22.3.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
