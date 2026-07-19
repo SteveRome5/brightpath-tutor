@@ -23,47 +23,54 @@
   --radius: 14px;
   --btn-radius: 10px;
   --shadow: 0 1px 2px rgba(22, 33, 58, .06), 0 8px 24px rgba(22, 33, 58, .07);
-  --font-display: 'Fraunces', Georgia, serif;
+  --font-display: 'Outfit', 'Inter', -apple-system, sans-serif;
   --font-body: 'Inter', -apple-system, 'Segoe UI', sans-serif;
-  --heading-weight: 600;
+  --heading-weight: 700;
   font-size: 16px;
 }
 
-/* ---- age themes ---- */
+/* ---- age themes (palettes tuned to learning-color research) ---- */
+/* K-2: warm & sunny — bright sky + golden accents energize little learners */
 body[data-theme="junior"] {
-  --pagebg: #6d64d8; --pagebg2: #8a5fc9;
-  --chrome-ink: #ffffff; --chrome-sub: rgba(255,255,255,.85);
+  --pagebg: #3d8fe0; --pagebg2: #7a67dd;
+  --brand: #f59f37; --brand-2: #ef8b52;
+  --chrome-ink: #ffffff; --chrome-sub: rgba(255,255,255,.88);
   --card-border: transparent;
   --radius: 22px; --btn-radius: 999px;
   --font-display: 'Fredoka', sans-serif; --font-body: 'Fredoka', sans-serif;
-  --shadow: 0 10px 30px rgba(30, 20, 80, .18);
-  --soft-bg: #f6f4ff; --field-border: #dfe6e9;
+  --shadow: 0 10px 30px rgba(20, 40, 90, .2);
+  --soft-bg: #fef6e7; --field-border: #dfe6e9;
 }
+/* 3-5: green — proven to aid concentration & reading comprehension */
 body[data-theme="explorer"] {
-  --pagebg: #1e7f8c; --pagebg2: #2a9d8f;
-  --chrome-ink: #ffffff; --chrome-sub: rgba(255,255,255,.85);
+  --pagebg: #178a5f; --pagebg2: #2fae7d;
+  --brand: #0d6e4a; --brand-2: #12855a;
+  --chrome-ink: #ffffff; --chrome-sub: rgba(255,255,255,.88);
   --card-border: transparent;
   --radius: 18px; --btn-radius: 14px;
   --font-display: 'Fredoka', sans-serif; --font-body: 'Inter', sans-serif;
-  --shadow: 0 8px 26px rgba(10, 50, 60, .18);
-  --soft-bg: #f0f7f6; --field-border: #d5e2e0;
+  --shadow: 0 8px 26px rgba(8, 55, 40, .2);
+  --soft-bg: #eef8f2; --field-border: #d3e5db;
 }
+/* 6-8: calm blue — lowers arousal, sharpens sustained focus */
 body[data-theme="scholar"] {
-  --pagebg: #eef1f5; --pagebg2: #eef1f5;
+  --pagebg: #e9eef6; --pagebg2: #e9eef6;
+  --brand: #2b64ad; --brand-2: #2f74c4;
   --chrome-ink: #1d2433; --chrome-sub: #5b6478;
   --radius: 12px; --btn-radius: 9px;
   --shadow: 0 1px 3px rgba(20, 28, 45, .08), 0 6px 18px rgba(20, 28, 45, .06);
-  --card-border: #e3e7ee; --soft-bg: #f2f4f8; --field-border: #d4dae4;
+  --card-border: #dde4ef; --soft-bg: #f0f4fa; --field-border: #cfd9e8;
 }
+/* 9-12: deep navy dark mode + restrained amber — serious, low-strain, adult */
 body[data-theme="academy"] {
   --ink: #e8eaf0;
-  --pagebg: #12161f; --pagebg2: #12161f;
+  --pagebg: #101627; --pagebg2: #101627;
   --chrome-ink: #e8eaf0; --chrome-sub: #8b94a7;
-  --card-bg: #1b2130; --card-border: #2a3245;
-  --soft-bg: #232b3d; --field-border: #38415a;
+  --card-bg: #19203a; --card-border: #2a3352;
+  --soft-bg: #222b47; --field-border: #38426a;
   --radius: 12px; --btn-radius: 8px;
   --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
-  --accent: #d9b44a;
+  --accent: #e0b64f; --brand: #3d6fc2; --brand-2: #4a80d6;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -372,6 +379,33 @@ body[data-theme="academy"] .mem-card.matched span { color: #7fe0c0; }
   body { background: #fff !important; }
   .topbar, .btn, .no-print { display: none !important; }
   .card { box-shadow: none; border: 1px solid #ddd; }
+}
+
+/* ---------- motion: the site feels alive ---------- */
+.reveal { opacity: 0; }
+.reveal.in { animation: rise-in .7s cubic-bezier(.22,.9,.36,1) forwards; }
+@keyframes rise-in { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+.hero .eyebrow, .hero h1, .hero p, .hero .btn { animation: rise-in .8s cubic-bezier(.22,.9,.36,1) both; }
+.hero h1 { animation-delay: .08s; }
+.hero p { animation-delay: .18s; }
+.hero .btn { animation-delay: .3s; }
+.subject-card, .zone-card { animation: rise-in .55s cubic-bezier(.22,.9,.36,1) both; }
+.subject-card:nth-child(1) { animation-delay: .02s } .subject-card:nth-child(2) { animation-delay: .09s }
+.subject-card:nth-child(3) { animation-delay: .16s } .subject-card:nth-child(4) { animation-delay: .23s }
+.zone-card:nth-child(1) { animation-delay: .28s } .zone-card:nth-child(2) { animation-delay: .34s } .zone-card:nth-child(3) { animation-delay: .4s }
+/* the resident horse trots across the landing hero */
+.hero { position: relative; overflow: hidden; }
+.horse-runner {
+  position: absolute; bottom: 4px; left: -10%; font-size: 2rem; pointer-events: none;
+  transform: scaleX(-1);
+  animation: run-across 15s linear infinite 2s, runner-bob .4s ease-in-out infinite;
+  opacity: .9;
+}
+@keyframes run-across { 0% { left: -8%; } 38% { left: 106%; } 100% { left: 106%; } }
+@keyframes runner-bob { 0%,100% { bottom: 4px; } 50% { bottom: 12px; } }
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal.in, .hero .eyebrow, .hero h1, .hero p, .hero .btn, .subject-card, .zone-card { animation: none; opacity: 1; }
+  .horse-runner { display: none; }
 }
 
 @keyframes float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }

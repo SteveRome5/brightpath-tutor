@@ -155,7 +155,13 @@ async function navigate() {
     app().innerHTML = `<div class="container"><div class="card center"><h2>Oops! 🙈</h2><p class="muted">${esc(e.message)}</p><button class="btn" onclick="location.hash='#'">Go Home</button></div></div>`;
   }
   window.scrollTo(0, 0);
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.reveal:not(.in)').forEach(el => revealObs.observe(el));
+  });
 }
+const revealObs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); revealObs.unobserve(e.target); } });
+}, { threshold: 0.15 });
 addEventListener('hashchange', navigate);
 
 // ======================= shared chrome =======================
@@ -192,37 +198,38 @@ route('landing', async () => {
     <p>Gallop Learning Academy places each student precisely — subject by subject — then adapts every lesson to how they actually learn. Real-world teaching, honest progress reports, and a curriculum that grows up with your child.</p>
     <button class="btn" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start your 14-day free trial</button>
     <button class="btn ghost" style="margin-left:8px" onclick="location.hash='#kid-login'">Student sign-in</button>
+    <div class="horse-runner">🐎</div>
   </div>
   <div class="container">
-    <div class="statband">
+    <div class="statband reveal">
       <div><b>K–12</b><span>Every grade level</span></div>
       <div><b>4</b><span>Core subjects</span></div>
       <div><b>131</b><span>Skill areas</span></div>
       <div><b>1:1</b><span>Adaptive pacing</span></div>
     </div>
-    <h2 class="section-title">How it works</h2>
+    <h2 class="section-title reveal">How it works</h2>
     <p class="section-sub">Three principles, borrowed from the best teachers you ever had.</p>
     <div class="feature-grid">
-      <div class="feature"><div class="fnum">01 — PLACE</div><h3>Find the true starting line</h3><p>A short placement assessment measures each subject independently. A strong reader who's average in math starts exactly where she should — in both.</p></div>
-      <div class="feature"><div class="fnum">02 — ADAPT</div><h3>Adjust with every answer</h3><p>Mastered skills accelerate and deepen. Shaky skills get gentler questions, clearer hints, and extra repetition — automatically, without shame.</p></div>
-      <div class="feature"><div class="fnum">03 — PROGRESS</div><h3>Prove it, then advance</h3><p>Students level up only when every skill in a grade is demonstrated. Parents see letter grades, strengths, and focus areas. Certificates mark real milestones.</p></div>
+      <div class="feature reveal"><div class="fnum">01 — PLACE</div><h3>Find the true starting line</h3><p>A short placement assessment measures each subject independently. A strong reader who's average in math starts exactly where she should — in both.</p></div>
+      <div class="feature reveal"><div class="fnum">02 — ADAPT</div><h3>Adjust with every answer</h3><p>Mastered skills accelerate and deepen. Shaky skills get gentler questions, clearer hints, and extra repetition — automatically, without shame.</p></div>
+      <div class="feature reveal"><div class="fnum">03 — PROGRESS</div><h3>Prove it, then advance</h3><p>Students level up only when every skill in a grade is demonstrated. Parents see letter grades, strengths, and focus areas. Certificates mark real milestones.</p></div>
     </div>
-    <h2 class="section-title">The curriculum</h2>
+    <h2 class="section-title reveal">The curriculum</h2>
     <p class="section-sub">Every concept taught through the real world — money, sports, cooking, travel, technology.</p>
     <div class="subject-strip">
-      <div class="sub" style="background:var(--math)"><h4>Mathematics</h4><p>Counting to pre-calculus. Lemonade-stand arithmetic, sale-rack percentages, roller-coaster physics of functions.</p></div>
-      <div class="sub" style="background:var(--english)"><h4>English</h4><p>Phonics to rhetoric and college-level analysis. Reading that builds thinkers, grammar that builds writers.</p></div>
-      <div class="sub" style="background:var(--science)"><h4>Science</h4><p>Five senses to chemistry and physics. Why the mirror fogs, why the soda can sweats, how vaccines train the body.</p></div>
-      <div class="sub" style="background:var(--spanish)"><h4>Spanish</h4><p>First greetings to real fluency. Order in a Madrid café by month two — conjugation follows conversation.</p></div>
+      <div class="sub reveal" style="background:var(--math)"><h4>Mathematics</h4><p>Counting to pre-calculus. Lemonade-stand arithmetic, sale-rack percentages, roller-coaster physics of functions.</p></div>
+      <div class="sub reveal" style="background:var(--english)"><h4>English</h4><p>Phonics to rhetoric and college-level analysis. Reading that builds thinkers, grammar that builds writers.</p></div>
+      <div class="sub reveal" style="background:var(--science)"><h4>Science</h4><p>Five senses to chemistry and physics. Why the mirror fogs, why the soda can sweats, how vaccines train the body.</p></div>
+      <div class="sub reveal" style="background:var(--spanish)"><h4>Spanish</h4><p>First greetings to real fluency. Order in a Madrid café by month two — conjugation follows conversation.</p></div>
     </div>
-    <h2 class="section-title">Built for families</h2>
+    <h2 class="section-title reveal">Built for families</h2>
     <div class="feature-grid">
-      <div class="feature"><h3>An experience that grows up</h3><p>A 1st grader gets color, sound, and celebration. An 11th grader gets a clean, serious study environment. Same engine, age-appropriate design.</p></div>
-      <div class="feature"><h3>Motivation, done right</h3><p>Correct answers earn tokens for a games arcade and coins for avatar customization. Learning is always the engine — play is the reward.</p></div>
-      <div class="feature"><h3>Safe connection</h3><p>Students connect only with buddies their parents approve, and encourage each other with pre-written cheers. No open chat, no strangers, ever.</p></div>
-      <div class="feature"><h3>Your schedule</h3><p>Traditional school year, year-round, or homeschool calendar — weekly goals pace the work to your family's rhythm, on any device.</p></div>
+      <div class="feature reveal"><h3>An experience that grows up</h3><p>A 1st grader gets color, sound, and celebration. An 11th grader gets a clean, serious study environment. Same engine, age-appropriate design.</p></div>
+      <div class="feature reveal"><h3>Motivation, done right</h3><p>Correct answers earn tokens for a games arcade and coins for avatar customization. Learning is always the engine — play is the reward.</p></div>
+      <div class="feature reveal"><h3>Safe connection</h3><p>Students connect only with buddies their parents approve, and encourage each other with pre-written cheers. No open chat, no strangers, ever.</p></div>
+      <div class="feature reveal"><h3>Your schedule</h3><p>Traditional school year, year-round, or homeschool calendar — weekly goals pace the work to your family's rhythm, on any device.</p></div>
     </div>
-    <div class="card" style="margin-top:40px">
+    <div class="card reveal" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:6px">Simple plans</h2>
       <p class="center muted" style="margin-bottom:20px">14-day free trial. Cancel anytime.</p>
       <div class="plans">
