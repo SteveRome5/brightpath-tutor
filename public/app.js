@@ -47,6 +47,72 @@ const ENCOURAGE = ['Almost! Every mistake grows your brain 🧠', 'Good try — 
 const PRAISE_TEEN = ['Correct.', 'Nice — exactly right.', 'Clean solve.', 'That’s it.', 'Solid.', 'Right on the first read.'];
 const ENCOURAGE_TEEN = ['Not quite — here’s the reasoning:', 'Close. The key detail:', 'Miss logged. Why:', 'Wrong turn — walk it back:'];
 
+// "When will I ever use this?" — answered on every single question.
+const WHY = {
+  math: {
+    young: [
+      'Kids who run lemonade stands use this math to count their money! 🍋',
+      'Bakers measure and count like this every morning. 🧁',
+      'This is how you make sure you get the right change at the store! 🪙',
+      'Builders count and measure like this to make houses stand up straight. 🏗️',
+      'Game designers use numbers like these to make your favorite games work! 🎮'
+    ],
+    teen: [
+      'Founders live in this math — margins, growth rates, break-even points.',
+      'Investors use exactly this to compare companies and spot value.',
+      'Engineers at SpaceX and Apple run these operations thousands of times a day.',
+      'This is the math behind every budget, paycheck, and smart purchase you\'ll ever make.',
+      'Data scientists — one of the best-paid careers — are built on this foundation.'
+    ]
+  },
+  english: {
+    young: [
+      'Great readers become great leaders — words are how ideas travel! 📚',
+      'Every movie, game, and book you love started with someone writing well. ✍️',
+      'Knowing lots of words helps you say exactly what you mean!',
+      'Reading fast and well makes EVERY other subject easier. 🚀'
+    ],
+    teen: [
+      'CEOs say clear writing is the #1 skill they hire for.',
+      'Persuasion — in essays, interviews, negotiations — is a superpower built here.',
+      'Contracts, colleges, and careers all filter for people who read carefully.',
+      'The best thinkers write well because writing IS thinking made visible.'
+    ]
+  },
+  science: {
+    young: [
+      'Scientists ask "why?" just like you — that\'s how everything gets invented! 🔬',
+      'Doctors use this science to help people feel better every day. 🩺',
+      'Knowing how the world works makes you the smartest explorer around! 🌍',
+      'Chefs use science — heat, mixing, freezing — every time they cook! 👩‍🍳'
+    ],
+    teen: [
+      'Every medical breakthrough, clean-energy company, and rocket starts here.',
+      'Scientific thinking — hypothesis, test, revise — is how you avoid being fooled.',
+      'Biotech and climate tech are hiring the generation that masters this now.',
+      'Understanding evidence beats believing headlines. That\'s a life skill.'
+    ]
+  },
+  spanish: {
+    young: [
+      '¡Hola! Over 500 million people speak Spanish — that\'s a lot of new friends! 🌎',
+      'Speaking two languages literally makes your brain stronger!',
+      'You could order tacos in Mexico City all by yourself! 🌮'
+    ],
+    teen: [
+      'Bilingual professionals out-earn monolingual peers in nearly every field.',
+      'The U.S. has 42+ million Spanish speakers — bilingual = twice the market.',
+      'Learning a language rewires your brain for better focus and memory. Proven.'
+    ]
+  }
+};
+function whyLine(subject) {
+  const bank = WHY[subject];
+  if (!bank) return '';
+  const list = playful() ? bank.young : bank.teen;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
 // ---- age-adaptive themes: the app grows up with the student ----
 function themeForGrade(g) { return g <= 2 ? 'junior' : g <= 5 ? 'explorer' : g <= 8 ? 'scholar' : 'academy'; }
 function applyTheme() {
@@ -80,7 +146,7 @@ const Sound = (() => {
 
 // ======================= voice (read-aloud) =======================
 const Voice = (() => {
-  let auto = localStorage.bp_autoread === '1';
+  let pref = localStorage.bp_autoread; // '1' on, '0' off, undefined = smart default
   function speak(text, lang) {
     try {
       speechSynthesis.cancel();
@@ -95,10 +161,16 @@ const Voice = (() => {
       speechSynthesis.speak(u);
     } catch (e) { /* voice unsupported — fine */ }
   }
+  function currentAuto() {
+    if (pref === '1') return true;
+    if (pref === '0') return false;
+    // Smart default: little kids (K–2) get questions read aloud automatically.
+    try { const k = State.me && State.me.kid; return !!(k && k.grade <= 2); } catch (e) { return false; }
+  }
   return {
     speak,
-    get auto() { return auto; },
-    toggleAuto() { auto = !auto; localStorage.bp_autoread = auto ? '1' : '0'; return auto; }
+    get auto() { return currentAuto(); },
+    toggleAuto() { const next = !currentAuto(); pref = next ? '1' : '0'; localStorage.bp_autoread = pref; return next; }
   };
 })();
 
@@ -213,6 +285,13 @@ route('landing', async () => {
       <div class="feature reveal"><div class="fnum">01 — PLACE</div><h3>Find the true starting line</h3><p>A short placement assessment measures each subject independently. A strong reader who's average in math starts exactly where she should — in both.</p></div>
       <div class="feature reveal"><div class="fnum">02 — ADAPT</div><h3>Adjust with every answer</h3><p>Mastered skills accelerate and deepen. Shaky skills get gentler questions, clearer hints, and extra repetition — automatically, without shame.</p></div>
       <div class="feature reveal"><div class="fnum">03 — PROGRESS</div><h3>Prove it, then advance</h3><p>Students level up only when every skill in a grade is demonstrated. Parents see letter grades, strengths, and focus areas. Certificates mark real milestones.</p></div>
+    </div>
+    <h2 class="section-title reveal">We're raising critical thinkers</h2>
+    <p class="section-sub">Every child asks "when will I ever use this?" We answer it on every single question — and build toward the adult they'll become.</p>
+    <div class="feature-grid">
+      <div class="feature reveal"><div class="fnum">GRADES K–5</div><h3>Little entrepreneurs</h3><p>Second-grade addition becomes lemonade-stand economics: buy supplies, set a price, count the profit. Math isn't a worksheet — it's how the world actually works.</p></div>
+      <div class="feature reveal"><div class="fnum">GRADES 6–8</div><h3>Real decisions</h3><p>Percentages become discounts and interest. Reading becomes spotting a weak argument. Science becomes testing claims instead of believing them.</p></div>
+      <div class="feature reveal"><div class="fnum">GRADES 9–12</div><h3>Future founders & investors</h3><p>Teens run a virtual portfolio in our stock-market game, reading news and managing risk. Algebra becomes margin math. Essays become pitches. School becomes a head start.</p></div>
     </div>
     <h2 class="section-title reveal">The curriculum</h2>
     <p class="section-sub">Every concept taught through the real world — money, sports, cooking, travel, technology.</p>
@@ -415,8 +494,10 @@ route('placement', async (subject) => {
         <span class="q-skill" style="background:${style.color}">${esc(qn.skillName)}</span>
         <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
         <div class="q-prompt">${esc(qn.prompt)}</div>
-        <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
-        <p class="muted" style="margin-top:16px">No pressure — this just helps me pick perfect lessons for YOU. 💜</p>
+        <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}
+          <button class="choice idk" data-i="-1">🤷 ${playful() ? "I haven't learned this yet" : "Haven't covered this yet"}</button>
+        </div>
+        <p class="muted" style="margin-top:16px">${playful() ? 'No guessing needed! Saying "I haven\'t learned this yet" is a SMART answer — it helps me find lessons that fit you perfectly. 💜' : 'Skip anything you haven\'t covered — honest answers give you an accurate starting level.'}</p>
       </div>
     </div>`);
     wireChrome();
@@ -424,7 +505,7 @@ route('placement', async (subject) => {
     if (Voice.auto) Voice.speak(qn.voice || qn.prompt, subject === 'spanish' ? 'es-ES' : 'en-US');
     document.querySelectorAll('.choice').forEach(b => b.onclick = () => {
       const i = Number(b.dataset.i);
-      if (i === qn.answerIndex) Sound.correct(); else Sound.wrong();
+      if (i === -1) Sound.click(); else if (i === qn.answerIndex) Sound.correct(); else Sound.wrong();
       step({ answerIndex: i, questionAnswerIndex: qn.answerIndex, probeGrade: data.probeGrade });
     });
   }
@@ -500,11 +581,11 @@ route('lesson', async (subject) => {
       if (correct) {
         Sound.correct(); Confetti.burst(40);
         fb.className = 'feedback good';
-        fb.innerHTML = `<b>${(playful() ? PRAISE : PRAISE_TEEN)[Math.floor(Math.random() * (playful() ? PRAISE : PRAISE_TEEN).length)]}</b> ${esc(qn.explain || "")}`;
+        fb.innerHTML = `<b>${(playful() ? PRAISE : PRAISE_TEEN)[Math.floor(Math.random() * (playful() ? PRAISE : PRAISE_TEEN).length)]}</b> ${esc(qn.explain || "")}<div class="why-line">🌍 <b>Real world:</b> ${esc(whyLine(subject))}</div>`;
       } else {
         Sound.wrong();
         fb.className = 'feedback bad';
-        fb.innerHTML = `<b>${(playful() ? ENCOURAGE : ENCOURAGE_TEEN)[Math.floor(Math.random() * (playful() ? ENCOURAGE : ENCOURAGE_TEEN).length)]}</b><br>${esc(qn.explain || "")}`;
+        fb.innerHTML = `<b>${(playful() ? ENCOURAGE : ENCOURAGE_TEEN)[Math.floor(Math.random() * (playful() ? ENCOURAGE : ENCOURAGE_TEEN).length)]}</b><br>${esc(qn.explain || "")}<div class="why-line">🌍 <b>Real world:</b> ${esc(whyLine(subject))}</div>`;
       }
       session.n++; if (correct) session.correct++;
       try {

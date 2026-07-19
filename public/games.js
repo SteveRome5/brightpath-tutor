@@ -44,12 +44,14 @@
     const s = await api(`/play/${kidId()}/status`);
     const k = s.kid;
     const games = [
+      { id: 'lemonade', emoji: '🍋', name: 'Lemonade Tycoon', desc: 'Run your own stand — buy smart, price right, bank the profit!' },
       { id: 'memory', emoji: '🃏', name: 'Memory Match', desc: 'Flip cards, match pairs — Spanish words, math facts & more!' },
       { id: 'wordsearch', emoji: '🔍', name: 'Word Search', desc: 'Hunt hidden words in the letter jungle' },
       { id: 'code', emoji: '🤖', name: 'Code Quest', desc: 'Program Robo the robot to reach the star' },
       { id: 'room', emoji: '🏠', name: 'Room Designer', desc: 'Decorate rooms & crack area puzzles' },
       { id: 'art', emoji: '🎨', name: 'Art Studio', desc: 'Draw with step-by-step guides — so cute!' }
     ];
+    if ((k.grade || 0) >= 4) games.unshift({ id: 'market', emoji: '📈', name: 'Market Mogul', desc: 'Read the news, manage risk, grow $1,000 on the Gallop Stock Exchange' });
     app().innerHTML = topbar(`<div class="container">
       <div class="kid-header">
         <div class="avatar-big">${avatarHTML(k)}</div>
@@ -70,7 +72,7 @@
             <div class="semoji">${g.emoji}</div>
             <h3>${g.name}</h3>
             <div class="lvl">${esc(g.desc)}</div>
-            <div class="lvl" style="margin-top:6px;font-size:.85rem">🏅 Best: ${s.best[g.id].best} · Played ${s.best[g.id].plays}×</div>
+            <div class="lvl" style="margin-top:6px;font-size:.85rem">🏅 Best: ${(s.best[g.id] || {}).best || 0} · Played ${(s.best[g.id] || {}).plays || 0}×</div>
             <button class="btn sun small" style="margin-top:12px">Play (1 🎟️) →</button>
           </div>`).join('')}
       </div>
@@ -82,7 +84,7 @@
   // ======================= GAME DISPATCH =======================
   route('game', async (which) => {
     if (needKid()) return;
-    const starters = { memory: startMemory, wordsearch: startWordSearch, code: startCode, room: startRoom, art: startArt };
+    const starters = { memory: startMemory, wordsearch: startWordSearch, code: startCode, room: startRoom, art: startArt, lemonade: startLemonade, market: startMarket };
     const fn = starters[which];
     if (!fn) { location.hash = '#play'; return; }
     await gated(which, fn);
@@ -408,6 +410,154 @@
         a.download = 'my-gallop-art.png'; a.href = canvas.toDataURL('image/png'); a.click();
         finishGame('art', 100, 'Masterpiece saved! 🖼️', 'Your art downloaded to this device — show your family!');
       };
+    }
+    render();
+  }
+
+  // ======================= LEMONADE TYCOON =======================
+  // Entrepreneurship for every age: cost, price, demand, PROFIT.
+  function startLemonade() {
+    const DAYS = 5, CUP_COST = 0.5;
+    const WEATHER = [
+      { label: 'Sunny ☀️', base: 28 }, { label: 'HEAT WAVE 🥵', base: 44 },
+      { label: 'Cloudy ⛅', base: 16 }, { label: 'Rainy 🌧️', base: 7 }
+    ];
+    let day = 1, cash = 10, totalProfit = 0, wx = WEATHER[Math.floor(Math.random() * WEATHER.length)];
+    let cups = null, price = null;
+    const $$ = n => '$' + n.toFixed(2);
+    function plan(msg) {
+      app().innerHTML = topbar(`<div class="container" style="max-width:640px">
+        <div class="lesson-top"><b>🍋 Lemonade Tycoon — Day ${day}/${DAYS}</b><b>💵 ${$$(cash)}</b></div>
+        ${msg ? `<div class="news-flash">${msg}</div>` : ''}
+        <div class="card" style="padding:18px">
+          <h3 style="margin-bottom:4px">Today's forecast: ${wx.label}</h3>
+          <p class="muted" style="margin-bottom:14px">Hot days = thirsty customers. Rainy days = empty streets. Plan like a real business owner!</p>
+          <b>1) How many cups will you make? (each costs 50¢ in lemons & sugar)</b>
+          <div style="margin:8px 0 14px">${[10, 20, 30, 40].map(n => `<button class="btn small ${cups === n ? 'sun' : 'ghost'}" style="margin:3px;${cups !== n ? 'color:#1f5e46;border-color:#1f5e46' : ''}" data-cups="${n}" ${n * CUP_COST > cash ? 'disabled' : ''}>${n} cups (${$$(n * CUP_COST)})</button>`).join('')}</div>
+          <b>2) What price per cup?</b>
+          <div style="margin:8px 0 14px">${[0.5, 1, 1.5, 2].map(p => `<button class="btn small ${price === p ? 'sun' : 'ghost'}" style="margin:3px;${price !== p ? 'color:#1f5e46;border-color:#1f5e46' : ''}" data-price="${p}">${$$(p)}</button>`).join('')}</div>
+          <button class="btn green" id="open-btn" ${cups && price ? '' : 'disabled'}>Open the Stand! 🏁</button>
+        </div>
+      </div>`);
+      wireChrome();
+      document.querySelectorAll('[data-cups]').forEach(b => b.onclick = () => { cups = Number(b.dataset.cups); Sound.click(); plan(msg); });
+      document.querySelectorAll('[data-price]').forEach(b => b.onclick = () => { price = Number(b.dataset.price); Sound.click(); plan(msg); });
+      const ob = $('#open-btn'); if (ob) ob.onclick = sell;
+    }
+    function sell() {
+      const priceFactor = { 0.5: 1.45, 1: 1.1, 1.5: 0.8, 2: 0.5 }[price];
+      const demand = Math.max(0, Math.round(wx.base * priceFactor * (0.85 + Math.random() * 0.3)));
+      const sold = Math.min(cups, demand);
+      const cost = cups * CUP_COST, revenue = sold * price, profit = revenue - cost;
+      cash += profit; totalProfit += profit;
+      if (profit > 0) { Sound.correct(); Confetti.burst(60); } else Sound.wrong();
+      const wasted = cups - sold, missed = demand - sold;
+      const lesson = profit <= 0 ? 'You spent more than you earned — that\'s a LOSS. Real businesses fail when costs beat revenue. Adjust and try again!'
+        : missed > 0 ? `${missed} thirsty customers walked away — you could have made MORE cups (or charged more)!`
+        : wasted > 3 ? `${wasted} cups went to waste. Making too much costs money — matching supply to demand is the secret!`
+        : 'Nearly perfect planning — supply met demand. That\'s how pros run a business!';
+      const recap = `<b>Day ${day} results:</b> made ${cups} cups (cost ${$$(cost)}), sold ${sold} at ${$$(price)} → revenue ${$$(revenue)}. <b>Profit: ${$$(profit)}</b> 💡 Revenue − Cost = Profit. ${lesson}`;
+      day++;
+      cups = null; price = null; wx = WEATHER[Math.floor(Math.random() * WEATHER.length)];
+      if (day > DAYS) {
+        const score = Math.max(10, Math.round(totalProfit * 10) + 50);
+        finishGame('lemonade', score, totalProfit > 0 ? `You banked ${$$(totalProfit)} profit! 🍋` : 'Every entrepreneur has tough weeks!',
+          `Total profit over ${DAYS} days: ${$$(totalProfit)}. Real founders do exactly this: watch costs, read demand, set smart prices.`);
+        return;
+      }
+      plan(recap);
+    }
+    plan();
+  }
+
+  // ======================= MARKET MOGUL =======================
+  // Stock market for grades 4+: read the news, think ahead, manage risk.
+  function startMarket() {
+    const STOCKS = [
+      { id: 'hay', name: 'HayGrain Farms', emoji: '🌾', price: 20, wild: 0.05 },
+      { id: 'sun', name: 'SunVolt Energy', emoji: '☀️', price: 30, wild: 0.10 },
+      { id: 'pix', name: 'PixelPlay Games', emoji: '🎮', price: 15, wild: 0.14 },
+      { id: 'nova', name: 'Nova Rockets', emoji: '🚀', price: 50, wild: 0.22 }
+    ];
+    const NEWS = {
+      hay: { good: ['HayGrain wins a huge grocery contract 🌾', 'Perfect growing season boosts HayGrain harvests'], bad: ['Drought hits HayGrain\'s biggest fields', 'HayGrain recalls a shipment of oats'] },
+      sun: { good: ['New law rewards clean energy — SunVolt cheers ☀️', 'SunVolt\'s new panel breaks an efficiency record'], bad: ['Cheap imported panels undercut SunVolt', 'Cloudy quarter dims SunVolt\'s earnings'] },
+      pix: { good: ['PixelPlay\'s new game hits #1 in downloads 🎮', 'PixelPlay announces a huge esports league'], bad: ['PixelPlay delays its biggest game launch', 'Players quit PixelPlay\'s buggy update'] },
+      nova: { good: ['Nova Rockets lands a satellite mega-contract 🚀', 'Nova\'s reusable rocket sticks the landing'], bad: ['Nova launch scrubbed — investors nervous', 'Nova loses a contract to a rival'] }
+    };
+    const ROUNDS = 8;
+    let round = 1, cash = 1000, owned = { hay: 0, sun: 0, pix: 0, nova: 0 }, last = {}, headline = makeNews();
+    const $$ = n => '$' + n.toFixed(2);
+    function makeNews() {
+      const s = STOCKS[Math.floor(Math.random() * STOCKS.length)];
+      const up = Math.random() < 0.5;
+      const list = NEWS[s.id][up ? 'good' : 'bad'];
+      return { stock: s.id, up, text: list[Math.floor(Math.random() * list.length)] };
+    }
+    function netWorth() { return cash + STOCKS.reduce((t, s) => t + owned[s.id] * s.price, 0); }
+    function render(flash) {
+      const nw = netWorth();
+      app().innerHTML = topbar(`<div class="container" style="max-width:680px">
+        <div class="lesson-top"><b>📈 Market Mogul — Day ${round}/${ROUNDS}</b><b>Net worth: ${$$(nw)}</b></div>
+        ${flash ? `<div class="news-flash">${flash}</div>` : ''}
+        <div class="news-flash">📰 <b>MARKET NEWS:</b> ${headline.text}<br><span style="font-weight:500;font-size:.9rem">Think: what will this do to the price tomorrow?</span></div>
+        <div class="card" style="padding:14px">
+          ${STOCKS.map(s => {
+            const chg = last[s.id];
+            return `<div class="stock-row">
+              <span style="font-size:1.4rem">${s.emoji}</span>
+              <b style="min-width:130px">${s.name}</b>
+              <span>${$$(s.price)}</span>
+              ${chg != null ? `<span class="${chg >= 0 ? 'up' : 'down'}">${chg >= 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(1)}%</span>` : '<span class="muted">—</span>'}
+              <span style="margin-left:auto">own: <b>${owned[s.id]}</b></span>
+              <button class="btn small green" data-buy="${s.id}" ${cash < s.price ? 'disabled' : ''}>Buy</button>
+              <button class="btn small coral" data-sell="${s.id}" ${owned[s.id] < 1 ? 'disabled' : ''}>Sell</button>
+            </div>`;
+          }).join('')}
+          <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap">
+            <span>💵 Cash: <b>${$$(cash)}</b></span><span>📊 Stocks: <b>${$$(nw - cash)}</b></span>
+            <button class="btn sun small" style="margin-left:auto" id="next-day">${round === ROUNDS ? 'Close the Market 🔔' : 'Next Day →'}</button>
+          </div>
+        </div>
+        <p class="center" style="color:#fff;opacity:.85;margin-top:10px">💡 Steady stocks move a little. Wild stocks (🚀) can jump — or crash. Smart investors don't put everything in one place.</p>
+      </div>`);
+      wireChrome();
+      document.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => {
+        const s = STOCKS.find(x => x.id === b.dataset.buy);
+        if (cash >= s.price) { cash -= s.price; owned[s.id]++; Sound.click(); render(flash); }
+      });
+      document.querySelectorAll('[data-sell]').forEach(b => b.onclick = () => {
+        const s = STOCKS.find(x => x.id === b.dataset.sell);
+        if (owned[s.id] > 0) { cash += s.price; owned[s.id]--; Sound.click(); render(flash); }
+      });
+      $('#next-day').onclick = advance;
+    }
+    function advance() {
+      // News usually (not always!) moves the price — markets can surprise you.
+      const follows = Math.random() < 0.85;
+      let flash = null;
+      for (const s of STOCKS) {
+        let move = (Math.random() * 2 - 1) * s.wild;
+        if (s.id === headline.stock) {
+          const dir = headline.up === follows ? 1 : -1;
+          move = dir * (0.08 + Math.random() * 0.14);
+          if (!follows) flash = '😮 Surprise! The market didn\'t react the way the news suggested. That happens in real markets too — never bet everything on one headline.';
+        }
+        last[s.id] = move * 100;
+        s.price = Math.max(1, s.price * (1 + move));
+      }
+      if (round === ROUNDS) {
+        const nw = netWorth();
+        const gain = nw - 1000;
+        const score = Math.max(10, Math.round(nw / 10));
+        finishGame('market', score, gain >= 0 ? `Portfolio: ${$$(nw)} — you MADE ${$$(gain)}! 📈` : `Portfolio: ${$$(nw)} — down ${$$(-gain)} 📉`,
+          gain >= 0 ? 'You read news, took smart risks, and grew your money. That\'s investing — and now you\'ve done it.'
+            : 'Losses teach the best lessons: diversify, don\'t chase one hot stock, and think a day ahead. Pros lose sometimes too!');
+        return;
+      }
+      round++; headline = makeNews();
+      Sound.badge();
+      render(flash);
     }
     render();
   }

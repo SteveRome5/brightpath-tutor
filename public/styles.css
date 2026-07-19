@@ -240,7 +240,12 @@ body[data-theme="academy"] .week-gallop .wg-head { color: #8b94a7; }
 .q-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 30px; }
 .q-skill { display: inline-block; font-size: .8rem; font-weight: 700; padding: 5px 13px; border-radius: 999px; margin-bottom: 14px; color: #fff; }
 .q-prompt { font-size: 1.3rem; font-weight: 600; white-space: pre-line; line-height: 1.5; font-family: var(--font-body); }
-body[data-theme="junior"] .q-prompt { font-size: 1.38rem; }
+/* Reading-friendly scaling: big, roomy type for early readers */
+body[data-theme="junior"] .q-prompt { font-size: 1.72rem; line-height: 1.65; letter-spacing: .01em; word-spacing: .08em; }
+body[data-theme="explorer"] .q-prompt { font-size: 1.48rem; line-height: 1.6; }
+body[data-theme="junior"] .choice { font-size: 1.35rem; padding: 19px 22px; line-height: 1.45; }
+body[data-theme="explorer"] .choice { font-size: 1.18rem; padding: 17px 20px; }
+body[data-theme="junior"] .feedback, body[data-theme="junior"] .hint-box { font-size: 1.15rem; line-height: 1.55; }
 .choices { display: grid; gap: 11px; margin-top: 22px; }
 .choice {
   text-align: left; font-family: var(--font-body); font-size: 1.06rem; font-weight: 600; cursor: pointer;
@@ -260,6 +265,16 @@ body[data-theme="academy"] .choice.wrong { background: #3a2226; color: #ff9c9c; 
 .feedback.bad { display: block; background: #fdf3d7; color: #7a5b00; }
 body[data-theme="academy"] .feedback.good { background: #16362e; color: #7fe0c0; }
 body[data-theme="academy"] .feedback.bad { background: #3a3222; color: #e6c877; }
+.why-line { margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(0,0,0,.15); font-weight: 500; font-size: .92rem; opacity: .92; }
+.choice.idk { border-style: dashed; opacity: .85; font-size: .95rem; background: transparent; }
+.choice.idk:hover { opacity: 1; }
+body[data-theme="academy"] .why-line { border-top-color: rgba(255,255,255,.18); }
+.stock-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(0,0,0,.04); margin-bottom: 8px; flex-wrap: wrap; }
+body[data-theme="academy"] .stock-row { background: rgba(255,255,255,.06); }
+.stock-row .up { color: #0c8a5f; font-weight: 700; }
+.stock-row .down { color: #c0392b; font-weight: 700; }
+.news-flash { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 10px; font-weight: 600; margin-bottom: 12px; }
+body[data-theme="academy"] .news-flash { background: #33301f; color: #e6d9a8; }
 .hint-box { margin-top: 14px; background: var(--accent-soft); color: #4d3c07; border-left: 4px solid var(--accent); padding: 12px 16px; border-radius: 8px; display: none; font-weight: 500; }
 .hint-box.show { display: block; animation: pop .3s ease; }
 body[data-theme="academy"] .hint-box { background: #33301f; color: #e6d9a8; }
