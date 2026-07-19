@@ -27,7 +27,12 @@ const skills = [
       { p: 'It\'s morning! ☀️ How do you greet someone?', a: 'Buenos días', w: ['Buenas noches', 'Adiós', 'Hasta luego'], h: 'Días = days/daytime.', e: 'Buenos días = good morning!' },
       { p: 'Leaving a party, you wave and say…', a: '¡Adiós!', w: ['¡Hola!', 'Gracias', 'Me llamo'], h: 'It means goodbye.', e: '¡Adiós! = goodbye! You can also say "hasta luego" (see you later).' },
       { p: 'How do you ask someone\'s name? "¿Cómo te ___?"', a: 'llamas', w: ['gracias', 'días', 'agua'], h: '"Me llamo Margaux" = my name is Margaux.', e: '¿Cómo te llamas? = What\'s your name?' },
-      { p: '"Por favor" means…', a: 'please', w: ['thank you', 'goodbye', 'good night'], h: 'Use it when asking for something nicely.', e: 'Por favor = please. Magic words work in every language! ✨' }
+      { p: '"Por favor" means…', a: 'please', w: ['thank you', 'goodbye', 'good night'], h: 'Use it when asking for something nicely.', e: 'Por favor = please. Magic words work in every language! ✨' },
+      { p: 'Before bed, your abuela says "Buenas noches", which means…', a: 'good night', w: ['good morning', 'see you later', 'happy birthday'], h: 'Noches = nights. 🌙', e: 'Buenas noches = good night!' },
+      { p: '"¿Cómo estás?" asks…', a: 'How are you?', w: ['What is your name?', 'Where do you live?', 'How old are you?'], h: 'A friendly check-in!', e: '¿Cómo estás? = How are you? Answer: ¡Bien!' },
+      { p: '"Sí" means yes. What means NO?', a: 'no (same word!)', w: ['nada', 'nunca', 'salud'], h: 'Easiest word ever.', e: 'No = no in both languages. Sí = yes!' },
+      { p: 'You bump into someone by accident. You say…', a: 'perdón (sorry/excuse me)', w: ['gracias', 'hola', 'adiós'], h: 'It sounds like "pardon"!', e: 'Perdón = sorry! Cognates to the rescue.' },
+      { p: '"Hasta luego" means…', a: 'see you later', w: ['good morning', 'thank you', 'right now'], h: 'Said when leaving!', e: 'Hasta luego = until later! 👋' }
     ])
   },
   {
@@ -63,7 +68,12 @@ const skills = [
       { p: 'Grass and limes are "verde". Verde means…', a: 'green', w: ['orange', 'pink', 'brown'], h: 'Think of a lime.', e: 'Verde = green. 🍏' },
       { p: 'The sun ☀️ and bananas are "amarillo". Amarillo means…', a: 'yellow', w: ['white', 'gold only', 'orange'], h: 'Banana color!', e: 'Amarillo = yellow. 🍌' },
       { p: 'How do you say "black" (like a night sky)?', a: 'negro', w: ['blanco', 'rosado', 'gris'], h: 'Blanco is its opposite.', e: 'Negro = black; blanco = white.' },
-      { p: 'A flamingo 🦩 is "rosado". Rosado means…', a: 'pink', w: ['red', 'purple', 'tan'], h: 'Flamingo-colored!', e: 'Rosado (or rosa) = pink.' }
+      { p: 'A flamingo 🦩 is "rosado". Rosado means…', a: 'pink', w: ['red', 'purple', 'tan'], h: 'Flamingo-colored!', e: 'Rosado (or rosa) = pink.' },
+      { p: 'Chocolate and tree trunks are "café" or "marrón", meaning…', a: 'brown', w: ['black', 'green', 'red'], h: 'Coffee-colored!', e: 'Café = brown (also means coffee!). ☕' },
+      { p: 'Snow and clouds are "blanco". Blanco means…', a: 'white', w: ['blue', 'black', 'silver'], h: 'Snowman color! ⛄', e: 'Blanco = white. Negro is its opposite!' },
+      { p: 'A pumpkin 🎃 is "anaranjado" (or naranja), meaning…', a: 'orange', w: ['yellow', 'purple', 'pink'], h: 'Same word as the fruit!', e: 'Naranja = orange — the color AND the fruit!' },
+      { p: 'Grapes and eggplants are "morado". Morado means…', a: 'purple', w: ['green', 'blue', 'gray'], h: '🍇 color!', e: 'Morado = purple.' },
+      { p: '"¿De qué color es el cielo?" asks about the color of the…', a: 'sky', w: ['sea', 'grass', 'sun'], h: 'Cielo — look up!', e: 'El cielo = the sky. ¡Es azul!' }
     ])
   },
 
@@ -76,6 +86,11 @@ const skills = [
       { p: 'Your grandma is your…', a: 'abuela', w: ['tía', 'prima', 'madre'], h: 'Abuelo is grandpa.', e: 'Abuela = grandmother. ¡Hola, abuela! 👵' },
       { p: '"Mi padre es alto" means…', a: 'My father is tall', w: ['My father is short', 'My mother is tall', 'My father is old'], h: 'Padre = father; alto = tall.', e: 'Mi padre es alto = my dad is tall!' },
       { p: 'Your aunt is your…', a: 'tía', w: ['tío', 'abuela', 'hermana'], h: 'Tío is uncle — just change the ending!', e: 'Tía = aunt; tío = uncle. The a/o endings matter!' },
+      { p: 'Your grandpa is your…', a: 'abuelo', w: ['abuela', 'tío', 'primo'], h: 'The -o ending is for grandpa!', e: 'Abuelo = grandfather; abuela = grandmother. 👴' },
+      { p: '"Mi prima" is…', a: 'my cousin (a girl)', w: ['my cousin (a boy)', 'my mom', 'my teacher'], h: 'The -a ending tells you!', e: 'Prima = girl cousin; primo = boy cousin.' },
+      { p: '"El bebé" of the family is…', a: 'the baby', w: ['the dad', 'the dog', 'the oldest kid'], h: 'Sounds just like English!', e: 'El bebé = the baby. 👶' },
+      { p: '"Mi hermana es pequeña" means my sister is…', a: 'small/little', w: ['tall', 'loud', 'fast'], h: 'Pequeño = tiny.', e: 'Pequeña = small. Grande = big!' },
+      { p: '"Los padres" means…', a: 'the parents', w: ['the fathers only', 'the priests', 'the cousins'], h: 'Mamá + papá together.', e: 'Los padres = parents (mom AND dad).' },
       { p: '"La familia" means…', a: 'the family', w: ['the house', 'the party', 'the food'], h: 'It sounds a lot like the English word!', e: 'Familia = family. Cognates make Spanish friendly!' }
     ])
   },
@@ -87,7 +102,12 @@ const skills = [
       { p: 'At the farm you see "un caballo" galloping. 🐎 Caballo means…', a: 'horse', w: ['cow', 'pig', 'chicken'], h: 'You can ride it!', e: 'El caballo = the horse.' },
       { p: '"El pájaro" sings in the tree. 🐦 Pájaro means…', a: 'bird', w: ['fish', 'frog', 'squirrel'], h: 'It has wings and sings.', e: 'El pájaro = the bird.' },
       { p: '"El pez" swims in the tank. 🐠 Pez means…', a: 'fish', w: ['turtle', 'shark only', 'whale'], h: 'It lives in water and has fins.', e: 'El pez = the fish.' },
-      { p: 'Which animal is "la vaca"? 🥛', a: 'the cow', w: ['the sheep', 'the goat', 'the hen'], h: 'It gives milk and says "muu".', e: 'La vaca = the cow!' }
+      { p: 'Which animal is "la vaca"? 🥛', a: 'the cow', w: ['the sheep', 'the goat', 'the hen'], h: 'It gives milk and says "muu".', e: 'La vaca = the cow!' },
+      { p: '"El conejo" hops and loves carrots. 🐰 Conejo means…', a: 'rabbit', w: ['mouse', 'turtle', 'fox'], h: 'Hop hop!', e: 'El conejo = the rabbit.' },
+      { p: '"La tortuga" carries its house on its back. 🐢 Tortuga means…', a: 'turtle', w: ['snail', 'crab', 'frog'], h: 'Slow and steady!', e: 'La tortuga = the turtle.' },
+      { p: 'Which animal is "el cerdo"? 🐷', a: 'the pig', w: ['the sheep', 'the duck', 'the goat'], h: 'It says oink (¡oinc!).', e: 'El cerdo = the pig.' },
+      { p: '"El león" is the king of the jungle. León means…', a: 'lion', w: ['tiger', 'bear', 'wolf'], h: 'ROAR! 🦁', e: 'El león = the lion.' },
+      { p: '"La mariposa" has beautiful wings and visits flowers. Mariposa means…', a: 'butterfly', w: ['bee', 'bird', 'ladybug'], h: '🦋 It was a caterpillar once!', e: 'La mariposa = the butterfly — one of the prettiest Spanish words!' }
     ])
   },
   {
@@ -98,7 +118,12 @@ const skills = [
       { p: 'For breakfast you eat "pan" with butter. 🍞 Pan means…', a: 'bread', w: ['pancake', 'egg', 'cereal'], h: 'A "panadería" is a bakery!', e: 'El pan = bread.' },
       { p: '"La leche" goes great with cookies. 🥛 Leche means…', a: 'milk', w: ['lemonade', 'water', 'tea'], h: 'It comes from la vaca!', e: 'La leche = milk.' },
       { p: '"El queso" is on pizza and quesadillas. 🧀 Queso means…', a: 'cheese', w: ['meat', 'sauce', 'mushroom'], h: 'QUESO-dilla = cheese tortilla!', e: 'El queso = cheese. Now you know why quesadillas are named that!' },
-      { p: '"Tengo hambre" means…', a: 'I\'m hungry', w: ['I\'m tired', 'I\'m happy', 'I\'m tall'], h: 'You\'d say it right before lunch!', e: 'Tengo hambre = I\'m hungry. Tengo sed = I\'m thirsty!' }
+      { p: '"Tengo hambre" means…', a: 'I\'m hungry', w: ['I\'m tired', 'I\'m happy', 'I\'m tall'], h: 'You\'d say it right before lunch!', e: 'Tengo hambre = I\'m hungry. Tengo sed = I\'m thirsty!' },
+      { p: '"El huevo" is great scrambled for breakfast. 🍳 Huevo means…', a: 'egg', w: ['ham', 'toast', 'cheese'], h: 'It comes from la gallina (the hen)!', e: 'El huevo = egg.' },
+      { p: '"La naranja" is a fruit full of vitamin C. 🍊 Naranja means…', a: 'orange', w: ['lemon', 'apple', 'melon'], h: 'Same as the color!', e: 'La naranja = orange (fruit and color!).' },
+      { p: '"El pollo" is in tacos, soup, and nuggets. 🍗 Pollo means…', a: 'chicken', w: ['beef', 'fish', 'pork'], h: 'Double L sounds like Y: "POH-yoh".', e: 'El pollo = chicken.' },
+      { p: '"El helado" is the BEST dessert on a hot day. 🍦 Helado means…', a: 'ice cream', w: ['cake', 'candy', 'hot soup'], h: 'Hielo = ice… helado = ?', e: 'El helado = ice cream. ¡Qué rico!' },
+      { p: '"Quiero pizza, por favor" means…', a: 'I want pizza, please', w: ['I ate pizza already', 'The pizza is cold', 'Where is the pizza?'], h: 'Quiero = I want.', e: 'Quiero = I want — the most useful restaurant word!' }
     ])
   },
 
@@ -110,7 +135,12 @@ const skills = [
       { p: '"Sábado y domingo" are the best days because they are…', a: 'the weekend', w: ['test days', 'the first school days', 'holidays in June'], h: 'No school! 🎉', e: 'Sábado = Saturday, domingo = Sunday. ¡Fin de semana!' },
       { p: 'Your birthday is in "julio". Julio is…', a: 'July', w: ['June', 'January', 'March'], h: 'Sounds like "Julio" → Ju-LY.', e: 'Julio = July. ¡Feliz cumpleaños! 🎂' },
       { p: '"Hoy es viernes" means…', a: 'Today is Friday', w: ['Today is Tuesday', 'Tomorrow is Friday', 'Yesterday was Friday'], h: 'Hoy = today; viernes = the day before the weekend!', e: 'Hoy es viernes = Today is Friday. ¡Casi fin de semana!' },
-      { p: 'Which month starts the year?', a: 'enero', w: ['diciembre', 'agosto', 'abril'], h: 'It\'s cold in New York during this month.', e: 'Enero = January, month #1!' }
+      { p: 'Which month starts the year?', a: 'enero', w: ['diciembre', 'agosto', 'abril'], h: 'It\'s cold in New York during this month.', e: 'Enero = January, month #1!' },
+      { p: '"Martes" comes right after lunes. Martes is…', a: 'Tuesday', w: ['Thursday', 'March', 'Monday'], h: 'Day #2 of the school week.', e: 'Martes = Tuesday (named after Mars!).' },
+      { p: 'Christmas 🎄 is in "diciembre", which is…', a: 'December', w: ['November', 'October', 'July'], h: 'The last month!', e: 'Diciembre = December, month #12.' },
+      { p: '"Mañana" can mean tomorrow or…', a: 'morning', w: ['midnight', 'last week', 'never'], h: '"Mañana por la mañana" = tomorrow morning!', e: 'Mañana = tomorrow AND morning — context tells you which!' },
+      { p: 'How many days are in "una semana" (a week)?', a: 'siete (7)', w: ['cinco (5)', 'diez (10)', 'doce (12)'], h: 'Lunes through domingo.', e: 'Una semana = 7 días!' },
+      { p: 'Summer vacation usually starts in "junio", which is…', a: 'June', w: ['January', 'July', 'April'], h: 'Right before julio.', e: 'Junio = June — summer kickoff! ☀️' }
     ])
   },
   {
@@ -120,7 +150,12 @@ const skills = [
       { p: 'You kick a fútbol with your "pie". Pie means…', a: 'foot', w: ['hand', 'leg', 'a dessert'], h: 'Not the dessert! ⚽', e: 'El pie = foot (pronounced "pee-EH", not like apple pie!).' },
       { p: 'You wave hello with your "mano". Mano means…', a: 'hand', w: ['arm', 'finger', 'elbow'], h: 'High five = choca esos cinco!', e: 'La mano = hand. 👋' },
       { p: '"Los ojos" let you see the world. Ojos means…', a: 'eyes', w: ['ears', 'nose', 'mouth'], h: 'They can be azules, verdes, or cafés.', e: 'Los ojos = eyes. 👀' },
-      { p: 'You hear música with your "orejas". Orejas means…', a: 'ears', w: ['eyes', 'hands', 'hair'], h: 'Headphones go on them. 🎧', e: 'Las orejas = ears.' }
+      { p: 'You hear música with your "orejas". Orejas means…', a: 'ears', w: ['eyes', 'hands', 'hair'], h: 'Headphones go on them. 🎧', e: 'Las orejas = ears.' },
+      { p: 'You smell flowers with your "nariz". Nariz means…', a: 'nose', w: ['neck', 'mouth', 'chin'], h: 'Sniff! 👃', e: 'La nariz = nose.' },
+      { p: 'You smile and talk with your "boca". Boca means…', a: 'mouth', w: ['cheek', 'ear', 'forehead'], h: 'Where your teeth live!', e: 'La boca = mouth. 😁' },
+      { p: '"El pelo" can be rubio, negro, or café. Pelo means…', a: 'hair', w: ['hat', 'eye', 'skin'], h: 'You brush it every morning.', e: 'El pelo = hair.' },
+      { p: 'You bend your "rodillas" to jump. Rodillas means…', a: 'knees', w: ['elbows', 'ankles', 'wrists'], h: 'From the song — knees! 🦵', e: 'Las rodillas = knees.' },
+      { p: '"Me duele el estómago" means my ___ hurts.', a: 'stomach', w: ['head', 'foot', 'ear'], h: 'Too much helado!', e: 'El estómago = stomach. Me duele = it hurts me.' }
     ])
   },
   {
@@ -130,7 +165,12 @@ const skills = [
       { p: '"¿Dónde está el baño?" is the world\'s most useful travel question. It means…', a: 'Where is the bathroom?', w: ['Where is the beach?', 'What time is it?', 'How much does it cost?'], h: 'Every traveler needs this one!', e: '¿Dónde está...? = Where is...? ¡Muy útil!' },
       { p: 'Your friend sneezes. 🤧 You say…', a: '¡Salud!', w: ['¡Adiós!', '¡Feliz Navidad!', '¡Buenas noches!'], h: 'Like "bless you" — it literally means "health!"', e: '¡Salud! = health! Said after sneezes and for toasts!' },
       { p: '"No entiendo" is a super-helpful phrase meaning…', a: 'I don\'t understand', w: ['I don\'t want it', 'I\'m not going', 'I\'m not hungry'], h: 'Say it when confused — everyone will help!', e: 'No entiendo = I don\'t understand. ¿Puedes repetir? = can you repeat?' },
-      { p: '"Tengo nueve años" means…', a: 'I am nine years old', w: ['I have nine toys', 'It\'s nine o\'clock', 'I want nine tacos'], h: 'In Spanish you HAVE years, not ARE years!', e: 'Tengo... años = I am... years old. (Literally "I have 9 years!")' }
+      { p: '"Tengo nueve años" means…', a: 'I am nine years old', w: ['I have nine toys', 'It\'s nine o\'clock', 'I want nine tacos'], h: 'In Spanish you HAVE years, not ARE years!', e: 'Tengo... años = I am... years old. (Literally "I have 9 years!")' },
+      { p: 'You want your friend to hurry to recess! You shout…', a: '¡Vamos! (Let\'s go!)', w: ['¡Silencio!', 'Lo siento', 'Buenas noches'], h: 'Coaches yell it at games!', e: '¡Vamos! = Let\'s go! You\'ll hear it at every fútbol match.' },
+      { p: '"Lo siento" means…', a: 'I\'m sorry', w: ['I\'m sitting', 'I feel great', 'See you soon'], h: 'Said when you feel bad about something.', e: 'Lo siento = I\'m sorry (literally "I feel it").' },
+      { p: 'Your friend shows you their new bike. 🚲 You say "¡Qué ___!" (How cool!)', a: 'chévere / genial', w: ['triste', 'aburrido', 'frío'], h: 'It\'s a compliment!', e: '¡Qué chévere! = How cool! Different countries, same excitement.' },
+      { p: '"¿Cuánto cuesta?" is the shopping question meaning…', a: 'How much does it cost?', w: ['What time is it?', 'Where is the store?', 'Do you like it?'], h: 'Ask it before you buy!', e: '¿Cuánto cuesta? = How much? Essential market Spanish! 🛒' },
+      { p: '"Con permiso" is the polite way to say…', a: 'excuse me (passing through)', w: ['thank you very much', 'good night', 'welcome'], h: 'Squeezing past someone in a crowd.', e: 'Con permiso = excuse me. ¡Muy educado!' }
     ])
   },
 
