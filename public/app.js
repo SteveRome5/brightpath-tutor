@@ -34,7 +34,7 @@ function avatarHTML(k) {
 function gallopTrack(pct, label) {
   pct = Math.max(0, Math.min(100, pct));
   const flags = [25, 50, 75].map(f => `<span class="g-flag ${pct >= f ? 'passed' : ''}" style="left:${f}%">🚩</span>`).join('');
-  return `<div class="gallop-wrap">${label ? `<span class="gallop-label">${esc(label)}</span>` : ''}<div class="gallop-rail"></div><div class="gallop-done" style="width:${pct}%"></div>${flags}<span class="g-finish">🏁</span><span class="gallop-horse ${pct >= 100 ? 'finished' : ''}" style="left:${Math.min(pct, 98)}%"><img src="/logo.svg" alt=""></span></div>`;
+  return `<div class="gallop-wrap">${label ? `<span class="gallop-label">${esc(label)}</span>` : ''}<div class="gallop-rail"></div><div class="gallop-done" style="width:${pct}%"></div>${flags}<span class="g-finish">🏁</span><span class="gallop-horse ${pct >= 100 ? 'finished' : ''}" style="left:${Math.min(pct, 98)}%">🐎</span></div>`;
 }
 const SUBJECT_STYLE = {
   math: { color: '#6C5CE7', emoji: '🔢', cheer: 'Math Mission' },
@@ -335,7 +335,7 @@ route('landing', async () => {
     <button class="btn" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start your 7-day free trial</button>
     <button class="btn ghost" style="margin-left:8px" onclick="location.hash='#demo'">Try a sample lesson</button>
     <button class="btn ghost" style="margin-left:8px" onclick="location.hash='#kid-login'">Student sign-in</button>
-    <div class="horse-runner"><img src="/logo.svg" alt=""></div>
+    <div class="horse-runner">🐎</div>
   </div>
   <div class="container">
     <div class="statband reveal">
