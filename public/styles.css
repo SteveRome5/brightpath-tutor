@@ -175,8 +175,63 @@ h1, h2, h3 { line-height: 1.2; }
 @keyframes shake { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-7px) } 75% { transform: translateX(7px) } }
 @keyframes bounceIn { 0% { transform: scale(.3); opacity: 0 } 60% { transform: scale(1.15) } 100% { transform: scale(1); opacity: 1 } }
 
+/* ---------- Play Zone ---------- */
+.zone-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 18px; }
+.zone-card {
+  background: rgba(255,255,255,.94); border-radius: var(--radius); padding: 18px 20px; cursor: pointer;
+  box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px; transition: transform .15s ease;
+}
+.zone-card:hover { transform: translateY(-3px) scale(1.02); }
+.zone-card .zemoji { font-size: 2rem; }
+
+/* layered avatar */
+.av-wrap { position: relative; display: inline-block; line-height: 1; }
+.av-bg { position: absolute; inset: -8%; font-size: 1.1em; opacity: .45; z-index: 0; }
+.av-base { position: relative; z-index: 1; }
+.av-hat { position: absolute; top: -38%; left: 52%; font-size: .55em; z-index: 2; }
+.av-acc { position: absolute; bottom: -12%; left: -18%; font-size: .5em; z-index: 2; }
+.av-pet { position: absolute; bottom: -15%; right: -22%; font-size: .55em; z-index: 2; }
+
+/* memory match */
+.mem-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.mem-card {
+  aspect-ratio: 3/2.6; font-size: clamp(1rem, 3.4vw, 1.5rem); font-weight: 700; font-family: inherit;
+  border-radius: 16px; border: 3px solid rgba(255,255,255,.5); background: rgba(255,255,255,.25);
+  color: #fff; cursor: pointer; transition: transform .15s ease;
+}
+.mem-card.up { background: #fff; color: var(--ink); transform: scale(1.03); }
+.mem-card.matched { background: #d1fff1; color: #00795f; border-color: #00b894; }
+
+/* word search */
+.ws-grid { display: grid; gap: 4px; }
+.ws-cell {
+  aspect-ratio: 1; font-family: inherit; font-weight: 700; font-size: clamp(.8rem, 2.6vw, 1.1rem);
+  border-radius: 8px; border: 0; background: rgba(255,255,255,.9); cursor: pointer;
+}
+.ws-cell.sel { background: var(--sun); }
+.ws-cell.found { background: #55efc4; color: #00795f; }
+
+/* code quest */
+.code-grid { display: grid; gap: 6px; max-width: 380px; margin: 0 auto; }
+.code-cell {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 1.7rem;
+  background: rgba(255,255,255,.92); border-radius: 12px;
+}
+
+/* room designer */
+.room-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; background: rgba(255,255,255,.25); padding: 8px; border-radius: 16px; }
+.room-cell { aspect-ratio: 1; font-size: 1.5rem; border: 0; border-radius: 8px; background: #fdf6ec; cursor: pointer; }
+.furn { font-size: 1.5rem; background: rgba(255,255,255,.9); border: 3px solid transparent; border-radius: 10px; padding: 6px 8px; cursor: pointer; margin: 2px; }
+.furn.sel { border-color: var(--sun); }
+
+/* art studio */
+#art-canvas { width: 100%; border-radius: 16px; box-shadow: var(--shadow); touch-action: none; cursor: crosshair; background: #fff; }
+.paint { width: 34px; height: 34px; border-radius: 50%; border: 3px solid #fff; cursor: pointer; margin: 2px; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.paint.sel { border-color: var(--ink); transform: scale(1.15); }
+
 @media (max-width: 560px) {
   .card { padding: 18px; }
   .q-prompt { font-size: 1.15rem; }
   .pinpad { grid-template-columns: repeat(3, 64px); }
+  .room-grid { grid-template-columns: repeat(8, 1fr); }
 }

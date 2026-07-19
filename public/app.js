@@ -1,4 +1,4 @@
-/* BrightPath SPA — vanilla JS, zero build step */
+/* Gallop Learning Academy SPA — vanilla JS, zero build step */
 'use strict';
 
 // ======================= tiny helpers =======================
@@ -18,7 +18,18 @@ async function api(path, opts = {}) {
   return data;
 }
 
-const AVATARS = { fox: '🦊', panda: '🐼', dragon: '🐉', unicorn: '🦄', robot: '🤖', astronaut: '🧑‍🚀', tiger: '🐯', octopus: '🐙' };
+const AVATARS = { fox: '🦊', panda: '🐼', dragon: '🐉', unicorn: '🦄', robot: '🤖', astronaut: '🧑‍🚀', tiger: '🐯', octopus: '🐙', axolotl: '🦎', narwhal: '🦭', phoenix: '🐦‍🔥', alien: '👽' };
+const ITEM_EMOJI = { crown: '👑', tophat: '🎩', cap: '🧢', party: '🥳', grad: '🎓', cowboy: '🤠', halo: '😇', glasses: '👓', sunglasses: '🕶️', bowtie: '🎀', medal: '🏅', guitar: '🎸', wand: '🪄', skateboard: '🛹', rainbow: '🌈', space: '🌌', beach: '🏖️', castle: '🏰', volcano: '🌋', city: '🌆', garden: '🌻', pup: '🐶', kitten: '🐱', bunny: '🐰', turtle: '🐢', butterfly: '🦋', dino: '🦕', sloth: '🦥' };
+// Render a kid's customized avatar (base + hat + accessory + pet + background)
+function avatarHTML(k) {
+  const cfg = (k && k.avatar_config) || {};
+  const base = AVATARS[cfg.base || (k && k.avatar)] || '🦊';
+  const bg = cfg.bg && cfg.bg !== 'purple' ? ITEM_EMOJI[cfg.bg] || '' : '';
+  const hat = cfg.hat && cfg.hat !== 'none' ? ITEM_EMOJI[cfg.hat] || '' : '';
+  const acc = cfg.accessory && cfg.accessory !== 'none' ? ITEM_EMOJI[cfg.accessory] || '' : '';
+  const pet = cfg.pet && cfg.pet !== 'none' ? ITEM_EMOJI[cfg.pet] || '' : '';
+  return `<span class="av-wrap">${bg ? `<span class="av-bg">${bg}</span>` : ''}<span class="av-base">${base}</span>${hat ? `<span class="av-hat">${hat}</span>` : ''}${acc ? `<span class="av-acc">${acc}</span>` : ''}${pet ? `<span class="av-pet">${pet}</span>` : ''}</span>`;
+}
 const SUBJECT_STYLE = {
   math: { color: '#6C5CE7', emoji: '🔢', cheer: 'Math Mission' },
   english: { color: '#00B894', emoji: '📚', cheer: 'Word Quest' },
@@ -140,7 +151,7 @@ function topbar(inner = '') {
   else right = `<button class="btn ghost small" onclick="location.hash='#kid-login'">Kid Login</button><button class="btn sun small" onclick="location.hash='#login'">Parent Login</button>`;
   return `
   <div class="topbar">
-    <div class="logo" onclick="location.hash='#'"><span class="spark">🌟</span> BrightPath</div>
+    <div class="logo" onclick="location.hash='#'"><span class="spark">🐎</span> Gallop</div>
     <div class="right">
       <button class="btn ghost small" id="mute-btn" title="Sound effects">${Sound.muted ? '🔇' : '🔊'}</button>
       ${right}
@@ -160,7 +171,7 @@ route('landing', async () => {
   if (State.me.role === 'kid') { location.hash = '#home'; return; }
   app().innerHTML = topbar(`
   <div class="hero">
-    <h1>The tutor that <em>knows</em> your kid 🌟</h1>
+    <h1>Gallop Learning Academy 🐎 — the tutor that <em>knows</em> your kid</h1>
     <p>Adaptive K-12 learning in <b>Math, English, Science & Spanish</b> — with real-life examples, voice, sound, streaks and certificates. Like your favorite teacher, available every day.</p>
     <button class="btn sun" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start Free 14-Day Trial</button>
     <button class="btn ghost" style="margin-left:8px" onclick="location.hash='#kid-login'">I'm a Kid — Let Me In! 🚀</button>
@@ -169,7 +180,7 @@ route('landing', async () => {
     <div class="feature-grid">
       <div class="feature"><div class="femoji">🎯</div><h3>Places, then adapts</h3><p>A quick placement quiz finds each child's true level in <b>every subject separately</b> — an advanced reader can be a math beginner, and that's fine. Lessons auto-adjust with every answer.</p></div>
       <div class="feature"><div class="femoji">🍕</div><h3>Real-life learning</h3><p>Fractions with pizza slices, percentages at the sneaker sale, physics on the roller coaster. Kids see <b>why it matters</b>, not just how to bubble an answer.</p></div>
-      <div class="feature"><div class="femoji">🧠</div><h3>More help when stuck</h3><p>Struggling on a skill? BrightPath slows down, gives friendlier hints, easier versions, and extra practice — like a patient teacher who never sighs.</p></div>
+      <div class="feature"><div class="femoji">🧠</div><h3>More help when stuck</h3><p>Struggling on a skill? Gallop slows down, gives friendlier hints, easier versions, and extra practice — like a patient teacher who never sighs.</p></div>
       <div class="feature"><div class="femoji">🏆</div><h3>Report cards & certificates</h3><p>Parents get honest progress reports with strengths and focus areas. Kids earn printable certificates when they complete a grade level.</p></div>
       <div class="feature"><div class="femoji">🗓️</div><h3>Follows your calendar</h3><p>Traditional school year, year-round, or homeschool schedule — weekly goals pace learning to your family's rhythm.</p></div>
       <div class="feature"><div class="femoji">💻</div><h3>Log in anywhere</h3><p>PC, Mac, iPad, or tablet — one family account, a fun PIN login for each kid, progress synced everywhere.</p></div>
@@ -292,13 +303,14 @@ route('home', async () => {
   const k = data.kid;
   app().innerHTML = topbar(`<div class="container">
     <div class="kid-header">
-      <div class="avatar-big">${AVATARS[k.avatar] || '🦊'}</div>
+      <div class="avatar-big" onclick="location.hash='#avatar'" style="cursor:pointer" title="Customize me!">${avatarHTML(k)}</div>
       <div>
         <h1>Hi ${esc(k.name)}! Ready to level up? ⚡</h1>
         <div class="stat-chips" style="margin-top:8px">
           <span class="chip">🔥 ${k.streak}-day streak</span>
           <span class="chip">⚡ ${k.xp} XP</span>
           <span class="chip">🪙 ${k.coins} coins</span>
+          <span class="chip">🎟️ ${k.play_tokens || 0} tokens</span>
         </div>
       </div>
       <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#report/${k.id}'">📊 My Progress</button>
@@ -313,6 +325,11 @@ route('home', async () => {
           <div class="lvl">${s.placed ? '📍 ' + esc(s.levelName) : '✨ Take placement quiz!'}</div>
           <button class="btn sun small" style="margin-top:14px">${s.placed ? 'Play →' : 'Find my level →'}</button>
         </div>`).join('')}
+    </div>
+    <div class="zone-row">
+      <div class="zone-card" onclick="location.hash='#play'"><span class="zemoji">🕹️</span><b>Play Zone</b><span class="muted">Games cost 1 🎟️ — earn tokens by learning!</span></div>
+      <div class="zone-card" onclick="location.hash='#avatar'"><span class="zemoji">🎨</span><b>My Avatar</b><span class="muted">Spend coins on hats, pets & worlds</span></div>
+      <div class="zone-card" onclick="location.hash='#buddies'"><span class="zemoji">💌</span><b>Buddies</b><span class="muted">Cheer on your friends!</span></div>
     </div>
   </div>`);
   wireChrome();
@@ -448,7 +465,7 @@ route('lesson', async (subject) => {
         $('#mastery-pct').textContent = Math.round(res.mastery * 100) + '%';
         $('#mastery-fill').style.width = (res.mastery * 100) + '%';
         (res.events || []).forEach(ev => session.events.push(ev));
-        const celebration = (res.events || []).find(ev => ev.type === 'levelup' || ev.type === 'badge');
+        const celebration = (res.events || []).find(ev => ev.type === 'levelup' || ev.type === 'badge' || ev.type === 'token');
         if (celebration) setTimeout(() => celebrate(celebration), 700);
       } catch (e) { /* keep playing even if network hiccups */ }
       $('#next-btn').style.display = 'inline-flex';
@@ -463,6 +480,9 @@ route('lesson', async (subject) => {
     if (ev.type === 'levelup') {
       Sound.levelup(); Confetti.burst(220);
       div.innerHTML = `<div class="big-emoji">🏆</div><h2>LEVEL UP!</h2><p style="font-size:1.2rem">You completed ${esc(ev.certificate || 'a level')}!<br>A certificate was added for you & your parents. 🎓</p><button class="btn sun">Keep Going →</button>`;
+    } else if (ev.type === 'token') {
+      Sound.badge(); Confetti.burst(80);
+      div.innerHTML = `<div class="big-emoji">🎟️</div><h2>Play Token Earned!</h2><p style="font-size:1.2rem">5 correct answers = 1 token for the Play Zone! You have ${ev.tokens}. 🕹️</p><button class="btn sun">Sweet →</button>`;
     } else {
       Sound.badge(); Confetti.burst(120);
       div.innerHTML = `<div class="big-emoji">${ev.badge.emoji}</div><h2>New Badge!</h2><p style="font-size:1.2rem">${esc(ev.badge.name)}</p><button class="btn sun">Awesome →</button>`;
@@ -534,7 +554,7 @@ route('report', async (kidId) => {
       <h3>🎓 Certificates</h3>
       <div style="margin-top:10px">
         ${r.certificates.length ? r.certificates.map(c => `
-          <div class="cert"><b>🎓 ${esc(c.title)}</b><br><span class="muted">Awarded ${esc(c.issued_at.slice(0, 10))} · BrightPath Tutor certifies mastery of ${esc(c.title.replace(' Complete!', ''))}</span></div>`).join('')
+          <div class="cert"><b>🎓 ${esc(c.title)}</b><br><span class="muted">Awarded ${esc(c.issued_at.slice(0, 10))} · Gallop Learning Academy certifies mastery of ${esc(c.title.replace(' Complete!', ''))}</span></div>`).join('')
         : '<p class="muted">Complete every skill in a grade level to earn a printable certificate!</p>'}
       </div>
     </div>
@@ -619,13 +639,36 @@ route('parent', async () => {
           <p class="muted" style="margin-top:8px;line-height:1.6">1. Go to this site on any PC, Mac, or tablet<br>2. Tap <b>Kid Login</b> → enter <b>${esc(p.email)}</b><br>3. They pick their avatar & enter their 4-digit PIN<br><br>That's it — progress syncs everywhere. 🎉</p>
         </div>
         <div class="card">
+          <h3>💌 School Buddies</h3>
+          <p class="muted" style="margin-top:8px">Connect your kids with friends from school — <b>parent-approved only</b>. Kids see each other's streaks & badges and send pre-written cheers. No open chat, ever.</p>
+          <label>Create an invite code for</label>
+          <select id="bd-kid">${me.kids.map(k => `<option value="${k.id}">${esc(k.name)}</option>`).join('')}</select>
+          <button class="btn small" style="margin-top:8px" id="bd-create">Create Code</button>
+          <div id="bd-code" style="margin-top:8px;font-size:1.4rem;font-weight:700;letter-spacing:3px"></div>
+          <label style="margin-top:14px">Got a code from another family?</label>
+          <input id="bd-input" placeholder="e.g. 4F7A2C" maxlength="6" style="text-transform:uppercase">
+          <label>Connect it to</label>
+          <select id="bd-kid2">${me.kids.map(k => `<option value="${k.id}">${esc(k.name)}</option>`).join('')}</select>
+          <div class="error-msg" id="bd-err"></div>
+          <button class="btn green small" style="margin-top:8px" id="bd-accept">Link Buddies ✨</button>
+        </div>
+        <div class="card">
           <h3>🧭 How the tutor works</h3>
-          <p class="muted" style="margin-top:8px;line-height:1.6">Each subject starts with a <b>placement quiz</b> — so a child can be Grade 4 in reading and Grade 2 in math at the same time. Every answer updates skill mastery: strong skills advance faster, shaky skills get gentler questions, more hints, and extra reps. Master a whole grade level and they earn a <b>certificate</b> 🎓.</p>
+          <p class="muted" style="margin-top:8px;line-height:1.6">Each subject starts with a <b>placement quiz</b> — so a child can be Grade 4 in reading and Grade 2 in math at the same time. Every answer updates skill mastery: strong skills advance faster, shaky skills get gentler questions, more hints, and extra reps. Master a whole grade level and they earn a <b>certificate</b> 🎓. Correct answers also earn <b>play tokens</b> for the games in the Play Zone — learning first, always.</p>
         </div>
       </div>
     </div>
   </div>`);
   wireChrome();
+  const bdc = $('#bd-create'), bda = $('#bd-accept');
+  if (bdc) bdc.onclick = async () => {
+    try { const r = await api('/buddies/invite', { method: 'POST', body: { kidId: Number($('#bd-kid').value) } }); $('#bd-code').textContent = '🎫 ' + r.code; Sound.badge(); }
+    catch (e) { showError('#bd-err', e.message); }
+  };
+  if (bda) bda.onclick = async () => {
+    try { const r = await api('/buddies/accept', { method: 'POST', body: { code: $('#bd-input').value, kidId: Number($('#bd-kid2').value) } }); $('#bd-input').value = ''; Sound.levelup(); Confetti.burst(100); alert('Connected with ' + r.buddyName + '! 🎉'); }
+    catch (e) { showError('#bd-err', e.message); }
+  };
 
   let avatar = 'fox';
   document.querySelectorAll('#nk-avatars .avatar-opt').forEach(el => el.onclick = () => {
@@ -648,10 +691,14 @@ route('parent', async () => {
   if (portal) portal.onclick = async () => { const o = await api('/billing/portal', { method: 'POST' }); location.href = o.url; };
 });
 
+// ======================= shared API for games.js =======================
+window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, showError, State, Sound, Voice, Confetti, AVATARS, ITEM_EMOJI, avatarHTML, refreshMe };
+
 // ======================= boot =======================
 (async function boot() {
   try { await refreshMe(); } catch (e) { /* offline-ish */ }
   // preload speech voices (some browsers lazy-load)
   if ('speechSynthesis' in window) speechSynthesis.getVoices();
-  navigate();
+  // let games.js register its routes before first render
+  setTimeout(navigate, 0);
 })();
