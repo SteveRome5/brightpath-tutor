@@ -1,7 +1,7 @@
 /* Gallop Learning Academy — Play Zone: games, avatar builder, buddies */
 'use strict';
 (() => {
-  const { $, app, esc, api, route, topbar, wireChrome, showError, State, Sound, Voice, Confetti, AVATARS, ITEM_EMOJI, avatarHTML } = window.BP;
+  const { $, app, esc, api, route, navigate, topbar, wireChrome, showError, State, Sound, Voice, Confetti, AVATARS, ITEM_EMOJI, avatarHTML } = window.BP;
 
   const kidId = () => State.me.role === 'kid' ? State.me.kid.id : null;
   function needKid() { if (State.me.role !== 'kid') { location.hash = '#kid-login'; return true; } return false; }
@@ -24,11 +24,14 @@
   }
 
   async function finishGame(game, score, title, lines) {
-    try { await api(`/play/${kidId()}/score`, { method: 'POST', body: { game, score } }); } catch (e) {}
+    let r = { coinsEarned: 2, challengesWon: [] };
+    try { r = await api(`/play/${kidId()}/score`, { method: 'POST', body: { game, score } }); } catch (e) {}
     Confetti.burst(150); Sound.levelup();
+    const wins = (r.challengesWon || []).map(w => `<p style="font-weight:700;margin-top:8px">⚔️ You beat ${esc(w.fromName)}'s challenge of ${w.scoreToBeat}! +5 🪙</p>`).join('');
     app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
       <div class="big-emoji">🏆</div><h2>${esc(title)}</h2>
-      <div class="summary-stats"><div class="sstat"><div class="n">${score}</div>score</div><div class="sstat"><div class="n">+2</div>🪙 coins</div></div>
+      <div class="summary-stats"><div class="sstat"><div class="n">${score}</div>score</div><div class="sstat"><div class="n">+${r.coinsEarned || 2}</div>🪙 coins</div></div>
+      ${wins}
       <p class="muted">${esc(lines || '')}</p>
       <div style="margin-top:14px">
         <button class="btn green" onclick="location.hash='#play'">Play Zone →</button>
@@ -44,6 +47,7 @@
     const s = await api(`/play/${kidId()}/status`);
     const k = s.kid;
     const games = [
+      { id: 'blitz', emoji: '⚡', name: 'Lightning Round', desc: '60 seconds. Rapid-fire questions. Build a combo — beat your best!' },
       { id: 'lemonade', emoji: '🍋', name: 'Lemonade Tycoon', desc: 'Run your own stand — buy smart, price right, bank the profit!' },
       { id: 'memory', emoji: '🃏', name: 'Memory Match', desc: 'Flip cards, match pairs — Spanish words, math facts & more!' },
       { id: 'wordsearch', emoji: '🔍', name: 'Word Search', desc: 'Hunt hidden words in the letter jungle' },
@@ -84,7 +88,7 @@
   // ======================= GAME DISPATCH =======================
   route('game', async (which) => {
     if (needKid()) return;
-    const starters = { memory: startMemory, wordsearch: startWordSearch, code: startCode, room: startRoom, art: startArt, lemonade: startLemonade, market: startMarket };
+    const starters = { memory: startMemory, wordsearch: startWordSearch, code: startCode, room: startRoom, art: startArt, lemonade: startLemonade, market: startMarket, blitz: startBlitz };
     const fn = starters[which];
     if (!fn) { location.hash = '#play'; return; }
     await gated(which, fn);
@@ -414,6 +418,86 @@
     render();
   }
 
+  // ======================= LIGHTNING ROUND =======================
+  // 60-second rapid-fire, grade-adaptive, combo multiplier. Pure adrenaline + math facts.
+  function startBlitz() {
+    const grade = State.me.kid.grade || 0;
+    const DURATION = 60;
+    let score = 0, combo = 0, best = 0, answered = 0, correct = 0, timeLeft = DURATION, timer = null, over = false;
+    function makeQ() {
+      const r = Math.random();
+      if (grade <= 1) {
+        const a = 1 + Math.floor(Math.random() * 9), b = 1 + Math.floor(Math.random() * 9);
+        return r < 0.5 ? { t: `${a} + ${b}`, ans: a + b } : { t: `${Math.max(a, b)} − ${Math.min(a, b)}`, ans: Math.max(a, b) - Math.min(a, b) };
+      }
+      if (grade <= 3) {
+        const a = 2 + Math.floor(Math.random() * 10), b = 2 + Math.floor(Math.random() * 10);
+        return r < 0.4 ? { t: `${a} + ${b + 10}`, ans: a + b + 10 } : r < 0.7 ? { t: `${a + 10} − ${b}`, ans: a + 10 - b } : { t: `${a} × ${Math.min(b, 5)}`, ans: a * Math.min(b, 5) };
+      }
+      if (grade <= 6) {
+        const a = 3 + Math.floor(Math.random() * 10), b = 3 + Math.floor(Math.random() * 9);
+        return r < 0.5 ? { t: `${a} × ${b}`, ans: a * b } : { t: `${a * b} ÷ ${a}`, ans: b };
+      }
+      const a = 4 + Math.floor(Math.random() * 13), b = 4 + Math.floor(Math.random() * 12);
+      if (r < 0.35) return { t: `${a} × ${b}`, ans: a * b };
+      if (r < 0.6) return { t: `${a}² `, ans: a * a };
+      if (r < 0.8) return { t: `${a * b} ÷ ${b}`, ans: a };
+      const pct = [10, 20, 25, 50][Math.floor(Math.random() * 4)];
+      return { t: `${pct}% of ${a * 20}`, ans: a * 20 * pct / 100 };
+    }
+    function choicesFor(qn) {
+      const set = new Set([qn.ans]);
+      let guard = 0;
+      while (set.size < 4 && guard++ < 40) {
+        const d = qn.ans + [-10, -3, -2, -1, 1, 2, 3, 10][Math.floor(Math.random() * 8)];
+        if (d >= 0 && d !== qn.ans) set.add(d);
+      }
+      let filler = qn.ans + guard;
+      while (set.size < 4) { filler++; if (!set.has(filler)) set.add(filler); }
+      return [...set].sort(() => Math.random() - .5);
+    }
+    let qn = makeQ();
+    function render() {
+      if (over) return;
+      const ch = choicesFor(qn);
+      const pct = timeLeft / DURATION * 100;
+      app().innerHTML = topbar(`<div class="container" style="max-width:560px">
+        <div class="lesson-top"><b>⚡ Lightning Round</b><b>Score: ${score}</b></div>
+        <div class="blitz-timer"><div class="blitz-fill ${timeLeft <= 10 ? 'hot' : ''}" style="width:${pct}%"></div></div>
+        <div class="card center" style="padding:26px">
+          ${combo >= 3 ? `<div class="combo-badge">🔥 COMBO ×${combo}</div>` : ''}
+          <div class="blitz-q">${qn.t} = ?</div>
+          <div class="blitz-choices">${ch.map(c => `<button class="btn blitz-btn" data-v="${c}">${c}</button>`).join('')}</div>
+          <p class="muted" style="margin-top:12px">⏱️ ${timeLeft}s — combos of 3+ score DOUBLE points!</p>
+        </div>
+      </div>`);
+      wireChrome();
+      document.querySelectorAll('.blitz-btn').forEach(b => b.onclick = () => {
+        answered++;
+        if (Number(b.dataset.v) === qn.ans) {
+          correct++; combo++; best = Math.max(best, combo);
+          score += combo >= 3 ? 20 : 10;
+          Sound.correct(); if (combo === 3) Confetti.burst(40);
+        } else { combo = 0; Sound.wrong(); }
+        qn = makeQ(); render();
+      });
+    }
+    timer = setInterval(() => {
+      // player navigated away mid-game — stop cleanly
+      if (!document.querySelector('.blitz-timer')) { clearInterval(timer); over = true; return; }
+      timeLeft--;
+      const fill = document.querySelector('.blitz-fill');
+      if (fill) { fill.style.width = (timeLeft / DURATION * 100) + '%'; if (timeLeft <= 10) fill.classList.add('hot'); }
+      const label = document.querySelector('.card .muted');
+      if (label) label.innerHTML = `⏱️ ${timeLeft}s — combos of 3+ score DOUBLE points!`;
+      if (timeLeft <= 0) {
+        clearInterval(timer); over = true;
+        finishGame('blitz', score, `${score} points in 60 seconds! ⚡`, `${correct}/${answered} correct · best combo ×${best}. Faster brains next round!`);
+      }
+    }, 1000);
+    render();
+  }
+
   // ======================= LEMONADE TYCOON =======================
   // Entrepreneurship for every age: cost, price, demand, PROFIT.
   function startLemonade() {
@@ -629,8 +713,16 @@
     const data = await api(`/buddies/${kidId()}`);
     if (data.unseen) api(`/buddies/${kidId()}/seen`, { method: 'POST', body: {} });
     const cheerText = id => (data.cheers.find(c => c.id === id) || {}).text || '👋';
+    const inc = (data.challenges || {}).incoming || [];
+    const out = (data.challenges || {}).outgoing || [];
     app().innerHTML = topbar(`<div class="container" style="max-width:720px">
       <div class="lesson-top"><b>💌 My Buddies</b></div>
+      ${inc.length ? `<div class="card" style="border:2px solid var(--accent)">
+        <h3>⚔️ Challenges for you!</h3>
+        ${inc.map(c => `<div class="kid-row">⚡ <b>${esc(c.fromName)}</b> challenges you: beat <b>${c.scoreToBeat}</b> in ${esc(c.gameName)}!
+          <button class="btn sun small" style="margin-left:auto" onclick="location.hash='#game/${c.game}'">Accept! →</button></div>`).join('')}
+        <p class="muted" style="margin-top:8px;font-size:.85rem">Beat the score within 7 days to win +5 bonus coins!</p>
+      </div>` : ''}
       ${data.buddies.length ? `
         <div class="subject-grid">
           ${data.buddies.map(b => `
@@ -638,7 +730,8 @@
               <div class="avatar-big" style="margin:0 auto">${avatarHTML(b)}</div>
               <h3 style="margin:8px 0 4px">${esc(b.name)}</h3>
               <p class="muted">🔥 ${b.streak}-day streak · ⚡ ${b.xp} XP · 🏅 ${b.badges} badges</p>
-              <button class="btn sun small" style="margin-top:10px" data-cheer="${b.id}">Send a Cheer! 📣</button>
+              <button class="btn sun small" style="margin-top:10px" data-cheer="${b.id}">Cheer 📣</button>
+              <button class="btn green small" style="margin-top:10px" data-challenge="${b.id}" data-bname="${esc(b.name)}">Challenge ⚔️</button>
             </div>`).join('')}
         </div>` : `
         <div class="card center">
@@ -646,6 +739,10 @@
           <h2>No buddies yet!</h2>
           <p class="muted" style="margin:10px 0">Ask your parent to connect you with friends from school — they make an invite code in the Parent Dashboard.</p>
         </div>`}
+      ${out.length ? `<div class="card" style="margin-top:16px">
+        <h3>🚀 Your challenges sent</h3>
+        ${out.map(c => `<div class="kid-row">${c.status === 'won' ? '😮' : '⏳'} You dared <b>${esc(c.toName)}</b> to beat <b>${c.scoreToBeat}</b> in ${esc(c.gameName)} — ${c.status === 'won' ? `they DID it! Time for a rematch!` : 'still waiting…'}</div>`).join('')}
+      </div>` : ''}
       <div class="card" style="margin-top:16px">
         <h3>📬 Cheers for you</h3>
         <div style="margin-top:10px">
@@ -656,6 +753,28 @@
       </div>
     </div>`);
     wireChrome();
+    document.querySelectorAll('[data-challenge]').forEach(b => b.onclick = () => {
+      const toKid = Number(b.dataset.challenge), bname = b.dataset.bname;
+      const names = data.games || {};
+      const div = document.createElement('div');
+      div.className = 'celebrate';
+      div.innerHTML = `<h2>⚔️ Challenge ${esc(bname)}!</h2>
+        <p style="max-width:460px">Pick a game — your BEST score becomes the target. If ${esc(bname)} beats it within 7 days, they win 5 bonus coins (then you rematch!).</p>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:560px">
+          ${Object.keys(names).map(g => `<button class="btn sun small" data-g="${g}">${esc(names[g])}</button>`).join('')}</div>
+        <div id="ch-msg" style="margin-top:10px;font-weight:700"></div>
+        <button class="btn ghost" style="margin-top:10px">Cancel</button>`;
+      div.querySelector('.btn.ghost').onclick = () => div.remove();
+      div.querySelectorAll('[data-g]').forEach(gb => gb.onclick = async () => {
+        try {
+          const r = await api(`/buddies/${kidId()}/challenge`, { method: 'POST', body: { toKid, game: gb.dataset.g } });
+          Sound.badge(); Confetti.burst(80);
+          div.querySelector('#ch-msg').textContent = `Challenge sent! ${bname} must beat ${r.scoreToBeat}. ⚔️`;
+          setTimeout(() => { div.remove(); navigate(); }, 1600);
+        } catch (e) { Sound.wrong(); div.querySelector('#ch-msg').textContent = e.message; }
+      });
+      document.body.appendChild(div);
+    });
     document.querySelectorAll('[data-cheer]').forEach(b => b.onclick = () => {
       const toKid = Number(b.dataset.cheer);
       const div = document.createElement('div');

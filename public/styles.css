@@ -280,6 +280,41 @@ body[data-theme="academy"] .feedback.bad { background: #3a3222; color: #e6c877; 
 .quest-item .q-prog { margin-left: auto; font-size: .85rem; opacity: .85; }
 body[data-theme="pro"] .quest-card, body[data-theme="scholar"] .quest-card { background: var(--card-bg); border-color: var(--card-border); color: var(--ink); box-shadow: var(--shadow); }
 @media (prefers-reduced-motion: reduce) { .quest-card.ready { animation: none; } }
+
+/* ===== Age-differentiated interface: K-2 chunky & bouncy ↔ 9-12 dense & serious ===== */
+body[data-theme="junior"] .btn { font-size: 1.1rem; padding: 14px 26px; border-radius: 999px; }
+body[data-theme="junior"] .btn.small { font-size: .98rem; padding: 10px 18px; }
+body[data-theme="junior"] .subject-card .semoji { font-size: 3.8rem; }
+body[data-theme="junior"] .subject-card h3 { font-size: 1.55rem; }
+body[data-theme="junior"] .subject-card { border-radius: 26px; }
+body[data-theme="junior"] .subject-card:hover { transform: translateY(-6px) rotate(-1.5deg) scale(1.03); }
+body[data-theme="junior"] .chip { font-size: 1rem; padding: 8px 16px; }
+body[data-theme="junior"] .kid-header h1 { font-size: 2.1rem; }
+body[data-theme="junior"] .zone-card .zemoji { font-size: 2.6rem; }
+body[data-theme="junior"] .card { border-radius: 22px; }
+body[data-theme="explorer"] .subject-card .semoji { font-size: 3.1rem; }
+body[data-theme="explorer"] .subject-card:hover { transform: translateY(-5px) scale(1.02); }
+body[data-theme="scholar"] .subject-card .semoji { font-size: 2.4rem; }
+body[data-theme="academy"] .subject-card .blob { display: none; }
+body[data-theme="academy"] .subject-card .semoji { font-size: 1.8rem; }
+body[data-theme="academy"] .subject-card h3 { font-size: 1.1rem; }
+body[data-theme="academy"] .subject-card { border-radius: 12px; padding: 20px; }
+body[data-theme="academy"] .subject-card:hover { transform: translateY(-2px); rotate: none; }
+body[data-theme="academy"] .btn { border-radius: 9px; }
+body[data-theme="academy"] .card { border-radius: 14px; }
+body[data-theme="academy"] .zone-card .zemoji { font-size: 1.5rem; }
+body[data-theme="academy"] .kid-header h1 { font-size: 1.5rem; }
+body[data-theme="academy"] .big-emoji { font-size: 3.4rem; }
+
+/* Lightning Round */
+.blitz-timer { height: 12px; border-radius: 999px; background: rgba(255,255,255,.25); overflow: hidden; margin-bottom: 14px; }
+.blitz-fill { height: 100%; background: linear-gradient(90deg, #2fae7d, #c9971c); transition: width 1s linear; }
+.blitz-fill.hot { background: linear-gradient(90deg, #e74c3c, #f39c12); }
+.blitz-q { font-family: var(--font-display); font-size: clamp(2.2rem, 8vw, 3.4rem); font-weight: 800; margin: 10px 0 18px; }
+.blitz-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 380px; margin: 0 auto; }
+.blitz-btn { font-size: 1.5rem; padding: 18px 10px; font-weight: 800; }
+.combo-badge { display: inline-block; background: #ff6b35; color: #fff; font-weight: 800; padding: 6px 16px; border-radius: 999px; animation: pop .3s ease; margin-bottom: 8px; }
+body[data-theme="junior"] .blitz-q { font-size: clamp(2.8rem, 10vw, 4rem); }
 .dash-welcome p { color: var(--muted, #667085); }
 .explain-pop { display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 560px; }
 .explain-pop .explain-text { font-size: 1.35rem; line-height: 1.6; font-weight: 600; }
