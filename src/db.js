@@ -123,6 +123,13 @@ CREATE TABLE IF NOT EXISTS buddies (
   PRIMARY KEY (kid_a, kid_b)
 );
 
+CREATE TABLE IF NOT EXISTS daily_quests (
+  kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+  day TEXT NOT NULL,                        -- YYYY-MM-DD (UTC)
+  bonus_claimed INTEGER DEFAULT 0,
+  PRIMARY KEY (kid_id, day)
+);
+
 CREATE TABLE IF NOT EXISTS cheers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   from_kid INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,

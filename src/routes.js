@@ -204,6 +204,34 @@ router.get('/learn/:kidId/report', auth.requireKid, (req, res) => {
   res.json(adaptive.reportCard(req.kid.id));
 });
 
+// ---------- daily quests ----------
+const QUEST_BONUS_COINS = 10;
+function questStatus(kidId) {
+  const t = db.prepare(`SELECT COUNT(*) AS answers, SUM(correct) AS correct, COUNT(DISTINCT subject) AS subjects
+                        FROM activity_log WHERE kid_id=? AND date(ts)=date('now')`).get(kidId);
+  const quests = [
+    { id: 'answers', emoji: '📝', label: 'Answer 10 questions', progress: Math.min(10, t.answers || 0), target: 10 },
+    { id: 'correct', emoji: '🎯', label: 'Get 7 correct', progress: Math.min(7, t.correct || 0), target: 7 },
+    { id: 'subjects', emoji: '🌈', label: 'Practice 2 different subjects', progress: Math.min(2, t.subjects || 0), target: 2 }
+  ].map(q => ({ ...q, done: q.progress >= q.target }));
+  const claimed = db.prepare("SELECT bonus_claimed FROM daily_quests WHERE kid_id=? AND day=date('now')").get(kidId);
+  return { quests, allDone: quests.every(q => q.done), claimed: !!(claimed && claimed.bonus_claimed), bonusCoins: QUEST_BONUS_COINS };
+}
+
+router.get('/learn/:kidId/quests', auth.requireKid, (req, res) => {
+  res.json(questStatus(req.kid.id));
+});
+
+router.post('/learn/:kidId/quests/claim', auth.requireKid, (req, res) => {
+  const st = questStatus(req.kid.id);
+  if (!st.allDone) return res.status(400).json({ error: 'Quests not finished yet — keep going!' });
+  if (st.claimed) return res.json({ ok: true, alreadyClaimed: true });
+  db.prepare("INSERT OR REPLACE INTO daily_quests (kid_id, day, bonus_claimed) VALUES (?, date('now'), 1)").run(req.kid.id);
+  db.prepare('UPDATE kids SET coins = coins + ? WHERE id=?').run(QUEST_BONUS_COINS, req.kid.id);
+  const kid = db.prepare('SELECT coins FROM kids WHERE id=?').get(req.kid.id);
+  res.json({ ok: true, coinsEarned: QUEST_BONUS_COINS, coins: kid.coins });
+});
+
 // Retake a placement assessment (fresh start for that subject's level)
 router.post('/learn/:kidId/placement/:subject/retake', auth.requireKid, (req, res) => {
   const { subject } = req.params;
