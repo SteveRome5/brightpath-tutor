@@ -47,7 +47,8 @@ const CHEER_LIST = [
   { id: 'rocket', text: 'To the moon! 🚀' }, { id: 'clap', text: 'Amazing streak! 👏' },
   { id: 'race', text: 'Race you to the next badge! 🏁' }, { id: 'hi', text: 'Hi from your buddy! 👋' }
 ];
-const GAMES = ['memory', 'wordsearch', 'code', 'room', 'art', 'lemonade', 'market'];
+const GAMES = ['memory', 'wordsearch', 'code', 'room', 'art', 'lemonade', 'market', 'blitz'];
+const GAME_NAMES = { memory: 'Memory Match', wordsearch: 'Word Search', code: 'Code Quest', room: 'Room Designer', art: 'Art Studio', lemonade: 'Lemonade Tycoon', market: 'Market Mogul', blitz: 'Lightning Round' };
 
 function itemFor(slot, id) { return (AVATAR_CATALOG[slot] || []).find(i => i.id === id) || null; }
 function kidPublic(k) {
@@ -124,8 +125,34 @@ router.post('/play/:kidId/score', auth.requireKid, (req, res) => {
   const s = Math.max(0, Math.min(100000, Number(score) || 0));
   db.prepare('INSERT INTO game_scores (kid_id, game, score) VALUES (?,?,?)').run(req.kid.id, game, s);
   // small coin reward for finishing a game (not enough to beat lessons!)
-  db.prepare('UPDATE kids SET coins = coins + 2 WHERE id=?').run(req.kid.id);
-  res.json({ ok: true, coinsEarned: 2 });
+  let coins = 2;
+  // Did this score beat an open buddy challenge?
+  const beaten = [];
+  const open = db.prepare(`SELECT * FROM challenges WHERE to_kid=? AND game=? AND status='open' AND created_at > datetime('now','-7 days')`).all(req.kid.id, game);
+  for (const ch of open) {
+    if (s > ch.score_to_beat) {
+      db.prepare("UPDATE challenges SET status='won', resolved_at=datetime('now') WHERE id=?").run(ch.id);
+      coins += 5;
+      const from = db.prepare('SELECT name FROM kids WHERE id=?').get(ch.from_kid);
+      beaten.push({ fromName: from ? from.name : 'your buddy', scoreToBeat: ch.score_to_beat });
+    }
+  }
+  db.prepare('UPDATE kids SET coins = coins + ? WHERE id=?').run(coins, req.kid.id);
+  res.json({ ok: true, coinsEarned: coins, challengesWon: beaten });
+});
+
+// ---------- buddy challenges (safe, async, no chat) ----------
+router.post('/buddies/:kidId/challenge', auth.requireKid, (req, res) => {
+  const { toKid, game } = req.body || {};
+  if (!GAMES.includes(String(game))) return res.status(400).json({ error: 'Unknown game' });
+  const [a, b] = [Math.min(req.kid.id, Number(toKid)), Math.max(req.kid.id, Number(toKid))];
+  if (!db.prepare('SELECT 1 FROM buddies WHERE kid_a=? AND kid_b=?').get(a, b)) return res.status(403).json({ error: 'Not buddies' });
+  const best = db.prepare('SELECT MAX(score) AS s FROM game_scores WHERE kid_id=? AND game=?').get(req.kid.id, game);
+  if (!best.s) return res.status(400).json({ error: 'Play that game first to set a score to beat! 🎮' });
+  const dup = db.prepare(`SELECT 1 FROM challenges WHERE from_kid=? AND to_kid=? AND game=? AND status='open' AND created_at > datetime('now','-7 days')`).get(req.kid.id, Number(toKid), game);
+  if (dup) return res.status(400).json({ error: 'You already have an open challenge with them in that game!' });
+  db.prepare('INSERT INTO challenges (from_kid, to_kid, game, score_to_beat) VALUES (?,?,?,?)').run(req.kid.id, Number(toKid), game, best.s);
+  res.json({ ok: true, scoreToBeat: best.s });
 });
 
 // ---------- buddies (parent-gated invites, kid-safe cheers) ----------
@@ -165,7 +192,13 @@ router.get('/buddies/:kidId', auth.requireKid, (req, res) => {
   }).filter(Boolean);
   const inbox = db.prepare(`SELECT c.id, c.cheer_id, c.seen, c.ts, k.name AS from_name, k.avatar AS from_avatar
     FROM cheers c JOIN kids k ON k.id = c.from_kid WHERE c.to_kid=? ORDER BY c.id DESC LIMIT 30`).all(req.kid.id);
-  res.json({ buddies, cheers: CHEER_LIST, inbox, unseen: inbox.filter(c => !c.seen).length });
+  const incoming = db.prepare(`SELECT ch.*, k.name AS from_name FROM challenges ch JOIN kids k ON k.id=ch.from_kid
+    WHERE ch.to_kid=? AND ch.status='open' AND ch.created_at > datetime('now','-7 days') ORDER BY ch.id DESC LIMIT 10`).all(req.kid.id)
+    .map(c => ({ id: c.id, game: c.game, gameName: GAME_NAMES[c.game] || c.game, scoreToBeat: c.score_to_beat, fromName: c.from_name }));
+  const outgoing = db.prepare(`SELECT ch.*, k.name AS to_name FROM challenges ch JOIN kids k ON k.id=ch.to_kid
+    WHERE ch.from_kid=? AND ch.created_at > datetime('now','-7 days') ORDER BY ch.id DESC LIMIT 10`).all(req.kid.id)
+    .map(c => ({ id: c.id, game: c.game, gameName: GAME_NAMES[c.game] || c.game, scoreToBeat: c.score_to_beat, toName: c.to_name, status: c.status }));
+  res.json({ buddies, cheers: CHEER_LIST, inbox, unseen: inbox.filter(c => !c.seen).length, challenges: { incoming, outgoing }, games: GAME_NAMES });
 });
 
 router.post('/buddies/:kidId/cheer', auth.requireKid, (req, res) => {

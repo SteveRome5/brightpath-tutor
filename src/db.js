@@ -123,6 +123,17 @@ CREATE TABLE IF NOT EXISTS buddies (
   PRIMARY KEY (kid_a, kid_b)
 );
 
+CREATE TABLE IF NOT EXISTS challenges (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  from_kid INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+  to_kid INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+  game TEXT NOT NULL,
+  score_to_beat INTEGER NOT NULL,
+  status TEXT DEFAULT 'open',               -- open | won | expired
+  created_at TEXT DEFAULT (datetime('now')),
+  resolved_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS daily_quests (
   kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
   day TEXT NOT NULL,                        -- YYYY-MM-DD (UTC)
