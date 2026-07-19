@@ -288,9 +288,20 @@ function reportCard(kidId) {
     .map(r => ({ ...BADGES.find(b => b.id === r.badge_id), earned_at: r.earned_at })).filter(b => b.id);
   const certs = db.prepare('SELECT * FROM certificates WHERE kid_id=? ORDER BY issued_at DESC').all(kidId);
   const week = db.prepare(`SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-7 days')`).get(kidId);
+  // 14-day activity history for the parent chart (fill missing days with zeros)
+  const rows = db.prepare(`SELECT date(ts) AS d, COUNT(*) AS n, SUM(correct) AS c
+    FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-14 days') GROUP BY date(ts)`).all(kidId);
+  const byDay = Object.fromEntries(rows.map(r => [r.d, r]));
+  const history = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = db.prepare(`SELECT date('now', ?) AS d`).get(`-${i} days`).d;
+    const r = byDay[d];
+    history.push({ day: d, answers: r ? r.n : 0, correct: r ? (r.c || 0) : 0 });
+  }
   return {
     kid: { id: kid.id, name: kid.name, avatar: kid.avatar, grade: kid.grade, xp: kid.xp, coins: kid.coins, streak: kid.streak, weekly_goal: kid.weekly_goal, calendar_mode: kid.calendar_mode },
     subjects, badges, certificates: certs, weekAnswers: week.n || 0,
+    history,
     pace: pace(kid)
   };
 }
