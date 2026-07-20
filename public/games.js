@@ -559,19 +559,20 @@
   // Stock market for grades 4+: read the news, think ahead, manage risk.
   function startMarket() {
     const STOCKS = [
-      { id: 'hay', name: 'HayGrain Farms', emoji: '🌾', price: 20, wild: 0.05 },
-      { id: 'sun', name: 'SunVolt Energy', emoji: '☀️', price: 30, wild: 0.10 },
-      { id: 'pix', name: 'PixelPlay Games', emoji: '🎮', price: 15, wild: 0.14 },
-      { id: 'nova', name: 'Nova Rockets', emoji: '🚀', price: 50, wild: 0.22 }
+      { id: 'hay', name: 'HayGrain Farms', short: 'HayGrain', emoji: '🌾', price: 20, wild: 0.05, color: '#4c9f45' },
+      { id: 'sun', name: 'SunVolt Energy', short: 'SunVolt', emoji: '☀️', price: 30, wild: 0.10, color: '#e8a712' },
+      { id: 'pix', name: 'PixelPlay Games', short: 'PixelPlay', emoji: '🎮', price: 15, wild: 0.14, color: '#8e5cf7' },
+      { id: 'nova', name: 'Nova Rockets', short: 'Nova', emoji: '🚀', price: 50, wild: 0.22, color: '#eb5757' }
     ];
+    STOCKS.forEach(s => { s.hist = [s.price]; });
     const NEWS = {
       hay: { good: ['HayGrain wins a huge grocery contract 🌾', 'Perfect growing season boosts HayGrain harvests'], bad: ['Drought hits HayGrain\'s biggest fields', 'HayGrain recalls a shipment of oats'] },
-      sun: { good: ['New law rewards clean energy — SunVolt cheers ☀️', 'SunVolt\'s new panel breaks an efficiency record'], bad: ['Cheap imported panels undercut SunVolt', 'Cloudy quarter dims SunVolt\'s earnings'] },
+      sun: { good: ['New law rewards clean energy, SunVolt cheers ☀️', 'SunVolt\'s new panel breaks an efficiency record'], bad: ['Cheap imported panels undercut SunVolt', 'Cloudy quarter dims SunVolt\'s earnings'] },
       pix: { good: ['PixelPlay\'s new game hits #1 in downloads 🎮', 'PixelPlay announces a huge esports league'], bad: ['PixelPlay delays its biggest game launch', 'Players quit PixelPlay\'s buggy update'] },
-      nova: { good: ['Nova Rockets lands a satellite mega-contract 🚀', 'Nova\'s reusable rocket sticks the landing'], bad: ['Nova launch scrubbed — investors nervous', 'Nova loses a contract to a rival'] }
+      nova: { good: ['Nova Rockets lands a satellite mega-contract 🚀', 'Nova\'s reusable rocket sticks the landing'], bad: ['Nova launch scrubbed, investors nervous', 'Nova loses a contract to a rival'] }
     };
-    const ROUNDS = 8;
-    let round = 1, cash = 1000, owned = { hay: 0, sun: 0, pix: 0, nova: 0 }, last = {}, headline = makeNews();
+    const ROUNDS = 8, START = 1000;
+    let round = 1, cash = START, owned = { hay: 0, sun: 0, pix: 0, nova: 0 }, last = {}, headline = makeNews();
     const $$ = n => '$' + n.toFixed(2);
     function makeNews() {
       const s = STOCKS[Math.floor(Math.random() * STOCKS.length)];
@@ -580,45 +581,68 @@
       return { stock: s.id, up, text: list[Math.floor(Math.random() * list.length)] };
     }
     function netWorth() { return cash + STOCKS.reduce((t, s) => t + owned[s.id] * s.price, 0); }
-    function render(flash) {
-      const nw = netWorth();
+
+    // Live multi-line price chart — kids SEE the climbs and crashes.
+    function chart(animate) {
+      const days = STOCKS[0].hist.length;
+      const all = STOCKS.flatMap(s => s.hist);
+      let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * 0.14 || 4; lo = Math.max(0, lo - pad); hi = hi + pad;
+      const W = 320, H = 150, mL = 6, mR = 8, mT = 10, mB = 8;
+      const X = i => mL + (days <= 1 ? 0 : i / (days - 1) * (W - mL - mR));
+      const Y = v => mT + (1 - (v - lo) / ((hi - lo) || 1)) * (H - mT - mB);
+      const grid = [0, 0.5, 1].map(f => { const y = mT + f * (H - mT - mB); return `<line x1="${mL}" y1="${y.toFixed(1)}" x2="${W - mR}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.13)" stroke-width="1"/>`; }).join('');
+      const labels = `<text x="${mL}" y="${(mT + 8).toFixed(1)}" fill="rgba(255,255,255,.55)" font-size="9">${$$(hi)}</text><text x="${mL}" y="${(H - mB).toFixed(1)}" fill="rgba(255,255,255,.55)" font-size="9">${$$(lo)}</text>`;
+      const lines = STOCKS.map(s => {
+        const pts = s.hist.map((p, i) => `${X(i).toFixed(1)},${Y(p).toFixed(1)}`).join(' ');
+        const lx = X(days - 1), ly = Y(s.hist[days - 1]);
+        return `<polyline class="mm-line${animate ? ' mm-anim' : ''}" points="${pts}" fill="none" stroke="${s.color}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.6" fill="${s.color}"/>`;
+      }).join('');
+      return `<div class="mm-chart"><svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${grid}${labels}${lines}</svg></div>`;
+    }
+
+    function render(flash, animate) {
+      const nw = netWorth(), gain = nw - START;
       app().innerHTML = topbar(`<div class="container" style="max-width:680px">
-        <div class="lesson-top"><b>📈 Market Mogul — Day ${round}/${ROUNDS}</b><b>Net worth: ${$$(nw)}</b></div>
-        ${flash ? `<div class="news-flash">${flash}</div>` : ''}
-        <div class="news-flash">📰 <b>MARKET NEWS:</b> ${headline.text}<br><span style="font-weight:500;font-size:.9rem">Think: what will this do to the price tomorrow?</span></div>
-        <div class="card" style="padding:14px">
+        <div class="lesson-top"><b>📈 Market Mogul — Day ${round}/${ROUNDS}</b><b class="${gain >= 0 ? 'up' : 'down'}">${$$(nw)} ${gain >= 0 ? '▲' : '▼'} ${$$(Math.abs(gain))}</b></div>
+        ${chart(animate)}
+        <div class="mm-legend">${STOCKS.map(s => `<span><i style="background:${s.color}"></i>${s.emoji} ${$$(s.price)}</span>`).join('')}</div>
+        ${flash ? `<div class="news-flash mm-surprise">${flash}</div>` : ''}
+        <div class="news-flash">📰 <b>MARKET NEWS:</b> ${headline.text}<br><span style="font-weight:500;font-size:.9rem">Think ahead: what might this do to the price tomorrow?</span></div>
+        <div class="card" style="padding:12px">
           ${STOCKS.map(s => {
-            const chg = last[s.id];
-            return `<div class="stock-row">
-              <span style="font-size:1.4rem">${s.emoji}</span>
-              <b style="min-width:130px">${s.name}</b>
-              <span>${$$(s.price)}</span>
-              ${chg != null ? `<span class="${chg >= 0 ? 'up' : 'down'}">${chg >= 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(1)}%</span>` : '<span class="muted">—</span>'}
-              <span style="margin-left:auto">own: <b>${owned[s.id]}</b></span>
-              <button class="btn small green" data-buy="${s.id}" ${cash < s.price ? 'disabled' : ''}>Buy</button>
-              <button class="btn small coral" data-sell="${s.id}" ${owned[s.id] < 1 ? 'disabled' : ''}>Sell</button>
+            const chg = last[s.id]; const val = owned[s.id] * s.price;
+            return `<div class="stock-row${s.id === headline.stock ? ' mm-hot' : ''}">
+              <span class="mm-dot" style="background:${s.color}"></span>
+              <b class="mm-name">${s.emoji} ${s.short}</b>
+              <span class="mm-price">${$$(s.price)}</span>
+              ${chg != null ? `<span class="${chg >= 0 ? 'up' : 'down'} mm-chg">${chg >= 0 ? '▲' : '▼'}${Math.abs(chg).toFixed(1)}%</span>` : '<span class="muted mm-chg">new</span>'}
+              <span class="mm-hold">${owned[s.id] ? `×${owned[s.id]}` : ''}</span>
+              <span class="mm-actions">
+                <button class="btn small green" data-buy="${s.id}" ${cash < s.price ? 'disabled' : ''}>Buy</button>
+                <button class="btn small coral" data-sell="${s.id}" ${owned[s.id] < 1 ? 'disabled' : ''}>Sell</button>
+              </span>
             </div>`;
           }).join('')}
-          <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap">
-            <span>💵 Cash: <b>${$$(cash)}</b></span><span>📊 Stocks: <b>${$$(nw - cash)}</b></span>
-            <button class="btn sun small" style="margin-left:auto" id="next-day">${round === ROUNDS ? 'Close the Market 🔔' : 'Next Day →'}</button>
+          <div class="mm-foot">
+            <span>💵 Cash <b>${$$(cash)}</b></span><span>📊 Stocks <b>${$$(nw - cash)}</b></span>
+            <button class="btn sun small" id="next-day">${round === ROUNDS ? 'Close the Market 🔔' : 'Next Day →'}</button>
           </div>
         </div>
-        <p class="center" style="color:#fff;opacity:.85;margin-top:10px">💡 Steady stocks move a little. Wild stocks (🚀) can jump — or crash. Smart investors don't put everything in one place.</p>
+        <p class="center" style="color:#fff;opacity:.85;margin-top:10px;font-size:.9rem">💡 Steady stocks (🌾) drift a little; wild ones (🚀) can rocket or crash. Spreading your money across several is how real investors survive a bad day.</p>
       </div>`);
       wireChrome();
       document.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => {
         const s = STOCKS.find(x => x.id === b.dataset.buy);
-        if (cash >= s.price) { cash -= s.price; owned[s.id]++; Sound.click(); render(flash); }
+        if (cash >= s.price) { cash -= s.price; owned[s.id]++; Sound.click(); render(flash, false); }
       });
       document.querySelectorAll('[data-sell]').forEach(b => b.onclick = () => {
         const s = STOCKS.find(x => x.id === b.dataset.sell);
-        if (owned[s.id] > 0) { cash += s.price; owned[s.id]--; Sound.click(); render(flash); }
+        if (owned[s.id] > 0) { cash += s.price; owned[s.id]--; Sound.click(); render(flash, false); }
       });
       $('#next-day').onclick = advance;
     }
     function advance() {
-      // News usually (not always!) moves the price — markets can surprise you.
       const follows = Math.random() < 0.85;
       let flash = null;
       for (const s of STOCKS) {
@@ -626,25 +650,27 @@
         if (s.id === headline.stock) {
           const dir = headline.up === follows ? 1 : -1;
           move = dir * (0.08 + Math.random() * 0.14);
-          if (!follows) flash = '😮 Surprise! The market didn\'t react the way the news suggested. That happens in real markets too — never bet everything on one headline.';
+          if (!follows) flash = '😮 Surprise! The market did not react the way the news suggested. That happens for real, never bet everything on one headline.';
         }
         last[s.id] = move * 100;
-        s.price = Math.max(1, s.price * (1 + move));
+        s.price = Math.max(1, Math.round(s.price * (1 + move) * 100) / 100);
+        s.hist.push(s.price);
       }
       if (round === ROUNDS) {
         const nw = netWorth();
-        const gain = nw - 1000;
+        const gain = nw - START;
+        const pct = Math.round((gain / START) * 100);
         const score = Math.max(10, Math.round(nw / 10));
-        finishGame('market', score, gain >= 0 ? `Portfolio: ${$$(nw)} — you MADE ${$$(gain)}! 📈` : `Portfolio: ${$$(nw)} — down ${$$(-gain)} 📉`,
-          gain >= 0 ? 'You read news, took smart risks, and grew your money. That\'s investing — and now you\'ve done it.'
-            : 'Losses teach the best lessons: diversify, don\'t chase one hot stock, and think a day ahead. Pros lose sometimes too!');
+        finishGame('market', score, gain >= 0 ? `Portfolio: ${$$(nw)} — up ${pct}%! 📈` : `Portfolio: ${$$(nw)} — down ${Math.abs(pct)}% 📉`,
+          gain >= 0 ? 'You read the news, spread your risk, and grew your money. That is investing, and you just did it for real.'
+            : 'Losses teach the best lessons: diversify, do not chase one hot stock, and think a day ahead. Even the pros have red days!');
         return;
       }
       round++; headline = makeNews();
       Sound.badge();
-      render(flash);
+      render(flash, true);
     }
-    render();
+    render(null, true);
   }
 
   // ======================= BAKERY QUEST =======================

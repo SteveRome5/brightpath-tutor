@@ -558,6 +558,28 @@ body[data-theme="academy"] .mem-card.matched span { color: #7fe0c0; }
 .bq-good { background: #eafaf1; border-left: 4px solid #1f8a5f; color: #14603f; border-radius: 10px; padding: 12px 14px; font-weight: 600; line-height: 1.5; }
 .bq-bad { background: #fdf0e8; border-left: 4px solid #d97b4f; color: #9a4a24; border-radius: 10px; padding: 12px 14px; font-weight: 600; line-height: 1.5; }
 
+/* market mogul — live chart */
+.mm-chart { background: linear-gradient(180deg, #16233b, #0f1a2e); border-radius: 14px; padding: 8px 6px 2px; box-shadow: inset 0 2px 10px rgba(0,0,0,.35); }
+.mm-line.mm-anim { stroke-dasharray: 1600; animation: mm-draw .55s ease-out; }
+@keyframes mm-draw { from { stroke-dashoffset: 1600; } to { stroke-dashoffset: 0; } }
+.mm-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; margin: 8px 0 4px; color: #fff; font-weight: 600; font-size: .9rem; }
+.mm-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.mm-legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+.mm-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.mm-name { flex: 1 1 auto; min-width: 78px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .95rem; }
+.mm-price { font-variant-numeric: tabular-nums; font-weight: 700; }
+.mm-chg { font-size: .82rem; font-weight: 700; min-width: 52px; text-align: right; }
+.mm-hold { font-size: .82rem; font-weight: 700; color: var(--sub, #5b6478); min-width: 26px; text-align: right; }
+.mm-actions { display: flex; gap: 6px; margin-left: auto; flex: none; }
+.mm-hot { background: rgba(240,167,18,.10); border-radius: 8px; box-shadow: inset 0 0 0 1.5px rgba(240,167,18,.4); }
+.mm-surprise { background: #fff4e0; }
+.mm-foot { display: flex; gap: 14px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.mm-foot > span { font-variant-numeric: tabular-nums; }
+.mm-foot .btn { margin-left: auto; }
+.stock-row { flex-wrap: nowrap; }
+.stock-row .btn.small { padding: 5px 9px; font-size: .82rem; }
+@media (max-width: 380px) { .mm-chg { display: none; } .mm-name { min-width: 60px; } }
+
 /* word search */
 .ws-grid { display: grid; gap: 4px; }
 .ws-cell {
