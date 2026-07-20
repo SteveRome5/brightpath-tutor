@@ -58,6 +58,24 @@ const CHEER_LIST = [
 const GAMES = ['memory', 'wordsearch', 'code', 'room', 'art', 'lemonade', 'market', 'blitz'];
 const GAME_NAMES = { memory: 'Memory Match', wordsearch: 'Word Search', code: 'Code Quest', room: 'Room Designer', art: 'Art Studio', lemonade: 'Lemonade Tycoon', market: 'Market Mogul', blitz: 'Lightning Round' };
 
+// Seasonal items appear only in their season (scarcity keeps the shop fresh);
+// once owned, they're yours forever.
+const SEASONS = { spooky: [9, 10], holiday: [11, 12], santa: [11, 12], winter: [12, 1, 2] };
+function inSeason(id) {
+  const s = SEASONS[id];
+  if (!s) return true;
+  return s.includes(new Date().getMonth() + 1);
+}
+function catalogFor(ownedSet) {
+  const out = {};
+  for (const slot of Object.keys(AVATAR_CATALOG)) {
+    out[slot] = AVATAR_CATALOG[slot]
+      .filter(i => inSeason(i.id) || ownedSet.has(slot + ':' + i.id))
+      .map(i => SEASONS[i.id] ? { ...i, seasonal: true } : i);
+  }
+  return out;
+}
+
 function itemFor(slot, id) { return (AVATAR_CATALOG[slot] || []).find(i => i.id === id) || null; }
 function kidPublic(k) {
   return {
@@ -70,13 +88,14 @@ function safeJson(s) { try { return s ? JSON.parse(s) : null; } catch (e) { retu
 // ---------- avatar ----------
 router.get('/play/:kidId/avatar', auth.requireKid, (req, res) => {
   const owned = db.prepare('SELECT item_id FROM avatar_items WHERE kid_id=?').all(req.kid.id).map(r => r.item_id);
-  res.json({ catalog: AVATAR_CATALOG, owned, config: safeJson(req.kid.avatar_config) || {}, coins: req.kid.coins });
+  res.json({ catalog: catalogFor(new Set(owned)), owned, config: safeJson(req.kid.avatar_config) || {}, coins: req.kid.coins });
 });
 
 router.post('/play/:kidId/avatar/buy', auth.requireKid, (req, res) => {
   const { slot, itemId } = req.body || {};
   const item = itemFor(slot, itemId);
   if (!item) return res.status(400).json({ error: 'Unknown item' });
+  if (!inSeason(item.id)) return res.status(400).json({ error: 'That item is out of season — it returns later in the year! ⏳' });
   const key = slot + ':' + itemId;
   const owned = db.prepare('SELECT 1 FROM avatar_items WHERE kid_id=? AND item_id=?').get(req.kid.id, key);
   if (owned) return res.json({ ok: true, alreadyOwned: true });
