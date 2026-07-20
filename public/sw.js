@@ -1,6 +1,6 @@
 // Gallop Learning Academy — lightweight service worker
 // Static assets: stale-while-revalidate. API: always network (never cache learning data).
-const CACHE = 'gallop-v11';
+const CACHE = 'gallop-v12';
 const STATIC = ['/', '/index.html', '/styles.css', '/app.js', '/games.js', '/manifest.json', '/icon-192.png', '/icon-512.png', '/logo.svg', '/logo-roundel.svg'];
 
 self.addEventListener('install', e => {

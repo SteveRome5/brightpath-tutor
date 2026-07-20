@@ -549,7 +549,7 @@ route('landing', async () => {
   <div class="hero">
     <div class="eyebrow">Adaptive K–12 Tutoring · Math · English · Science · Spanish</div>
     <h1>A personal tutor for every child, at every level.</h1>
-    <p>Gallop Learning Academy places each student precisely — subject by subject — then adapts every lesson to how they actually learn. Real-world teaching, honest progress reports, a badge-filled trophy case, and a curriculum that grows up with your child — right up to spotting their strengths and mapping a future career.</p>
+    <p>Gallop finds each child's real level in every subject, then adapts each lesson to how they actually learn. The teaching stays grounded in the real world, the progress reports are honest, and the whole program grows up alongside your child. By the high school years it even helps you see where their strengths could lead.</p>
     <button class="btn" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start your 7-day free trial</button>
     <button class="btn ghost" style="margin-left:8px" onclick="location.hash='#demo'">Try a sample lesson</button>
     <button class="btn ghost" style="margin-left:8px" onclick="location.hash='#kid-login'">Student sign-in</button>
@@ -564,24 +564,24 @@ route('landing', async () => {
       <div><b>8</b><span>Learning games</span></div>
     </div>
     <h2 class="section-title reveal">How it works</h2>
-    <p class="section-sub">Three principles, borrowed from the best teachers you ever had.</p>
+    <p class="section-sub">The same three moves a good teacher makes, built into every session.</p>
     <div class="feature-grid">
-      <div class="feature reveal"><div class="fnum">01 — PLACE</div><h3>Find the true starting line</h3><p>A short placement assessment measures each subject independently. A strong reader who's average in math starts exactly where she should — in both.</p></div>
-      <div class="feature reveal"><div class="fnum">02 — ADAPT</div><h3>Adjust with every answer</h3><p>Mastered skills accelerate and deepen. Shaky skills get gentler questions, clearer hints, and extra repetition — automatically, without shame.</p></div>
-      <div class="feature reveal"><div class="fnum">03 — PROGRESS</div><h3>Prove it, then advance</h3><p>Students level up only when every skill in a grade is demonstrated. Parents see letter grades, strengths, and focus areas. Certificates mark real milestones.</p></div>
+      <div class="feature reveal"><div class="fnum">STEP 01 · PLACE</div><h3>Find the true starting line</h3><p>A short assessment measures each subject on its own. A child who reads well but finds math harder starts in the right spot for each, not somewhere in the middle.</p></div>
+      <div class="feature reveal"><div class="fnum">STEP 02 · ADAPT</div><h3>Adjust with every answer</h3><p>Skills a child has down get harder and go deeper. The shaky ones slow down, with easier questions, clearer hints, and more practice. It happens quietly, so nobody feels singled out.</p></div>
+      <div class="feature reveal"><div class="fnum">STEP 03 · PROGRESS</div><h3>Prove it, then move up</h3><p>A child only advances a grade after showing they can do the whole thing, not after a lucky streak. You see the letter grades, the strengths, and the spots that need work. Certificates mark the real milestones.</p></div>
     </div>
     <h2 class="section-title reveal">We're raising critical thinkers</h2>
-    <p class="section-sub">Every child asks "when will I ever use this?" We answer it on every single question — and build toward the adult they'll become.</p>
+    <p class="section-sub">Every kid eventually asks "when will I ever use this?" We answer that on the questions themselves, and keep an eye on the adult they're becoming.</p>
     <div class="feature-grid">
-      <div class="feature reveal"><div class="fnum">GRADES K–5</div><h3>Little entrepreneurs</h3><p>Second-grade addition becomes lemonade-stand economics: buy supplies, set a price, count the profit. Math isn't a worksheet — it's how the world actually works.</p></div>
-      <div class="feature reveal"><div class="fnum">GRADES 6–8</div><h3>Real decisions</h3><p>Percentages become discounts and interest. Reading becomes spotting a weak argument. Science becomes testing claims instead of believing them.</p></div>
-      <div class="feature reveal"><div class="fnum">GRADES 9–12</div><h3>Future founders & investors</h3><p>Teens run a virtual portfolio in our stock-market game, reading news and managing risk. Algebra becomes margin math. Essays become pitches. School becomes a head start.</p></div>
+      <div class="feature reveal"><div class="fnum">GRADES K–5</div><h3>Little entrepreneurs</h3><p>Second-grade addition turns into running a lemonade stand: buy the supplies, set a price, count what's left over. It stops feeling like a worksheet and starts feeling like the actual world.</p></div>
+      <div class="feature reveal"><div class="fnum">GRADES 6–8</div><h3>Real decisions</h3><p>Percentages show up as sale prices and interest. Reading turns into spotting a shaky argument. Science becomes a habit of testing a claim before believing it.</p></div>
+      <div class="feature reveal"><div class="fnum">GRADES 9–12</div><h3>Future founders and investors</h3><p>Teenagers run a pretend portfolio in our stock-market game, follow the news, and weigh risk. Algebra becomes the math behind a margin. An essay becomes a pitch. School starts to feel like a head start.</p></div>
     </div>
     <h2 class="section-title reveal">See where it's all heading</h2>
-    <p class="section-sub">As your child works, Gallop learns what they're great at — and shows you. In the high-school years it turns those strengths into real career pathways, with exactly what to focus on next.</p>
+    <p class="section-sub">As your child works, Gallop picks up on what they're good at and shows it to you. By the high school years, those strengths turn into real career directions with a clear sense of what to focus on next.</p>
     <div class="lp-career reveal">
       <div class="lp-career-panel">
-        <div class="lp-career-badge">🎯 Career Pathways · a parent's view</div>
+        <div class="lp-career-badge">Career Pathways · a parent's view</div>
         <div class="lp-strength"><span class="lp-s-name">🔬 Science</span><span class="lp-s-bar"><i style="width:82%;background:#2f78c2"></i></span><b>82</b></div>
         <div class="lp-strength"><span class="lp-s-name">🔢 Math</span><span class="lp-s-bar"><i style="width:76%;background:#5b5bd6"></i></span><b>76</b></div>
         <div class="lp-strength"><span class="lp-s-name">📚 English</span><span class="lp-s-bar"><i style="width:61%;background:#0f9d76"></i></span><b>61</b></div>
@@ -594,36 +594,36 @@ route('landing', async () => {
       </div>
       <div class="lp-career-copy">
         <h3>Strengths, growth areas, and a plan</h3>
-        <p>Every parent report identifies where your child is <b>excelling</b> and where there's <b>room to grow</b> — in plain language. As they reach high school, it recommends career directions that fit their real performance, plus the classes and projects to pursue.</p>
+        <p>Every report tells you, in plain language, where your child is doing well and where they could use more practice. Once they reach high school, it starts suggesting career directions that fit how they're actually performing, along with the classes and projects worth pursuing.</p>
         <ul class="lp-check">
-          <li>✅ Grows with the student — a peek for the littles, a real plan for teens</li>
-          <li>✅ 14 curated pathways across STEM, business, healthcare, law & the arts</li>
-          <li>✅ Updates automatically as your child learns — no guesswork</li>
+          <li>It grows with the student: a light preview for the younger kids, a real plan for teenagers.</li>
+          <li>Fourteen career paths spanning STEM, business, healthcare, law, and the arts.</li>
+          <li>It updates on its own as your child learns, so there's nothing to keep track of.</li>
         </ul>
       </div>
     </div>
 
     <h2 class="section-title reveal">The curriculum</h2>
-    <p class="section-sub">Every concept taught through the real world — money, sports, cooking, travel, technology.</p>
+    <p class="section-sub">Every idea is taught through something real: money, sports, cooking, travel, and the technology kids already use.</p>
     <div class="subject-strip">
-      <div class="sub reveal" style="background:var(--math)"><h4>Mathematics</h4><p>Counting to pre-calculus. Lemonade-stand arithmetic, sale-rack percentages, roller-coaster physics of functions.</p></div>
-      <div class="sub reveal" style="background:var(--english)"><h4>English</h4><p>Phonics to rhetoric and college-level analysis. Reading that builds thinkers, grammar that builds writers.</p></div>
-      <div class="sub reveal" style="background:var(--science)"><h4>Science</h4><p>Five senses to chemistry and physics. Why the mirror fogs, why the soda can sweats, how vaccines train the body.</p></div>
-      <div class="sub reveal" style="background:var(--spanish)"><h4>Spanish</h4><p>First greetings to real fluency. Order in a Madrid café by month two — conjugation follows conversation.</p></div>
+      <div class="sub reveal" style="background:var(--math)"><h4>Mathematics</h4><p>Counting all the way to pre-calculus. Lemonade-stand arithmetic, sale-rack percentages, and the functions behind a roller coaster.</p></div>
+      <div class="sub reveal" style="background:var(--english)"><h4>English</h4><p>Phonics through rhetoric and college-level analysis. Reading that builds thinkers and grammar that builds writers.</p></div>
+      <div class="sub reveal" style="background:var(--science)"><h4>Science</h4><p>The five senses through chemistry and physics. Why a mirror fogs, why a soda can sweats, and how a vaccine trains the body.</p></div>
+      <div class="sub reveal" style="background:var(--spanish)"><h4>Spanish</h4><p>First greetings toward real fluency. Order in a Madrid café by month two, because conversation comes before conjugation.</p></div>
     </div>
     <h2 class="section-title reveal">Built for families</h2>
     <div class="feature-grid">
-      <div class="feature reveal"><h3>📖 An experience that grows up</h3><p>A 1st grader gets big friendly type and <b>read-along storytime</b> — words light up as they're read aloud. A teen gets 15-minute Focus Sessions and chill background music in a clean, serious study space. Same engine, age-perfect design.</p></div>
-      <div class="feature reveal"><h3>🏆 A trophy case worth chasing</h3><p>33 collectible badges across six categories, an XP rank ladder from Foal to Thoroughbred, and "next goal" progress bars that keep kids striving. Certificates mark every grade-level mastered.</p></div>
-      <div class="feature reveal"><h3>🎮 Motivation, done right</h3><p>Daily quests, streaks, an 8-game arcade, a coin-powered <b>Snack Shack</b> where their avatar eats the treats, and 48 collectible characters from ninjas to unicorns. Play is the reward — learning is the engine.</p></div>
-      <div class="feature reveal"><h3>🎵 Cool, never generic</h3><p>Eight original built-in soundtracks — lo-fi for teens, playful tunes for the littles — with a one-tap on/off. Every sound is crafted, nothing feels like a worksheet.</p></div>
-      <div class="feature reveal"><h3>💌 Safe, social learning</h3><p>Parent-approved buddies only. Kids send pre-written cheers, race each other's high scores, and team up on weekly goals where both win. No open chat, no strangers, ever.</p></div>
-      <div class="feature reveal"><h3>📊 Proof on the fridge</h3><p>Printable Certificates of Mastery, a weekly one-page report, a 14-day activity chart, per-skill mastery bars, a CSV export, and the strengths-and-career insights — you'll always know exactly how it's going.</p></div>
+      <div class="feature reveal"><h3>An experience that grows up</h3><p>A first grader gets big friendly type and read-along storytime, where the words light up as they are read out loud. A teenager gets 15-minute focus sessions and quiet background music in a clean study space. It is the same engine underneath, dressed for a different age.</p></div>
+      <div class="feature reveal"><h3>A trophy case worth chasing</h3><p>There are 33 badges to collect across six categories, a rank ladder that climbs from Foal to Thoroughbred, and progress bars that always show the next goal. Certificates mark each grade level a child finishes.</p></div>
+      <div class="feature reveal"><h3>Motivation that makes sense</h3><p>Daily quests, streaks, an eight-game arcade, and a coin-powered Snack Shack where a child's avatar actually eats the treats they buy. There are 48 characters to unlock, from ninjas to unicorns. Play is the reward and learning is what earns it.</p></div>
+      <div class="feature reveal"><h3>Sound that was actually made for it</h3><p>Eight original soundtracks are built in, a calmer set for teenagers and brighter tunes for the younger kids, with a single tap to turn it all off. None of it is stock audio.</p></div>
+      <div class="feature reveal"><h3>Safe by design</h3><p>Children can only connect with buddies a parent approves. They send pre-written cheers, race each other's high scores, and team up on weekly goals where both kids win. There is no open chat and no way for strangers to reach them.</p></div>
+      <div class="feature reveal"><h3>Proof for the fridge</h3><p>Printable certificates, a one-page weekly summary, a two-week activity chart, per-skill mastery bars, a spreadsheet export, and the strengths and career insights. You will always know how it is going.</p></div>
     </div>
     <div class="card reveal" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:6px">Simple plans</h2>
       <p class="center muted" style="margin-bottom:20px">7-day free trial. Cancel anytime.</p>
-      <p class="center" style="margin:-8px 0 20px;font-weight:600">Tutoring centers like Kumon, Sylvan, and Mathnasium charge $150–200 a month <i>per subject</i> — and private tutors run $40–80 an hour. Gallop covers all four subjects, all year, for less than one week at a center.</p>
+      <p class="center" style="margin:-8px 0 20px;font-weight:600">Centers like Kumon, Sylvan, and Mathnasium tend to run $150 to $200 a month <i>per subject</i>, and a private tutor is often $40 to $80 an hour. Gallop covers all four subjects, all year, for less than a single week at a center.</p>
       <div class="plans">
         <div class="plan"><h3>Solo</h3><div class="price">$29<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">One student · all four subjects · full adaptive tutor & reports</p></div>
         <div class="plan hot"><span class="tag">MOST POPULAR</span><h3>Family</h3><div class="price">$49<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">Up to four students · all subjects · reports, certificates & buddies</p></div>
@@ -647,7 +647,7 @@ route('landing', async () => {
     </div>
   </div>
   <div class="site-footer">© ${new Date().getFullYear()} Gallop Learning Academy · Adaptive tutoring for grades K–12<br>
-    <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow us on Instagram — @learnwithgallop</a><br>
+    <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow along on Instagram at @learnwithgallop</a><br>
     <a href="#terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="#privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
   </div>`);
   wireChrome();
@@ -674,7 +674,7 @@ route('terms', async () => legalPage('Terms of Service', `
   <h3 style="margin-top:14px">4. Acceptable use</h3>
   <p>Don't share accounts beyond your household, attempt to disrupt the service, or use the content for anything other than personal, non-commercial education. The buddies feature connects children only through parent-created invite codes; misuse of it may result in account termination.</p>
   <h3 style="margin-top:14px">5. Educational content</h3>
-  <p>Gallop supplements — it does not replace — school instruction, and makes no guarantee of specific academic outcomes. Progress reports, letter grades, and certificates are informal measures generated by our adaptive engine.</p>
+  <p>Gallop is meant to supplement school instruction rather than replace it, and it makes no guarantee of specific academic outcomes. Progress reports, letter grades, and certificates are informal measures generated by our adaptive engine.</p>
   <h3 style="margin-top:14px">6. Disclaimers & liability</h3>
   <p>The service is provided "as is." To the maximum extent permitted by law, Lotus Farms LLC's total liability for any claim related to the service is limited to the amount you paid us in the twelve months before the claim arose.</p>
   <h3 style="margin-top:14px">7. Changes & contact</h3>
@@ -692,7 +692,7 @@ route('privacy', async () => legalPage('Privacy Policy', `
   <h3 style="margin-top:14px">4. Security & retention</h3>
   <p>All traffic is encrypted (HTTPS). Passwords are hashed with scrypt. Data is retained while your account is active and deleted when you delete a learner or your account.</p>
   <h3 style="margin-top:14px">5. Contact</h3>
-  <p>Privacy questions or data requests: <b>support@learnwithgallop.com</b>. We're a family business — a real person answers.</p>
+  <p>Privacy questions or data requests: <b>support@learnwithgallop.com</b>. We're a family business, so a real person answers.</p>
 `));
 
 // ======================= demo lesson (no signup!) =======================
@@ -1081,7 +1081,7 @@ route('placement', async (subject) => {
     app().innerHTML = topbar(`<div class="container lesson-wrap"><div class="card center">
       <div class="big-emoji">🎯</div>
       <h2>Level found: ${esc(data.levelName)}!</h2>
-      <p class="muted" style="margin:10px 0 20px">Your ${esc(subject)} adventure starts right at YOUR level — not too easy, not too hard. Just right.</p>
+      <p class="muted" style="margin:10px 0 20px">We watched how you answered and picked the spot that fits you best in ${esc(subject)}. Not too easy, not too hard, just right. You'll move up as soon as you show you're ready.</p>
       <button class="btn green" onclick="location.hash='#lesson/${subject}'">Start Learning →</button>
       <button class="btn ghost small" style="color:#6C5CE7;border-color:#6C5CE7;margin-left:8px" onclick="location.hash='#home'">Back Home</button>
     </div></div>`);
@@ -1342,9 +1342,9 @@ function statusBadge(status) {
   return `<span class="status-badge ${m[1]}">${m[0]}</span>`;
 }
 function statusNote(s) {
-  if (s.status === 'excelling') return ' · <b style="color:#1f8a5f">mastering this — we\'re steadily raising the challenge</b>';
-  if (s.status === 'needs-support') return ' · <b style="color:#c9971c">we\'ve eased the difficulty and are giving extra practice here</b>';
-  if (s.status === 'on-track') return ' · progressing at a healthy pace';
+  if (s.status === 'excelling') return ' · <b style="color:#1f8a5f">has this down, so we\'re steadily raising the challenge</b>';
+  if (s.status === 'needs-support') return ' · <b style="color:#c9971c">we\'ve eased the difficulty and added extra practice here</b>';
+  if (s.status === 'on-track') return ' · moving along at a healthy pace';
   return '';
 }
 
@@ -1355,14 +1355,14 @@ function renderCareer(c, k) {
   const SUBEMO = { math: '🔢', english: '📚', science: '🔬', spanish: '🌎' };
   const bandTitle = c.band === 'pathways' ? '🎯 Career Pathways' : c.band === 'explore' ? '🧭 Strengths & Career Explorer' : '🌱 Emerging Strengths';
   const intro = c.band === 'pathways'
-    ? `Based on ${esc(k.name)}'s performance, here are career directions that fit their strengths — and how to prepare in high school.`
+    ? `Based on how ${esc(k.name)} is performing, here are career directions that fit their strengths, along with how to prepare for them in high school.`
     : c.band === 'explore'
-    ? `${esc(k.name)}'s strengths are starting to point somewhere. Here's where these skills lead — worth exploring together.`
+    ? `${esc(k.name)}'s strengths are starting to point somewhere. Here's where these skills tend to lead, worth talking through together.`
     : `It's early, but ${esc(k.name)} is already building strengths. Here's a peek at where these skills can lead one day.`;
   if (!c.hasData) {
     return `<div class="card career-card">
       <div class="career-head"><h3>${bandTitle}</h3></div>
-      <p class="muted" style="margin-top:6px">Once ${esc(k.name)} has answered a few questions in each subject, we'll map their strengths to real-world paths right here — and it grows more specific as they get older.</p>
+      <p class="muted" style="margin-top:6px">Once ${esc(k.name)} has answered a few questions in each subject, we'll start mapping their strengths to real-world paths right here. It gets more specific as they get older.</p>
     </div>`;
   }
   // strength bars (ranked subjects)
@@ -1373,9 +1373,9 @@ function renderCareer(c, k) {
       <span class="str-pct">${Math.round((s.score || 0) * 100)}</span>
     </div>`).join('');
   const strengthChips = c.topStrengths.length
-    ? `<p style="margin:2px 0 0">💪 <b>Excelling in:</b> ${c.topStrengths.map(s => `<span class="pill strength">${SUBEMO[s.subject]} ${esc(s.label)}</span>`).join(' ')}</p>` : '';
+    ? `<p style="margin:2px 0 0"><b>Excelling in:</b> ${c.topStrengths.map(s => `<span class="pill strength">${esc(s.label)}</span>`).join(' ')}</p>` : '';
   const growth = c.growthAreas.length
-    ? `<p style="margin:8px 0 0">🎯 <b>Room to grow:</b> ${c.growthAreas.map(s => `<span class="pill focus">${esc(s.label)}</span>`).join(' ')} <span class="muted" style="font-size:.85rem">— ${esc(c.growthAreas[0].why)}</span></p>` : '';
+    ? `<p style="margin:8px 0 0"><b>Room to grow:</b> ${c.growthAreas.map(s => `<span class="pill focus">${esc(s.label)}</span>`).join(' ')} <span class="muted" style="font-size:.85rem">${esc(c.growthAreas[0].why)}</span></p>` : '';
   const paths = c.pathways.map(p => `
     <div class="path-card">
       <div class="path-emoji">${p.emoji}</div>
@@ -1420,6 +1420,7 @@ route('report', async (kidId) => {
           </div>
           ${s.placed ? `
             <p class="muted" style="margin:6px 0">${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} · ${s.accuracy != null ? Math.round(s.accuracy * 100) + '% accuracy' : 'just getting started'}${statusNote(s)}</p>
+            ${isParent && s.placementNote ? `<p class="place-note"><b>Why we started here:</b> ${esc(s.placementNote)}</p>` : ''}
             ${s.strengths.length ? `<p>💪 Strengths: ${s.strengths.map(x => `<span class="pill strength">${esc(x)}</span>`).join(' ')}</p>` : ''}
             ${s.focusAreas.length ? `<p style="margin-top:6px">🎯 Focus areas (getting extra help): ${s.focusAreas.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')}</p>` : ''}
             ${isParent && s.skills && s.skills.length ? `
@@ -1435,7 +1436,7 @@ route('report', async (kidId) => {
               </div>
             </details>` : ''}
             ${isParent ? `<button class="btn ghost small no-print" style="margin-top:8px;color:#7f8c9b;border-color:#dfe6e9" data-retake="${s.subject}">🔄 Retake placement</button>` : ''}
-          ` : `<p class="muted">Placement quiz not taken yet — jump in to find the right level!</p>`}
+          ` : `<p class="muted">No placement quiz yet. Jump in to find the right level.</p>`}
         </div>`).join('')}
       </div>
     </div>
@@ -1478,10 +1479,10 @@ route('report', async (kidId) => {
   document.querySelectorAll('[data-cert]').forEach(el => el.onclick = () => { Sound.click(); location.hash = `#certificate/${kidId}/${el.dataset.cert}`; });
   document.querySelectorAll('[data-retake]').forEach(b => b.onclick = async () => {
     const sub = b.dataset.retake;
-    if (!confirm(`Retake the ${sub} placement quiz? ${esc(k.name)} will re-do the short assessment next time they open ${sub} — progress and badges are kept.`)) return;
+    if (!confirm(`Retake the ${sub} placement quiz? ${esc(k.name)} will re-do the short assessment next time they open ${sub}. Progress and badges are kept.`)) return;
     await api(`/learn/${kidId}/placement/${sub}/retake`, { method: 'POST', body: {} });
     Sound.badge();
-    b.textContent = '✅ Placement reset — quiz runs on next visit';
+    b.textContent = '✅ Placement reset. The quiz runs on the next visit.';
     b.disabled = true;
   });
 });
@@ -1582,7 +1583,7 @@ function renderPaywall() {
     <img src="/logo-roundel.svg" alt="" style="width:84px;height:84px">
     <h2 style="margin-top:10px">Your free trial has ended</h2>
     <p class="muted" style="margin:10px 0 4px"><b>Everything is saved</b> — streaks, skill levels, badges, and certificates are waiting exactly where you left off.</p>
-    <p class="muted" style="margin:0 0 16px">Keep all 4 subjects, the adaptive tutor, the games arcade, buddies, and weekly parent reports — for less than one week of a tutoring center.</p>
+    <p class="muted" style="margin:0 0 16px">Keep all four subjects, the adaptive tutor, the games arcade, buddies, and weekly parent reports, for less than a single week at a tutoring center.</p>
     ${State.me.role === 'parent'
       ? `<button class="btn green" id="sub-family">Family — $49/mo (up to 4 kids)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo — $29/mo</button>
          <p class="muted" style="margin-top:12px;font-size:.85rem">Cancel anytime from your dashboard.</p>`
@@ -1703,7 +1704,7 @@ route('parent', async () => {
         </div>
         <div class="card">
           <h3>🧭 How the tutor works</h3>
-          <p class="muted" style="margin-top:8px;line-height:1.6">Each subject starts with a <b>placement quiz</b> — so a child can be Grade 4 in reading and Grade 2 in math at the same time. Every answer updates skill mastery: strong skills advance faster, shaky skills get gentler questions, more hints, and extra reps. Master a whole grade level and they earn a <b>certificate</b> 🎓. Correct answers also earn <b>play tokens</b> for the games in the Play Zone — learning first, always.</p>
+          <p class="muted" style="margin-top:8px;line-height:1.6">Each subject starts with a short <b>placement quiz</b>, so a child can be working at a fourth-grade level in reading and a second-grade level in math at the same time. Every answer updates what we know about their skills. Strong ones move faster; shaky ones get gentler questions, more hints, and extra practice. Finishing a whole grade level earns a <b>certificate</b>. Correct answers also earn <b>play tokens</b> for the arcade, so the learning always comes first.</p>
         </div>
       </div>
     </div>
@@ -1747,7 +1748,7 @@ route('parent', async () => {
     const div = document.createElement('div');
     div.className = 'celebrate';
     div.innerHTML = `<img src="/logo-roundel.svg" alt="" style="width:110px;height:110px"><h2>Time to Gallop!</h2>
-      <p style="font-size:1.15rem;max-width:440px">${esc(kidName)} is all set up. Jump straight in — the first stop in each subject is a friendly placement quiz that finds ${esc(kidName)}'s perfect starting level.</p>
+      <p style="font-size:1.15rem;max-width:440px">${esc(kidName)} is all set up. The first stop in each subject is a short placement quiz that finds the right starting level for ${esc(kidName)}.</p>
       <button class="btn sun" id="tg-go" style="margin-top:6px">Start Learning as ${esc(kidName)} →</button>
       <button class="btn ghost" id="tg-later" style="margin-top:10px">I'll explore the dashboard first</button>`;
     div.querySelector('#tg-go').onclick = () => { div.remove(); enterKid(kidId, '#home'); };

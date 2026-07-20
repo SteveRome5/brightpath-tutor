@@ -23,9 +23,9 @@
   --radius: 14px;
   --btn-radius: 10px;
   --shadow: 0 1px 2px rgba(22, 33, 58, .06), 0 8px 24px rgba(22, 33, 58, .07);
-  --font-display: 'Outfit', 'Inter', -apple-system, sans-serif;
-  --font-body: 'Inter', -apple-system, 'Segoe UI', sans-serif;
-  --heading-weight: 700;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body: 'Mulish', -apple-system, 'Segoe UI', sans-serif;
+  --heading-weight: 600;
   font-size: 16px;
 }
 
@@ -48,7 +48,7 @@ body[data-theme="explorer"] {
   --chrome-ink: #ffffff; --chrome-sub: rgba(255,255,255,.88);
   --card-border: transparent;
   --radius: 18px; --btn-radius: 14px;
-  --font-display: 'Fredoka', sans-serif; --font-body: 'Inter', sans-serif;
+  --font-display: 'Fredoka', sans-serif; --font-body: 'Mulish', sans-serif;
   --shadow: 0 8px 26px rgba(8, 55, 40, .2);
   --soft-bg: #eef8f2; --field-border: #d3e5db;
 }
@@ -925,7 +925,11 @@ body[data-theme="academy"] .path-hs { background: rgba(224,182,79,.12); }
    ============================================================ */
 /* Refined type rhythm */
 h1, h2, h3, h4 { letter-spacing: -.018em; }
-.hero h1 { letter-spacing: -.03em; line-height: 1.06; }
+.hero h1 { letter-spacing: -.01em; line-height: 1.08; font-weight: 600; }
+/* Fraunces headings read best a touch looser than a sans; give them room. */
+body:not([data-theme="junior"]):not([data-theme="explorer"]) h1,
+body:not([data-theme="junior"]):not([data-theme="explorer"]) h2,
+body:not([data-theme="junior"]):not([data-theme="explorer"]) h3 { letter-spacing: -.005em; }
 
 /* Hero: soft glow behind the headline + refined eyebrow chip */
 .hero { position: relative; }
@@ -1032,3 +1036,8 @@ body[data-theme="academy"] .compare-table .us { background: rgba(74,128,214,.14)
 .st-building { background: rgba(127,127,127,.14); color: var(--chrome-sub); }
 body[data-theme="academy"] .st-excelling { color: #7fe0b6; }
 body[data-theme="academy"] .st-support { color: #e6c675; }
+
+/* Parent placement rationale */
+.place-note { font-size: .88rem; line-height: 1.55; color: var(--chrome-sub); background: var(--soft-bg); border-left: 3px solid color-mix(in srgb, var(--brand) 40%, transparent); border-radius: 8px; padding: 8px 12px; margin: 8px 0 4px; }
+.place-note b { color: var(--ink); }
+body[data-theme="academy"] .place-note b { color: var(--chrome-ink); }
