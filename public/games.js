@@ -27,7 +27,7 @@
     let r = { coinsEarned: 2, challengesWon: [] };
     try { r = await api(`/play/${kidId()}/score`, { method: 'POST', body: { game, score } }); } catch (e) {}
     Confetti.burst(150); Sound.levelup();
-    const wins = (r.challengesWon || []).map(w => `<p style="font-weight:700;margin-top:8px">⚔️ You beat ${esc(w.fromName)}'s challenge of ${w.scoreToBeat}! +5 🪙</p>`).join('');
+    const wins = (r.challengesWon || []).map(w => `<p style="font-weight:700;margin-top:8px">⚡ You beat ${esc(w.fromName)}'s challenge of ${w.scoreToBeat}! +5 🪙</p>`).join('');
     app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
       <div class="big-emoji">🏆</div><h2>${esc(title)}</h2>
       <div class="summary-stats"><div class="sstat"><div class="n">${score}</div>score</div><div class="sstat"><div class="n">+${r.coinsEarned || 2}</div>🪙 coins</div></div>
@@ -766,6 +766,7 @@
           const r = await api(`/play/${kidId()}/snacks/buy`, { method: 'POST', body: { machine, snackId: sn.id } });
           coins = r.coins; owned[sn.id] = r.qty;
           Sound.correct();
+          const mav = $('#muncher-av'); if (mav) mav.scrollIntoView({ behavior: 'smooth', block: 'center' });
           dropSnack(sn.emoji);
           // update this slot's chips live without a full re-render (keeps the drop visible)
           $('.stat-chips').children[0].textContent = `🪙 ${coins} coins`;
@@ -836,7 +837,7 @@
   });
 
   // ======================= TROPHY CASE / BADGE BOOK =======================
-  const RANK_LADDER = [['Foal', 0], ['Pony Pal', 100], ['Trotter', 250], ['Canterer', 500], ['Galloper', 1000], ['Trailblazer', 2000], ['Champion', 4000], ['Legend', 8000], ['Thoroughbred', 15000]];
+  const RANK_LADDER = [['Foal', 0], ['Pony Pal', 100], ['Explorer', 250], ['Ranger', 500], ['Galloper', 1000], ['Trailblazer', 2000], ['Pathfinder', 4000], ['Legend', 8000], ['Mustang', 15000]];
   const CAT_META = {
     milestone: { name: 'Milestones', emoji: '🎯' }, streak: { name: 'Streaks', emoji: '🔥' },
     subject: { name: 'Subject Explorer', emoji: '🧭' }, mastery: { name: 'Mastery', emoji: '⭐' },
@@ -932,7 +933,7 @@
     app().innerHTML = topbar(`<div class="container" style="max-width:720px">
       <div class="lesson-top"><b>💌 My Buddies</b></div>
       ${inc.length ? `<div class="card" style="border:2px solid var(--accent)">
-        <h3>⚔️ Challenges for you!</h3>
+        <h3>⚡ Challenges for you!</h3>
         ${inc.map(c => `<div class="kid-row">⚡ <b>${esc(c.fromName)}</b> challenges you: beat <b>${c.scoreToBeat}</b> in ${esc(c.gameName)}!
           <button class="btn sun small" style="margin-left:auto" onclick="location.hash='#game/${c.game}'">Accept! →</button></div>`).join('')}
         <p class="muted" style="margin-top:8px;font-size:.85rem">Beat the score within 7 days to win +5 bonus coins!</p>
@@ -952,7 +953,7 @@
                   : `<div class="tg-note">Answer questions together — you BOTH win ${b.team.reward} coins!</div>`}
               </div>` : ''}
               <button class="btn sun small" style="margin-top:10px" data-cheer="${b.id}">Cheer 📣</button>
-              <button class="btn green small" style="margin-top:10px" data-challenge="${b.id}" data-bname="${esc(b.name)}">Challenge ⚔️</button>
+              <button class="btn green small" style="margin-top:10px" data-challenge="${b.id}" data-bname="${esc(b.name)}">Challenge ⚡</button>
             </div>`).join('')}
         </div>` : `
         <div class="card center">
@@ -987,7 +988,7 @@
       const names = data.games || {};
       const div = document.createElement('div');
       div.className = 'celebrate';
-      div.innerHTML = `<h2>⚔️ Challenge ${esc(bname)}!</h2>
+      div.innerHTML = `<h2>⚡ Challenge ${esc(bname)}!</h2>
         <p style="max-width:460px">Pick a game — your BEST score becomes the target. If ${esc(bname)} beats it within 7 days, they win 5 bonus coins (then you rematch!).</p>
         <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:560px">
           ${Object.keys(names).map(g => `<button class="btn sun small" data-g="${g}">${esc(names[g])}</button>`).join('')}</div>
@@ -998,7 +999,7 @@
         try {
           const r = await api(`/buddies/${kidId()}/challenge`, { method: 'POST', body: { toKid, game: gb.dataset.g } });
           Sound.badge(); Confetti.burst(80);
-          div.querySelector('#ch-msg').textContent = `Challenge sent! ${bname} must beat ${r.scoreToBeat}. ⚔️`;
+          div.querySelector('#ch-msg').textContent = `Challenge sent! ${bname} must beat ${r.scoreToBeat}. ⚡`;
           setTimeout(() => { div.remove(); navigate(); }, 1600);
         } catch (e) { Sound.wrong(); div.querySelector('#ch-msg').textContent = e.message; }
       });

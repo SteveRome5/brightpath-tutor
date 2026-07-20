@@ -41,8 +41,8 @@ function avatarHTML(k) {
 // The Gallop track, our horse IS the progress bar 🐎
 function gallopTrack(pct, label) {
   pct = Math.max(0, Math.min(100, pct));
-  const flags = [25, 50, 75].map(f => `<span class="g-flag ${pct >= f ? 'passed' : ''}" style="left:${f}%">🚩</span>`).join('');
-  return `<div class="gallop-wrap">${label ? `<span class="gallop-label">${esc(label)}</span>` : ''}<div class="gallop-rail"></div><div class="gallop-done" style="width:${pct}%"></div>${flags}<span class="g-finish">🏁</span><span class="gallop-horse ${pct >= 100 ? 'finished' : ''}" style="left:${Math.min(pct, 98)}%">🐎</span></div>`;
+  const flags = [25, 50, 75].map(f => `<span class="g-flag ${pct >= f ? 'passed' : ''}" style="left:${f}%">⭐</span>`).join('');
+  return `<div class="gallop-wrap">${label ? `<span class="gallop-label">${esc(label)}</span>` : ''}<div class="gallop-rail"></div><div class="gallop-done" style="width:${pct}%"></div>${flags}<span class="g-finish">🎯</span><span class="gallop-horse ${pct >= 100 ? 'finished' : ''}" style="left:${Math.min(pct, 98)}%">🐎</span></div>`;
 }
 const SUBJECT_STYLE = {
   math: { color: '#6C5CE7', emoji: '🔢', cheer: 'Math Mission' },
@@ -502,23 +502,24 @@ addEventListener('hashchange', navigate);
 // ======================= shared chrome =======================
 function topbar(inner = '') {
   const me = State.me;
+  const homeHash = me.role === 'kid' ? '#home' : me.role === 'parent' ? '#parent' : '#';
   let right = '';
   if (me.role === 'parent') right = `${me.parent && me.parent.is_admin ? `<button class="btn ghost small" onclick="location.hash='#admin'">🛡️ Admin</button>` : ''}<button class="btn ghost small" onclick="location.hash='#parent'">Dashboard</button><button class="btn ghost small" id="logout-btn">Log out</button>`;
-  else if (me.role === 'kid') right = `<button class="btn ghost small" onclick="location.hash='#home'">My Subjects</button><button class="btn ghost small" id="logout-btn">Log out</button>`;
-  else right = `<button class="btn ghost small" onclick="location.hash='#kid-login'">Kid Login</button><button class="btn sun small" onclick="location.hash='#login'">Parent Login</button>`;
+  else if (me.role === 'kid') right = `<button class="btn ghost small" onclick="location.hash='#home'">🏠 Home</button><button class="btn ghost small" onclick="location.hash='#kid-login'" title="Switch to another child">👋 Switch</button><button class="btn ghost small" id="logout-btn">Log out</button>`;
+  else right = `<button class="btn ghost small" onclick="location.hash='#kid-login'">Child Login</button><button class="btn sun small" onclick="location.hash='#login'">Parent Login</button>`;
   return `
   <div class="topbar">
-    <div class="logo" onclick="location.hash='#'"><img src="/logo.svg" alt="Gallop" class="logo-img"> Gallop</div>
+    <div class="logo" onclick="location.hash='${homeHash}'"><img src="/logo.svg" alt="Gallop" class="logo-img"> Gallop</div>
     <div class="right">
+      ${right}
       <div class="sound-wrap">
-        <button class="btn ghost small" id="sound-btn" title="Sound settings" aria-label="Sound settings">${Sound.muted && !Music.on ? '🔇' : '🔊'}</button>
+        <button class="btn ghost small sound-btn" id="sound-btn" title="Sound settings" aria-label="Sound settings">${Sound.muted && !Music.on ? '🔇' : '🔊'}</button>
         <div class="sound-menu" id="sound-menu" hidden>
           <button class="sound-opt" id="sfx-toggle"><span>🔊 Sound effects</span><span class="sw ${Sound.muted ? '' : 'on'}" id="sfx-sw"></span></button>
           <button class="sound-opt" id="music-toggle"><span>🎵 Background music</span><span class="sw ${Music.on ? 'on' : ''}" id="music-sw"></span></button>
           <button class="sound-opt sound-skip" id="music-skip"><span>⏭️ Next track</span><span class="muted" style="font-size:.78rem">shuffle</span></button>
         </div>
       </div>
-      ${right}
     </div>
   </div>${inner}`;
 }
@@ -549,6 +550,7 @@ route('landing', async () => {
   <div class="hero">
     <div class="eyebrow">Adaptive K–12 Tutoring · Math · English · Science · Spanish</div>
     <h1>A personal tutor for every child, at every level.</h1>
+    <p class="hero-tagline">Every child has a pace. Gallop finds it.</p>
     <p>Gallop finds each child's real level in every subject, then adapts each lesson to how they actually learn. The teaching stays grounded in the real world, the progress reports are honest, and the whole program grows up alongside your child. By the high school years it even helps you see where their strengths could lead.</p>
     <button class="btn" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start your 7-day free trial</button>
     <button class="btn ghost" style="margin-left:8px" onclick="location.hash='#demo'">Try a sample lesson</button>
@@ -623,10 +625,10 @@ route('landing', async () => {
     <div class="feature-grid">
       <div class="feature reveal"><h3>An experience that grows up</h3><p>A first grader gets big friendly type and read-along storytime, where the words light up as they are read out loud. A teenager gets 15-minute focus sessions and quiet background music in a clean study space. It is the same engine underneath, dressed for a different age.</p></div>
       <div class="feature reveal"><h3>A trophy case worth chasing</h3><p>There are 33 badges to collect across six categories, a rank ladder that climbs from Foal to Thoroughbred, and progress bars that always show the next goal. Certificates mark each grade level a child finishes.</p></div>
-      <div class="feature reveal"><h3>Motivation that makes sense</h3><p>Daily quests, streaks, an eight-game arcade, and a coin-powered Snack Shack where a child's avatar actually eats the treats they buy. There are 48 characters to unlock, from ninjas to unicorns. Play is the reward and learning is what earns it.</p></div>
+      <div class="feature reveal"><h3>Motivation that makes sense</h3><p>Daily quests, streaks, an eight-game arcade, and a coin-powered Snack Shack where a child's avatar actually eats the treats they buy. There are 48 characters to unlock, from astronauts to unicorns. Play is the reward and learning is what earns it.</p></div>
       <div class="feature reveal"><h3>Sound that was actually made for it</h3><p>Eight original soundtracks are built in, a calmer set for teenagers and brighter tunes for the younger kids, with a single tap to turn it all off. None of it is stock audio.</p></div>
       <div class="feature reveal"><h3>Safe by design</h3><p>Children can only connect with buddies a parent approves. They send pre-written cheers, race each other's high scores, and team up on weekly goals where both kids win. There is no open chat and no way for strangers to reach them.</p></div>
-      <div class="feature reveal"><h3>Proof for the fridge</h3><p>Printable certificates, a one-page weekly summary, a two-week activity chart, per-skill mastery bars, a spreadsheet export, and the strengths and career insights. You will always know how it is going.</p></div>
+      <div class="feature reveal"><h3>Proof for the fridge</h3><p>Printable certificates, a one-page weekly summary, a two-week activity chart, per-skill progress bars, a spreadsheet export, and the strengths and career insights. You will always know how it is going.</p></div>
     </div>
 
     <!-- ============================================================
@@ -756,7 +758,7 @@ const DEMO_QUESTIONS = [
     prompt: 'The bathroom mirror fogs up during a hot shower. That fog comes from water turning into a…', choices: ['gas, then back to tiny drops', 'solid', 'rock', 'rainbow'], answer: 0,
     hint: 'Steam rises from hot water…', explain: 'Hot water evaporates into vapor (a gas), then condenses on the cool mirror!', why: 'Chefs use this science, heat, mixing, freezing, every time they cook! 👩‍🍳' },
   { subject: 'spanish', emoji: '🌎', color: '#d4522a', grade: 'Beginner', skill: 'Los Colores',
-    prompt: 'A stop sign 🛑 is "rojo". Rojo means…', choices: ['red', 'blue', 'round', 'stop'], answer: 0,
+    prompt: 'A stop sign is "rojo". Rojo means…', choices: ['red', 'blue', 'round', 'stop'], answer: 0,
     hint: 'What color is a stop sign?', explain: '¡Sí! Rojo = red.', why: 'Over 500 million people speak Spanish, that\'s a lot of new friends! 🌎' },
   { subject: 'math', emoji: '🔢', color: '#0a84c1', grade: 'Grade 5', skill: 'Percent Power',
     prompt: 'A $40 video game is 25% off. What do you pay?', choices: ['$30', '$25', '$35', '$10'], answer: 0,
@@ -776,7 +778,9 @@ route('demo', async () => {
         <p class="muted" style="margin:12px 0 6px">The real tutor goes much further: a placement quiz finds your child's exact level in each subject, every answer adapts what comes next, and correct answers earn tokens for the games arcade.</p>
         <p class="muted" style="margin-bottom:18px">All four subjects. Every grade K–12. From $34/month.</p>
         <button class="btn green" onclick="location.hash='#signup'">Start 7-Day Free Trial →</button>
-        <button class="btn ghost small" style="color:#1f5e46;border-color:#1f5e46;margin-left:8px" onclick="location.hash='#'">Back</button>
+        <button class="btn sun" style="margin-left:8px" onclick="window.__subscribeIntent=1;location.hash='#signup'">Subscribe now →</button>
+        <p class="muted" style="margin-top:10px;font-size:.82rem">Free for 7 days, or subscribe today and skip the wait. Either way you can cancel anytime.</p>
+        <button class="btn ghost small" style="color:#1f5e46;border-color:#1f5e46;margin-top:8px" onclick="location.hash='#'">Back</button>
       </div></div>`);
       wireChrome();
       return;
@@ -836,7 +840,10 @@ route('signup', async () => {
   $('#f-go').onclick = async () => {
     try {
       await api('/auth/signup', { method: 'POST', body: { name: $('#f-name').value, email: $('#f-email').value, password: $('#f-pass').value } });
-      await refreshMe(); Sound.levelup(); State.onboard = true; location.hash = '#parent';
+      await refreshMe(); Sound.levelup(); State.onboard = true;
+      // Came from "Subscribe now"? Take them straight to plan choice instead of the trial.
+      if (window.__subscribeIntent) { window.__subscribeIntent = 0; location.hash = '#parent'; setTimeout(() => { const b = $('#sub-family') || $('#tb-family'); if (b) { b.scrollIntoView({ behavior: 'smooth', block: 'center' }); b.classList.add('pulse'); } }, 400); }
+      else location.hash = '#parent';
     } catch (e) { showError('#f-err', e.message); }
   };
 });
@@ -867,7 +874,7 @@ route('kid-login', async () => {
   app().innerHTML = topbar(`<div class="container" style="max-width:520px">
     <div class="card center">
       <div class="big-emoji">🚀</div>
-      <h2>Kid Launch Pad</h2>
+      <h2>Launch Pad</h2>
       <p class="muted">Ask a grown-up for the family email the first time!</p>
       <label style="text-align:left">Family email</label><input id="k-email" type="email" value="${esc(localStorage.bp_family_email || '')}">
       <button class="btn" style="margin-top:14px" id="k-find">Find My Family →</button>
@@ -1447,7 +1454,7 @@ function renderCareer(c, k) {
     ${growth}
     <h4 style="margin:18px 0 10px">${c.band === 'pathways' ? 'Pathways that fit these strengths' : 'Where these skills can lead'}</h4>
     <div class="path-grid">${paths}</div>
-    <p class="muted" style="font-size:.78rem;margin-top:12px">These suggestions come from ${esc(k.name)}'s mastery and accuracy across subjects. They sharpen as more work is completed and update automatically as ${esc(k.name)} grows.</p>
+    <p class="muted" style="font-size:.78rem;margin-top:12px">These suggestions come from ${esc(k.name)}'s skill levels and accuracy across subjects. They sharpen as more work is completed and update automatically as ${esc(k.name)} grows.</p>
   </div>`;
 }
 
@@ -1465,15 +1472,28 @@ route('report', async (kidId) => {
         </div>
       </div>
       <p class="muted">${r.pace.summer ? `☀️ ${esc(r.pace.note)}` : `${esc(r.pace.label)} · ${Math.round(r.pace.pctThroughYear * 100)}% through the year`} · ${r.weekAnswers} question${r.weekAnswers === 1 ? '' : 's'} this week (goal: ${k.weekly_goal * 10})</p>
+      ${r.gallop && r.gallop.overall != null ? `
+      <div class="gallop-hero">
+        <div class="gh-num">${r.gallop.overall}</div>
+        <div class="gh-meta">
+          <b>Gallop Score</b>${r.gallop.deltas && r.gallop.deltas.overall > 0 ? ` <span class="gs-up">▲ +${r.gallop.deltas.overall} this week</span>` : ''}
+          <span class="gh-sub">${esc(k.name)}'s all-subjects number. It climbs only with real understanding, never by lucky guesses.</span>
+        </div>
+      </div>` : ''}
+      ${isParent && r.gradeScale ? `<p class="muted" style="font-size:.8rem;margin-top:8px">Letter grades reflect accuracy · Scale: ${esc(r.gradeScale)}</p>` : ''}
       <div style="margin-top:18px">
       ${r.subjects.map(s => `
         <div class="subject-report">
           <div class="head">
-            <h3>${SUBJECT_STYLE[s.subject].emoji} ${esc(s.label)} <span class="muted" style="font-size:.9rem">· working at ${esc(s.levelName)}</span> ${statusBadge(s.status)}</h3>
-            <div class="letter" style="color:${SUBJECT_STYLE[s.subject].color}">${esc(s.letter)}</div>
+            <h3>${SUBJECT_STYLE[s.subject].emoji} ${esc(s.label)} ${statusBadge(s.status)}</h3>
+            <div class="subj-score">
+              <div class="ss-num" style="color:${SUBJECT_STYLE[s.subject].color}">${s.gallopScore != null ? s.gallopScore : '—'}</div>
+              <div class="ss-cap">Gallop Score${s.gallopScore != null && r.gallop.deltas && r.gallop.deltas[s.subject] > 0 ? ` · <span class="gs-up">+${r.gallop.deltas[s.subject]}</span>` : ''}</div>
+              ${isParent && s.gradeEquiv ? `<div class="ss-grade">≈ ${esc(s.gradeEquiv.label)}${s.letter && s.letter !== '—' ? ` · ${esc(s.letter)}` : ''}</div>` : ''}
+            </div>
           </div>
           ${s.placed ? `
-            <p class="muted" style="margin:6px 0">${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} · ${s.accuracy != null ? Math.round(s.accuracy * 100) + '% accuracy' : 'just getting started'}${statusNote(s)}</p>
+            <p class="muted" style="margin:6px 0">${isParent ? `${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} · ${s.accuracy != null ? Math.round(s.accuracy * 100) + '% accuracy' : 'just getting started'}${statusNote(s)}` : `${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} done. Keep it up, you're growing!`}</p>
             ${isParent && s.placementNote ? `<p class="place-note"><b>Why we started here:</b> ${esc(s.placementNote)}</p>` : ''}
             ${s.strengths.length ? `<p>💪 Strengths: ${s.strengths.map(x => `<span class="pill strength">${esc(x)}</span>`).join(' ')}</p>` : ''}
             ${s.focusAreas.length ? `<p style="margin-top:6px">🎯 Focus areas (getting extra help): ${s.focusAreas.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')}</p>` : ''}
@@ -1610,11 +1630,11 @@ route('certificate', async (kidId, certId) => {
       <div class="cert-inner">
         <img src="/logo-roundel.svg" alt="" class="cert-crest">
         <div class="cert-academy">GALLOP LEARNING ACADEMY</div>
-        <div class="cert-title">Certificate of Mastery</div>
+        <div class="cert-title">Certificate of Completion</div>
         <div class="cert-rule"></div>
         <p class="cert-line">This certifies that</p>
         <div class="cert-name">${esc(r.kid.name)}</div>
-        <p class="cert-line">has demonstrated complete mastery of every skill in</p>
+        <p class="cert-line">has completed the skills and lessons in</p>
         <div class="cert-achievement">${esc(achievement)}</div>
         <p class="cert-date">Awarded ${esc(date)}</p>
         <div class="cert-footer">
@@ -1639,7 +1659,7 @@ function renderPaywall() {
     <p class="muted" style="margin:10px 0 4px"><b>Everything is saved</b>, streaks, skill levels, badges, and certificates are waiting exactly where you left off.</p>
     <p class="muted" style="margin:0 0 16px">Keep all four subjects, the adaptive tutor, the games arcade, buddies, and weekly parent reports, for less than a single week at a tutoring center.</p>
     ${State.me.role === 'parent'
-      ? `<button class="btn green" id="sub-family">Family, $54/mo (up to 4 kids)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo, $34/mo</button>
+      ? `<button class="btn green" id="sub-family">Family, $54/mo (up to 4 children)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo, $34/mo</button>
          <p class="muted" style="margin-top:12px;font-size:.85rem">Cancel anytime from your dashboard.</p>`
       : `<p><b>Ask your parent to log in and subscribe!</b></p><button class="btn" onclick="location.hash='#login'">Parent Login</button>`}
   </div></div>`);
@@ -1661,7 +1681,7 @@ route('parent', async () => {
   if (State.me.role !== 'parent') { location.hash = '#login'; return; }
   const me = State.me;
   const p = me.parent;
-  const trialDays = Math.max(0, Math.ceil((new Date(p.trial_ends + 'Z') - Date.now()) / 86400000));
+  const trialDays = Math.max(0, Math.round((new Date(p.trial_ends + 'Z') - Date.now()) / 86400000));
   const subLine = p.sub_status === 'active'
     ? `✅ ${esc((me.plans[p.sub_plan] || {}).name || 'Subscribed')} plan active`
     : p.sub_status === 'trial'
@@ -1726,8 +1746,8 @@ route('parent', async () => {
           <h3>💳 Subscription</h3>
           <p class="muted" style="margin:8px 0 14px">${subLine}</p>
           ${p.sub_status !== 'active' ? `
-            <button class="btn green" style="width:100%" id="sub-family">Family, $54/mo (up to 4 kids)</button>
-            <button class="btn" style="width:100%;margin-top:8px" id="sub-solo">Solo, $34/mo (1 kid)</button>` : `
+            <button class="btn green" style="width:100%" id="sub-family">Family, $54/mo (up to 4 children)</button>
+            <button class="btn" style="width:100%;margin-top:8px" id="sub-solo">Solo, $34/mo (1 child)</button>` : `
             <button class="btn" style="width:100%" id="sub-portal">Manage Billing</button>`}
           <p class="muted center" style="margin-top:10px;font-size:.85rem">${me.billingMode === 'stripe' ? 'Payments powered by Stripe' : 'Demo mode: clicking subscribe activates instantly, no card needed. Set STRIPE_SECRET_KEY to enable real payments.'}</p>
         </div>
@@ -1741,11 +1761,11 @@ route('parent', async () => {
         </div>
         <div class="card">
           <h3>🚀 How kids log in (any device)</h3>
-          <p class="muted" style="margin-top:8px;line-height:1.6">1. Go to this site on any PC, Mac, or tablet<br>2. Tap <b>Kid Login</b> → enter <b>${esc(p.email)}</b><br>3. They pick their avatar & enter their 4-digit PIN<br><br>That's it, progress syncs everywhere. 🎉</p>
+          <p class="muted" style="margin-top:8px;line-height:1.6">1. Go to this site on any PC, Mac, or tablet<br>2. Tap <b>Child Login</b> → enter <b>${esc(p.email)}</b><br>3. They pick their avatar & enter their 4-digit PIN<br><br>That's it, progress syncs everywhere. 🎉</p>
         </div>
         <div class="card">
           <h3>💌 School Buddies</h3>
-          <p class="muted" style="margin-top:8px">Connect your kids with friends from school, <b>parent-approved only</b>. Kids see each other's streaks & badges and send pre-written cheers. No open chat, ever.</p>
+          <p class="muted" style="margin-top:8px">Connect your children with friends from school, <b>parent-approved only</b>. Children see each other's streaks & badges and send pre-written cheers. No open chat, ever.</p>
           <label>Create an invite code for</label>
           <select id="bd-kid">${me.kids.map(k => `<option value="${k.id}">${esc(k.name)}</option>`).join('')}</select>
           <button class="btn small" style="margin-top:8px" id="bd-create">Create Code</button>

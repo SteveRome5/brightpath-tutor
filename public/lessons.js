@@ -6856,7 +6856,7 @@
             "kind": "concept",
             "title": "One means owns, one means it is",
             "body": "ITS shows something belongs to it, like his or her. IT'S is short for it is. The apostrophe is standing in for the missing i in is.",
-            "analogy": "The apostrophe is a tiny knife. It only shows up to cut two words down into one. No cutting, no apostrophe.",
+            "analogy": "The apostrophe is a tiny pinch. It squeezes two words into one and stands in for the letters pulled out. No squeeze, no apostrophe.",
             "say": "Its, with no apostrophe, means it owns something, like his or her. It's, with an apostrophe, is short for it is. The apostrophe is standing in for the missing letter.",
             "widget": {
               "w": "sideBySide",
