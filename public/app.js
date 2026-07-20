@@ -549,7 +549,7 @@ route('landing', async () => {
   <div class="hero">
     <div class="eyebrow">Adaptive K–12 Tutoring · Math · English · Science · Spanish</div>
     <h1>A personal tutor for every child, at every level.</h1>
-    <p>Gallop Learning Academy places each student precisely — subject by subject — then adapts every lesson to how they actually learn. Real-world teaching, honest progress reports, and a curriculum that grows up with your child.</p>
+    <p>Gallop Learning Academy places each student precisely — subject by subject — then adapts every lesson to how they actually learn. Real-world teaching, honest progress reports, a badge-filled trophy case, and a curriculum that grows up with your child — right up to spotting their strengths and mapping a future career.</p>
     <button class="btn" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start your 7-day free trial</button>
     <button class="btn ghost" style="margin-left:8px" onclick="location.hash='#demo'">Try a sample lesson</button>
     <button class="btn ghost" style="margin-left:8px" onclick="location.hash='#kid-login'">Student sign-in</button>
@@ -577,6 +577,32 @@ route('landing', async () => {
       <div class="feature reveal"><div class="fnum">GRADES 6–8</div><h3>Real decisions</h3><p>Percentages become discounts and interest. Reading becomes spotting a weak argument. Science becomes testing claims instead of believing them.</p></div>
       <div class="feature reveal"><div class="fnum">GRADES 9–12</div><h3>Future founders & investors</h3><p>Teens run a virtual portfolio in our stock-market game, reading news and managing risk. Algebra becomes margin math. Essays become pitches. School becomes a head start.</p></div>
     </div>
+    <h2 class="section-title reveal">See where it's all heading</h2>
+    <p class="section-sub">As your child works, Gallop learns what they're great at — and shows you. In the high-school years it turns those strengths into real career pathways, with exactly what to focus on next.</p>
+    <div class="lp-career reveal">
+      <div class="lp-career-panel">
+        <div class="lp-career-badge">🎯 Career Pathways · a parent's view</div>
+        <div class="lp-strength"><span class="lp-s-name">🔬 Science</span><span class="lp-s-bar"><i style="width:82%;background:#2f78c2"></i></span><b>82</b></div>
+        <div class="lp-strength"><span class="lp-s-name">🔢 Math</span><span class="lp-s-bar"><i style="width:76%;background:#5b5bd6"></i></span><b>76</b></div>
+        <div class="lp-strength"><span class="lp-s-name">📚 English</span><span class="lp-s-bar"><i style="width:61%;background:#0f9d76"></i></span><b>61</b></div>
+        <div class="lp-strength"><span class="lp-s-name">🌎 Spanish</span><span class="lp-s-bar"><i style="width:44%;background:#d26440"></i></span><b>44</b></div>
+        <div class="lp-paths">
+          <div class="lp-path">⚙️ <b>Engineering</b> <span>81% match</span></div>
+          <div class="lp-path">🩺 <b>Medicine & Health</b> <span>78% match</span></div>
+          <div class="lp-path">💻 <b>Computer Science & AI</b> <span>74% match</span></div>
+        </div>
+      </div>
+      <div class="lp-career-copy">
+        <h3>Strengths, growth areas, and a plan</h3>
+        <p>Every parent report identifies where your child is <b>excelling</b> and where there's <b>room to grow</b> — in plain language. As they reach high school, it recommends career directions that fit their real performance, plus the classes and projects to pursue.</p>
+        <ul class="lp-check">
+          <li>✅ Grows with the student — a peek for the littles, a real plan for teens</li>
+          <li>✅ 14 curated pathways across STEM, business, healthcare, law & the arts</li>
+          <li>✅ Updates automatically as your child learns — no guesswork</li>
+        </ul>
+      </div>
+    </div>
+
     <h2 class="section-title reveal">The curriculum</h2>
     <p class="section-sub">Every concept taught through the real world — money, sports, cooking, travel, technology.</p>
     <div class="subject-strip">
@@ -587,10 +613,12 @@ route('landing', async () => {
     </div>
     <h2 class="section-title reveal">Built for families</h2>
     <div class="feature-grid">
-      <div class="feature reveal"><h3>An experience that grows up</h3><p>A 1st grader gets big friendly type, read-aloud questions, and celebrations. A teen gets 15-minute Focus Sessions in a clean, serious study environment. Same engine, age-appropriate design.</p></div>
-      <div class="feature reveal"><h3>Motivation, done right</h3><p>Daily quests, streaks, an 8-game arcade (tokens earned by learning), and avatar customization with coins. Play is always the reward — learning is always the engine.</p></div>
-      <div class="feature reveal"><h3>Safe, social learning</h3><p>Parent-approved buddies only. Kids send pre-written cheers, race each other's high scores, and team up on weekly goals where both win. No open chat, no strangers, ever.</p></div>
-      <div class="feature reveal"><h3>Proof on the fridge</h3><p>Printable Certificates of Mastery, a weekly one-page report, a 14-day activity chart, and per-skill mastery bars — you'll always know exactly how it's going.</p></div>
+      <div class="feature reveal"><h3>📖 An experience that grows up</h3><p>A 1st grader gets big friendly type and <b>read-along storytime</b> — words light up as they're read aloud. A teen gets 15-minute Focus Sessions and chill background music in a clean, serious study space. Same engine, age-perfect design.</p></div>
+      <div class="feature reveal"><h3>🏆 A trophy case worth chasing</h3><p>33 collectible badges across six categories, an XP rank ladder from Foal to Thoroughbred, and "next goal" progress bars that keep kids striving. Certificates mark every grade-level mastered.</p></div>
+      <div class="feature reveal"><h3>🎮 Motivation, done right</h3><p>Daily quests, streaks, an 8-game arcade, a coin-powered <b>Snack Shack</b> where their avatar eats the treats, and 48 collectible characters from ninjas to unicorns. Play is the reward — learning is the engine.</p></div>
+      <div class="feature reveal"><h3>🎵 Cool, never generic</h3><p>Eight original built-in soundtracks — lo-fi for teens, playful tunes for the littles — with a one-tap on/off. Every sound is crafted, nothing feels like a worksheet.</p></div>
+      <div class="feature reveal"><h3>💌 Safe, social learning</h3><p>Parent-approved buddies only. Kids send pre-written cheers, race each other's high scores, and team up on weekly goals where both win. No open chat, no strangers, ever.</p></div>
+      <div class="feature reveal"><h3>📊 Proof on the fridge</h3><p>Printable Certificates of Mastery, a weekly one-page report, a 14-day activity chart, per-skill mastery bars, a CSV export, and the strengths-and-career insights — you'll always know exactly how it's going.</p></div>
     </div>
     <div class="card reveal" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:6px">Simple plans</h2>
