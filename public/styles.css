@@ -1023,3 +1023,12 @@ body[data-theme="academy"] .compare-table .us { background: rgba(74,128,214,.14)
   .compare-table { font-size: .8rem; }
   .compare-table th, .compare-table td { padding: 9px 6px; }
 }
+
+/* Per-subject pace status badges (parent report) */
+.status-badge { display: inline-block; font-size: .72rem; font-weight: 800; letter-spacing: .01em; padding: 3px 10px; border-radius: 999px; margin-left: 6px; vertical-align: middle; white-space: nowrap; }
+.st-excelling { background: color-mix(in srgb, #1f8a5f 16%, transparent); color: #14663f; }
+.st-ontrack { background: color-mix(in srgb, #2f78c2 15%, transparent); color: #235d97; }
+.st-support { background: color-mix(in srgb, var(--accent) 20%, transparent); color: #7a5c00; }
+.st-building { background: rgba(127,127,127,.14); color: var(--chrome-sub); }
+body[data-theme="academy"] .st-excelling { color: #7fe0b6; }
+body[data-theme="academy"] .st-support { color: #e6c675; }

@@ -1330,6 +1330,24 @@ route('lesson', async (subject, mode) => {
 });
 
 // ======================= report card =======================
+// Per-subject pace status — makes the adaptive guardrails visible to parents.
+function statusBadge(status) {
+  const M = {
+    'excelling': ['🚀 Excelling', 'st-excelling'],
+    'on-track': ['✅ On track', 'st-ontrack'],
+    'needs-support': ['🤝 Extra support', 'st-support'],
+    'building': ['🌱 Getting started', 'st-building']
+  };
+  const m = M[status]; if (!m) return '';
+  return `<span class="status-badge ${m[1]}">${m[0]}</span>`;
+}
+function statusNote(s) {
+  if (s.status === 'excelling') return ' · <b style="color:#1f8a5f">mastering this — we\'re steadily raising the challenge</b>';
+  if (s.status === 'needs-support') return ' · <b style="color:#c9971c">we\'ve eased the difficulty and are giving extra practice here</b>';
+  if (s.status === 'on-track') return ' · progressing at a healthy pace';
+  return '';
+}
+
 // Parent "Strengths & Future Paths" card — grows with the student. Emerging
 // interests early, concrete career pathways in the high-school years.
 function renderCareer(c, k) {
@@ -1397,11 +1415,11 @@ route('report', async (kidId) => {
       ${r.subjects.map(s => `
         <div class="subject-report">
           <div class="head">
-            <h3>${SUBJECT_STYLE[s.subject].emoji} ${esc(s.label)} <span class="muted" style="font-size:.9rem">· working at ${esc(s.levelName)}</span></h3>
+            <h3>${SUBJECT_STYLE[s.subject].emoji} ${esc(s.label)} <span class="muted" style="font-size:.9rem">· working at ${esc(s.levelName)}</span> ${statusBadge(s.status)}</h3>
             <div class="letter" style="color:${SUBJECT_STYLE[s.subject].color}">${esc(s.letter)}</div>
           </div>
           ${s.placed ? `
-            <p class="muted" style="margin:6px 0">${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} · ${s.accuracy != null ? Math.round(s.accuracy * 100) + '% accuracy' : 'just getting started'}</p>
+            <p class="muted" style="margin:6px 0">${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} · ${s.accuracy != null ? Math.round(s.accuracy * 100) + '% accuracy' : 'just getting started'}${statusNote(s)}</p>
             ${s.strengths.length ? `<p>💪 Strengths: ${s.strengths.map(x => `<span class="pill strength">${esc(x)}</span>`).join(' ')}</p>` : ''}
             ${s.focusAreas.length ? `<p style="margin-top:6px">🎯 Focus areas (getting extra help): ${s.focusAreas.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')}</p>` : ''}
             ${isParent && s.skills && s.skills.length ? `
