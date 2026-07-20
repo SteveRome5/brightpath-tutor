@@ -671,7 +671,8 @@
           ${data.catalog[slot].map(item => {
             const own = isOwned(slot, item);
             const equipped = cfg[slot] === item.id;
-            return `<div class="avatar-opt ${equipped ? 'sel' : ''}" data-item="${item.id}" style="min-width:74px">
+            return `<div class="avatar-opt ${equipped ? 'sel' : ''}" data-item="${item.id}" style="min-width:74px;position:relative">
+              ${item.seasonal ? '<span class="limited-tag">⏳ LIMITED</span>' : ''}
               <div style="font-size:2rem">${item.emoji || '🚫'}</div>
               <div style="font-size:.75rem;font-weight:700">${own ? (equipped ? 'Wearing ✓' : 'Owned') : '🪙 ' + item.price}</div>
             </div>`;

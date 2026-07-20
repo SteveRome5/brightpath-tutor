@@ -310,6 +310,13 @@ body[data-theme="academy"] .zone-card .zemoji { font-size: 1.5rem; }
 body[data-theme="academy"] .kid-header h1 { font-size: 1.5rem; }
 body[data-theme="academy"] .big-emoji { font-size: 3.4rem; }
 
+/* Trial-ending banner */
+.trial-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; background: linear-gradient(120deg, #1f5e46, #17462f); color: #fff; border-radius: var(--radius); padding: 16px 20px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid #c9971c; }
+.trial-banner span { opacity: .85; font-size: .9rem; }
+
+/* Limited seasonal shop tag */
+.limited-tag { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); background: #ff6b35; color: #fff; font-size: .58rem; font-weight: 800; letter-spacing: .05em; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+
 /* Up Next smart recommendation */
 .up-next { display: flex; align-items: center; gap: 16px; background: linear-gradient(120deg, var(--accent-soft, #f6ecd3), #fff); border: 2px solid var(--accent); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 16px; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; box-shadow: var(--shadow); }
 .up-next:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(0,0,0,.14); }

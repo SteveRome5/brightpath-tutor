@@ -326,7 +326,7 @@ function topbar(inner = '') {
   <div class="topbar">
     <div class="logo" onclick="location.hash='#'"><img src="/logo.svg" alt="Gallop" class="logo-img"> Gallop</div>
     <div class="right">
-      <button class="btn ghost small" id="mute-btn" title="Sound effects">${Sound.muted ? '🔇' : '🔊'}</button>
+      <button class="btn ghost small" id="mute-btn" title="Sound effects" aria-label="Toggle sound effects">${Sound.muted ? '🔇' : '🔊'}</button>
       ${right}
     </div>
   </div>${inner}`;
@@ -494,7 +494,7 @@ route('demo', async () => {
         <div class="q-prompt">${esc(qn.prompt)}</div>
         <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
         <div class="hint-box" id="hint-box">💡 ${esc(qn.hint)}</div>
-        <div class="feedback" id="feedback"></div>
+        <div class="feedback" id="feedback" aria-live="polite"></div>
         <div class="lesson-actions">
           <button class="btn sun small" id="hint-btn">💡 Hint</button>
           <button class="btn green" id="next-btn" style="display:none">Next →</button>
@@ -878,7 +878,7 @@ route('lesson', async (subject, mode) => {
         <div class="q-prompt">${esc(qn.prompt)}</div>
         <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
         <div class="hint-box" id="hint-box">💡 ${esc(qn.hint || 'Trust yourself — read it once more, slowly.')}</div>
-        <div class="feedback" id="feedback"></div>
+        <div class="feedback" id="feedback" aria-live="polite"></div>
         <div class="lesson-actions">
           <button class="btn sun small" id="hint-btn">💡 Hint</button>
           <button class="btn green" id="next-btn" style="display:none">Next →</button>
@@ -932,7 +932,7 @@ route('lesson', async (subject, mode) => {
           <button class="btn sun" style="margin-top:14px">${playful() ? 'Got it! 👍' : 'Understood →'}</button>
         </div>`;
         pop.querySelector('button').onclick = () => { pop.remove(); Sound.click(); };
-        setTimeout(() => document.body.appendChild(pop), 650);
+        setTimeout(() => { document.body.appendChild(pop); const b = pop.querySelector('button'); if (b) b.focus(); }, 650);
         if (Voice.auto) Voice.speak(`The answer is ${qn.choices[qn.answerIndex]}. ${qn.explain || ''}`, 'en-US');
       }
       session.n++; if (correct) session.correct++;
@@ -1186,12 +1186,14 @@ route('certificate', async (kidId, certId) => {
 
 // ======================= paywall =======================
 function renderPaywall() {
-  app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
-    <div class="big-emoji">🔒</div>
-    <h2>Your free trial has ended</h2>
-    <p class="muted" style="margin:10px 0 18px">Subscribe to keep the learning adventure going — all 4 subjects, unlimited practice, report cards & certificates.</p>
+  app().innerHTML = topbar(`<div class="container" style="max-width:600px"><div class="card center">
+    <img src="/logo-roundel.svg" alt="" style="width:84px;height:84px">
+    <h2 style="margin-top:10px">Your free trial has ended</h2>
+    <p class="muted" style="margin:10px 0 4px"><b>Everything is saved</b> — streaks, skill levels, badges, and certificates are waiting exactly where you left off.</p>
+    <p class="muted" style="margin:0 0 16px">Keep all 4 subjects, the adaptive tutor, the games arcade, buddies, and weekly parent reports — for less than one week of a tutoring center.</p>
     ${State.me.role === 'parent'
-      ? `<button class="btn green" id="sub-family">Family — $49/mo</button> <button class="btn" id="sub-solo">Solo — $29/mo</button>`
+      ? `<button class="btn green" id="sub-family">Family — $49/mo (up to 4 kids)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo — $29/mo</button>
+         <p class="muted" style="margin-top:12px;font-size:.85rem">Cancel anytime from your dashboard.</p>`
       : `<p><b>Ask your parent to log in and subscribe!</b></p><button class="btn" onclick="location.hash='#login'">Parent Login</button>`}
   </div></div>`);
   wireChrome();
@@ -1218,8 +1220,15 @@ route('parent', async () => {
       ? (trialDays > 0 ? `⏳ Free trial — ${trialDays} day${trialDays === 1 ? '' : 's'} left` : '🔒 Trial ended')
       : `🔒 Subscription ${esc(p.sub_status)}`;
 
+  const trialUrgent = p.sub_status === 'trial' && trialDays > 0 && trialDays <= 3;
   app().innerHTML = topbar(`<div class="container">
     <div class="dash-welcome" style="margin-bottom:14px"><h1>Welcome, ${esc(p.name)} 👋</h1><p>${subLine} ${me.billingMode === 'demo' ? '· <i>(demo billing — add Stripe keys to charge real cards)</i>' : ''}</p></div>
+    ${trialUrgent ? `<div class="trial-banner">
+      <div><b>⏳ Your free trial ends in ${trialDays} day${trialDays === 1 ? '' : 's'}.</b><br>
+      <span>All progress, streaks, badges and certificates are saved — subscribing keeps the gallop going without missing a day.</span></div>
+      <div style="white-space:nowrap"><button class="btn sun" id="tb-family">Family — $49/mo</button>
+      <button class="btn ghost small" style="color:#fff;border-color:rgba(255,255,255,.6);margin-left:8px" id="tb-solo">Solo — $29/mo</button></div>
+    </div>` : ''}
     <div class="dash-grid">
       <div class="card">
         <h3>👧 Your Learners</h3>
@@ -1356,6 +1365,9 @@ route('parent', async () => {
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
     if (confirm('Remove this learner and all their progress?')) { await api('/kids/' + b.dataset.del, { method: 'DELETE' }); navigate(); }
   });
+  const tbf = $('#tb-family'), tbs = $('#tb-solo');
+  if (tbf) tbf.onclick = () => checkout('family');
+  if (tbs) tbs.onclick = () => checkout('solo');
   const cpg = $('#cp-go');
   if (cpg) cpg.onclick = async () => {
     try {
@@ -1434,7 +1446,7 @@ route('admin', async () => {
           <div style="margin-top:10px;overflow-x:auto">
             ${d.recent.map(p => `
               <div class="kid-row" style="flex-wrap:wrap">
-                <div style="flex:1;min-width:180px"><b>${esc(p.name)}</b> ${statusPill(p.sub_status)}${p.sub_status === 'active' ? ` <span class="muted">$${p.sub_plan === 'family' ? 49 : 29}/mo</span>` : ''}<br>
+                <div style="flex:1;min-width:180px"><b>${esc(p.name)}</b> ${statusPill(p.sub_status)}${p.sub_status === 'active' ? ` <span class="muted">$${p.sub_plan === 'family' ? 49 : 29}/mo</span>` : ''} ${p.kids === 0 ? '<span class="pill focus">needs setup</span>' : p.weekAnswers === 0 ? '<span class="pill" style="background:#fdf3d7;color:#7a5b00">quiet this week</span>' : '<span class="pill strength">learning ✓</span>'}<br>
                   <span class="muted" style="font-size:.82rem">${esc(p.email)} · joined ${fmtDate(p.created_at)}${p.sub_status === 'trial' ? ` · trial ends ${fmtDate(p.trial_ends)}` : ''}</span></div>
                 <div class="muted" style="font-size:.83rem;text-align:right">${p.kids} kid${p.kids === 1 ? '' : 's'}<br>${p.weekAnswers} ans/wk</div>
               </div>`).join('')}
