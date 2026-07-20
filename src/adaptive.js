@@ -541,6 +541,25 @@ function careerInsights(kidId) {
   };
 }
 
+// Plain-language "why we started them here" for parents, based on the assessment.
+function placementRationale(sub, state, kid) {
+  if (!state.placed) return null;
+  const name = kid.name;
+  const lvl = Math.round(state.level);
+  const lvlName = gradeName(lvl);
+  if (sub === 'spanish') {
+    return `Spanish starts everyone at the beginning, since it builds from the first words up. ${name} is working at the ${lvlName} stage and will climb as the vocabulary and grammar click.`;
+  }
+  const diff = lvl - (kid.grade || 0);
+  if (diff >= 1) {
+    return `On the assessment, ${name} handled ${sub} above their enrolled grade, so we started at ${lvlName} to keep the work challenging rather than repetitive.`;
+  }
+  if (diff <= -1) {
+    return `We started ${name} a little below their enrolled grade, at ${lvlName}, to make sure the fundamentals are solid first. This is common, and the level rises quickly once they show they've got it.`;
+  }
+  return `${name} placed right around their enrolled grade in ${sub}, at ${lvlName}. That's the sweet spot: familiar enough to feel confident, with room to stretch.`;
+}
+
 function reportCard(kidId) {
   const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(kidId);
   const subjects = ['math', 'english', 'science', 'spanish'].map(sub => {
@@ -570,6 +589,7 @@ function reportCard(kidId) {
       placed: !!state.placed, avgMastery: avg, letter: avg == null ? '—' : letterGrade(avg),
       questionsAnswered: agg.n || 0, accuracy: agg.n ? (agg.c / agg.n) : null,
       status, recentAccuracy: recentAcc,
+      placementNote: placementRationale(sub, state, kid),
       strengths: strengths.map(r => nameOf(r.skill_id)),
       focusAreas: focus.map(r => nameOf(r.skill_id)),
       // full per-skill drill-down for parents
