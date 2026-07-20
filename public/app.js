@@ -570,6 +570,14 @@ route('landing', async () => {
       <div class="feature reveal"><div class="fnum">STEP 02 · ADAPT</div><h3>Adjust with every answer</h3><p>Skills a child has down get harder and go deeper. The shaky ones slow down, with easier questions, clearer hints, and more practice. It happens quietly, so nobody feels singled out.</p></div>
       <div class="feature reveal"><div class="fnum">STEP 03 · PROGRESS</div><h3>Prove it, then move up</h3><p>A child only advances a grade after showing they can do the whole thing, not after a lucky streak. You see the letter grades, the strengths, and the spots that need work. Certificates mark the real milestones.</p></div>
     </div>
+    <h2 class="section-title reveal">Lessons, not just questions</h2>
+    <p class="section-sub">Before a child practices a skill, Gallop teaches it. Short guided lessons that explain the idea the way the teacher you still remember would have, then hand it over.</p>
+    <div class="feature-grid">
+      <div class="feature reveal"><div class="fnum">SEE IT</div><h3>Pictures do the explaining</h3><p>A pizza sliced into fourths for fractions. Rows and columns for times tables. Earth turning toward the sun for day and night. The idea shows up on the screen, not just in a sentence.</p></div>
+      <div class="feature reveal"><div class="fnum">HEAR IT</div><h3>Every lesson reads aloud</h3><p>A child who learns by ear hears the concept and the worked example spoken, at their own pace, as many times as they want. Nobody gets left behind by the reading.</p></div>
+      <div class="feature reveal"><div class="fnum">DO IT</div><h3>You try it before you move on</h3><p>The lesson will not continue until the child does it themselves: shading a fraction, building a number, sorting the words. Kids who learn by doing finally get to.</p></div>
+    </div>
+    <p class="section-sub reveal" style="margin-top:6px">Each lesson leans on a comparison a kid already gets, so the idea sticks. Fractions are fair shares. The main idea is the umbrella every sentence hides under. Ser and estar are a name tag versus a mood ring.</p>
     <h2 class="section-title reveal">We're raising critical thinkers</h2>
     <p class="section-sub">Every kid eventually asks "when will I ever use this?" We answer that on the questions themselves, and keep an eye on the adult they're becoming.</p>
     <div class="feature-grid">
@@ -648,17 +656,18 @@ route('landing', async () => {
       <p class="center muted" style="margin-bottom:20px">7-day free trial. Cancel anytime.</p>
       <p class="center" style="margin:-8px 0 20px;font-weight:600">Centers like Kumon, Sylvan, and Mathnasium tend to run $150 to $200 a month <i>per subject</i>, and a private tutor is often $40 to $80 an hour. Gallop covers all four subjects, all year, for less than a single week at a center.</p>
       <div class="plans">
-        <div class="plan"><h3>Solo</h3><div class="price">$29<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">One student · all four subjects · full adaptive tutor & reports</p></div>
-        <div class="plan hot"><span class="tag">MOST POPULAR</span><h3>Family</h3><div class="price">$49<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">Up to four students · all subjects · reports, certificates & buddies</p></div>
+        <div class="plan"><h3>Solo</h3><div class="price">$34<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">One student · all four subjects · lessons, adaptive tutor & reports</p></div>
+        <div class="plan hot"><span class="tag">MOST POPULAR</span><h3>Family</h3><div class="price">$54<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">Up to four students · all subjects · lessons, reports, certificates & buddies</p></div>
       </div>
       <div class="compare">
         <div class="compare-head"><span>How Gallop compares</span></div>
         <table class="compare-table">
           <thead><tr><th></th><th class="us">Gallop</th><th>Learning centers<br><span>(Kumon, Sylvan, Mathnasium)</span></th><th>Private tutor</th></tr></thead>
           <tbody>
-            <tr><td>Typical cost</td><td class="us"><b>$29–49 / mo</b></td><td>$150–200 / mo <i>per subject</i></td><td>$40–80 / hour</td></tr>
+            <tr><td>Typical cost</td><td class="us"><b>$34–54 / mo</b></td><td>$150–200 / mo <i>per subject</i></td><td>$40–80 / hour</td></tr>
             <tr><td>All 4 subjects included</td><td class="us">✅</td><td>❌ pay per subject</td><td>❌ usually one</td></tr>
             <tr><td>Adapts to each child</td><td class="us">✅ every answer</td><td>➖ worksheet levels</td><td>✅ if it's a good one</td></tr>
+            <tr><td>Teaches the concept first</td><td class="us">✅ guided lessons</td><td>✅ in person</td><td>✅ in person</td></tr>
             <tr><td>Learn anytime, any device</td><td class="us">✅ 24/7</td><td>❌ scheduled visits</td><td>❌ booked sessions</td></tr>
             <tr><td>Progress reports & certificates</td><td class="us">✅ automatic</td><td>➖ periodic</td><td>➖ varies</td></tr>
             <tr><td>Strengths & career insights</td><td class="us">✅ built in</td><td>❌</td><td>❌</td></tr>
@@ -693,7 +702,7 @@ route('terms', async () => legalPage('Terms of Service', `
   <h3 style="margin-top:14px">2. Accounts & responsibility</h3>
   <p>You must be 18 or older to create an account. You are responsible for the accuracy of the information you provide, for keeping your password secure, and for all activity under your account. Learner profiles are for children in your care.</p>
   <h3 style="margin-top:14px">3. Subscriptions, trials & cancellation</h3>
-  <p>New accounts receive a free trial (currently 7 days) with full access. After the trial, continued access requires a paid subscription (currently Solo $29/month or Family $49/month), billed monthly through Stripe until canceled. You can cancel anytime from the Parent Dashboard's "Manage Billing", cancellation stops future charges and access continues through the period already paid. Prices may change with notice; changes never apply retroactively to a period you've already paid for.</p>
+  <p>New accounts receive a free trial (currently 7 days) with full access. After the trial, continued access requires a paid subscription (currently Solo $34/month or Family $54/month), billed monthly through Stripe until canceled. You can cancel anytime from the Parent Dashboard's "Manage Billing", cancellation stops future charges and access continues through the period already paid. Prices may change with notice; changes never apply retroactively to a period you've already paid for.</p>
   <h3 style="margin-top:14px">4. Acceptable use</h3>
   <p>Don't share accounts beyond your household, attempt to disrupt the service, or use the content for anything other than personal, non-commercial education. The buddies feature connects children only through parent-created invite codes; misuse of it may result in account termination.</p>
   <h3 style="margin-top:14px">5. Educational content</h3>
@@ -748,7 +757,7 @@ route('demo', async () => {
         <div class="big-emoji">🐎</div>
         <h2>${correct}/${DEMO_QUESTIONS.length}, and that's just a sample!</h2>
         <p class="muted" style="margin:12px 0 6px">The real tutor goes much further: a placement quiz finds your child's exact level in each subject, every answer adapts what comes next, and correct answers earn tokens for the games arcade.</p>
-        <p class="muted" style="margin-bottom:18px">All four subjects. Every grade K–12. $29/month.</p>
+        <p class="muted" style="margin-bottom:18px">All four subjects. Every grade K–12. From $34/month.</p>
         <button class="btn green" onclick="location.hash='#signup'">Start 7-Day Free Trial →</button>
         <button class="btn ghost small" style="color:#1f5e46;border-color:#1f5e46;margin-left:8px" onclick="location.hash='#'">Back</button>
       </div></div>`);
@@ -1612,7 +1621,7 @@ function renderPaywall() {
     <p class="muted" style="margin:10px 0 4px"><b>Everything is saved</b>, streaks, skill levels, badges, and certificates are waiting exactly where you left off.</p>
     <p class="muted" style="margin:0 0 16px">Keep all four subjects, the adaptive tutor, the games arcade, buddies, and weekly parent reports, for less than a single week at a tutoring center.</p>
     ${State.me.role === 'parent'
-      ? `<button class="btn green" id="sub-family">Family, $49/mo (up to 4 kids)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo, $29/mo</button>
+      ? `<button class="btn green" id="sub-family">Family, $54/mo (up to 4 kids)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo, $34/mo</button>
          <p class="muted" style="margin-top:12px;font-size:.85rem">Cancel anytime from your dashboard.</p>`
       : `<p><b>Ask your parent to log in and subscribe!</b></p><button class="btn" onclick="location.hash='#login'">Parent Login</button>`}
   </div></div>`);
@@ -1623,8 +1632,9 @@ function renderPaywall() {
 }
 async function checkout(plan) {
   const out = await api('/billing/checkout', { method: 'POST', body: { plan } });
+  if (out.error) { alert(out.error); return; }
   if (out.demo) { await refreshMe(); Confetti.burst(150); Sound.levelup(); location.hash = '#parent'; }
-  else location.href = out.url;
+  else if (out.url) location.href = out.url;
 }
 
 // ======================= parent dashboard =======================
@@ -1646,8 +1656,8 @@ route('parent', async () => {
     ${trialUrgent ? `<div class="trial-banner">
       <div><b>⏳ Your free trial ends in ${trialDays} day${trialDays === 1 ? '' : 's'}.</b><br>
       <span>All progress, streaks, badges and certificates are saved, subscribing keeps the gallop going without missing a day.</span></div>
-      <div style="white-space:nowrap"><button class="btn sun" id="tb-family">Family, $49/mo</button>
-      <button class="btn ghost small" style="color:#fff;border-color:rgba(255,255,255,.6);margin-left:8px" id="tb-solo">Solo, $29/mo</button></div>
+      <div style="white-space:nowrap"><button class="btn sun" id="tb-family">Family, $54/mo</button>
+      <button class="btn ghost small" style="color:#fff;border-color:rgba(255,255,255,.6);margin-left:8px" id="tb-solo">Solo, $34/mo</button></div>
     </div>` : ''}
     <div class="dash-grid">
       <div class="card">
@@ -1698,8 +1708,8 @@ route('parent', async () => {
           <h3>💳 Subscription</h3>
           <p class="muted" style="margin:8px 0 14px">${subLine}</p>
           ${p.sub_status !== 'active' ? `
-            <button class="btn green" style="width:100%" id="sub-family">Family, $49/mo (up to 4 kids)</button>
-            <button class="btn" style="width:100%;margin-top:8px" id="sub-solo">Solo, $29/mo (1 kid)</button>` : `
+            <button class="btn green" style="width:100%" id="sub-family">Family, $54/mo (up to 4 kids)</button>
+            <button class="btn" style="width:100%;margin-top:8px" id="sub-solo">Solo, $34/mo (1 kid)</button>` : `
             <button class="btn" style="width:100%" id="sub-portal">Manage Billing</button>`}
           <p class="muted center" style="margin-top:10px;font-size:.85rem">${me.billingMode === 'stripe' ? 'Payments powered by Stripe' : 'Demo mode: clicking subscribe activates instantly, no card needed. Set STRIPE_SECRET_KEY to enable real payments.'}</p>
         </div>
@@ -1928,7 +1938,7 @@ route('admin', async () => {
           <div style="margin-top:10px;overflow-x:auto">
             ${d.recent.map(p => `
               <div class="kid-row" style="flex-wrap:wrap">
-                <div style="flex:1;min-width:180px"><b>${esc(p.name)}</b> ${statusPill(p.sub_status)}${p.sub_status === 'active' ? ` <span class="muted">$${p.sub_plan === 'family' ? 49 : 29}/mo</span>` : ''} ${p.kids === 0 ? '<span class="pill focus">needs setup</span>' : p.weekAnswers === 0 ? '<span class="pill" style="background:#fdf3d7;color:#7a5b00">quiet this week</span>' : '<span class="pill strength">learning ✓</span>'}<br>
+                <div style="flex:1;min-width:180px"><b>${esc(p.name)}</b> ${statusPill(p.sub_status)}${p.sub_status === 'active' ? ` <span class="muted">$${p.sub_plan === 'solo' ? 34 : 54}/mo</span>` : ''} ${p.kids === 0 ? '<span class="pill focus">needs setup</span>' : p.weekAnswers === 0 ? '<span class="pill" style="background:#fdf3d7;color:#7a5b00">quiet this week</span>' : '<span class="pill strength">learning ✓</span>'}<br>
                   <span class="muted" style="font-size:.82rem">${esc(p.email)} · joined ${fmtDate(p.created_at)}${p.sub_status === 'trial' ? ` · trial ends ${fmtDate(p.trial_ends)}` : ''}</span></div>
                 <div class="muted" style="font-size:.83rem;text-align:right">${p.kids} kid${p.kids === 1 ? '' : 's'}<br>${p.weekAnswers} ans/wk</div>
               </div>`).join('')}
