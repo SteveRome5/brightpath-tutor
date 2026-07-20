@@ -751,7 +751,11 @@
           </div>
           <div class="vending-tray"><div class="vending-slot-mouth"></div><div id="drop-zone"></div></div>
         </div>
-        <p class="center" style="color:#fff;opacity:.9;margin-top:14px">${machine === 'vending' ? 'Quick treats — earn coins by learning, then treat yourself! 🪙' : 'Fancier goodies for big coin-savers. Collect them all! 🏆'}</p>
+        <div class="snack-muncher">
+          <div class="avatar-big muncher-av" id="muncher-av">${avatarHTML(State.me.kid)}</div>
+          <div class="muncher-caption muted">${playful() ? 'Buy a snack and watch me eat it! 😋' : 'Buy a snack to feed your avatar'}</div>
+        </div>
+        <p class="center" style="color:#fff;opacity:.9;margin-top:8px">${machine === 'vending' ? 'Quick treats — earn coins by learning, then treat yourself! 🪙' : 'Fancier goodies for big coin-savers. Collect them all! 🏆'}</p>
       </div>`);
       wireChrome();
       document.querySelectorAll('[data-machine]').forEach(b => b.onclick = () => { machine = b.dataset.machine; Sound.click(); render(); });
@@ -765,6 +769,8 @@
           dropSnack(sn.emoji);
           // update this slot's chips live without a full re-render (keeps the drop visible)
           $('.stat-chips').children[0].textContent = `🪙 ${coins} coins`;
+          const totNow = Object.values(owned).reduce((a, b) => a + b, 0);
+          if ($('.stat-chips').children[1]) $('.stat-chips').children[1].textContent = `🎒 ${totNow} snacks collected`;
           const slot = document.querySelector(`.snack-slot[data-snack="${sn.id}"]`);
           let badge = slot.querySelector('.snack-count');
           if (!badge) { badge = document.createElement('span'); badge.className = 'snack-count'; slot.appendChild(badge); }
@@ -788,11 +794,131 @@
         { transform: 'translateY(-40px) scale(1) rotate(20deg)', opacity: 1, offset: .5 },
         { transform: 'translateY(0) scale(1.15) rotate(-8deg)', opacity: 1, offset: .8 },
         { transform: 'translateY(0) scale(1) rotate(0deg)', opacity: 1 }
-      ], { duration: 800, easing: 'cubic-bezier(.34,1.56,.64,1)' });
-      Confetti.burst(24);
-      setTimeout(() => { el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500 }).onfinish = () => el.remove(); }, 1600);
+      ], { duration: 700, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+      Confetti.burst(20);
+      // After it lands in the tray, the avatar reaches over and eats it 😋
+      setTimeout(() => feedAvatar(emoji, el), 800);
+    }
+    function feedAvatar(emoji, trayEl) {
+      const av = $('#muncher-av');
+      if (!av) { if (trayEl) trayEl.remove(); return; }
+      const flyer = document.createElement('div');
+      flyer.className = 'snack-flyer'; flyer.textContent = emoji;
+      document.body.appendChild(flyer);
+      const from = (trayEl || av).getBoundingClientRect();
+      const to = av.getBoundingClientRect();
+      flyer.style.left = from.left + from.width / 2 - 18 + 'px';
+      flyer.style.top = from.top + from.height / 2 - 18 + 'px';
+      if (trayEl) trayEl.remove();
+      const dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+      const dyReal = (to.top + to.height / 2) - (from.top + from.height / 2);
+      flyer.animate([
+        { transform: 'translate(0,0) scale(1)', opacity: 1 },
+        { transform: `translate(${dx * 0.5}px, ${dyReal * 0.5 - 30}px) scale(1.2) rotate(180deg)`, opacity: 1, offset: .6 },
+        { transform: `translate(${dx}px, ${dyReal}px) scale(.3) rotate(360deg)`, opacity: 0 }
+      ], { duration: 650, easing: 'cubic-bezier(.5,-0.2,.7,1)' }).onfinish = () => {
+        flyer.remove();
+        // Chomp! avatar bounces and a "yum" pops
+        av.animate([
+          { transform: 'scale(1)' }, { transform: 'scale(1.25) rotate(-6deg)' },
+          { transform: 'scale(.9) rotate(4deg)' }, { transform: 'scale(1.1)' }, { transform: 'scale(1)' }
+        ], { duration: 550, easing: 'ease-out' });
+        Sound.correct();
+        const yum = document.createElement('div');
+        yum.className = 'yum-pop'; yum.textContent = ['Yum! 😋', 'Mmm! 😋', 'Delicious! 🤤', 'Nom nom! 😸', 'Tasty! 😻'][Math.floor(Math.random() * 5)];
+        const p = av.getBoundingClientRect();
+        yum.style.left = p.left + p.width / 2 + 'px'; yum.style.top = p.top - 8 + 'px';
+        document.body.appendChild(yum);
+        yum.animate([{ transform: 'translate(-50%,0) scale(.6)', opacity: 0 }, { transform: 'translate(-50%,-24px) scale(1)', opacity: 1, offset: .4 }, { transform: 'translate(-50%,-46px) scale(1)', opacity: 0 }], { duration: 1100, easing: 'ease-out' }).onfinish = () => yum.remove();
+      };
     }
     render();
+  });
+
+  // ======================= TROPHY CASE / BADGE BOOK =======================
+  const RANK_LADDER = [['Foal', 0], ['Pony Pal', 100], ['Trotter', 250], ['Canterer', 500], ['Galloper', 1000], ['Trailblazer', 2000], ['Champion', 4000], ['Legend', 8000], ['Thoroughbred', 15000]];
+  const CAT_META = {
+    milestone: { name: 'Milestones', emoji: '🎯' }, streak: { name: 'Streaks', emoji: '🔥' },
+    subject: { name: 'Subject Explorer', emoji: '🧭' }, mastery: { name: 'Mastery', emoji: '⭐' },
+    xp: { name: 'XP & Rank', emoji: '⚡' }, collector: { name: 'Collector', emoji: '💎' }
+  };
+  const RAR_NAME = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' };
+  route('trophies', async () => {
+    if (needKid()) return;
+    const d = await api(`/learn/${kidId()}/achievements`);
+    const cats = {};
+    d.badges.forEach(b => { (cats[b.cat] = cats[b.cat] || []).push(b); });
+    // rank ladder progress
+    let cur = RANK_LADDER[0], next = null;
+    for (const r of RANK_LADDER) { if (d.xp >= r[1]) cur = r; else { next = r; break; } }
+    const rankPct = next ? Math.round((d.xp - cur[1]) / (next[1] - cur[1]) * 100) : 100;
+
+    function badgeCell(b) {
+      const rar = ` rar-${b.rarity}`;
+      const pct = Math.round(b.cur / b.goal * 100);
+      return `<div class="badge-cell ${b.earned ? 'earned' + rar : 'locked'}" data-badge="${b.id}" title="${esc(b.name)}">
+        <div class="badge-emoji">${b.earned ? b.emoji : '🔒'}</div>
+        <div class="badge-name">${esc(b.name)}</div>
+        ${b.earned ? `<div class="badge-rar rar-tag-${b.rarity}">${RAR_NAME[b.rarity]}</div>`
+          : `<div class="badge-prog"><div class="badge-prog-fill" style="width:${pct}%"></div></div><div class="badge-prog-txt">${b.cur}/${b.goal}</div>`}
+      </div>`;
+    }
+    app().innerHTML = topbar(`<div class="container" style="max-width:900px">
+      <div class="kid-header" style="margin-bottom:14px">
+        <div><h1>🏆 Trophy Case</h1>
+          <div class="stat-chips" style="margin-top:8px">
+            <span class="chip">🏅 ${d.earnedCount}/${d.totalBadges} badges</span>
+            <span class="chip">🎓 ${d.certificates.length} certificate${d.certificates.length === 1 ? '' : 's'}</span>
+            <span class="chip">⚡ ${d.xp} XP</span>
+          </div>
+        </div>
+        <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#home'">← Home</button></div>
+      </div>
+
+      <!-- RANK LADDER -->
+      <div class="card trophy-rank">
+        <div class="tr-top"><b>🏇 Rank: ${cur[0]}</b>${next ? `<span class="muted">${next[1] - d.xp} XP to ${next[0]}</span>` : '<span class="muted">Top rank reached! 👑</span>'}</div>
+        <div class="rank-bar"><div class="rank-bar-fill" style="width:${rankPct}%"></div></div>
+        <div class="rank-ladder">${RANK_LADDER.map(r => `<div class="rl-node ${d.xp >= r[1] ? 'on' : ''}" title="${r[0]} · ${r[1]} XP"><span class="rl-dot"></span><span class="rl-name">${r[0]}</span></div>`).join('')}</div>
+      </div>
+
+      <!-- NEXT GOALS -->
+      ${d.nextGoals.length ? `<div class="card next-goals">
+        <h3 style="margin-bottom:12px">🎯 ${playful() ? 'Chase these next!' : 'Next goals'}</h3>
+        <div class="ng-grid">${d.nextGoals.map(g => `
+          <div class="ng-card rar-${g.rarity}">
+            <div class="ng-emoji">${g.emoji}</div>
+            <div class="ng-body"><b>${esc(g.name)}</b><span class="muted">${esc(g.desc)}</span>
+              <div class="badge-prog"><div class="badge-prog-fill" style="width:${Math.round(g.cur / g.goal * 100)}%"></div></div>
+              <span class="ng-count">${g.cur} / ${g.goal}</span>
+            </div>
+          </div>`).join('')}</div>
+      </div>` : ''}
+
+      <!-- COLLECTION LEGEND -->
+      <div class="card">
+        <h3 style="margin-bottom:10px">📖 ${playful() ? 'Badge Book' : 'Badge Collection'}</h3>
+        <div class="rar-legend">${d.rarityCounts.map(rc => `<span class="rar-leg-item"><span class="rar-dot rar-tag-${rc.rarity}"></span>${RAR_NAME[rc.rarity]} <b>${rc.earned}/${rc.total}</b></span>`).join('')}</div>
+        ${Object.keys(CAT_META).filter(c => cats[c]).map(c => `
+          <div class="badge-cat">
+            <div class="badge-cat-head">${CAT_META[c].emoji} ${CAT_META[c].name} <span class="muted">${cats[c].filter(b => b.earned).length}/${cats[c].length}</span></div>
+            <div class="badge-grid">${cats[c].map(badgeCell).join('')}</div>
+          </div>`).join('')}
+      </div>
+
+      <!-- CERTIFICATES SHELF -->
+      ${d.certificates.length ? `<div class="card">
+        <h3 style="margin-bottom:12px">🎓 Certificate Shelf</h3>
+        <div class="cert-shelf">${d.certificates.map(c => `
+          <div class="cert-mini" data-cert="${c.id}">
+            <div class="cert-mini-seal">🏅</div>
+            <b>${esc(c.title)}</b><span class="muted">${esc(c.subject)} · ${c.issued_at.slice(0, 10)}</span>
+          </div>`).join('')}</div>
+      </div>` : `<div class="card center"><p class="muted">🎓 Earn certificates by mastering a whole grade level in a subject — they'll line up here!</p></div>`}
+    </div>`);
+    wireChrome();
+    document.querySelectorAll('[data-cert]').forEach(el => el.onclick = () => { Sound.click(); location.hash = '#certificate/' + kidId() + '/' + el.dataset.cert; });
+    document.querySelectorAll('.badge-cell.earned').forEach(el => el.onclick = () => { Sound.badge(); el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.15) rotate(-4deg)' }, { transform: 'scale(1)' }], { duration: 400 }); });
   });
 
   // ======================= BUDDIES =======================

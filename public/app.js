@@ -211,7 +211,79 @@ const Sound = (() => {
     levelup() { [523, 587, 659, 784, 880, 1047].forEach((f, i) => tone(f, i * .12, .25)); },
     badge() { tone(880, 0, .12); tone(1109, .12, .2); tone(1319, .26, .35); },
     get muted() { return muted; },
-    toggle() { muted = !muted; localStorage.bp_muted = muted ? '1' : '0'; return muted; }
+    toggle() { muted = !muted; localStorage.bp_muted = muted ? '1' : '0'; return muted; },
+    ctx: ac
+  };
+})();
+
+// ======================= background music (procedural, not stock) =======================
+// A gentle generative soundtrack built live with Web Audio — a warm pad, a soft
+// arpeggio, and the occasional bell over a slow chord loop. Two moods: a chill
+// lo-fi vibe for older learners, a brighter playful one for the littles. It only
+// plays in the FUN zones (arcade, avatar, snacks, trophies) so lessons stay focused.
+const Music = (() => {
+  let on = localStorage.bp_music === '1';   // default OFF until a kid switches it on
+  let ctx = null, master = null, timer = null, step = 0, mood = 'chill', playing = false;
+  // Chord loops as semitone offsets from a root; pentatonic-ish for a pleasant, never-wrong feel.
+  const MOODS = {
+    chill:   { root: 220.0, tempo: 2000, wave: 'sine',     chords: [[0,7,12,16],[-2,5,10,14],[3,10,15,19],[-4,3,8,12]], arp: [0,7,12,16,19,16,12,7], padGain: .05, arpGain: .045, filt: 900 },
+    playful: { root: 293.66, tempo: 1500, wave: 'triangle', chords: [[0,4,7,12],[5,9,12,17],[7,11,14,19],[2,5,9,14]], arp: [0,4,7,12,7,4], padGain: .045, arpGain: .05, filt: 1600 }
+  };
+  function note(freq, t, dur, gain, wave, filtHz) {
+    const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+    o.type = wave; o.frequency.value = freq;
+    f.type = 'lowpass'; f.frequency.value = filtHz || 1200;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(gain, t + dur * 0.2);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    o.connect(f).connect(g).connect(master);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  function semis(root, s) { return root * Math.pow(2, s / 12); }
+  function schedule() {
+    if (!playing) return;
+    const M = MOODS[mood], t = ctx.currentTime + 0.05, beat = M.tempo / 1000;
+    const chord = M.chords[step % M.chords.length];
+    // soft sustained pad (whole chord)
+    chord.forEach(s => note(semis(M.root, s), t, beat * 1.9, M.padGain, M.wave, M.filt));
+    // arpeggio sprinkled across the bar
+    const per = beat / M.arp.length * 2;
+    M.arp.forEach((s, i) => note(semis(M.root * 2, s + chord[0]), t + i * per, per * 1.3, M.arpGain, 'sine', M.filt + 400));
+    // occasional shimmer bell
+    if (step % 2 === 1) note(semis(M.root * 4, chord[1]), t + beat, beat * 1.2, 0.03, 'sine', 3000);
+    step++;
+    timer = setTimeout(schedule, M.tempo);
+  }
+  function start(which) {
+    if (!on) return;
+    mood = which || mood;
+    try {
+      ctx = Sound.ctx();
+      if (ctx.state === 'suspended') ctx.resume();
+      if (!master) { master = ctx.createGain(); master.gain.value = 0; master.connect(ctx.destination); }
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
+      master.gain.linearRampToValueAtTime(0.9, ctx.currentTime + 1.5); // gentle fade-in
+      if (!playing) { playing = true; step = 0; schedule(); }
+    } catch (e) { /* audio unsupported — fine */ }
+  }
+  function stop(hard) {
+    if (!playing) return;
+    try {
+      if (master) { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6); }
+    } catch (e) {}
+    playing = false;
+    if (timer) { clearTimeout(timer); timer = null; }
+  }
+  return {
+    start, stop,
+    get on() { return on; },
+    setMood(m) { if (m !== mood && playing) { mood = m; } else { mood = m; } },
+    toggle(currentMood) {
+      on = !on; localStorage.bp_music = on ? '1' : '0';
+      if (on) start(currentMood); else stop(true);
+      return on;
+    }
   };
 })();
 
@@ -247,12 +319,49 @@ const Voice = (() => {
     // Smart default: little kids (K–2) get questions read aloud automatically.
     try { const k = State.me && State.me.kid; return !!(k && k.grade <= 2); } catch (e) { return false; }
   }
+  // Read-along storytime: narrate a passage while highlighting each word as it's
+  // spoken. Perfect for the littles learning to read. Falls back to plain speak
+  // if the browser doesn't fire boundary events.
+  function readAlong(container, lang) {
+    try {
+      speechSynthesis.cancel();
+      const spans = [...container.querySelectorAll('.pw')];
+      const text = spans.map(s => s.textContent).join(' ');
+      const u = new SpeechSynthesisUtterance(text);
+      const young = (() => { try { return State.me && State.me.kid && State.me.kid.grade <= 5; } catch (e) { return false; } })();
+      u.rate = young ? 0.85 : 0.95; u.pitch = young ? 1.2 : 1.0;
+      if (lang) u.lang = lang;
+      const v = bestVoice(lang || 'en-US'); if (v) u.voice = v;
+      // Map character offsets → word index for highlighting
+      const starts = []; let pos = 0;
+      spans.forEach(s => { starts.push(pos); pos += s.textContent.length + 1; });
+      let last = -1;
+      const clear = () => spans.forEach(s => s.classList.remove('pw-on'));
+      u.onboundary = (ev) => {
+        if (ev.name && ev.name !== 'word') return;
+        let idx = 0; for (let i = 0; i < starts.length; i++) { if (ev.charIndex >= starts[i]) idx = i; else break; }
+        if (idx !== last) { clear(); if (spans[idx]) spans[idx].classList.add('pw-on'); last = idx; }
+      };
+      u.onend = clear; u.onerror = clear;
+      container.classList.add('reading');
+      const done = () => container.classList.remove('reading');
+      u.addEventListener('end', done); u.addEventListener('error', done);
+      speechSynthesis.speak(u);
+    } catch (e) { /* unsupported — fine */ }
+  }
   return {
-    speak,
+    speak, readAlong,
     get auto() { return currentAuto(); },
     toggleAuto() { const next = !currentAuto(); pref = next ? '1' : '0'; localStorage.bp_autoread = pref; return next; }
   };
 })();
+// Render a passage into word-spans so read-along can highlight each word.
+function passageHTML(passage, playful) {
+  const words = String(passage).split(/\s+/).map((w, i) => `<span class="pw" data-i="${i}">${esc(w)}</span>`).join(' ');
+  return `<div class="passage-box"><div class="passage-head"><span class="passage-tag">📖 ${playful ? 'Storytime' : 'Read the passage'}</span>
+    <button class="btn sun small passage-read" type="button">🔊 ${playful ? 'Read to me' : 'Read aloud'}</button></div>
+    <div class="passage-words">${words}</div></div>`;
+}
 
 // ======================= confetti =======================
 const Confetti = (() => {
@@ -301,6 +410,9 @@ async function navigate() {
   document.onkeydown = null;
   document.querySelectorAll('.celebrate').forEach(el => el.remove());
   applyTheme();
+  // Background music lives in the FUN zones; lessons & everything else stay quiet.
+  const MUSIC_ZONES = ['play', 'avatar', 'snacks', 'trophies', 'buddies', 'game'];
+  if (Music.on && MUSIC_ZONES.includes(name)) Music.start(currentMusicMood()); else Music.stop();
   const fn = routes[name] || routes.landing;
   try { await fn(...args); } catch (e) {
     if (e.status === 401) { location.hash = State.me.role === 'kid' ? '#kid-login' : '#login'; return; }
@@ -334,16 +446,32 @@ function topbar(inner = '') {
   <div class="topbar">
     <div class="logo" onclick="location.hash='#'"><img src="/logo.svg" alt="Gallop" class="logo-img"> Gallop</div>
     <div class="right">
-      <button class="btn ghost small" id="mute-btn" title="Sound effects" aria-label="Toggle sound effects">${Sound.muted ? '🔇' : '🔊'}</button>
+      <div class="sound-wrap">
+        <button class="btn ghost small" id="sound-btn" title="Sound settings" aria-label="Sound settings">${Sound.muted && !Music.on ? '🔇' : '🔊'}</button>
+        <div class="sound-menu" id="sound-menu" hidden>
+          <button class="sound-opt" id="sfx-toggle"><span>🔊 Sound effects</span><span class="sw ${Sound.muted ? '' : 'on'}" id="sfx-sw"></span></button>
+          <button class="sound-opt" id="music-toggle"><span>🎵 Background music</span><span class="sw ${Music.on ? 'on' : ''}" id="music-sw"></span></button>
+        </div>
+      </div>
       ${right}
     </div>
   </div>${inner}`;
 }
 function wireChrome() {
-  const mb = $('#mute-btn');
-  if (mb) mb.onclick = () => { mb.textContent = Sound.toggle() ? '🔇' : '🔊'; };
+  const sb = $('#sound-btn'), menu = $('#sound-menu');
+  if (sb && menu) {
+    sb.onclick = (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; };
+    document.addEventListener('click', (e) => { if (menu && !menu.hidden && !e.target.closest('.sound-wrap')) menu.hidden = true; }, { once: true });
+    const sfxSw = $('#sfx-sw'), musicSw = $('#music-sw');
+    $('#sfx-toggle').onclick = (e) => { e.stopPropagation(); const muted = Sound.toggle(); sfxSw.classList.toggle('on', !muted); if (!muted) Sound.click(); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
+    $('#music-toggle').onclick = (e) => { e.stopPropagation(); const isOn = Music.toggle(currentMusicMood()); musicSw.classList.toggle('on', isOn); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
+  }
   const lb = $('#logout-btn');
   if (lb) lb.onclick = async () => { await api('/auth/logout', { method: 'POST' }); await refreshMe(); location.hash = '#'; };
+}
+// Older learners get the chill lo-fi vibe; the littles get a brighter playful loop.
+function currentMusicMood() {
+  try { const k = State.me && State.me.kid; return (k && k.grade >= 6) ? 'chill' : 'playful'; } catch (e) { return 'chill'; }
 }
 function showError(id, msg) { const el = $(id); if (el) { el.textContent = msg; el.classList.add('show'); } }
 
@@ -693,6 +821,7 @@ route('home', async () => {
       })()}
     </div>
     ${questCard}
+    <div id="ach-banner"></div>
     ${(k.grade >= 6 && data.subjects.some(s => s.placed)) ? `
     <div class="focus-launch">
       <div><b>🎯 Focus Session</b><span class="muted-inv"> — 15 minutes, one subject, zero distractions. Serious progress, tracked.</span></div>
@@ -712,11 +841,33 @@ route('home', async () => {
       <div class="zone-card" onclick="location.hash='#play'"><span class="zemoji">🕹️</span><b>${playful() ? 'Play Zone' : 'Arcade'}</b><span class="muted">${playful() ? 'Games cost 1 🎟️ — earn tokens by learning!' : 'Break games — 1 token each, earned by correct answers'}</span></div>
       <div class="zone-card" onclick="location.hash='#avatar'"><span class="zemoji">🎨</span><b>${playful() ? 'My Avatar' : 'Avatar'}</b><span class="muted">${playful() ? 'Spend coins on hats, pets & worlds' : 'Customize your profile with earned coins'}</span></div>
       <div class="zone-card" onclick="location.hash='#snacks'"><span class="zemoji">🍿</span><b>${playful() ? 'Snack Shack' : 'Snack Shack'}</b><span class="muted">${playful() ? 'Spend coins on treats from the vending machine!' : 'Trade coins for snacks & treats'}</span></div>
+      <div class="zone-card" onclick="location.hash='#trophies'"><span class="zemoji">🏆</span><b>Trophy Case</b><span class="muted">${playful() ? 'Your badges, trophies & next goals!' : 'Badges, certificates & milestones'}</span></div>
       <div class="zone-card" onclick="location.hash='#buddies'"><span class="zemoji">💌</span><b>Buddies</b><span class="muted">${playful() ? 'Cheer on your friends!' : 'See your crew’s streaks and send props'}</span></div>
     </div>
   </div>`);
   wireChrome();
   $('#autoread-btn').onclick = () => { $('#autoread-btn').textContent = Voice.toggleAuto() ? '🗣️ Read-aloud ON' : '🗣️ Read-aloud off'; };
+  // Prominent achievements banner — lazy-loaded so home stays snappy; drives striving
+  (async () => {
+    try {
+      const a = await api(`/learn/${kidId}/achievements`);
+      const el = $('#ach-banner'); if (!el) return;
+      const goal = a.nextGoals && a.nextGoals[0];
+      const RAR = { common: '#9aa4b2', rare: '#3d8bff', epic: '#a855f7', legendary: '#f0a500' };
+      el.innerHTML = `<div class="ach-banner" onclick="location.hash='#trophies'">
+        <div class="ab-trophy">🏆</div>
+        <div class="ab-mid">
+          <div class="ab-top"><b>${playful() ? 'Trophy Case' : 'Achievements'}</b><span class="ab-count">${a.earnedCount}/${a.totalBadges} badges</span></div>
+          ${goal ? `<div class="ab-goal"><span class="ab-goal-emoji">${goal.emoji}</span>
+            <div class="ab-goal-body"><span class="ab-goal-name">${playful() ? 'Next: ' : ''}${esc(goal.name)} — ${esc(goal.desc)}</span>
+              <div class="ab-prog"><div class="ab-prog-fill" style="width:${Math.round(goal.cur/goal.goal*100)}%;background:${RAR[goal.rarity]}"></div></div></div>
+            <span class="ab-goal-count">${goal.cur}/${goal.goal}</span></div>`
+          : `<div class="ab-goal"><span class="muted">🎉 Every badge earned — you're a legend!</span></div>`}
+        </div>
+        <div class="ab-cta">View →</div>
+      </div>`;
+    } catch (e) { /* non-critical */ }
+  })();
   const cq = $('#claim-quest');
   if (cq) cq.onclick = async () => {
     try {
@@ -792,7 +943,7 @@ route('placement', async (subject) => {
       <div class="q-card">
         <span class="q-skill" style="background:${style.color}">${esc(qn.skillName)}</span>
         <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
-        ${qn.passage ? `<div class="passage-box"><span class="passage-tag">📖 ${playful() ? 'Read the story' : 'Read the passage'}</span>${esc(qn.passage)}</div>` : ''}
+        ${qn.passage ? passageHTML(qn.passage, playful()) : ''}
         <div class="q-prompt">${esc(qn.prompt)}</div>
         <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}
           <button class="choice idk" data-i="-1">🤷 ${playful() ? "I haven't learned this yet" : "Haven't covered this yet"}</button>
@@ -801,8 +952,13 @@ route('placement', async (subject) => {
       </div>
     </div>`);
     wireChrome();
-    $('#say-btn').onclick = () => Voice.speak(qn.voice || qn.prompt, subject === 'spanish' ? 'es-ES' : 'en-US');
-    if (Voice.auto) Voice.speak(qn.voice || qn.prompt, subject === 'spanish' ? 'es-ES' : 'en-US');
+    const vlang = subject === 'spanish' ? 'es-ES' : 'en-US';
+    $('#say-btn').onclick = () => Voice.speak(qn.passage ? qn.prompt : (qn.voice || qn.prompt), vlang);
+    const pread = $('.passage-read'), pwords = $('.passage-words');
+    if (pread && pwords) pread.onclick = () => { Sound.click(); Voice.readAlong(pwords, vlang); };
+    // Auto: read the STORY aloud for passages (delight for the littles), else the question
+    if (qn.passage && pwords && (Voice.auto || (State.me.kid && State.me.kid.grade <= 2))) Voice.readAlong(pwords, vlang);
+    else if (Voice.auto) Voice.speak(qn.voice || qn.prompt, vlang);
     document.querySelectorAll('.choice').forEach(b => b.onclick = () => {
       const i = Number(b.dataset.i);
       if (i === -1) Sound.click(); else if (i === qn.answerIndex) Sound.correct(); else Sound.wrong();
@@ -889,7 +1045,7 @@ route('lesson', async (subject, mode) => {
       <div class="q-card">
         <span class="q-skill" style="background:${style.color}">${esc(qn.skillName)} · ${esc(modeLabel)}</span>
         <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
-        ${qn.passage ? `<div class="passage-box"><span class="passage-tag">📖 ${playful() ? 'Read the story' : 'Read the passage'}</span>${esc(qn.passage)}</div>` : ''}
+        ${qn.passage ? passageHTML(qn.passage, playful()) : ''}
         <div class="q-prompt">${esc(qn.prompt)}</div>
         ${typed ? `<div class="typed-wrap">
           <input id="typed-in" class="typed-input" inputmode="decimal" autocomplete="off" placeholder="${playful() ? 'Type your answer!' : 'Your answer'}" aria-label="Type your answer">
@@ -911,8 +1067,13 @@ route('lesson', async (subject, mode) => {
       </div>
     </div>`);
     wireChrome();
-    $('#say-btn').onclick = () => Voice.speak(qn.voice || qn.prompt, subject === 'spanish' ? 'es-ES' : 'en-US');
-    if (Voice.auto) Voice.speak(qn.voice || qn.prompt, subject === 'spanish' ? 'es-ES' : 'en-US');
+    const vlang = subject === 'spanish' ? 'es-ES' : 'en-US';
+    $('#say-btn').onclick = () => Voice.speak(qn.passage ? qn.prompt : (qn.voice || qn.prompt), vlang);
+    const pread = $('.passage-read'), pwords = $('.passage-words');
+    if (pread && pwords) pread.onclick = () => { Sound.click(); Voice.readAlong(pwords, vlang); };
+    // Auto: read the STORY aloud for passages (delight for the littles), else the question
+    if (qn.passage && pwords && (Voice.auto || (State.me.kid && State.me.kid.grade <= 2))) Voice.readAlong(pwords, vlang);
+    else if (Voice.auto) Voice.speak(qn.voice || qn.prompt, vlang);
     $('#hint-btn').onclick = () => { $('#hint-box').classList.add('show'); Sound.click(); };
     $('#tt-btn').onclick = async () => {
       Sound.click();
@@ -1573,7 +1734,7 @@ route('admin', async () => {
 });
 
 // ======================= shared API for games.js =======================
-window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, showError, State, Sound, Voice, Confetti, AVATARS, ITEM_EMOJI, avatarHTML, refreshMe };
+window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, showError, State, Sound, Voice, Music, Confetti, AVATARS, ITEM_EMOJI, avatarHTML, refreshMe };
 
 // ======================= boot =======================
 (async function boot() {
