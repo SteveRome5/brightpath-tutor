@@ -7,19 +7,31 @@ const db = require('./db');
 const KEY = process.env.STRIPE_SECRET_KEY || '';
 const stripe = KEY ? require('stripe')(KEY) : null;
 
+// Three tiers by number of learners. `envPrice` is the Stripe Price ID (price_...) set in Render.
+// `available` is true in demo mode, or in Stripe mode only when that tier's Price ID is configured,
+// so a tier never shows a "Subscribe" button it can't actually check out. Existing subscribers keep
+// whatever Stripe price their subscription was created with; new prices only affect new checkouts.
 const PLANS = {
-  solo:   { name: 'Solo Learner',  priceMonthly: 29, kids: 1,  envPrice: process.env.STRIPE_PRICE_SOLO },
-  family: { name: 'Family',        priceMonthly: 49, kids: 4,  envPrice: process.env.STRIPE_PRICE_FAMILY }
+  solo:   { name: 'Solo',   priceMonthly: 34, kids: 1, envPrice: process.env.STRIPE_PRICE_SOLO },
+  family: { name: 'Family', priceMonthly: 54, kids: 4, envPrice: process.env.STRIPE_PRICE_FAMILY }
 };
+// Attach availability (computed once at load).
+for (const key of Object.keys(PLANS)) PLANS[key].available = !KEY || !!PLANS[key].envPrice;
 
 function billingMode() { return stripe ? 'stripe' : 'demo'; }
 
 async function createCheckout(parent, plan, origin) {
-  const p = PLANS[plan] || PLANS.family;
+  const planKey = PLANS[plan] ? plan : 'family';
+  const p = PLANS[planKey];
   if (!stripe) {
     // Demo mode: activate instantly so the full product flow is testable
-    db.prepare("UPDATE parents SET sub_status='active', sub_plan=? WHERE id=?").run(plan, parent.id);
+    db.prepare("UPDATE parents SET sub_status='active', sub_plan=? WHERE id=?").run(planKey, parent.id);
     return { demo: true, url: origin + '/?billing=success' };
+  }
+  if (!p.envPrice) {
+    // Live mode but this tier's Stripe Price ID isn't configured yet — fail loudly instead of
+    // creating a broken checkout session.
+    return { error: `The ${p.name} plan is not available yet. Please try another plan or contact support@learnwithgallop.com.` };
   }
   let customerId = parent.stripe_customer_id;
   if (!customerId) {

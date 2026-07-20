@@ -366,7 +366,8 @@ router.get('/family/stats', auth.requireParent, (req, res) => {
 router.post('/billing/checkout', auth.requireParent, async (req, res) => {
   try {
     const origin = `${req.protocol}://${req.get('host')}`;
-    const out = await billing.createCheckout(req.parent, req.body.plan === 'solo' ? 'solo' : 'family', origin);
+    const plan = billing.PLANS[req.body.plan] ? req.body.plan : 'family';
+    const out = await billing.createCheckout(req.parent, plan, origin);
     res.json(out);
   } catch (e) { res.status(500).json({ error: 'Billing error: ' + e.message }); }
 });
