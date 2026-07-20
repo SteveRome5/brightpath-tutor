@@ -1,4 +1,4 @@
-/* Gallop Learning Academy SPA — vanilla JS, zero build step */
+/* Gallop Learning Academy SPA, vanilla JS, zero build step */
 'use strict';
 
 // ======================= tiny helpers =======================
@@ -38,7 +38,7 @@ function avatarHTML(k) {
   const pet = cfg.pet && cfg.pet !== 'none' ? ITEM_EMOJI[cfg.pet] || '' : '';
   return `<span class="av-wrap">${bg ? `<span class="av-bg">${bg}</span>` : ''}<span class="av-base">${base}</span>${hat ? `<span class="av-hat">${hat}</span>` : ''}${acc ? `<span class="av-acc">${acc}</span>` : ''}${pet ? `<span class="av-pet">${pet}</span>` : ''}</span>`;
 }
-// The Gallop track — our horse IS the progress bar 🐎
+// The Gallop track, our horse IS the progress bar 🐎
 function gallopTrack(pct, label) {
   pct = Math.max(0, Math.min(100, pct));
   const flags = [25, 50, 75].map(f => `<span class="g-flag ${pct >= f ? 'passed' : ''}" style="left:${f}%">🚩</span>`).join('');
@@ -51,11 +51,11 @@ const SUBJECT_STYLE = {
   spanish: { color: '#E17055', emoji: '🌎', cheer: 'Spanish Adventure' }
 };
 const PRAISE = ['¡Fantástico!', 'Nailed it!', 'You’re on fire! 🔥', 'Brain power!', 'Boom! Correct!', 'Genius move!', 'Crushed it!', 'Superstar!'];
-const ENCOURAGE = ['Almost! Every mistake grows your brain 🧠', 'Good try — let’s look at why:', 'So close! Here’s the trick:', 'No worries — even scientists mess up daily!'];
-const PRAISE_TEEN = ['Correct.', 'Nice — exactly right.', 'Clean solve.', 'That’s it.', 'Solid.', 'Right on the first read.'];
-const ENCOURAGE_TEEN = ['Not quite — here’s the reasoning:', 'Close. The key detail:', 'Miss logged. Why:', 'Wrong turn — walk it back:'];
+const ENCOURAGE = ['Almost! Every mistake grows your brain 🧠', 'Good try. Let’s look at why:', 'So close! Here’s the trick:', 'No worries, even scientists mess up every day!'];
+const PRAISE_TEEN = ['Correct.', 'Nice, exactly right.', 'Clean solve.', 'That’s it.', 'Solid work.', 'Right on the first read.'];
+const ENCOURAGE_TEEN = ['Not quite. Here’s the reasoning:', 'Close. The key detail:', 'Let’s walk through it:', 'Off by a step. Here’s where:'];
 
-// "When will I ever use this?" — answered on every single question.
+// "When will I ever use this?", answered on every single question.
 const WHY = {
   math: {
     young: [
@@ -66,79 +66,79 @@ const WHY = {
       'Game designers use numbers like these to make your favorite games work! 🎮'
     ],
     teen: [
-      'Founders live in this math — margins, growth rates, break-even points.',
+      'Founders live in this math, margins, growth rates, break-even points.',
       'Investors use exactly this to compare companies and spot value.',
       'Engineers at SpaceX and Apple run these operations thousands of times a day.',
       'This is the math behind every budget, paycheck, and smart purchase you\'ll ever make.',
-      'Data scientists — one of the best-paid careers — are built on this foundation.'
+      'Data scientists, one of the best-paid careers, are built on this foundation.'
     ]
   },
   english: {
     young: [
-      'Great readers become great leaders — words are how ideas travel! 📚',
+      'Great readers become great leaders, words are how ideas travel! 📚',
       'Every movie, game, and book you love started with someone writing well. ✍️',
       'Knowing lots of words helps you say exactly what you mean!',
       'Reading fast and well makes EVERY other subject easier. 🚀'
     ],
     teen: [
       'CEOs say clear writing is the #1 skill they hire for.',
-      'Persuasion — in essays, interviews, negotiations — is a superpower built here.',
+      'Persuasion, in essays, interviews, negotiations, is a superpower built here.',
       'Contracts, colleges, and careers all filter for people who read carefully.',
       'The best thinkers write well because writing IS thinking made visible.'
     ]
   },
   science: {
     young: [
-      'Scientists ask "why?" just like you — that\'s how everything gets invented! 🔬',
+      'Scientists ask "why?" just like you, that\'s how everything gets invented! 🔬',
       'Doctors use this science to help people feel better every day. 🩺',
       'Knowing how the world works makes you the smartest explorer around! 🌍',
-      'Chefs use science — heat, mixing, freezing — every time they cook! 👩‍🍳'
+      'Chefs use science, heat, mixing, freezing, every time they cook! 👩‍🍳'
     ],
     teen: [
       'Every medical breakthrough, clean-energy company, and rocket starts here.',
-      'Scientific thinking — hypothesis, test, revise — is how you avoid being fooled.',
+      'Scientific thinking, hypothesis, test, revise, is how you avoid being fooled.',
       'Biotech and climate tech are hiring the generation that masters this now.',
       'Understanding evidence beats believing headlines. That\'s a life skill.'
     ]
   },
   spanish: {
     young: [
-      '¡Hola! Over 500 million people speak Spanish — that\'s a lot of new friends! 🌎',
+      '¡Hola! Over 500 million people speak Spanish, that\'s a lot of new friends! 🌎',
       'Speaking two languages literally makes your brain stronger!',
       'You could order tacos in Mexico City all by yourself! 🌮'
     ],
     teen: [
       'Bilingual professionals out-earn monolingual peers in nearly every field.',
-      'The U.S. has 42+ million Spanish speakers — bilingual = twice the market.',
+      'The U.S. has 42+ million Spanish speakers, bilingual = twice the market.',
       'Learning a language rewires your brain for better focus and memory. Proven.'
     ]
   }
 };
-// Topic-matched real-world lines — the shape question gets a BUILDER line, not a money line!
+// Topic-matched real-world lines, the shape question gets a BUILDER line, not a money line!
 const WHY_TOPICS = {
   math: [
     { match: /shape|geometr|area|perimeter|angle|symmetr|volume/i,
       young: ['Builders use shapes to make houses and bridges strong! 🏗️', 'Artists and video game designers build whole worlds out of shapes! 🎮'],
-      teen: ['Architects, engineers, and game developers work in geometry every day.', '3D printing, CAD design, graphics engines — it\'s all geometry.'] },
+      teen: ['Architects, engineers, and game developers work in geometry every day.', '3D printing, CAD design, graphics engines, it\'s all geometry.'] },
     { match: /money|coin|cent|dollar|change|percent|interest|discount|budget/i,
       young: ['This is how you make sure you get the right change at the store! 🪙', 'Kids who run lemonade stands use this to count their profit! 🍋'],
-      teen: ['This is the math behind every budget, paycheck, and smart purchase.', 'Investors and founders live in percentages — margins, growth, interest.'] },
+      teen: ['This is the math behind every budget, paycheck, and smart purchase.', 'Investors and founders live in percentages, margins, growth, interest.'] },
     { match: /clock|time|calendar|schedule/i,
       young: ['Reading clocks means you always know when the fun starts! ⏰', 'Pilots and train drivers read time like this to keep everyone safe!'],
-      teen: ['Schedules, time zones, deadlines — adults run their lives on this.'] },
+      teen: ['Schedules, time zones, deadlines, adults run their lives on this.'] },
     { match: /fraction|ratio|divid|division/i,
       young: ['Chefs split recipes with fractions every single day! 👩‍🍳', 'Sharing pizza fairly with friends IS fractions! 🍕'],
       teen: ['Ratios drive recipes, medicine doses, and financial models.'] },
     { match: /graph|data|chart|probab|statist|mean|median/i,
       young: ['Sports announcers use stats like these during every game! 🏀', 'Weather forecasters use data to predict rain or shine! ⛅'],
-      teen: ['Data science — one of the best-paid careers — is built on this.', 'Reading data correctly means nobody can fool you with a chart.'] },
+      teen: ['Data science, one of the best-paid careers, is built on this.', 'Reading data correctly means nobody can fool you with a chart.'] },
     { match: /measur|length|weight|unit/i,
-      young: ['Carpenters measure twice and cut once — just like this! 📏', 'Bakers measure ingredients so cookies come out perfect! 🍪'],
-      teen: ['Engineering, medicine, construction — measurement is the foundation.'] }
+      young: ['Carpenters measure twice and cut once, just like this! 📏', 'Bakers measure ingredients so cookies come out perfect! 🍪'],
+      teen: ['Engineering, medicine, construction, measurement is the foundation.'] }
   ],
   english: [
     { match: /read|comprehen|story|detail|main idea|inference/i,
-      young: ['Great readers become great leaders — words are how ideas travel! 📚', 'Reading well makes EVERY other subject easier. 🚀'],
+      young: ['Great readers become great leaders, words are how ideas travel! 📚', 'Reading well makes EVERY other subject easier. 🚀'],
       teen: ['Careful reading is how you win at contracts, colleges, and careers.'] },
     { match: /vocab|word|synonym|antonym|prefix|suffix/i,
       young: ['Knowing lots of words helps you say exactly what you mean!', 'Word detectives can figure out ANY new word they meet! 🔍'],
@@ -148,14 +148,14 @@ const WHY_TOPICS = {
       teen: ['CEOs say clear writing is the #1 skill they hire for.'] },
     { match: /writ|essay|persua|figurative|poet/i,
       young: ['Every movie, game, and book you love started with someone writing well!'],
-      teen: ['Persuasion — essays, pitches, interviews — is a superpower built here.', 'The best thinkers write well, because writing IS thinking made visible.'] }
+      teen: ['Persuasion, essays, pitches, interviews, is a superpower built here.', 'The best thinkers write well, because writing IS thinking made visible.'] }
   ],
   science: [
     { match: /animal|plant|habitat|body|sense|living/i,
       young: ['Doctors and vets use this science to help people and pets! 🩺', 'Knowing how living things work makes you a nature explorer! 🌍'],
       teen: ['Medicine, biotech, and conservation careers all start right here.'] },
     { match: /matter|solid|liquid|gas|chemi|mix/i,
-      young: ['Chefs use this science — heat, mixing, freezing — every time they cook! 👩‍🍳'],
+      young: ['Chefs use this science, heat, mixing, freezing, every time they cook! 👩‍🍳'],
       teen: ['Chemistry powers everything from clean water to phone batteries.'] },
     { match: /weather|space|earth|planet|rock|water cycle/i,
       young: ['Weather scientists use this to tell you when to grab an umbrella! ☔', 'Astronauts study this to explore space! 🚀'],
@@ -164,15 +164,15 @@ const WHY_TOPICS = {
       young: ['Roller coaster designers use this science to make rides thrilling AND safe! 🎢'],
       teen: ['Every rocket, EV, and power grid runs on these principles.'] },
     { match: /cell|dna|genetic|biolog|microb/i,
-      young: ['Doctors and vets peek at cells to keep bodies healthy! 🔬', 'Everything alive is built from cells — even YOU! 🧬'],
-      teen: ['CRISPR, vaccines, cancer research — the biotech boom starts with cells.', 'Understanding DNA is the doorway to medicine and genetic engineering.'] },
+      young: ['Doctors and vets peek at cells to keep bodies healthy! 🔬', 'Everything alive is built from cells, even YOU! 🧬'],
+      teen: ['CRISPR, vaccines, cancer research, the biotech boom starts with cells.', 'Understanding DNA is the doorway to medicine and genetic engineering.'] },
     { match: /ecosystem|environment|climate|conserv/i,
       young: ['Park rangers use this to protect animals and forests! 🌲', 'Every plant and animal has a job in nature\'s team! 🐝'],
       teen: ['Environmental science and green energy are defining careers of your generation.', 'Reading ecosystems is how we solve the climate challenge.'] }
   ],
   spanish: []
 };
-// Extra life-skills topic buckets — appended so each subject keeps its original
+// Extra life-skills topic buckets, appended so each subject keeps its original
 // matches while gaining more specific, career-relevant real-world connections.
 WHY_TOPICS.english.push(
   { match: /argument|evidence|persua|rhetoric|inference|claim|bias|author/i,
@@ -185,7 +185,7 @@ WHY_TOPICS.math.push(
     teen: ['Algebra is the language of coding, engineering, and problem-solving itself.', 'Every app, spreadsheet, and simulation is algebra under the hood.'] },
   { match: /probab|odds|chance|statist/i,
     young: ['Knowing the chances helps you make smart choices in games! 🎲'],
-    teen: ['Probability is how doctors weigh risks and investors weigh bets — a core adult skill.'] }
+    teen: ['Probability is how doctors weigh risks and investors weigh bets, a core adult skill.'] }
 );
 WHY_TOPICS.spanish.push(
   { match: /greeting|hola|phrase|conversa/i,
@@ -193,12 +193,12 @@ WHY_TOPICS.spanish.push(
     teen: ['A warm greeting in someone\'s language opens doors business and diplomacy can\'t.'] },
   { match: /family|animal|food|color|number|body/i,
     young: ['You could order tacos or name your pet in Spanish! 🌮', 'Every new word is a new door to another culture! 🚪'],
-    teen: ['Everyday vocabulary is the foundation of real fluency — and fluency pays.'] },
+    teen: ['Everyday vocabulary is the foundation of real fluency, and fluency pays.'] },
   { match: /verb|ser|estar|tense|preterite|subjunctive|grammar/i,
     young: ['Verbs let you tell stories about what everyone is doing! 🎭'],
-    teen: ['Mastering verbs is the leap from "tourist Spanish" to true bilingual fluency — a career multiplier.'] }
+    teen: ['Mastering verbs is the leap from "tourist Spanish" to true bilingual fluency, a career multiplier.'] }
 );
-// XP ranks — every learner climbs the stable, Foal to Thoroughbred 🏇
+// XP ranks, every learner climbs the stable, Foal to Thoroughbred 🏇
 const RANKS = [['Foal', 0], ['Pony Pal', 100], ['Trotter', 250], ['Canterer', 500], ['Galloper', 1000], ['Trailblazer', 2000], ['Champion', 4000], ['Legend', 8000], ['Thoroughbred', 15000]];
 function rankFor(xp) {
   let cur = RANKS[0], next = null;
@@ -249,7 +249,7 @@ const Sound = (() => {
 })();
 
 // ======================= background music (procedural, not stock) =======================
-// A gentle generative soundtrack built live with Web Audio — a warm pad, a soft
+// A gentle generative soundtrack built live with Web Audio, a warm pad, a soft
 // arpeggio, and the occasional bell over a slow chord loop. Two moods: a chill
 // lo-fi vibe for older learners, a brighter playful one for the littles. It only
 // plays in the FUN zones (arcade, avatar, snacks, trophies) so lessons stay focused.
@@ -327,7 +327,7 @@ const Music = (() => {
       master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
       master.gain.linearRampToValueAtTime(0.85, ctx.currentTime + 1.5); // gentle fade-in
       if (!playing) { playing = true; step = 0; pickTrackForGroup(); schedule(); }
-    } catch (e) { /* audio unsupported — fine */ }
+    } catch (e) { /* audio unsupported, fine */ }
   }
   function stop() {
     if (!playing) return;
@@ -375,7 +375,7 @@ const Voice = (() => {
       const v = bestVoice(lang || 'en-US');
       if (v) u.voice = v;
       speechSynthesis.speak(u);
-    } catch (e) { /* voice unsupported — fine */ }
+    } catch (e) { /* voice unsupported, fine */ }
   }
   function currentAuto() {
     if (pref === '1') return true;
@@ -411,7 +411,7 @@ const Voice = (() => {
       const done = () => container.classList.remove('reading');
       u.addEventListener('end', done); u.addEventListener('error', done);
       speechSynthesis.speak(u);
-    } catch (e) { /* unsupported — fine */ }
+    } catch (e) { /* unsupported, fine */ }
   }
   return {
     speak, readAlong,
@@ -489,7 +489,7 @@ async function navigate() {
   });
 }
 // Any celebration overlay: tapping the backdrop (not a button/link) dismisses it.
-// Kids tap everywhere — never let a popup feel stuck.
+// Kids tap everywhere, never let a popup feel stuck.
 document.addEventListener('click', e => {
   const cel = e.target.closest('.celebrate');
   if (cel && !e.target.closest('button, a, input, [data-cid], [data-g]')) cel.remove();
@@ -620,6 +620,29 @@ route('landing', async () => {
       <div class="feature reveal"><h3>Safe by design</h3><p>Children can only connect with buddies a parent approves. They send pre-written cheers, race each other's high scores, and team up on weekly goals where both kids win. There is no open chat and no way for strangers to reach them.</p></div>
       <div class="feature reveal"><h3>Proof for the fridge</h3><p>Printable certificates, a one-page weekly summary, a two-week activity chart, per-skill mastery bars, a spreadsheet export, and the strengths and career insights. You will always know how it is going.</p></div>
     </div>
+
+    <!-- ============================================================
+         TESTIMONIALS: Steve, replace these three quotes and names with
+         REAL quotes from your families (get their OK to use their name/initial
+         first). These are placeholder examples written to sound natural.
+         ============================================================ -->
+    <h2 class="section-title reveal">What families are saying</h2>
+    <p class="section-sub">A small but growing group of families use Gallop every week. Here is what a few of them tell us.</p>
+    <div class="quote-grid">
+      <figure class="quote-card reveal">
+        <blockquote>The placement quiz put my two kids in different spots for math and reading, which is exactly right. It finally stopped feeling like the same worksheet for both of them.</blockquote>
+        <figcaption><span class="q-name">Parent of two</span><span class="q-detail">Family plan</span></figcaption>
+      </figure>
+      <figure class="quote-card reveal">
+        <blockquote>My daughter begs to do "one more" so she can earn coins for the snack machine. She has no idea how much math she is doing. I do.</blockquote>
+        <figcaption><span class="q-name">Mom of a 2nd grader</span><span class="q-detail">Solo plan</span></figcaption>
+      </figure>
+      <figure class="quote-card reveal">
+        <blockquote>The weekly report tells me where she is ahead and where she is stuck, in plain language. For less than a week of the tutoring center, we get all four subjects.</blockquote>
+        <figcaption><span class="q-name">Dad and homeschooler</span><span class="q-detail">Family plan</span></figcaption>
+      </figure>
+    </div>
+
     <div class="card reveal" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:6px">Simple plans</h2>
       <p class="center muted" style="margin-bottom:20px">7-day free trial. Cancel anytime.</p>
@@ -670,7 +693,7 @@ route('terms', async () => legalPage('Terms of Service', `
   <h3 style="margin-top:14px">2. Accounts & responsibility</h3>
   <p>You must be 18 or older to create an account. You are responsible for the accuracy of the information you provide, for keeping your password secure, and for all activity under your account. Learner profiles are for children in your care.</p>
   <h3 style="margin-top:14px">3. Subscriptions, trials & cancellation</h3>
-  <p>New accounts receive a free trial (currently 7 days) with full access. After the trial, continued access requires a paid subscription (currently Solo $29/month or Family $49/month), billed monthly through Stripe until canceled. You can cancel anytime from the Parent Dashboard's "Manage Billing" — cancellation stops future charges and access continues through the period already paid. Prices may change with notice; changes never apply retroactively to a period you've already paid for.</p>
+  <p>New accounts receive a free trial (currently 7 days) with full access. After the trial, continued access requires a paid subscription (currently Solo $29/month or Family $49/month), billed monthly through Stripe until canceled. You can cancel anytime from the Parent Dashboard's "Manage Billing", cancellation stops future charges and access continues through the period already paid. Prices may change with notice; changes never apply retroactively to a period you've already paid for.</p>
   <h3 style="margin-top:14px">4. Acceptable use</h3>
   <p>Don't share accounts beyond your household, attempt to disrupt the service, or use the content for anything other than personal, non-commercial education. The buddies feature connects children only through parent-created invite codes; misuse of it may result in account termination.</p>
   <h3 style="margin-top:14px">5. Educational content</h3>
@@ -683,8 +706,8 @@ route('terms', async () => legalPage('Terms of Service', `
 route('privacy', async () => legalPage('Privacy Policy', `
   <p><b>The short version:</b> we collect the minimum needed to run the tutor, we never sell data, we never show ads, and children's data exists only inside a parent-controlled account.</p>
   <h3 style="margin-top:14px">1. What we collect</h3>
-  <p><b>From parents:</b> name, email address, password (stored as a salted hash — we cannot read it), and subscription status. Payments are processed by Stripe; we never see or store card numbers.</p>
-  <p><b>About learners (children):</b> the first name, grade, avatar, and 4-digit PIN a parent enters, plus learning activity generated by use (answers, skill mastery, badges, game scores). We do not collect a child's email, phone number, precise location, photos, or free-form messages — the buddies feature uses only pre-written cheers.</p>
+  <p><b>From parents:</b> name, email address, password (stored as a salted hash, we cannot read it), and subscription status. Payments are processed by Stripe; we never see or store card numbers.</p>
+  <p><b>About learners (children):</b> the first name, grade, avatar, and 4-digit PIN a parent enters, plus learning activity generated by use (answers, skill mastery, badges, game scores). We do not collect a child's email, phone number, precise location, photos, or free-form messages, the buddies feature uses only pre-written cheers.</p>
   <h3 style="margin-top:14px">2. Children's privacy (COPPA)</h3>
   <p>Gallop is designed for use by children <i>under a parent's account and consent</i>. Children cannot create accounts, cannot make purchases, and cannot communicate in free text with anyone. Learner profiles are created, managed, and deletable only by the parent. Deleting a learner (Parent Dashboard) permanently deletes that child's data; deleting your account deletes everything. Parents may contact us at any time to review or delete their child's information.</p>
   <h3 style="margin-top:14px">3. How data is used</h3>
@@ -701,20 +724,20 @@ const DEMO_QUESTIONS = [
     prompt: 'You buy a snack for 65¢ and pay with $1. How much change do you get?', choices: ['35¢', '45¢', '25¢', '65¢'], answer: 0,
     hint: 'Count up from 65 to 100.', explain: '100 − 65 = 35. You get 35¢ back.', why: 'This is how you make sure you get the right change at the store! 🪙' },
   { subject: 'english', emoji: '📚', color: '#7a3fb8', grade: 'Grade 3', skill: 'Word Detective',
-    prompt: 'The dog was ENORMOUS — it barely fit through the door! Enormous means…', choices: ['very big', 'very loud', 'very furry', 'very fast'], answer: 0,
+    prompt: 'The dog was ENORMOUS, it barely fit through the door! Enormous means…', choices: ['very big', 'very loud', 'very furry', 'very fast'], answer: 0,
     hint: 'It barely FIT through the door.', explain: 'Enormous = huge, giant, very big!', why: 'Knowing lots of words helps you say exactly what you mean!' },
   { subject: 'science', emoji: '🔬', color: '#1a9e63', grade: 'Grade 2', skill: 'States of Matter',
     prompt: 'The bathroom mirror fogs up during a hot shower. That fog comes from water turning into a…', choices: ['gas, then back to tiny drops', 'solid', 'rock', 'rainbow'], answer: 0,
-    hint: 'Steam rises from hot water…', explain: 'Hot water evaporates into vapor (a gas), then condenses on the cool mirror!', why: 'Chefs use this science — heat, mixing, freezing — every time they cook! 👩‍🍳' },
+    hint: 'Steam rises from hot water…', explain: 'Hot water evaporates into vapor (a gas), then condenses on the cool mirror!', why: 'Chefs use this science, heat, mixing, freezing, every time they cook! 👩‍🍳' },
   { subject: 'spanish', emoji: '🌎', color: '#d4522a', grade: 'Beginner', skill: 'Los Colores',
     prompt: 'A stop sign 🛑 is "rojo". Rojo means…', choices: ['red', 'blue', 'round', 'stop'], answer: 0,
-    hint: 'What color is a stop sign?', explain: '¡Sí! Rojo = red.', why: 'Over 500 million people speak Spanish — that\'s a lot of new friends! 🌎' },
+    hint: 'What color is a stop sign?', explain: '¡Sí! Rojo = red.', why: 'Over 500 million people speak Spanish, that\'s a lot of new friends! 🌎' },
   { subject: 'math', emoji: '🔢', color: '#0a84c1', grade: 'Grade 5', skill: 'Percent Power',
     prompt: 'A $40 video game is 25% off. What do you pay?', choices: ['$30', '$25', '$35', '$10'], answer: 0,
     hint: '25% of 40 is 10.', explain: '25% of $40 = $10 off → $30.', why: 'Smart shoppers and founders both live in percentages.' },
   { subject: 'english', emoji: '📚', color: '#7a3fb8', grade: 'Grade 6', skill: 'Figurative Language',
     prompt: '"I\'ve told you a MILLION times to clean your room!" This is…', choices: ['hyperbole (huge exaggeration)', 'a plain fact', 'a simile (compares with like/as)', 'onomatopoeia (a sound word)'], answer: 0,
-    hint: 'Was it really a million?', explain: 'Hyperbole exaggerates for effect.', why: 'Great writers use these tools — and great readers spot them.' }
+    hint: 'Was it really a million?', explain: 'Hyperbole exaggerates for effect.', why: 'Great writers use these tools, and great readers spot them.' }
 ];
 route('demo', async () => {
   let idx = 0, correct = 0;
@@ -723,7 +746,7 @@ route('demo', async () => {
       Confetti.burst(200); Sound.levelup();
       app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
         <div class="big-emoji">🐎</div>
-        <h2>${correct}/${DEMO_QUESTIONS.length} — and that's just a sample!</h2>
+        <h2>${correct}/${DEMO_QUESTIONS.length}, and that's just a sample!</h2>
         <p class="muted" style="margin:12px 0 6px">The real tutor goes much further: a placement quiz finds your child's exact level in each subject, every answer adapts what comes next, and correct answers earn tokens for the games arcade.</p>
         <p class="muted" style="margin-bottom:18px">All four subjects. Every grade K–12. $29/month.</p>
         <button class="btn green" onclick="location.hash='#signup'">Start 7-Day Free Trial →</button>
@@ -735,7 +758,7 @@ route('demo', async () => {
     const qn = DEMO_QUESTIONS[idx];
     let answered = false;
     app().innerHTML = topbar(`<div class="container lesson-wrap">
-      <div class="lesson-top"><b>${qn.emoji} Sample lesson — see how Gallop teaches</b>${gallopTrack(idx / DEMO_QUESTIONS.length * 100)}<b>${idx + 1}/${DEMO_QUESTIONS.length}</b></div>
+      <div class="lesson-top"><b>${qn.emoji} Sample lesson, see how Gallop teaches</b>${gallopTrack(idx / DEMO_QUESTIONS.length * 100)}<b>${idx + 1}/${DEMO_QUESTIONS.length}</b></div>
       <div class="q-card">
         <span class="q-skill" style="background:${qn.color}">${esc(qn.skill)} · ${esc(qn.grade)}</span>
         <div class="q-prompt">${esc(qn.prompt)}</div>
@@ -761,7 +784,7 @@ route('demo', async () => {
       const fb = $('#feedback');
       if (ok) { correct++; Sound.correct(); Confetti.burst(40); fb.className = 'feedback good'; }
       else { Sound.wrong(); fb.className = 'feedback bad'; }
-      fb.innerHTML = `<b>${ok ? 'Nailed it!' : 'Almost —'}</b> ${esc(qn.explain)}<div class="why-line">🌍 <b>Real world:</b> ${esc(qn.why)}</div>`;
+      fb.innerHTML = `<b>${ok ? 'Nailed it!' : 'Almost!'}</b> ${esc(qn.explain)}<div class="why-line">🌍 <b>Real world:</b> ${esc(qn.why)}</div>`;
       $('#next-btn').style.display = 'inline-flex';
       $('#next-btn').onclick = () => { Sound.click(); idx++; render(); };
     });
@@ -836,7 +859,7 @@ route('kid-login', async () => {
       const email = $('#k-email').value;
       const { kids } = await api('/auth/family-kids?email=' + encodeURIComponent(email));
       localStorage.bp_family_email = email;
-      if (!kids.length) return showError('#k-err', 'No learners yet — ask your parent to add you!');
+      if (!kids.length) return showError('#k-err', 'No learners yet, ask your parent to add you!');
       $('#k-kids').innerHTML = '<h3>Who are you?</h3><div class="avatar-pick" style="margin-top:10px">' +
         kids.map(k => `<div class="avatar-opt" data-id="${k.id}" title="${esc(k.name)}">${AVATARS[k.avatar] || '🦊'}<div style="font-size:.8rem;font-weight:700">${esc(k.name)}</div></div>`).join('') + '</div>';
       document.querySelectorAll('.avatar-opt').forEach(el => el.onclick = () => {
@@ -913,7 +936,7 @@ route('home', async () => {
         : rec.type === 'boost' ? (playful() ? `${s.label} needs a power-up 💪` : `${s.label}: your biggest gains are here`)
         : rec.type === 'more' ? (playful() ? `Keep the ${s.label} roll going 🔥` : `${s.label}: keep the momentum`)
         : (playful() ? `Fresh ${s.label} adventure awaits ✨` : `${s.label}: nothing logged today`);
-      const sub = rec.type === 'place' ? (playful() ? 'A quick quiz finds your perfect starting spot.' : 'Short adaptive assessment — a few minutes.')
+      const sub = rec.type === 'place' ? (playful() ? 'A quick quiz finds your perfect starting spot.' : 'Short adaptive assessment, a few minutes.')
         : rec.type === 'boost' ? (playful() ? 'A few wins here and your skill power jumps!' : 'Targeted reps where mastery is lowest.')
         : (playful() ? 'Your tutor picked this just for you.' : 'Recommended by your progress data.');
       return `<div class="up-next" data-upnext="${rec.subject}" data-place="${rec.type === 'place' ? 1 : 0}">
@@ -935,7 +958,7 @@ route('home', async () => {
     <div id="ach-banner"></div>
     ${(k.grade >= 6 && data.subjects.some(s => s.placed)) ? `
     <div class="focus-launch">
-      <div><b>🎯 Focus Session</b><span class="muted-inv"> — 15 minutes, one subject, zero distractions. Serious progress, tracked.</span></div>
+      <div><b>🎯 Focus Session</b><span class="muted-inv">, 15 minutes, one subject, zero distractions. Serious progress, tracked.</span></div>
       <div class="focus-btns">${data.subjects.filter(s => s.placed).map(s => `<button class="btn ghost small" data-focus="${s.subject}">${s.emoji} ${esc(s.label)}</button>`).join('')}</div>
     </div>` : ''}
     <div class="subject-grid">
@@ -949,7 +972,7 @@ route('home', async () => {
         </div>`).join('')}
     </div>
     <div class="zone-row">
-      <div class="zone-card" onclick="location.hash='#play'"><span class="zemoji">🕹️</span><b>${playful() ? 'Play Zone' : 'Arcade'}</b><span class="muted">${playful() ? 'Games cost 1 🎟️ — earn tokens by learning!' : 'Break games — 1 token each, earned by correct answers'}</span></div>
+      <div class="zone-card" onclick="location.hash='#play'"><span class="zemoji">🕹️</span><b>${playful() ? 'Play Zone' : 'Arcade'}</b><span class="muted">${playful() ? 'Games cost 1 🎟️, earn tokens by learning!' : 'Break games, 1 token each, earned by correct answers'}</span></div>
       <div class="zone-card" onclick="location.hash='#avatar'"><span class="zemoji">🎨</span><b>${playful() ? 'My Avatar' : 'Avatar'}</b><span class="muted">${playful() ? 'Spend coins on hats, pets & worlds' : 'Customize your profile with earned coins'}</span></div>
       <div class="zone-card" onclick="location.hash='#snacks'"><span class="zemoji">🍿</span><b>${playful() ? 'Snack Shack' : 'Snack Shack'}</b><span class="muted">${playful() ? 'Spend coins on treats from the vending machine!' : 'Trade coins for snacks & treats'}</span></div>
       <div class="zone-card" onclick="location.hash='#trophies'"><span class="zemoji">🏆</span><b>Trophy Case</b><span class="muted">${playful() ? 'Your badges, trophies & next goals!' : 'Badges, certificates & milestones'}</span></div>
@@ -958,7 +981,7 @@ route('home', async () => {
   </div>`);
   wireChrome();
   $('#autoread-btn').onclick = () => { $('#autoread-btn').textContent = Voice.toggleAuto() ? '🗣️ Read-aloud ON' : '🗣️ Read-aloud off'; };
-  // Prominent achievements banner — lazy-loaded so home stays snappy; drives striving
+  // Prominent achievements banner, lazy-loaded so home stays snappy; drives striving
   (async () => {
     try {
       const a = await api(`/learn/${kidId}/achievements`);
@@ -970,10 +993,10 @@ route('home', async () => {
         <div class="ab-mid">
           <div class="ab-top"><b>${playful() ? 'Trophy Case' : 'Achievements'}</b><span class="ab-count">${a.earnedCount}/${a.totalBadges} badges</span></div>
           ${goal ? `<div class="ab-goal"><span class="ab-goal-emoji">${goal.emoji}</span>
-            <div class="ab-goal-body"><span class="ab-goal-name">${playful() ? 'Next: ' : ''}${esc(goal.name)} — ${esc(goal.desc)}</span>
+            <div class="ab-goal-body"><span class="ab-goal-name">${playful() ? 'Next: ' : ''}${esc(goal.name)}, ${esc(goal.desc)}</span>
               <div class="ab-prog"><div class="ab-prog-fill" style="width:${Math.round(goal.cur/goal.goal*100)}%;background:${RAR[goal.rarity]}"></div></div></div>
             <span class="ab-goal-count">${goal.cur}/${goal.goal}</span></div>`
-          : `<div class="ab-goal"><span class="muted">🎉 Every badge earned — you're a legend!</span></div>`}
+          : `<div class="ab-goal"><span class="muted">🎉 Every badge earned, you're a legend!</span></div>`}
         </div>
         <div class="ab-cta">View →</div>
       </div>`;
@@ -1059,7 +1082,7 @@ route('placement', async (subject) => {
         <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}
           <button class="choice idk" data-i="-1">🤷 ${playful() ? "I haven't learned this yet" : "Haven't covered this yet"}</button>
         </div>
-        ${data.progress === 0 ? `<p class="muted" style="margin-top:16px">${playful() ? 'No guessing needed! Saying "I haven\'t learned this yet" is a SMART answer — it helps me find lessons that fit you.' : 'Skip anything you haven\'t covered — honest answers give you an accurate starting level.'}</p>` : ''}
+        ${data.progress === 0 ? `<p class="muted" style="margin-top:16px">${playful() ? 'No guessing needed! Saying "I haven\'t learned this yet" is a SMART answer, it helps me find lessons that fit you.' : 'Skip anything you haven\'t covered, honest answers give you an accurate starting level.'}</p>` : ''}
       </div>
     </div>`);
     wireChrome();
@@ -1127,8 +1150,8 @@ route('lesson', async (subject, mode) => {
         render(data);
       } catch (e2) {
         app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="card center">
-          <div class="big-emoji">🐎</div><h2>Whoa — quick water break!</h2>
-          <p class="muted" style="margin:10px 0 18px">The next question didn't load. Your progress is saved — tap below to keep going.</p>
+          <div class="big-emoji">🐎</div><h2>Whoa, quick water break!</h2>
+          <p class="muted" style="margin:10px 0 18px">The next question didn't load. Your progress is saved, tap below to keep going.</p>
           <button class="btn green" id="retry-q">Keep Going →</button>
           <button class="btn ghost small" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px" onclick="location.hash='#home'">Back to Subjects</button>
         </div></div>`);
@@ -1144,12 +1167,12 @@ route('lesson', async (subject, mode) => {
     const qStart = Date.now();
     let answered = false;
     // Typed-answer mode: ~30% of numeric math questions (grade 2+) ask the kid
-    // to TYPE the answer — recall beats recognition for real mastery.
+    // to TYPE the answer, recall beats recognition for real mastery.
     const numericQ = qn.choices.every(c => /^-?\d+(\.\d+)?$/.test(String(c).trim()));
     const typed = subject === 'math' && numericQ && (State.me.kid.grade >= 2) && Math.random() < 0.3;
     app().innerHTML = topbar(`<div class="container lesson-wrap">
       <div class="lesson-top">
-        <b>${focus ? '🎯 Focus Session — ' + esc(SUBJECT_STYLE[subject] === style ? subject.charAt(0).toUpperCase() + subject.slice(1) : subject) : style.emoji + ' ' + style.cheer}</b>
+        <b>${focus ? '🎯 Focus Session: ' + esc(SUBJECT_STYLE[subject] === style ? subject.charAt(0).toUpperCase() + subject.slice(1) : subject) : style.emoji + ' ' + style.cheer}</b>
         ${focus ? '' : gallopTrack(session.n / SESSION_LEN * 100)}
         <b>${focus ? `⏱ <span id="focus-left">${fmtLeft(session.endAt - Date.now())}</span> · ${session.n} answered` : session.n + '/' + SESSION_LEN}</b>
       </div>
@@ -1162,16 +1185,16 @@ route('lesson', async (subject, mode) => {
           <input id="typed-in" class="typed-input" inputmode="decimal" autocomplete="off" placeholder="${playful() ? 'Type your answer!' : 'Your answer'}" aria-label="Type your answer">
           <button class="btn green" id="typed-go">Check ✓</button>
         </div>
-        <p class="muted" style="margin-top:8px;font-size:.85rem">${playful() ? '🧠 No choices this time — show what you know!' : 'Free response — recall practice.'}</p>`
+        <p class="muted" style="margin-top:8px;font-size:.85rem">${playful() ? '🧠 No choices this time, show what you know!' : 'Free response, recall practice.'}</p>`
         : `<div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>`}
-        <div class="hint-box" id="hint-box">💡 ${esc(qn.hint || 'Trust yourself — read it once more, slowly.')}</div>
+        <div class="hint-box" id="hint-box">💡 ${esc(qn.hint || 'Trust yourself, read it once more, slowly.')}</div>
         <div class="feedback" id="feedback" aria-live="polite"></div>
         <div class="lesson-actions">
           <button class="btn sun small" id="hint-btn">💡 Hint</button>
           <button class="btn green" id="next-btn" style="display:none">Next →</button>
           <button class="btn ghost small" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:auto" onclick="location.hash='#home'">Exit</button>
         </div>
-        <div class="too-tricky"><button class="tt-btn" id="tt-btn">${playful() ? '🐴 Whoa — too tricky? Gallop back to easier questions' : 'Too difficult? Step back a level'}</button></div>
+        <div class="too-tricky"><button class="tt-btn" id="tt-btn">${playful() ? '🐴 Whoa, too tricky? Gallop back to easier questions' : 'Too difficult? Step back a level'}</button></div>
         <div class="mastery-mini">Skill power: <span id="mastery-pct">${Math.round((data.skill.mastery || 0) * 100)}%</span>
           <div class="mastery-bar"><div id="mastery-fill" style="width:${(data.skill.mastery || 0) * 100}%"></div></div>
         </div>
@@ -1193,7 +1216,7 @@ route('lesson', async (subject, mode) => {
         const r = await api(`/learn/${kidId}/level-shift/${subject}`, { method: 'POST', body: { delta: -1 } });
         toast(playful() ? `🌈 No worries! We galloped back to ${r.levelName} questions. You've got this!` : `Level adjusted to ${r.levelName}.`);
         nextQuestion();
-      } catch (e) { btn.disabled = false; btn.textContent = playful() ? '🐴 Whoa — too tricky? Gallop back to easier questions' : 'Too difficult? Step back a level'; }
+      } catch (e) { btn.disabled = false; btn.textContent = playful() ? '🐴 Whoa, too tricky? Gallop back to easier questions' : 'Too difficult? Step back a level'; }
     };
     // Keyboard: 1-4 answer, Enter = next, H = hint (great for desktop & teens)
     document.onkeydown = e => {
@@ -1308,8 +1331,8 @@ route('lesson', async (subject, mode) => {
     const mins = Math.max(1, Math.round((Date.now() - session.startedAt) / 60000));
     const emoji = focus ? '🎯' : pct >= 80 ? '🌟' : pct >= 60 ? '💪' : '🌱';
     const msg = focus
-      ? (session.n >= 15 ? 'Focus session complete — that was real studying.' : 'Focus session complete.')
-      : pct >= 80 ? 'Outstanding! Your brain is glowing!' : pct >= 60 ? 'Strong work — you\'re growing fast!' : 'Every try makes you smarter. Let\'s keep building!';
+      ? (session.n >= 15 ? 'Focus session complete, that was real studying.' : 'Focus session complete.')
+      : pct >= 80 ? 'Outstanding! Your brain is glowing!' : pct >= 60 ? 'Strong work, you\'re growing fast!' : 'Every try makes you smarter. Let\'s keep building!';
     Confetti.burst(focus ? 120 : pct >= 80 ? 200 : 80); if (pct >= 60) Sound.levelup();
     app().innerHTML = topbar(`<div class="container lesson-wrap"><div class="card center">
       <div class="big-emoji">${emoji}</div>
@@ -1319,7 +1342,7 @@ route('lesson', async (subject, mode) => {
         <div class="sstat"><div class="n">+${session.xp}</div>XP earned</div>
         <div class="sstat"><div class="n">${mins}</div>min${mins > 1 ? 's' : ''}</div>
       </div>
-      ${focus ? `<p class="muted" style="margin:6px 0 2px">${session.n} questions in ${FOCUS_MIN} minutes${pct ? ` · ${pct}% accuracy` : ''}. ${pct >= 80 && session.n >= 15 ? 'Elite session. 🏆' : 'Consistency compounds — same time tomorrow?'}</p>` : ''}
+      ${focus ? `<p class="muted" style="margin:6px 0 2px">${session.n} questions in ${FOCUS_MIN} minutes${pct ? ` · ${pct}% accuracy` : ''}. ${pct >= 80 && session.n >= 15 ? 'Elite session. 🏆' : 'Consistency compounds, same time tomorrow?'}</p>` : ''}
       <button class="btn green" onclick="location.hash='#lesson/${subject}${focus ? '/focus' : ''}';location.reload()">${focus ? 'New Session 🎯' : 'Play Again 🔁'}</button>
       <button class="btn" style="margin-left:8px" onclick="location.hash='#home'">More Subjects →</button>
     </div></div>`);
@@ -1330,7 +1353,7 @@ route('lesson', async (subject, mode) => {
 });
 
 // ======================= report card =======================
-// Per-subject pace status — makes the adaptive guardrails visible to parents.
+// Per-subject pace status, makes the adaptive guardrails visible to parents.
 function statusBadge(status) {
   const M = {
     'excelling': ['🚀 Excelling', 'st-excelling'],
@@ -1348,7 +1371,7 @@ function statusNote(s) {
   return '';
 }
 
-// Parent "Strengths & Future Paths" card — grows with the student. Emerging
+// Parent "Strengths & Future Paths" card, grows with the student. Emerging
 // interests early, concrete career pathways in the high-school years.
 function renderCareer(c, k) {
   const SUBCOL = { math: '#5b5bd6', english: '#0f9d76', science: '#2f78c2', spanish: '#d26440' };
@@ -1463,7 +1486,7 @@ route('report', async (kidId) => {
     <div class="card">
       <h3>🏅 Badges</h3>
       <div class="badge-shelf" style="margin-top:10px">
-        ${r.badges.length ? r.badges.map(b => `<div class="badge-item">${b.emoji} ${esc(b.name)}</div>`).join('') : '<p class="muted">Badges appear as you learn — the first one is one answer away!</p>'}
+        ${r.badges.length ? r.badges.map(b => `<div class="badge-item">${b.emoji} ${esc(b.name)}</div>`).join('') : '<p class="muted">Badges appear as you learn, the first one is one answer away!</p>'}
       </div>
     </div>
     <div class="card">
@@ -1530,10 +1553,10 @@ route('weekly', async (kidId) => {
         </div>
         <svg viewBox="0 0 458 92" style="width:100%;height:auto;margin:8px 0">${bars}</svg>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
-          <div><b style="color:#1f8a5f">💪 Shining at</b><br><span class="muted" style="font-size:.9rem">${strengthList.length ? strengthList.map(esc).join('<br>') : 'Building the basics — stars incoming!'}</span></div>
+          <div><b style="color:#1f8a5f">💪 Shining at</b><br><span class="muted" style="font-size:.9rem">${strengthList.length ? strengthList.map(esc).join('<br>') : 'Building the basics, stars incoming!'}</span></div>
           <div><b style="color:#c9971c">🎯 Working on</b><br><span class="muted" style="font-size:.9rem">${focusList.length ? focusList.map(esc).join('<br>') : 'No trouble spots this week!'}</span></div>
         </div>
-        <p style="margin-top:16px;font-size:.85rem;color:#7d8496;border-top:1px dashed #ddd;padding-top:10px">${total >= 100 ? `Outstanding week, ${esc(k.name)} — over 100 questions! The gallop is real. 🐎` : total >= 50 ? `Great consistency, ${esc(k.name)} — keep that streak alive! 🐎` : total > 0 ? `Every question counts, ${esc(k.name)} — let's pick up the pace next week! 🐎` : `A fresh week awaits — first quest starts today! 🐎`}</p>
+        <p style="margin-top:16px;font-size:.85rem;color:#7d8496;border-top:1px dashed #ddd;padding-top:10px">${total >= 100 ? `Outstanding week, ${esc(k.name)}, over 100 questions! The gallop is real. 🐎` : total >= 50 ? `Great consistency, ${esc(k.name)}, keep that streak alive! 🐎` : total > 0 ? `Every question counts, ${esc(k.name)}, let's pick up the pace next week! 🐎` : `A fresh week awaits, first quest starts today! 🐎`}</p>
       </div>
     </div>
     <div class="center no-print" style="margin-top:16px">
@@ -1582,10 +1605,10 @@ function renderPaywall() {
   app().innerHTML = topbar(`<div class="container" style="max-width:600px"><div class="card center">
     <img src="/logo-roundel.svg" alt="" style="width:84px;height:84px">
     <h2 style="margin-top:10px">Your free trial has ended</h2>
-    <p class="muted" style="margin:10px 0 4px"><b>Everything is saved</b> — streaks, skill levels, badges, and certificates are waiting exactly where you left off.</p>
+    <p class="muted" style="margin:10px 0 4px"><b>Everything is saved</b>, streaks, skill levels, badges, and certificates are waiting exactly where you left off.</p>
     <p class="muted" style="margin:0 0 16px">Keep all four subjects, the adaptive tutor, the games arcade, buddies, and weekly parent reports, for less than a single week at a tutoring center.</p>
     ${State.me.role === 'parent'
-      ? `<button class="btn green" id="sub-family">Family — $49/mo (up to 4 kids)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo — $29/mo</button>
+      ? `<button class="btn green" id="sub-family">Family, $49/mo (up to 4 kids)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo, $29/mo</button>
          <p class="muted" style="margin-top:12px;font-size:.85rem">Cancel anytime from your dashboard.</p>`
       : `<p><b>Ask your parent to log in and subscribe!</b></p><button class="btn" onclick="location.hash='#login'">Parent Login</button>`}
   </div></div>`);
@@ -1610,17 +1633,17 @@ route('parent', async () => {
   const subLine = p.sub_status === 'active'
     ? `✅ ${esc((me.plans[p.sub_plan] || {}).name || 'Subscribed')} plan active`
     : p.sub_status === 'trial'
-      ? (trialDays > 0 ? `⏳ Free trial — ${trialDays} day${trialDays === 1 ? '' : 's'} left` : '🔒 Trial ended')
+      ? (trialDays > 0 ? `⏳ Free trial, ${trialDays} day${trialDays === 1 ? '' : 's'} left` : '🔒 Trial ended')
       : `🔒 Subscription ${esc(p.sub_status)}`;
 
   const trialUrgent = p.sub_status === 'trial' && trialDays > 0 && trialDays <= 3;
   app().innerHTML = topbar(`<div class="container">
-    <div class="dash-welcome" style="margin-bottom:14px"><h1>Welcome, ${esc(p.name)} 👋</h1><p>${subLine} ${me.billingMode === 'demo' ? '· <i>(demo billing — add Stripe keys to charge real cards)</i>' : ''}</p></div>
+    <div class="dash-welcome" style="margin-bottom:14px"><h1>Welcome, ${esc(p.name)} 👋</h1><p>${subLine} ${me.billingMode === 'demo' ? '· <i>(demo billing, add Stripe keys to charge real cards)</i>' : ''}</p></div>
     ${trialUrgent ? `<div class="trial-banner">
       <div><b>⏳ Your free trial ends in ${trialDays} day${trialDays === 1 ? '' : 's'}.</b><br>
-      <span>All progress, streaks, badges and certificates are saved — subscribing keeps the gallop going without missing a day.</span></div>
-      <div style="white-space:nowrap"><button class="btn sun" id="tb-family">Family — $49/mo</button>
-      <button class="btn ghost small" style="color:#fff;border-color:rgba(255,255,255,.6);margin-left:8px" id="tb-solo">Solo — $29/mo</button></div>
+      <span>All progress, streaks, badges and certificates are saved, subscribing keeps the gallop going without missing a day.</span></div>
+      <div style="white-space:nowrap"><button class="btn sun" id="tb-family">Family, $49/mo</button>
+      <button class="btn ghost small" style="color:#fff;border-color:rgba(255,255,255,.6);margin-left:8px" id="tb-solo">Solo, $29/mo</button></div>
     </div>` : ''}
     <div class="dash-grid">
       <div class="card">
@@ -1661,7 +1684,7 @@ route('parent', async () => {
         </select>
         <label>Pick an avatar</label>
         <div class="avatar-pick" id="nk-avatars">${Object.entries(AVATARS).map(([k, e], i) => `<div class="avatar-opt${i === 0 ? ' sel' : ''}" data-a="${k}">${e}</div>`).join('')}</div>
-        <p class="muted" style="font-size:.83rem;margin-top:6px">This is just their starting look — kids fully customize it in the Avatar Builder with hats, pets & worlds they buy with coins they earn by learning. 🎨</p>
+        <p class="muted" style="font-size:.83rem;margin-top:6px">This is just their starting look, kids fully customize it in the Avatar Builder with hats, pets & worlds they buy with coins they earn by learning. 🎨</p>
         <div class="error-msg" id="nk-err"></div>
         <button class="btn green" style="margin-top:14px;width:100%" id="nk-go">Add Learner ✨</button>
       </div>
@@ -1671,8 +1694,8 @@ route('parent', async () => {
           <h3>💳 Subscription</h3>
           <p class="muted" style="margin:8px 0 14px">${subLine}</p>
           ${p.sub_status !== 'active' ? `
-            <button class="btn green" style="width:100%" id="sub-family">Family — $49/mo (up to 4 kids)</button>
-            <button class="btn" style="width:100%;margin-top:8px" id="sub-solo">Solo — $29/mo (1 kid)</button>` : `
+            <button class="btn green" style="width:100%" id="sub-family">Family, $49/mo (up to 4 kids)</button>
+            <button class="btn" style="width:100%;margin-top:8px" id="sub-solo">Solo, $29/mo (1 kid)</button>` : `
             <button class="btn" style="width:100%" id="sub-portal">Manage Billing</button>`}
           <p class="muted center" style="margin-top:10px;font-size:.85rem">${me.billingMode === 'stripe' ? 'Payments powered by Stripe' : 'Demo mode: clicking subscribe activates instantly, no card needed. Set STRIPE_SECRET_KEY to enable real payments.'}</p>
         </div>
@@ -1686,11 +1709,11 @@ route('parent', async () => {
         </div>
         <div class="card">
           <h3>🚀 How kids log in (any device)</h3>
-          <p class="muted" style="margin-top:8px;line-height:1.6">1. Go to this site on any PC, Mac, or tablet<br>2. Tap <b>Kid Login</b> → enter <b>${esc(p.email)}</b><br>3. They pick their avatar & enter their 4-digit PIN<br><br>That's it — progress syncs everywhere. 🎉</p>
+          <p class="muted" style="margin-top:8px;line-height:1.6">1. Go to this site on any PC, Mac, or tablet<br>2. Tap <b>Kid Login</b> → enter <b>${esc(p.email)}</b><br>3. They pick their avatar & enter their 4-digit PIN<br><br>That's it, progress syncs everywhere. 🎉</p>
         </div>
         <div class="card">
           <h3>💌 School Buddies</h3>
-          <p class="muted" style="margin-top:8px">Connect your kids with friends from school — <b>parent-approved only</b>. Kids see each other's streaks & badges and send pre-written cheers. No open chat, ever.</p>
+          <p class="muted" style="margin-top:8px">Connect your kids with friends from school, <b>parent-approved only</b>. Kids see each other's streaks & badges and send pre-written cheers. No open chat, ever.</p>
           <label>Create an invite code for</label>
           <select id="bd-kid">${me.kids.map(k => `<option value="${k.id}">${esc(k.name)}</option>`).join('')}</select>
           <button class="btn small" style="margin-top:8px" id="bd-create">Create Code</button>
@@ -1742,7 +1765,7 @@ route('parent', async () => {
     location.hash = dest || '#home';
     if (location.hash === (dest || '#home')) navigate();
   }
-  // "Time to Gallop!" — straight from signup into learning, no re-login needed.
+  // "Time to Gallop!", straight from signup into learning, no re-login needed.
   function timeToGallop(kidId, kidName) {
     Confetti.burst(180); Sound.levelup();
     const div = document.createElement('div');
@@ -1761,7 +1784,7 @@ route('parent', async () => {
     const div = document.createElement('div');
     div.className = 'celebrate';
     div.innerHTML = `<div class="big-emoji">👋</div><h2>Let's get started!</h2>
-      <p style="font-size:1.15rem;max-width:420px">Welcome to Gallop Learning Academy! First step: add your learner — name, grade, and a 4-digit PIN they'll use to log in on any device.</p>
+      <p style="font-size:1.15rem;max-width:420px">Welcome to Gallop Learning Academy! First step: add your learner, name, grade, and a 4-digit PIN they'll use to log in on any device.</p>
       <button class="btn sun">Add my learner →</button>`;
     div.querySelector('button').onclick = () => { div.remove(); const f = $('#nk-name'); if (f) { f.scrollIntoView({ behavior: 'smooth', block: 'center' }); f.focus(); } };
     document.body.appendChild(div);
@@ -1771,7 +1794,7 @@ route('parent', async () => {
     if (!box) return;
     try {
       const r = await api('/kids/' + kidId + '/levels');
-      box.innerHTML = `<b style="font-size:.85rem">📚 Working levels <span class="muted" style="font-weight:400">(if a subject feels too hard, lower it — Gallop re-adapts from there)</span></b>
+      box.innerHTML = `<b style="font-size:.85rem">📚 Working levels <span class="muted" style="font-weight:400">(if a subject feels too hard, lower it, Gallop re-adapts from there)</span></b>
         <div class="lvl-rows">${r.levels.map(l => `
           <div class="lvl-row">
             <span class="lvl-sub">${esc(l.label)}</span>
@@ -1836,7 +1859,7 @@ route('parent', async () => {
   if (fam) fam.onclick = () => checkout('family');
   if (solo) solo.onclick = () => checkout('solo');
   if (portal) portal.onclick = async () => { const o = await api('/billing/portal', { method: 'POST' }); location.href = o.url; };
-  // Sibling leaderboard — only interesting with 2+ kids
+  // Sibling leaderboard, only interesting with 2+ kids
   if (me.kids.length >= 2) {
     api('/family/stats').then(({ stats }) => {
       const medals = ['🥇', '🥈', '🥉', '🎗️'];
@@ -1844,7 +1867,7 @@ route('parent', async () => {
       if (!box) return;
       box.innerHTML = `<div class="card">
         <h3>🏆 This Week at Home</h3>
-        <p class="muted" style="margin:4px 0 10px">Questions answered in the last 7 days — a little friendly sibling rivalry never hurt!</p>
+        <p class="muted" style="margin:4px 0 10px">Questions answered in the last 7 days, a little friendly sibling rivalry never hurt!</p>
         ${stats.map((s, i) => `
           <div class="kid-row">
             <span style="font-size:1.3rem">${medals[i] || '⭐'}</span>
@@ -1866,7 +1889,7 @@ route('admin', async () => {
   const statusPill = st => st === 'active' ? '<span class="pill strength">active</span>' : st === 'trial' ? '<span class="pill" style="background:#fdf3d7;color:#7a5b00">trial</span>' : `<span class="pill focus">${esc(st)}</span>`;
   const maxSign = Math.max(1, ...d.signups.map(x => x.n));
   app().innerHTML = topbar(`<div class="container">
-    <div class="dash-welcome" style="margin-bottom:14px"><h1>🛡️ Gallop Command Center</h1><p>Owner dashboard — live business & learning metrics${t.testAccounts ? ` · <i>${t.testAccounts} dev/test account${t.testAccounts === 1 ? '' : 's'} hidden from all numbers</i>` : ''}</p></div>
+    <div class="dash-welcome" style="margin-bottom:14px"><h1>🛡️ Gallop Command Center</h1><p>Owner dashboard, live business & learning metrics${t.testAccounts ? ` · <i>${t.testAccounts} dev/test account${t.testAccounts === 1 ? '' : 's'} hidden from all numbers</i>` : ''}</p></div>
     <div class="statband" style="margin-bottom:18px">
       <div><b>${t.parents}</b><span>Families</span></div>
       <div><b>${t.kids}</b><span>Learners</span></div>
@@ -1891,7 +1914,7 @@ route('admin', async () => {
           ${d.gradeBands.length ? d.gradeBands.map(b => `<div class="kid-row"><b style="min-width:50px">${b.band}</b><span class="sk-bar" style="flex:1"><span class="sk-fill hi" style="width:${Math.round(b.n / t.kids * 100)}%"></span></span><span class="muted">${b.n}</span></div>`).join('') : '<p class="muted">No learners yet.</p>'}
         </div>
         <div class="card">
-          <h3>📈 Signups — last 14 days</h3>
+          <h3>📈 Signups, last 14 days</h3>
           ${d.signups.length ? `<svg viewBox="0 0 480 80" style="width:100%;height:auto">${d.signups.map((x, i) => `<g><rect x="${i * 34 + 4}" y="${62 - Math.round(x.n / maxSign * 55)}" width="26" height="${Math.max(3, Math.round(x.n / maxSign * 55))}" rx="4" fill="#1f8a5f"/><text x="${i * 34 + 17}" y="76" font-size="8" text-anchor="middle" fill="#98a0af">${x.d.slice(5)}</text></g>`).join('')}</svg>` : '<p class="muted">No signups in the last 14 days.</p>'}
         </div>
       </div>
