@@ -661,4 +661,4 @@ const skills = [
   }
 ];
 
-module.exports = { subject: 'english', label: 'English', emoji: '📚', color: '#00B894', skills };
+module.exports = { subject: 'english', label: 'English & Reading', emoji: '📚', color: '#00B894', skills };
