@@ -1,7 +1,8 @@
-// BrightPath Adaptive Engine — the "great teacher" brain
+// BrightPath Adaptive Engine, the "great teacher" brain
 // Per-subject level, per-skill mastery, targeted review, auto level-up/down.
 const db = require('./db');
 const content = require('./content');
+const gscore = require('./score');
 
 const MASTERED = 0.8;
 const STRUGGLING = 0.45;
@@ -58,7 +59,7 @@ function activeSkills(kidId, subject) {
 // COMPREHENSIVE adaptive placement. We probe grade by grade, asking 2 questions
 // at each grade before deciding (one lucky guess or one careless slip never
 // decides a child's whole path), climb while they pass and descend while they
-// miss, and settle at the HIGHEST grade they demonstrably pass — placing them on
+// miss, and settle at the HIGHEST grade they demonstrably pass, placing them on
 // the correct path with just enough headroom to grow, never bored, never lost.
 const PLACE_PER_GRADE = 2;      // questions asked at each grade before moving on
 const PLACE_MAX = 14;           // hard cap on total placement questions
@@ -80,7 +81,7 @@ function placementNext(kidId, subject, history) {
   const kid = db.prepare('SELECT grade FROM kids WHERE id=?').get(kidId);
   const maxG = maxGrade(subject);
   const enrolled = subject === 'spanish' ? 0 : Math.min(Math.max(0, kid.grade), maxG);
-  // Start one grade BELOW enrollment — a kid entering 2nd grade has finished 1st,
+  // Start one grade BELOW enrollment, a kid entering 2nd grade has finished 1st,
   // not 2nd. Confidence first; strong kids climb fast.
   const start = subject === 'spanish' ? 0 : Math.max(0, enrolled - 1);
   // Never show material more than 3 grades above enrollment during placement.
@@ -89,7 +90,7 @@ function placementNext(kidId, subject, history) {
 
   // Decide the next probe grade. We stay MONOTONIC-AWARE: once a child has clearly
   // passed grade H, a later stray miss at or below H is treated as noise (we don't
-  // sink them) — instead we push upward to keep finding their true ceiling.
+  // sink them), instead we push upward to keep finding their true ceiling.
   const hp = highestPassed(tallies);
   let probe = start;
   if (history.length) {
@@ -141,7 +142,7 @@ function placementBracketed(tallies, cap, start) {
     if (hp >= cap) return true;                                    // passed the ceiling
     const up = tallies[hp + 1];
     if (up && up.c / up.n < PLACE_FAIL) {
-      // Confirm a fail before ending — and demand an EXTRA confirmation (3 tries)
+      // Confirm a fail before ending, and demand an EXTRA confirmation (3 tries)
       // when this would place the child below their starting grade, so a single
       // unlucky moment can never sink a capable student's whole placement.
       const need = (hp + 1 <= start) ? 3 : PLACE_PER_GRADE;
@@ -162,7 +163,7 @@ function settleLevel(history, fallback, maxG) {
     .filter(g => tallies[g].n >= PLACE_PER_GRADE && tallies[g].c / tallies[g].n >= PLACE_PASS);
   if (passed.length) return Math.min(maxG, Math.max(...passed));
   // No grade cleanly passed. If they got some right, sit just below the highest attempt;
-  // if they got nothing right, start at the bottom — support beats overwhelm.
+  // if they got nothing right, start at the bottom, support beats overwhelm.
   const anyCorrect = history.filter(h => h.correct).map(h => h.grade);
   if (anyCorrect.length) return Math.max(0, Math.min(maxG, Math.max(...anyCorrect) - 1));
   return 0;
@@ -178,7 +179,7 @@ function maxGrade(subject) {
 function nextActivity(kidId, subject) {
   const { state, zone } = activeSkills(kidId, subject);
   // Spaced retention: ~1 in 8 questions resurfaces an old mastered skill
-  // (last seen 3+ days ago) so learning actually STICKS — the science of review.
+  // (last seen 3+ days ago) so learning actually STICKS, the science of review.
   if (Math.random() < 0.12) {
     const old = db.prepare(`SELECT * FROM skill_state WHERE kid_id=? AND subject=? AND mastery >= ?
       AND (last_seen IS NULL OR last_seen < datetime('now','-3 days'))`).all(kidId, subject, MASTERED);
@@ -191,6 +192,23 @@ function nextActivity(kidId, subject) {
       }
     }
   }
+  // KUMON-STYLE HAMMER: if the child just missed a skill they haven't mastered,
+  // stay on that exact concept with a FRESH question (varied numbers/context) so it
+  // gets driven home, not skipped past. ~65% of post-miss reps repeat the concept;
+  // the rest move on so it reinforces without becoming a wall. Variety of surface,
+  // consistency of skill, that's the difference from a boring identical worksheet.
+  const lastAns = db.prepare('SELECT skill_id, correct FROM activity_log WHERE kid_id=? AND subject=? ORDER BY id DESC LIMIT 1').get(kidId, subject);
+  if (lastAns && !lastAns.correct && Math.random() < 0.65) {
+    const sk = content.getSkill(subject, lastAns.skill_id);
+    const ss = sk ? getSkillState(kidId, subject, lastAns.skill_id) : null;
+    if (sk && ss && ss.mastery < MASTERED) {
+      const stuck = ss.attempts >= 5 && ss.mastery < 0.35;
+      const d = stuck ? 0.15 : Math.max(0.15, Math.min(0.6, ss.mastery)); // ease a touch, reinforce
+      const question = content.generateQuestion(subject, sk.id, d, recentSet(kidId, subject));
+      if (question) { noteRecent(kidId, subject, question.prompt); return { question, mode: 'boost', level: state.level, skill: { id: sk.id, name: sk.name, grade: sk.grade, mastery: ss.mastery, stuck } }; }
+    }
+  }
+
   const states = zone.map(s => ({ skill: s, st: getSkillState(kidId, subject, s.id) }));
 
   const struggling = states.filter(x => x.st.attempts >= 3 && x.st.mastery < STRUGGLING);
@@ -221,9 +239,9 @@ function nextActivity(kidId, subject) {
   }
 
   // Difficulty adapts to the child, with two guardrails:
-  //  • STUCK support — a skill tried 5+ times still under 0.35 gets the gentlest
+  //  • STUCK support, a skill tried 5+ times still under 0.35 gets the gentlest
   //    questions (0.15) so a struggling child gets a real foothold, not a wall.
-  //  • ANTI-BOREDOM — a mastered skill on a hot win streak ramps HARDER so a
+  //  • ANTI-BOREDOM, a mastered skill on a hot win streak ramps HARDER so a
   //    capable kid (hi, Margaux) is always stretched, never coasting on easy reps.
   const stuck = chosen.st.attempts >= 5 && chosen.st.mastery < 0.35;
   let d;
@@ -233,7 +251,7 @@ function nextActivity(kidId, subject) {
   } else {
     let bump = mode === 'boost' ? -0.15 : 0.1;
     if (chosen.st.mastery >= MASTERED && (chosen.st.win_streak || 0) >= 3) bump = 0.2; // crushing it → stretch
-    // Cap at 0.85 so "challenging" never tips into "impossible" — a mastered skill
+    // Cap at 0.85 so "challenging" never tips into "impossible", a mastered skill
     // stays engaging without knocking the child's mastery back down.
     d = Math.max(0.15, Math.min(0.85, chosen.st.mastery + bump));
   }
@@ -271,7 +289,7 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
     m = m + 0.16 * (1 - m) * (0.7 + d0 * 0.6);
   } else {
     // Missing an EASY question means you really don't know it (bigger drop);
-    // missing a HARD one is more forgivable — so a capable kid stretching into
+    // missing a HARD one is more forgivable, so a capable kid stretching into
     // tough questions doesn't get their mastery wrecked by an occasional slip.
     m = m * (0.72 + 0.12 * (d0 - 0.5));   // ≈ ×0.68 (easy) … ×0.77 (hard)
   }
@@ -301,7 +319,7 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
   }
   // ---- progression: promote/demote with hysteresis so a child settles at the
   // right level instead of bouncing. A COOLDOWN of 6 answers must pass after any
-  // level change before another — no thrash, no overshooting several grades at once.
+  // level change before another, no thrash, no overshooting several grades at once.
   const state = getSubjectState(kidId, subject);
   const lvl = Math.round(state.level);
   const latestAid = db.prepare('SELECT MAX(id) AS m FROM activity_log WHERE kid_id=? AND subject=?').get(kidId, subject).m || 0;
@@ -312,19 +330,28 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
     const levelSkills = content.skillsForSubject(subject).filter(s => s.grade === lvl);
     // PROMOTE: sustained ≥85% accuracy across the level, every skill practiced ≥2×,
     // and a real body of work at the level (≥ max(8, 2× the skills)). A school year
-    // is long — this is genuine grade mastery, never a lucky streak. But a capable
+    // is long, this is genuine grade mastery, never a lucky streak. But a capable
     // kid (hi, Margaux) who's truly ready climbs in ~12–18 questions, never bored.
     const totalAtLevel = levelSkills.length ? db.prepare(
       `SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND subject=? AND skill_id IN (${levelSkills.map(() => '?').join(',')})`
     ).get(kidId, subject, ...levelSkills.map(s => s.id)).n : 0;
     const allPracticed = levelSkills.length > 0 && levelSkills.every(s => {
       const ss = db.prepare('SELECT attempts FROM skill_state WHERE kid_id=? AND subject=? AND skill_id=?').get(kidId, subject, s.id);
-      return ss && ss.attempts >= 2;
+      return ss && ss.attempts >= 3;   // more evidence per skill before advancing
+    });
+    // RIGOR GATE: every skill in the grade must be genuinely mastered (or attempted a
+    // lot and clearly close) before we advance. This is the Kumon-style promise, a child
+    // does not leave a grade on a lucky hot streak, they leave it having actually learned
+    // the whole grade. The (attempts>=8 & mastery>=0.7) valve keeps one stubborn skill
+    // from blocking forever while still demanding real proficiency.
+    const allMastered = levelSkills.length > 0 && levelSkills.every(s => {
+      const ss = db.prepare('SELECT attempts, mastery FROM skill_state WHERE kid_id=? AND subject=? AND skill_id=?').get(kidId, subject, s.id);
+      return ss && (ss.mastery >= MASTERED || (ss.attempts >= 8 && ss.mastery >= 0.7));
     });
     const upAcc = recentLevelAccuracy(kidId, subject, lvl, 15);
-    if (lvl < maxGrade(subject) && allPracticed && totalAtLevel >= Math.max(8, levelSkills.length * 2) && upAcc != null && upAcc >= 0.85) {
+    if (lvl < maxGrade(subject) && allPracticed && allMastered && totalAtLevel >= Math.max(12, levelSkills.length * 3) && upAcc != null && upAcc >= 0.85) {
       db.prepare('UPDATE subject_state SET level=?, last_change_aid=? WHERE kid_id=? AND subject=?').run(lvl + 1, latestAid, kidId, subject);
-      const title = `${subjectLabel(subject)} — ${gradeName(lvl)} Complete!`;
+      const title = `${subjectLabel(subject)}, ${gradeName(lvl)} Complete!`;
       db.prepare('INSERT INTO certificates (kid_id, subject, title, level) VALUES (?,?,?,?)').run(kidId, subject, title, lvl);
       events.push({ type: 'levelup', subject, newLevel: lvl + 1, certificate: title });
     } else if (lvl > 0) {
@@ -365,7 +392,7 @@ const BADGES = [
   // --- Streaks ---
   { id: 'streak3', name: 'On Fire', emoji: '🔥', rarity: 'common', cat: 'streak', stat: 'streak', goal: 3, desc: 'Learn 3 days in a row.' },
   { id: 'streak7', name: 'Unstoppable', emoji: '🌟', rarity: 'rare', cat: 'streak', stat: 'streak', goal: 7, desc: 'A 7-day learning streak.' },
-  { id: 'streak14', name: 'Two-Week Titan', emoji: '💫', rarity: 'epic', cat: 'streak', stat: 'streak', goal: 14, desc: 'A 14-day streak — wow!' },
+  { id: 'streak14', name: 'Two-Week Titan', emoji: '💫', rarity: 'epic', cat: 'streak', stat: 'streak', goal: 14, desc: 'A 14-day streak, wow!' },
   { id: 'streak30', name: 'Month of Mastery', emoji: '👑', rarity: 'legendary', cat: 'streak', stat: 'streak', goal: 30, desc: 'A 30-day streak. Legendary!' },
   // --- Subject explorers ---
   { id: 'mathlete', name: 'Mathlete', emoji: '🧮', rarity: 'common', cat: 'subject', stat: 'mathAnswers', goal: 20, desc: 'Answer 20 math questions.' },
@@ -386,7 +413,7 @@ const BADGES = [
   // --- XP / rank ---
   { id: 'xp1000', name: 'XP Machine', emoji: '⚡', rarity: 'rare', cat: 'xp', stat: 'xp', goal: 1000, desc: 'Earn 1,000 XP.' },
   { id: 'xp5000', name: 'XP Dynamo', emoji: '🌀', rarity: 'epic', cat: 'xp', stat: 'xp', goal: 5000, desc: 'Earn 5,000 XP.' },
-  { id: 'xp15000', name: 'Thoroughbred', emoji: '🏇', rarity: 'legendary', cat: 'xp', stat: 'xp', goal: 15000, desc: 'Earn 15,000 XP — top rank!' },
+  { id: 'xp15000', name: 'Thoroughbred', emoji: '🏇', rarity: 'legendary', cat: 'xp', stat: 'xp', goal: 15000, desc: 'Earn 15,000 XP, top rank!' },
   // --- Collector (avatars, snacks, games) ---
   { id: 'collector', name: 'Style Collector', emoji: '🎩', rarity: 'rare', cat: 'collector', stat: 'avatarsOwned', goal: 5, desc: 'Own 5 avatar items.' },
   { id: 'collector20', name: 'Fashionista', emoji: '💎', rarity: 'epic', cat: 'collector', stat: 'avatarsOwned', goal: 20, desc: 'Own 20 avatar items.' },
@@ -476,31 +503,42 @@ function gradeName(g) {
 function subjectLabel(s) {
   return { math: 'Math', english: 'English', science: 'Science', spanish: 'Spanish' }[s] || s;
 }
-function letterGrade(avg) {
-  if (avg >= 0.9) return 'A+'; if (avg >= 0.85) return 'A'; if (avg >= 0.8) return 'A-';
-  if (avg >= 0.75) return 'B+'; if (avg >= 0.7) return 'B'; if (avg >= 0.65) return 'B-';
-  if (avg >= 0.6) return 'C+'; if (avg >= 0.55) return 'C'; if (avg >= 0.45) return 'C-';
-  return 'Growing 🌱';
+// Report-card letter grade on a STANDARD, transparent scale, based on ACCURACY
+// (percent correct), which is what parents expect, not the internal mastery
+// score the adaptive engine uses to decide what to teach next. A child at 90%
+// accuracy earns an A-, exactly as a parent would read it. Below 60% we show a
+// supportive label instead of an F, because at that point the right response is
+// more teaching, not a failing mark.
+function letterGrade(acc) {
+  if (acc == null) return ', ';
+  const p = acc * 100;
+  if (p >= 97) return 'A+'; if (p >= 93) return 'A'; if (p >= 90) return 'A-';
+  if (p >= 87) return 'B+'; if (p >= 83) return 'B'; if (p >= 80) return 'B-';
+  if (p >= 77) return 'C+'; if (p >= 73) return 'C'; if (p >= 70) return 'C-';
+  if (p >= 67) return 'D+'; if (p >= 63) return 'D'; if (p >= 60) return 'D-';
+  return 'Keep practicing';
 }
+// The scale, exposed so the parent report can show exactly how a grade is earned.
+const GRADE_SCALE = '90–100% A · 80–89% B · 70–79% C · 60–69% D';
 
 // Curated career pathways. Each is matched against a child's subject-strength
 // profile. `sig` weights which subjects the career leans on. `why` ties the
 // child's strength to a real-world payoff; `hs` is what to focus on in high school.
 const CAREER_PATHS = [
   { id: 'engineer', title: 'Engineering', emoji: '⚙️', sig: { math: 1, science: 0.8 }, why: 'Strong math + science minds design bridges, robots, rockets and apps. Every problem solved in lessons is the same muscle engineers use daily.', hs: 'Physics, calculus, and a coding or robotics elective.' },
-  { id: 'cs', title: 'Computer Science & AI', emoji: '💻', sig: { math: 1, science: 0.5 }, why: 'Logical, pattern-loving thinkers thrive in software, data, and AI — some of the fastest-growing, best-paid fields.', hs: 'AP Computer Science, statistics, and a personal coding project.' },
+  { id: 'cs', title: 'Computer Science & AI', emoji: '💻', sig: { math: 1, science: 0.5 }, why: 'Logical, pattern-loving thinkers thrive in software, data, and AI, some of the fastest-growing, best-paid fields.', hs: 'AP Computer Science, statistics, and a personal coding project.' },
   { id: 'medicine', title: 'Medicine & Health', emoji: '🩺', sig: { science: 1, english: 0.5 }, why: 'Science mastery plus clear communication is the foundation of doctors, nurses, and researchers who help people every day.', hs: 'Biology, chemistry, and volunteering in a clinic or hospital.' },
-  { id: 'research', title: 'Scientist / Researcher', emoji: '🔬', sig: { science: 1, math: 0.6 }, why: 'Curiosity about how the world works — plus the math to measure it — drives discoveries in labs and universities.', hs: 'Lab sciences, statistics, and a science-fair research project.' },
-  { id: 'finance', title: 'Finance & Business', emoji: '📈', sig: { math: 1, english: 0.4 }, why: 'Comfort with numbers powers careers in investing, accounting, and running companies — turning skills into real earning power.', hs: 'Economics, statistics, and a school business or investing club.' },
+  { id: 'research', title: 'Scientist / Researcher', emoji: '🔬', sig: { science: 1, math: 0.6 }, why: 'Curiosity about how the world works, plus the math to measure it, drives discoveries in labs and universities.', hs: 'Lab sciences, statistics, and a science-fair research project.' },
+  { id: 'finance', title: 'Finance & Business', emoji: '📈', sig: { math: 1, english: 0.4 }, why: 'Comfort with numbers powers careers in investing, accounting, and running companies, turning skills into real earning power.', hs: 'Economics, statistics, and a school business or investing club.' },
   { id: 'entrepreneur', title: 'Entrepreneur', emoji: '🚀', sig: { math: 0.7, english: 0.7 }, why: 'Founders blend numbers (pricing, budgets) with words (pitching, selling). The lemonade and market games are literally practice for this.', hs: 'Business, public speaking, and starting a small side venture.' },
   { id: 'law', title: 'Law & Policy', emoji: '⚖️', sig: { english: 1, science: 0.3 }, why: 'Reading closely, arguing clearly, and reasoning carefully are exactly what lawyers, judges, and leaders do.', hs: 'Debate, government, and rigorous reading & writing courses.' },
-  { id: 'writer', title: 'Writing & Media', emoji: '✍️', sig: { english: 1 }, why: 'Word wizards become authors, journalists, marketers, and screenwriters — storytelling is one of the most durable human skills.', hs: 'Creative writing, journalism (school paper), and literature.' },
-  { id: 'educator', title: 'Education & Psychology', emoji: '🎓', sig: { english: 0.8, science: 0.5 }, why: 'Explaining ideas and understanding people leads to teaching, counseling, and psychology — shaping the next generation.', hs: 'Psychology, writing, and tutoring or mentoring younger kids.' },
-  { id: 'global', title: 'Global & Diplomacy', emoji: '🌍', sig: { spanish: 1, english: 0.7 }, why: 'Speaking more than one language opens international business, diplomacy, and travel careers — the world runs on bilingual talent.', hs: 'Advanced Spanish, world history, and a cultural exchange.' },
-  { id: 'healthbilingual', title: 'Bilingual Healthcare', emoji: '🏥', sig: { spanish: 0.8, science: 0.8 }, why: 'Bilingual nurses and doctors are in huge demand — combining science with Spanish means serving twice the community.', hs: 'Biology, medical Spanish, and clinic volunteering.' },
+  { id: 'writer', title: 'Writing & Media', emoji: '✍️', sig: { english: 1 }, why: 'Word wizards become authors, journalists, marketers, and screenwriters, storytelling is one of the most durable human skills.', hs: 'Creative writing, journalism (school paper), and literature.' },
+  { id: 'educator', title: 'Education & Psychology', emoji: '🎓', sig: { english: 0.8, science: 0.5 }, why: 'Explaining ideas and understanding people leads to teaching, counseling, and psychology, shaping the next generation.', hs: 'Psychology, writing, and tutoring or mentoring younger kids.' },
+  { id: 'global', title: 'Global & Diplomacy', emoji: '🌍', sig: { spanish: 1, english: 0.7 }, why: 'Speaking more than one language opens international business, diplomacy, and travel careers, the world runs on bilingual talent.', hs: 'Advanced Spanish, world history, and a cultural exchange.' },
+  { id: 'healthbilingual', title: 'Bilingual Healthcare', emoji: '🏥', sig: { spanish: 0.8, science: 0.8 }, why: 'Bilingual nurses and doctors are in huge demand, combining science with Spanish means serving twice the community.', hs: 'Biology, medical Spanish, and clinic volunteering.' },
   { id: 'design', title: 'Architecture & Design', emoji: '📐', sig: { math: 0.8, science: 0.4, english: 0.3 }, why: 'Geometry and spatial reasoning become buildings, products, and games that people use and love.', hs: 'Geometry, art/design, and a drafting or CAD elective.' },
-  { id: 'environment', title: 'Environmental Science', emoji: '🌱', sig: { science: 1, math: 0.5 }, why: 'Understanding ecosystems and data helps protect the planet — one of the defining challenges (and job markets) of this generation.', hs: 'Environmental science, chemistry, and a sustainability project.' },
-  { id: 'communicator', title: 'Marketing & Communications', emoji: '📣', sig: { english: 0.9, spanish: 0.4 }, why: 'Persuasion and clear writing drive advertising, PR, and brand-building — turning ideas into things people want.', hs: 'Writing, a second language, and running a club\'s social media.' }
+  { id: 'environment', title: 'Environmental Science', emoji: '🌱', sig: { science: 1, math: 0.5 }, why: 'Understanding ecosystems and data helps protect the planet, one of the defining challenges (and job markets) of this generation.', hs: 'Environmental science, chemistry, and a sustainability project.' },
+  { id: 'communicator', title: 'Marketing & Communications', emoji: '📣', sig: { english: 0.9, spanish: 0.4 }, why: 'Persuasion and clear writing drive advertising, PR, and brand-building, turning ideas into things people want.', hs: 'Writing, a second language, and running a club\'s social media.' }
 ];
 
 // Analyze a child's strengths and (grade-gated) surface career pathways.
@@ -570,23 +608,28 @@ function reportCard(kidId) {
     const strengths = rows.filter(r => r.mastery >= MASTERED).sort((a, b) => b.mastery - a.mastery).slice(0, 3);
     const focus = rows.filter(r => r.mastery < STRUGGLING && r.attempts >= 2).sort((a, b) => a.mastery - b.mastery).slice(0, 3);
     const nameOf = id => { const s = content.getSkill(sub, id); return s ? s.name : id; };
-    // Pace status — the guardrails, made visible: is this child cruising (elevate),
+    // Pace status, the guardrails, made visible: is this child cruising (elevate),
     // holding steady, or needing extra care right now?
     // Status uses the child's RECENT overall experience in the subject (last ~15
-    // answers) — stable, and honest to what they've actually been feeling lately.
+    // answers), stable, and honest to what they've actually been feeling lately.
     const recentRows = db.prepare('SELECT correct FROM activity_log WHERE kid_id=? AND subject=? ORDER BY id DESC LIMIT 15').all(kidId, sub);
     const recentAcc = recentRows.length >= 8 ? recentRows.filter(r => r.correct).length / recentRows.length : null;
     let status = 'building';
     if (state.placed && (agg.n || 0) >= 8) {
-      // ~65–80% is the healthy "challenging but doable" zone — that's on-track, not
+      // ~65–80% is the healthy "challenging but doable" zone, that's on-track, not
       // a worry. Support flags genuine struggle; excelling = cruising, raise the bar.
       if (recentAcc != null && recentAcc < 0.5) status = 'needs-support';
       else if ((recentAcc != null && recentAcc >= 0.85) || (avg != null && avg >= MASTERED && !focus.length)) status = 'excelling';
       else if (recentAcc != null) status = 'on-track';
     }
+    // Gallop Score, this subject's headline progress number (200–1200).
+    const masteryMap = Object.fromEntries(rows.map(r => [r.skill_id, r.mastery]));
+    const gallopScore = rows.length ? gscore.subjectScore(sub, masteryMap) : null;
+    const gradeEquiv = gallopScore != null ? gscore.gradeEquivalent(sub, gallopScore) : null;
     return {
       subject: sub, label: subjectLabel(sub), level: state.level, levelName: gradeName(Math.round(state.level)),
-      placed: !!state.placed, avgMastery: avg, letter: avg == null ? '—' : letterGrade(avg),
+      placed: !!state.placed, avgMastery: avg, letter: letterGrade(agg.n ? (agg.c / agg.n) : null),
+      gallopScore, gradeEquiv,
       questionsAnswered: agg.n || 0, accuracy: agg.n ? (agg.c / agg.n) : null,
       status, recentAccuracy: recentAcc,
       placementNote: placementRationale(sub, state, kid),
@@ -617,10 +660,30 @@ function reportCard(kidId) {
     const r = byDay[d];
     history.push({ day: d, answers: r ? r.n : 0, correct: r ? (r.c || 0) : 0 });
   }
+  // ---- Gallop Score: top-line blend + weekly "+X points" delta ----
+  const perSubjectScore = {};
+  subjects.forEach(s => { if (s.gallopScore != null) perSubjectScore[s.subject] = s.gallopScore; });
+  const overallScore = gscore.overall(perSubjectScore);
+  const gallop = { overall: overallScore, bySubject: perSubjectScore, deltas: {} };
+  try {
+    const today = db.prepare(`SELECT date('now') AS d`).get().d;
+    const snap = db.prepare('INSERT OR REPLACE INTO score_snapshots (kid_id, subject, day, score) VALUES (?,?,?,?)');
+    const priorOf = db.prepare(`SELECT score FROM score_snapshots WHERE kid_id=? AND subject=? AND day <= date('now','-7 days') ORDER BY day DESC LIMIT 1`);
+    const earliestOf = db.prepare(`SELECT score FROM score_snapshots WHERE kid_id=? AND subject=? ORDER BY day ASC LIMIT 1`);
+    const record = (subj, val) => {
+      if (val == null) return;
+      snap.run(kidId, subj, today, val);
+      const base = priorOf.get(kidId, subj) || earliestOf.get(kidId, subj);
+      if (base) gallop.deltas[subj] = val - base.score;
+    };
+    Object.entries(perSubjectScore).forEach(([s, v]) => record(s, v));
+    record('overall', overallScore);
+  } catch (e) { /* snapshots are best-effort */ }
+
   return {
     kid: { id: kid.id, name: kid.name, avatar: kid.avatar, grade: kid.grade, xp: kid.xp, coins: kid.coins, streak: kid.streak, weekly_goal: kid.weekly_goal, calendar_mode: kid.calendar_mode },
     subjects, badges, certificates: certs, weekAnswers: week.n || 0,
-    history,
+    history, gradeScale: GRADE_SCALE, gallop,
     pace: pace(kid),
     career: careerInsights(kidId)
   };
@@ -646,7 +709,7 @@ function pace(kid) {
       label: label + ' · Summer break', summer: true,
       startISO: nextStart.toISOString().slice(0, 10), endISO: end.toISOString().slice(0, 10),
       pctThroughYear: 1,
-      note: `School's out! Summer practice keeps skills sharp — the ${nextStart.getFullYear()}–${nextStart.getFullYear() + 1} year starts ${nextStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.`
+      note: `School's out! Summer practice keeps skills sharp, the ${nextStart.getFullYear()}–${nextStart.getFullYear() + 1} year starts ${nextStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.`
     };
   }
   const pct = Math.max(0, Math.min(1, (now - start) / (end - start)));

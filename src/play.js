@@ -15,7 +15,7 @@ const AVATAR_CATALOG = {
     { id: 'tiger', emoji: '🐯', price: 0 }, { id: 'octopus', emoji: '🐙', price: 0 },
     { id: 'axolotl', emoji: '🦎', price: 30 }, { id: 'narwhal', emoji: '🦭', price: 30 },
     { id: 'phoenix', emoji: '🐦‍🔥', price: 60 }, { id: 'alien', emoji: '👽', price: 40 },
-    { id: 'ninja', emoji: '🥷', price: 70, rarity: 'epic' }, { id: 'wizard', emoji: '🧙', price: 70, rarity: 'epic' },
+    { id: 'otter', emoji: '🦦', price: 70, rarity: 'epic' }, { id: 'wizard', emoji: '🧙', price: 70, rarity: 'epic' },
     { id: 'superhero', emoji: '🦸', price: 80, rarity: 'epic' }, { id: 'mermaid', emoji: '🧜‍♀️', price: 75, rarity: 'epic' },
     { id: 'trex', emoji: '🦖', price: 90, rarity: 'epic' }, { id: 'shark', emoji: '🦈', price: 65, rarity: 'rare' },
     { id: 'wolf', emoji: '🐺', price: 55, rarity: 'rare' }, { id: 'lion', emoji: '🦁', price: 55, rarity: 'rare' },
@@ -24,7 +24,7 @@ const AVATAR_CATALOG = {
     // People characters (cartoon-style)
     { id: 'princess', emoji: '👸', price: 40 }, { id: 'prince', emoji: '🤴', price: 40 },
     { id: 'artist', emoji: '🧑‍🎨', price: 35 }, { id: 'chef', emoji: '🧑‍🍳', price: 35 },
-    { id: 'detective', emoji: '🕵️', price: 45, rarity: 'rare' }, { id: 'pirate', emoji: '🏴‍☠️', price: 45, rarity: 'rare' },
+    { id: 'detective', emoji: '🕵️', price: 45, rarity: 'rare' }, { id: 'captain', emoji: '🧑‍✈️', price: 45, rarity: 'rare' },
     { id: 'rockstar', emoji: '🧑‍🎤', price: 50, rarity: 'rare' }, { id: 'scientist', emoji: '🧑‍🔬', price: 40 },
     { id: 'cowgirl', emoji: '🤠', price: 35 }, { id: 'farmer', emoji: '🧑‍🌾', price: 35 },
     { id: 'elf', emoji: '🧝', price: 60, rarity: 'epic' }, { id: 'vampire', emoji: '🧛', price: 65, rarity: 'epic' },
@@ -43,7 +43,7 @@ const AVATAR_CATALOG = {
     { id: 'cowboy', emoji: '🤠', price: 15 }, { id: 'halo', emoji: '😇', price: 30 },
     { id: 'headphones', emoji: '🎧', price: 20 }, { id: 'flower', emoji: '🌺', price: 15 },
     { id: 'helmet', emoji: '⛑️', price: 15 }, { id: 'santa', emoji: '🎅', price: 30 },
-    { id: 'ninjaband', emoji: '🎏', price: 40, rarity: 'rare' }, { id: 'viking', emoji: '🪖', price: 45, rarity: 'rare' },
+    { id: 'headband', emoji: '🎽', price: 40, rarity: 'rare' }, { id: 'explorer', emoji: '🧭', price: 45, rarity: 'rare' },
     { id: 'wizardhat', emoji: '🧙‍♂️', price: 55, rarity: 'epic' }, { id: 'firecrown', emoji: '🔥', price: 90, rarity: 'legendary' },
     { id: 'rainbowhalo', emoji: '🌈', price: 100, rarity: 'legendary' }
   ],
@@ -54,7 +54,7 @@ const AVATAR_CATALOG = {
     { id: 'wand', emoji: '🪄', price: 25 }, { id: 'skateboard', emoji: '🛹', price: 20 },
     { id: 'trophy', emoji: '🏆', price: 35 }, { id: 'books', emoji: '📚', price: 15 },
     { id: 'soccer', emoji: '⚽', price: 15 }, { id: 'controller', emoji: '🎮', price: 25 },
-    { id: 'lightsaber', emoji: '⚔️', price: 55, rarity: 'epic' }, { id: 'shield', emoji: '🛡️', price: 45, rarity: 'rare' },
+    { id: 'kite', emoji: '🪁', price: 55, rarity: 'epic' }, { id: 'backpack', emoji: '🎒', price: 45, rarity: 'rare' },
     { id: 'jetpack', emoji: '🚀', price: 70, rarity: 'epic' }, { id: 'crystalball', emoji: '🔮', price: 60, rarity: 'epic' },
     { id: 'lightning', emoji: '⚡', price: 100, rarity: 'legendary' }, { id: 'diamond', emoji: '💎', price: 120, rarity: 'legendary' }
   ],
@@ -85,7 +85,7 @@ const CHEER_LIST = [
   { id: 'fire', text: 'You’re on fire! 🔥' }, { id: 'fantastico', text: '¡Fantástico! 🌎' },
   { id: 'brain', text: 'Big brain energy! 🧠' }, { id: 'star', text: 'Superstar! ⭐' },
   { id: 'rocket', text: 'To the moon! 🚀' }, { id: 'clap', text: 'Amazing streak! 👏' },
-  { id: 'race', text: 'Race you to the next badge! 🏁' }, { id: 'hi', text: 'Hi from your buddy! 👋' }
+  { id: 'race', text: 'On to the next badge! ⚡' }, { id: 'hi', text: 'Hi from your buddy! 👋' }
 ];
 const GAMES = ['memory', 'wordsearch', 'code', 'room', 'art', 'lemonade', 'market', 'blitz'];
 const GAME_NAMES = { memory: 'Memory Match', wordsearch: 'Word Search', code: 'Code Quest', room: 'Room Designer', art: 'Art Studio', lemonade: 'Lemonade Tycoon', market: 'Market Mogul', blitz: 'Lightning Round' };
@@ -126,7 +126,12 @@ const SNACKS = {
     { id: 'lolli', emoji: '🍭', name: 'Lollipop', price: 4 },
     { id: 'juice', emoji: '🧃', name: 'Juice Box', price: 5 },
     { id: 'cracker', emoji: '🧀', name: 'Cheese Crackers', price: 6 },
-    { id: 'water', emoji: '💧', name: 'Water', price: 2 }
+    { id: 'water', emoji: '💧', name: 'Water', price: 2 },
+    { id: 'grapes', emoji: '🍇', name: 'Grapes', price: 5 },
+    { id: 'banana', emoji: '🍌', name: 'Banana', price: 4 },
+    { id: 'apple', emoji: '🍏', name: 'Green Apple', price: 4 },
+    { id: 'strawberry', emoji: '🍓', name: 'Strawberries', price: 6 },
+    { id: 'rainbowpop', emoji: '🌈', name: 'Rainbow Pop', price: 8, rarity: 'rare' }
   ],
   shack: [
     { id: 'pizza', emoji: '🍕', name: 'Pizza Slice', price: 12 },
@@ -144,8 +149,12 @@ const SNACKS = {
     { id: 'shake', emoji: '🥤', name: 'Milkshake', price: 12 },
     { id: 'nachos', emoji: '🧀', name: 'Nachos', price: 13 },
     { id: 'cake', emoji: '🍰', name: 'Cake Slice', price: 14 },
+    { id: 'watermelon', emoji: '🍉', name: 'Watermelon', price: 11 },
+    { id: 'pie', emoji: '🥧', name: 'Fruit Pie', price: 12 },
+    { id: 'burrito', emoji: '🌯', name: 'Burrito', price: 13 },
     { id: 'feast', emoji: '🍱', name: 'Bento Feast', price: 25, rarity: 'epic' },
     { id: 'sundae', emoji: '🍨', name: 'Giant Sundae', price: 30, rarity: 'epic' },
+    { id: 'birthdaycake', emoji: '🎂', name: 'Birthday Cake', price: 40, rarity: 'epic' },
     { id: 'goldapple', emoji: '🍎', name: 'Golden Apple', price: 50, rarity: 'legendary' }
   ]
 };

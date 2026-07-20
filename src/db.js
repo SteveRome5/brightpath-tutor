@@ -165,6 +165,14 @@ CREATE TABLE IF NOT EXISTS snacks (
   PRIMARY KEY (kid_id, snack_id)
 );
 
+CREATE TABLE IF NOT EXISTS score_snapshots (
+  kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+  subject TEXT NOT NULL,                     -- math|english|science|spanish|overall
+  day TEXT NOT NULL,                         -- YYYY-MM-DD
+  score INTEGER NOT NULL,
+  PRIMARY KEY (kid_id, subject, day)
+);
+
 CREATE INDEX IF NOT EXISTS idx_challenges_open ON challenges(to_kid, game, status);
 `);
 
