@@ -59,6 +59,14 @@ router.post('/auth/login', (req, res) => {
   res.json({ ok: true });
 });
 
+router.post('/auth/change-password', auth.requireParent, (req, res) => {
+  const { current, next } = req.body || {};
+  if (!next || next.length < 6) return res.status(400).json({ error: 'New password needs 6+ characters.' });
+  if (!auth.verifyParent(req.parent.email, current || '')) return res.status(401).json({ error: 'Current password is incorrect.' });
+  auth.setPassword(req.parent.id, next);
+  res.json({ ok: true });
+});
+
 router.post('/auth/logout', (req, res) => {
   auth.destroySession(req.cookies.bp_session);
   res.clearCookie('bp_session');
@@ -138,11 +146,27 @@ router.get('/learn/:kidId/overview', auth.requireKid, auth.requireActiveSub, (re
   const subjects = ['math', 'english', 'science', 'spanish'].map(sub => {
     const st = adaptive.getSubjectState(req.kid.id, sub);
     const meta = content.SUBJECTS[sub];
-    return { subject: sub, label: meta.label, emoji: meta.emoji, color: meta.color, level: st.level, levelName: adaptive.gradeName(Math.round(st.level)), placed: !!st.placed };
+    const m = db.prepare('SELECT AVG(mastery) AS m FROM skill_state WHERE kid_id=? AND subject=? AND attempts>0').get(req.kid.id, sub);
+    const today = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND subject=? AND date(ts)=date('now')").get(req.kid.id, sub);
+    return { subject: sub, label: meta.label, emoji: meta.emoji, color: meta.color, level: st.level, levelName: adaptive.gradeName(Math.round(st.level)), placed: !!st.placed, avgMastery: m.m, answersToday: today.n || 0 };
   });
+  // Smart "Up Next": weakest, least-practiced-today subject — or first placement needed
+  let recommended = null;
+  const placedSubs = subjects.filter(s => s.placed);
+  if (!placedSubs.length) {
+    recommended = { subject: subjects[0].subject, type: 'place' };
+  } else {
+    const cand = [...placedSubs].sort((a, b) =>
+      ((a.avgMastery == null ? 0.5 : a.avgMastery) + (a.answersToday > 0 ? 1 : 0)) -
+      ((b.avgMastery == null ? 0.5 : b.avgMastery) + (b.answersToday > 0 ? 1 : 0)))[0];
+    const unplaced = subjects.find(s => !s.placed);
+    if (unplaced && placedSubs.every(s => s.answersToday > 0)) recommended = { subject: unplaced.subject, type: 'place' };
+    else recommended = { subject: cand.subject, type: cand.avgMastery != null && cand.avgMastery < 0.5 ? 'boost' : cand.answersToday > 0 ? 'more' : 'fresh' };
+  }
   const week = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-7 days')").get(req.kid.id);
   const lastWeek = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-14 days') AND ts < datetime('now','-7 days')").get(req.kid.id);
-  res.json({ kid: publicKid(db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id)), subjects, weekAnswers: week.n || 0, lastWeek: { answers: lastWeek.n || 0, correct: lastWeek.c || 0 } });
+  const activeDays = db.prepare("SELECT DISTINCT date(ts) AS d FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-14 days')").all(req.kid.id).map(r => r.d);
+  res.json({ kid: publicKid(db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id)), subjects, weekAnswers: week.n || 0, lastWeek: { answers: lastWeek.n || 0, correct: lastWeek.c || 0 }, recommended, activeDays });
 });
 
 // placement quiz
@@ -245,26 +269,34 @@ router.post('/learn/:kidId/placement/:subject/retake', auth.requireKid, (req, re
 
 // ---------- admin (owner only) ----------
 router.get('/admin/overview', auth.requireAdmin, (req, res) => {
+  // Test accounts (from development/QA) are excluded from business numbers
+  const TEST_SQL = "(email LIKE '%@example.com' OR email LIKE '%@t.com' OR email LIKE '%gallop-test.com')";
+  const testIds = db.prepare(`SELECT id FROM parents WHERE ${TEST_SQL}`).all().map(r => r.id);
+  const pNot = testIds.length ? `id NOT IN (${testIds.join(',')})` : '1=1';
+  const kNot = testIds.length ? `parent_id NOT IN (${testIds.join(',')})` : '1=1';
+  const realKidIds = db.prepare(`SELECT id FROM kids WHERE ${kNot}`).all().map(r => r.id);
+  const aIn = realKidIds.length ? `kid_id IN (${realKidIds.join(',')})` : '1=0';
   const g = q => db.prepare(q).get();
   const totals = {
-    parents: g('SELECT COUNT(*) AS n FROM parents').n,
-    kids: g('SELECT COUNT(*) AS n FROM kids').n,
-    answersAllTime: g('SELECT COUNT(*) AS n FROM activity_log').n,
-    answersWeek: g("SELECT COUNT(*) AS n FROM activity_log WHERE ts >= datetime('now','-7 days')").n,
-    answersToday: g("SELECT COUNT(*) AS n FROM activity_log WHERE date(ts)=date('now')").n,
-    activeKidsWeek: g("SELECT COUNT(DISTINCT kid_id) AS n FROM activity_log WHERE ts >= datetime('now','-7 days')").n,
-    certificates: g('SELECT COUNT(*) AS n FROM certificates').n
+    parents: g(`SELECT COUNT(*) AS n FROM parents WHERE ${pNot}`).n,
+    kids: realKidIds.length,
+    answersAllTime: g(`SELECT COUNT(*) AS n FROM activity_log WHERE ${aIn}`).n,
+    answersWeek: g(`SELECT COUNT(*) AS n FROM activity_log WHERE ${aIn} AND ts >= datetime('now','-7 days')`).n,
+    answersToday: g(`SELECT COUNT(*) AS n FROM activity_log WHERE ${aIn} AND date(ts)=date('now')`).n,
+    activeKidsWeek: g(`SELECT COUNT(DISTINCT kid_id) AS n FROM activity_log WHERE ${aIn} AND ts >= datetime('now','-7 days')`).n,
+    certificates: g(`SELECT COUNT(*) AS n FROM certificates WHERE ${aIn.replace(/kid_id/g, 'kid_id')}`).n,
+    testAccounts: testIds.length
   };
-  const byStatus = Object.fromEntries(db.prepare('SELECT sub_status, COUNT(*) AS n FROM parents GROUP BY sub_status').all().map(r => [r.sub_status, r.n]));
-  const activeByPlan = db.prepare("SELECT sub_plan, COUNT(*) AS n FROM parents WHERE sub_status='active' GROUP BY sub_plan").all();
+  const byStatus = Object.fromEntries(db.prepare(`SELECT sub_status, COUNT(*) AS n FROM parents WHERE ${pNot} GROUP BY sub_status`).all().map(r => [r.sub_status, r.n]));
+  const activeByPlan = db.prepare(`SELECT sub_plan, COUNT(*) AS n FROM parents WHERE sub_status='active' AND ${pNot} GROUP BY sub_plan`).all();
   const PRICES = { solo: 29, family: 49 };
   const mrr = activeByPlan.reduce((t, r) => t + (PRICES[r.sub_plan] || 0) * r.n, 0);
-  const signups = db.prepare("SELECT date(created_at) AS d, COUNT(*) AS n FROM parents WHERE created_at >= datetime('now','-14 days') GROUP BY date(created_at)").all();
+  const signups = db.prepare(`SELECT date(created_at) AS d, COUNT(*) AS n FROM parents WHERE ${pNot} AND created_at >= datetime('now','-14 days') GROUP BY date(created_at)`).all();
   const recent = db.prepare(`SELECT p.id, p.email, p.name, p.sub_status, p.sub_plan, p.trial_ends, p.created_at,
       (SELECT COUNT(*) FROM kids k WHERE k.parent_id=p.id) AS kids,
       (SELECT COUNT(*) FROM activity_log a JOIN kids k2 ON a.kid_id=k2.id WHERE k2.parent_id=p.id AND a.ts >= datetime('now','-7 days')) AS weekAnswers
-    FROM parents p ORDER BY p.created_at DESC LIMIT 25`).all();
-  const gradeBands = db.prepare(`SELECT CASE WHEN grade<=2 THEN 'K-2' WHEN grade<=5 THEN '3-5' WHEN grade<=8 THEN '6-8' ELSE '9-12' END AS band, COUNT(*) AS n FROM kids GROUP BY band`).all();
+    FROM parents p WHERE ${pNot.replace(/^id/, 'p.id')} ORDER BY p.created_at DESC LIMIT 25`).all();
+  const gradeBands = db.prepare(`SELECT CASE WHEN grade<=2 THEN 'K-2' WHEN grade<=5 THEN '3-5' WHEN grade<=8 THEN '6-8' ELSE '9-12' END AS band, COUNT(*) AS n FROM kids WHERE ${kNot} GROUP BY band`).all();
   res.json({ totals, byStatus, mrr, signups, recent, gradeBands });
 });
 

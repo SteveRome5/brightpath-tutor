@@ -44,6 +44,12 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function setPassword(parentId, password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = hashPassword(password, salt);
+  db.prepare('UPDATE parents SET password_hash=?, salt=? WHERE id=?').run(hash, salt, parentId);
+}
+
 function createSession(kind, refId) {
   const token = crypto.randomBytes(32).toString('hex');
   db.prepare('INSERT INTO sessions (token, kind, ref_id) VALUES (?,?,?)').run(token, kind, refId);
@@ -95,4 +101,4 @@ function requireActiveSub(req, res, next) {
   return res.status(402).json({ error: 'subscription_required', message: 'Your free trial has ended. Subscribe to keep learning!' });
 }
 
-module.exports = { createParent, verifyParent, createSession, getSession, destroySession, requireParent, requireKid, requireActiveSub, requireAdmin, syncAdminFlag };
+module.exports = { createParent, verifyParent, setPassword, createSession, getSession, destroySession, requireParent, requireKid, requireActiveSub, requireAdmin, syncAdminFlag };
