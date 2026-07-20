@@ -527,7 +527,16 @@ function wireChrome() {
   const sb = $('#sound-btn'), menu = $('#sound-menu');
   if (sb && menu) {
     sb.onclick = (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; };
-    document.addEventListener('click', (e) => { if (menu && !menu.hidden && !e.target.closest('.sound-wrap')) menu.hidden = true; }, { once: true });
+    // Register the outside-click-to-close handler exactly once (wireChrome runs on every
+    // render). A persistent handler that no-ops unless a menu is open, rather than a
+    // {once:true} listener that fires on the first stray click and then stops working.
+    if (!wireChrome._soundCloseWired) {
+      document.addEventListener('click', (e) => {
+        const m = document.getElementById('sound-menu');
+        if (m && !m.hidden && !e.target.closest('.sound-wrap')) m.hidden = true;
+      });
+      wireChrome._soundCloseWired = true;
+    }
     const sfxSw = $('#sfx-sw'), musicSw = $('#music-sw');
     $('#sfx-toggle').onclick = (e) => { e.stopPropagation(); const muted = Sound.toggle(); sfxSw.classList.toggle('on', !muted); if (!muted) Sound.click(); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
     $('#music-toggle').onclick = (e) => { e.stopPropagation(); const isOn = Music.toggle(currentMusicMood()); musicSw.classList.toggle('on', isOn); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
@@ -636,25 +645,20 @@ route('landing', async () => {
       <div class="feature reveal"><h3>Proof for the fridge</h3><p>Printable certificates, a one-page weekly summary, a two-week activity chart, per-skill progress bars, a spreadsheet export, and the strengths and career insights. You will always know how it is going.</p></div>
     </div>
 
-    <!-- ============================================================
-         TESTIMONIALS: Steve, replace these three quotes and names with
-         REAL quotes from your families (get their OK to use their name/initial
-         first). These are placeholder examples written to sound natural.
-         ============================================================ -->
-    <h2 class="section-title reveal">What families are saying</h2>
-    <p class="section-sub">A small but growing group of families use Gallop every week. Here is what a few of them tell us.</p>
+    <h2 class="section-title reveal">Why families choose Gallop</h2>
+    <p class="section-sub">Gallop is newly launched, so we would rather show you what it does than put words in a parent's mouth. Here is what you get from day one.</p>
     <div class="quote-grid">
       <figure class="quote-card reveal">
-        <blockquote>The placement quiz put my two kids in different spots for math and reading, which is exactly right. It finally stopped feeling like the same worksheet for both of them.</blockquote>
-        <figcaption><span class="q-name">Parent of two</span><span class="q-detail">Family plan</span></figcaption>
+        <blockquote>Each subject is placed on its own, so a child who reads ahead but finds math harder starts in the right spot for both, not somewhere in the middle.</blockquote>
+        <figcaption><span class="q-name">Placed per subject</span><span class="q-detail">Math · English · Science · Spanish</span></figcaption>
       </figure>
       <figure class="quote-card reveal">
-        <blockquote>My daughter begs to do "one more" so she can earn coins for the snack machine. She has no idea how much math she is doing. I do.</blockquote>
-        <figcaption><span class="q-name">Mom of a 2nd grader</span><span class="q-detail">Solo plan</span></figcaption>
+        <blockquote>Coins, badges, an arcade, and a Snack Shack turn practice into something kids come back to, while the real work happens underneath.</blockquote>
+        <figcaption><span class="q-name">Built to keep them going</span><span class="q-detail">Play is the reward</span></figcaption>
       </figure>
       <figure class="quote-card reveal">
-        <blockquote>The weekly report tells me where she is ahead and where she is stuck, in plain language. For less than a week of the tutoring center, we get all four subjects.</blockquote>
-        <figcaption><span class="q-name">Dad and homeschooler</span><span class="q-detail">Family plan</span></figcaption>
+        <blockquote>A one-page weekly summary tells you, in plain language, where your child is ahead and where they are stuck, across all four subjects.</blockquote>
+        <figcaption><span class="q-name">You always know how it is going</span><span class="q-detail">Weekly report & progress</span></figcaption>
       </figure>
     </div>
 
@@ -704,7 +708,7 @@ route('landing', async () => {
   </div>
   <div class="site-footer">© ${new Date().getFullYear()} Gallop Learning Academy · Adaptive tutoring for grades K–12<br>
     <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow along on Instagram at @learnwithgallop</a><br>
-    <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="#terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="#privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
+    <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
   </div>`);
   wireChrome();
 });
@@ -815,7 +819,7 @@ route('demo', async () => {
       const ok = i === qn.answer;
       document.querySelectorAll('.choice').forEach(x => x.disabled = true);
       b.classList.add(ok ? 'correct' : 'wrong');
-      if (!ok) document.querySelectorAll('.choice')[qn.answer].classList.add('reveal');
+      if (!ok) document.querySelectorAll('.choice')[qn.answer].classList.add('answer-reveal');
       const fb = $('#feedback');
       if (ok) { correct++; Sound.correct(); Confetti.burst(40); fb.className = 'feedback good'; }
       else { Sound.wrong(); fb.className = 'feedback bad'; }
@@ -834,12 +838,12 @@ route('signup', async () => {
       <h2>Create your family account 👨‍👩‍👧</h2>
       <label>Your name</label><input id="f-name" placeholder="e.g. Steve">
       <label>Email</label><input id="f-email" type="email" placeholder="you@example.com">
-      <label>Password (6+ characters)</label><input id="f-pass" type="password">
+      <label>Password (8+ characters)</label><input id="f-pass" type="password">
       <div class="error-msg" id="f-err"></div>
       <button class="btn green" style="margin-top:18px;width:100%" id="f-go">Start Free Trial →</button>
       <p class="muted center" style="margin-top:10px;font-size:.85rem">7 days free · No credit card required · Cancel anytime</p>
       <p class="muted center" style="margin-top:10px">Already have an account? <a href="#login">Log in</a></p>
-      <p class="muted center" style="margin-top:8px;font-size:.8rem">By signing up you agree to our <a href="#terms">Terms</a> and <a href="#privacy">Privacy Policy</a>.</p>
+      <p class="muted center" style="margin-top:8px;font-size:.8rem">By signing up you agree to our <a href="/terms" target="_blank" rel="noopener">Terms</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</p>
     </div></div>`);
   wireChrome();
   $('#f-go').onclick = async () => {
@@ -1087,6 +1091,7 @@ route('home', async () => {
 // ======================= placement quiz =======================
 route('placement', async (subject) => {
   if (State.me.role !== 'kid') { location.hash = '#kid-login'; return; }
+  if (!SUBJECT_STYLE[subject]) { location.hash = '#home'; return; }
   const kidId = State.me.kid.id;
   const style = SUBJECT_STYLE[subject];
   let current = null;
@@ -1157,6 +1162,7 @@ route('placement', async (subject) => {
 // ======================= lesson player =======================
 route('lesson', async (subject, mode) => {
   if (State.me.role !== 'kid') { location.hash = '#kid-login'; return; }
+  if (!SUBJECT_STYLE[subject]) { location.hash = '#home'; return; }
   const kidId = State.me.kid.id;
   const style = SUBJECT_STYLE[subject];
   const focus = mode === 'focus';
@@ -1324,7 +1330,7 @@ route('lesson', async (subject, mode) => {
       const correct = i === qn.answerIndex;
       document.querySelectorAll('.choice').forEach(x => x.disabled = true);
       b.classList.add(correct ? 'correct' : 'wrong');
-      if (!correct) document.querySelectorAll('.choice')[qn.answerIndex].classList.add('reveal');
+      if (!correct) document.querySelectorAll('.choice')[qn.answerIndex].classList.add('answer-reveal');
       settle(correct);
     });
 
@@ -1606,7 +1612,7 @@ route('weekly', async (kidId) => {
           <div class="sstat"><div class="n">${total}</div>questions</div>
           <div class="sstat"><div class="n">${acc}%</div>correct</div>
           <div class="sstat"><div class="n">${activeDays}/7</div>days active</div>
-          ${best ? `<div class="sstat"><div class="n">${best.letter}</div>${esc(best.label)}</div>` : ''}
+          ${best && State.me.role === 'parent' ? `<div class="sstat"><div class="n">${best.letter}</div>${esc(best.label)}</div>` : ''}
         </div>
         <svg viewBox="0 0 458 92" style="width:100%;height:auto;margin:8px 0">${bars}</svg>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
@@ -1666,7 +1672,7 @@ function renderPaywall() {
     <p class="muted" style="margin:0 0 16px">Keep all four subjects, the adaptive tutor, the games arcade, buddies, and weekly parent reports, for less than a single week at a tutoring center.</p>
     ${State.me.role === 'parent'
       ? `<button class="btn green" id="sub-family">Family, $54/mo (up to 4 children)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo, $34/mo</button>
-         <p class="muted" style="margin-top:12px;font-size:.85rem">Cancel anytime from your dashboard.</p>`
+         <p class="muted" style="margin-top:12px;font-size:.85rem">Billed monthly and renews automatically until you cancel. Cancel anytime in one click from your dashboard.</p>`
       : `<p><b>Ask your parent to log in and subscribe!</b></p><button class="btn" onclick="location.hash='#login'">Parent Login</button>`}
   </div></div>`);
   wireChrome();
@@ -1675,10 +1681,14 @@ function renderPaywall() {
   if (solo) solo.onclick = () => checkout('solo');
 }
 async function checkout(plan) {
-  const out = await api('/billing/checkout', { method: 'POST', body: { plan } });
-  if (out.error) { alert(out.error); return; }
-  if (out.demo) { await refreshMe(); Confetti.burst(150); Sound.levelup(); location.hash = '#parent'; }
-  else if (out.url) location.href = out.url;
+  try {
+    const out = await api('/billing/checkout', { method: 'POST', body: { plan } });
+    if (out.error) { toast(out.error); return; }
+    if (out.demo) { await refreshMe(); Confetti.burst(150); Sound.levelup(); location.hash = '#parent'; }
+    else if (out.url) location.href = out.url;
+  } catch (e) {
+    toast(e.message || 'Could not start checkout. Please try again in a moment.');
+  }
 }
 
 // ======================= parent dashboard =======================
@@ -1743,6 +1753,10 @@ route('parent', async () => {
         <label>Pick an avatar</label>
         <div class="avatar-pick" id="nk-avatars">${Object.entries(AVATARS).map(([k, e], i) => `<div class="avatar-opt${i === 0 ? ' sel' : ''}" data-a="${k}">${e}</div>`).join('')}</div>
         <p class="muted" style="font-size:.83rem;margin-top:6px">This is just their starting look, kids fully customize it in the Avatar Builder with hats, pets & worlds they buy with coins they earn by learning. 🎨</p>
+        <label style="display:flex;align-items:flex-start;gap:9px;margin-top:14px;font-weight:500;cursor:pointer">
+          <input type="checkbox" id="nk-consent" style="margin-top:3px;width:18px;height:18px;flex:none">
+          <span style="font-size:.86rem;line-height:1.5">I am this child's parent or legal guardian, and I consent to Gallop collecting the limited information described in the <a href="/privacy" target="_blank" rel="noopener">Children's Privacy notice</a> to run their lessons.</span>
+        </label>
         <div class="error-msg" id="nk-err"></div>
         <button class="btn green" style="margin-top:14px;width:100%" id="nk-go">Add Learner ✨</button>
       </div>
@@ -1753,14 +1767,15 @@ route('parent', async () => {
           <p class="muted" style="margin:8px 0 14px">${subLine}</p>
           ${p.sub_status !== 'active' ? `
             <button class="btn green" style="width:100%" id="sub-family">Family, $54/mo (up to 4 children)</button>
-            <button class="btn" style="width:100%;margin-top:8px" id="sub-solo">Solo, $34/mo (1 child)</button>` : `
+            <button class="btn" style="width:100%;margin-top:8px" id="sub-solo">Solo, $34/mo (1 child)</button>
+            <p class="muted center" style="margin-top:8px;font-size:.8rem">Billed monthly, renews automatically until canceled. Cancel anytime in one click.</p>` : `
             <button class="btn" style="width:100%" id="sub-portal">Manage Billing</button>`}
           <p class="muted center" style="margin-top:10px;font-size:.85rem">${me.billingMode === 'stripe' ? 'Payments powered by Stripe' : 'Demo mode: clicking subscribe activates instantly, no card needed. Set STRIPE_SECRET_KEY to enable real payments.'}</p>
         </div>
         <div class="card">
           <h3>🔐 Account</h3>
           <label>Current password</label><input id="cp-cur" type="password" autocomplete="current-password">
-          <label>New password (6+ characters)</label><input id="cp-new" type="password" autocomplete="new-password">
+          <label>New password (8+ characters)</label><input id="cp-new" type="password" autocomplete="new-password">
           <div class="error-msg" id="cp-err"></div>
           <button class="btn small" style="margin-top:10px" id="cp-go">Change Password</button>
           <span id="cp-ok" style="margin-left:10px;color:#1f8a5f;font-weight:700;display:none">✓ Updated!</span>
@@ -1808,9 +1823,11 @@ route('parent', async () => {
   });
   $('#nk-go').onclick = async () => {
     try {
+      const consentEl = $('#nk-consent');
+      if (consentEl && !consentEl.checked) { showError('#nk-err', 'Please check the box to confirm parental consent.'); return; }
       const wasFirst = me.kids.length === 0;
       const kidName = $('#nk-name').value.trim();
-      const r = await api('/kids', { method: 'POST', body: { name: kidName, grade: Number($('#nk-grade').value), pin: $('#nk-pin').value, avatar, calendar_mode: $('#nk-cal').value } });
+      const r = await api('/kids', { method: 'POST', body: { name: kidName, grade: Number($('#nk-grade').value), pin: $('#nk-pin').value, avatar, calendar_mode: $('#nk-cal').value, consent: true } });
       Sound.badge();
       if (wasFirst) { timeToGallop(r.kidId, kidName); return; }
       navigate();
@@ -1916,7 +1933,10 @@ route('parent', async () => {
   const fam = $('#sub-family'), solo = $('#sub-solo'), portal = $('#sub-portal');
   if (fam) fam.onclick = () => checkout('family');
   if (solo) solo.onclick = () => checkout('solo');
-  if (portal) portal.onclick = async () => { const o = await api('/billing/portal', { method: 'POST' }); location.href = o.url; };
+  if (portal) portal.onclick = async () => {
+    try { const o = await api('/billing/portal', { method: 'POST' }); if (o && o.url) location.href = o.url; else toast('Could not open billing.'); }
+    catch (e) { toast(e.message || 'Could not open billing right now. Please try again in a moment.'); }
+  };
   // Sibling leaderboard, only interesting with 2+ kids
   if (me.kids.length >= 2) {
     api('/family/stats').then(({ stats }) => {
@@ -2002,8 +2022,27 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
   try { await refreshMe(); } catch (e) { /* offline-ish */ }
   // preload speech voices (some browsers lazy-load)
   if ('speechSynthesis' in window) speechSynthesis.getVoices();
-  // installable app (iPad home screen, Chromebook, etc.)
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  // installable app (iPad home screen, Chromebook, etc.) + nudge to refresh when a new
+  // version is deployed, so users (especially installed-PWA/phone) don't sit on stale code.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            const t = document.createElement('div');
+            t.className = 'gallop-toast show';
+            t.style.cursor = 'pointer';
+            t.textContent = '✨ A new version is ready — tap to refresh';
+            t.onclick = () => location.reload();
+            document.querySelectorAll('.gallop-toast').forEach(x => x.remove());
+            document.body.appendChild(t);
+          }
+        });
+      });
+    }).catch(() => {});
+  }
   // Handle the return from Stripe checkout so paying never dumps you on the homepage.
   const billing = new URLSearchParams(location.search).get('billing');
   if (billing) history.replaceState(null, '', location.pathname); // strip ?billing=… from the URL
