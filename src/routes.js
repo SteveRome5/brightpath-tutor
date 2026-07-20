@@ -227,6 +227,10 @@ router.post('/learn/:kidId/answer', auth.requireKid, auth.requireActiveSub, (req
 });
 
 // report card (kid-safe view + parent view share this)
+router.get('/learn/:kidId/achievements', auth.requireKid, (req, res) => {
+  res.json(adaptive.achievements(req.kid.id));
+});
+
 router.get('/learn/:kidId/report', auth.requireKid, (req, res) => {
   res.json(adaptive.reportCard(req.kid.id));
 });

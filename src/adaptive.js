@@ -248,21 +248,54 @@ function updateStreak(kidId) {
   db.prepare('UPDATE kids SET streak=?, last_active_day=? WHERE id=?').run(streak, today, kidId);
 }
 
+// Each badge: id, name, emoji, rarity, cat (category), stat (which stat it tracks),
+// goal (target value), and desc. A locked badge shows progress = stats[stat]/goal,
+// so kids always see how close they are to the next unlock. Rarity drives the glow.
 const BADGES = [
-  { id: 'first_steps', name: 'First Steps', emoji: '👟', test: k => k.totalAnswers >= 1 },
-  { id: 'ten_correct', name: 'Perfect 10', emoji: '🔟', test: k => k.totalCorrect >= 10 },
-  { id: 'fifty_correct', name: 'Half-Century Hero', emoji: '🏏', test: k => k.totalCorrect >= 50 },
-  { id: 'century', name: 'Century Club', emoji: '💯', test: k => k.totalCorrect >= 100 },
-  { id: 'streak3', name: 'On Fire (3-day streak)', emoji: '🔥', test: k => k.streak >= 3 },
-  { id: 'streak7', name: 'Unstoppable (7-day streak)', emoji: '🌟', test: k => k.streak >= 7 },
-  { id: 'polyglot', name: 'World Explorer', emoji: '🌎', test: k => k.spanishAnswers >= 20 },
-  { id: 'scientist', name: 'Lab Legend', emoji: '🧪', test: k => k.scienceAnswers >= 20 },
-  { id: 'mathlete', name: 'Mathlete', emoji: '🧮', test: k => k.mathAnswers >= 20 },
-  { id: 'bookworm', name: 'Bookworm', emoji: '📚', test: k => k.englishAnswers >= 20 },
-  { id: 'xp1000', name: 'XP Machine', emoji: '⚡', test: k => k.xp >= 1000 }
+  // --- Milestones (answering & correctness) ---
+  { id: 'first_steps', name: 'First Steps', emoji: '👟', rarity: 'common', cat: 'milestone', stat: 'totalAnswers', goal: 1, desc: 'Answer your very first question.' },
+  { id: 'ten_correct', name: 'Perfect 10', emoji: '🔟', rarity: 'common', cat: 'milestone', stat: 'totalCorrect', goal: 10, desc: 'Get 10 questions right.' },
+  { id: 'fifty_correct', name: 'Half-Century Hero', emoji: '🏏', rarity: 'rare', cat: 'milestone', stat: 'totalCorrect', goal: 50, desc: 'Get 50 questions right.' },
+  { id: 'century', name: 'Century Club', emoji: '💯', rarity: 'rare', cat: 'milestone', stat: 'totalCorrect', goal: 100, desc: 'Get 100 questions right.' },
+  { id: 'quincy', name: 'High Five Hundred', emoji: '🖐️', rarity: 'epic', cat: 'milestone', stat: 'totalCorrect', goal: 500, desc: 'Get 500 questions right.' },
+  { id: 'grand', name: 'Grand Master', emoji: '🏆', rarity: 'legendary', cat: 'milestone', stat: 'totalCorrect', goal: 1000, desc: 'Get 1,000 questions right!' },
+  // --- Streaks ---
+  { id: 'streak3', name: 'On Fire', emoji: '🔥', rarity: 'common', cat: 'streak', stat: 'streak', goal: 3, desc: 'Learn 3 days in a row.' },
+  { id: 'streak7', name: 'Unstoppable', emoji: '🌟', rarity: 'rare', cat: 'streak', stat: 'streak', goal: 7, desc: 'A 7-day learning streak.' },
+  { id: 'streak14', name: 'Two-Week Titan', emoji: '💫', rarity: 'epic', cat: 'streak', stat: 'streak', goal: 14, desc: 'A 14-day streak — wow!' },
+  { id: 'streak30', name: 'Month of Mastery', emoji: '👑', rarity: 'legendary', cat: 'streak', stat: 'streak', goal: 30, desc: 'A 30-day streak. Legendary!' },
+  // --- Subject explorers ---
+  { id: 'mathlete', name: 'Mathlete', emoji: '🧮', rarity: 'common', cat: 'subject', stat: 'mathAnswers', goal: 20, desc: 'Answer 20 math questions.' },
+  { id: 'bookworm', name: 'Bookworm', emoji: '📚', rarity: 'common', cat: 'subject', stat: 'englishAnswers', goal: 20, desc: 'Answer 20 English questions.' },
+  { id: 'scientist', name: 'Lab Legend', emoji: '🧪', rarity: 'common', cat: 'subject', stat: 'scienceAnswers', goal: 20, desc: 'Answer 20 science questions.' },
+  { id: 'polyglot', name: 'World Explorer', emoji: '🌎', rarity: 'common', cat: 'subject', stat: 'spanishAnswers', goal: 20, desc: 'Answer 20 Spanish questions.' },
+  { id: 'math100', name: 'Number Ninja', emoji: '➗', rarity: 'epic', cat: 'subject', stat: 'mathAnswers', goal: 100, desc: 'Answer 100 math questions.' },
+  { id: 'eng100', name: 'Word Wizard', emoji: '✍️', rarity: 'epic', cat: 'subject', stat: 'englishAnswers', goal: 100, desc: 'Answer 100 English questions.' },
+  { id: 'sci100', name: 'Mad Scientist', emoji: '🔬', rarity: 'epic', cat: 'subject', stat: 'scienceAnswers', goal: 100, desc: 'Answer 100 science questions.' },
+  { id: 'spa100', name: 'Español Star', emoji: '💃', rarity: 'epic', cat: 'subject', stat: 'spanishAnswers', goal: 100, desc: 'Answer 100 Spanish questions.' },
+  { id: 'renaissance', name: 'Renaissance Kid', emoji: '🎨', rarity: 'legendary', cat: 'subject', stat: 'allFourActive', goal: 4, desc: 'Practice all four subjects (20+ each).' },
+  // --- Mastery ---
+  { id: 'master1', name: 'Skill Sharpener', emoji: '⭐', rarity: 'rare', cat: 'mastery', stat: 'skillsMastered', goal: 5, desc: 'Master 5 skills.' },
+  { id: 'master15', name: 'Mastery Maven', emoji: '🎯', rarity: 'epic', cat: 'mastery', stat: 'skillsMastered', goal: 15, desc: 'Master 15 skills.' },
+  { id: 'master40', name: 'Grand Scholar', emoji: '🦉', rarity: 'legendary', cat: 'mastery', stat: 'skillsMastered', goal: 40, desc: 'Master 40 skills!' },
+  { id: 'cert1', name: 'Level Up!', emoji: '🎓', rarity: 'rare', cat: 'mastery', stat: 'certificates', goal: 1, desc: 'Earn your first certificate.' },
+  { id: 'cert5', name: 'Certified Champion', emoji: '📜', rarity: 'legendary', cat: 'mastery', stat: 'certificates', goal: 5, desc: 'Earn 5 certificates.' },
+  // --- XP / rank ---
+  { id: 'xp1000', name: 'XP Machine', emoji: '⚡', rarity: 'rare', cat: 'xp', stat: 'xp', goal: 1000, desc: 'Earn 1,000 XP.' },
+  { id: 'xp5000', name: 'XP Dynamo', emoji: '🌀', rarity: 'epic', cat: 'xp', stat: 'xp', goal: 5000, desc: 'Earn 5,000 XP.' },
+  { id: 'xp15000', name: 'Thoroughbred', emoji: '🏇', rarity: 'legendary', cat: 'xp', stat: 'xp', goal: 15000, desc: 'Earn 15,000 XP — top rank!' },
+  // --- Collector (avatars, snacks, games) ---
+  { id: 'collector', name: 'Style Collector', emoji: '🎩', rarity: 'rare', cat: 'collector', stat: 'avatarsOwned', goal: 5, desc: 'Own 5 avatar items.' },
+  { id: 'collector20', name: 'Fashionista', emoji: '💎', rarity: 'epic', cat: 'collector', stat: 'avatarsOwned', goal: 20, desc: 'Own 20 avatar items.' },
+  { id: 'foodie', name: 'Snack Collector', emoji: '🍿', rarity: 'rare', cat: 'collector', stat: 'snacksCollected', goal: 10, desc: 'Collect 10 snacks.' },
+  { id: 'gourmet', name: 'Gourmet Gallop', emoji: '🍱', rarity: 'epic', cat: 'collector', stat: 'snacksCollected', goal: 30, desc: 'Collect 30 snacks.' },
+  { id: 'gamer', name: 'Arcade Ace', emoji: '🕹️', rarity: 'rare', cat: 'collector', stat: 'gamesPlayed', goal: 10, desc: 'Play 10 arcade games.' },
+  { id: 'blitzpro', name: 'Lightning Legend', emoji: '⚡', rarity: 'epic', cat: 'collector', stat: 'bestBlitz', goal: 20, desc: 'Score 20+ in Lightning Round.' }
 ];
+const RARITY_ORDER = { common: 0, rare: 1, epic: 2, legendary: 3 };
 
-function checkBadges(kidId) {
+// Gather every stat any badge needs, in one query pass.
+function achievementStats(kidId) {
   const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(kidId);
   const agg = db.prepare(`SELECT COUNT(*) AS total, SUM(correct) AS totalCorrect,
     SUM(CASE WHEN subject='spanish' THEN 1 ELSE 0 END) AS sp,
@@ -270,19 +303,67 @@ function checkBadges(kidId) {
     SUM(CASE WHEN subject='math' THEN 1 ELSE 0 END) AS ma,
     SUM(CASE WHEN subject='english' THEN 1 ELSE 0 END) AS en
     FROM activity_log WHERE kid_id=?`).get(kidId);
-  const stats = {
-    totalAnswers: agg.total || 0, totalCorrect: agg.totalCorrect || 0, streak: kid.streak, xp: kid.xp,
-    spanishAnswers: agg.sp || 0, scienceAnswers: agg.sc || 0, mathAnswers: agg.ma || 0, englishAnswers: agg.en || 0
+  const mastered = db.prepare('SELECT COUNT(*) AS n FROM skill_state WHERE kid_id=? AND mastery >= ?').get(kidId, MASTERED).n;
+  const certs = db.prepare('SELECT COUNT(*) AS n FROM certificates WHERE kid_id=?').get(kidId).n;
+  const avatars = db.prepare('SELECT COUNT(*) AS n FROM avatar_items WHERE kid_id=?').get(kidId).n;
+  let snacks = 0, bestBlitz = 0, gamesPlayed = 0;
+  try { snacks = db.prepare('SELECT COALESCE(SUM(qty),0) AS n FROM snacks WHERE kid_id=?').get(kidId).n; } catch (e) {}
+  try { gamesPlayed = db.prepare('SELECT COUNT(*) AS n FROM game_scores WHERE kid_id=?').get(kidId).n; } catch (e) {}
+  try { bestBlitz = db.prepare("SELECT COALESCE(MAX(score),0) AS n FROM game_scores WHERE kid_id=? AND game='blitz'").get(kidId).n; } catch (e) {}
+  const subj = { math: agg.ma || 0, english: agg.en || 0, science: agg.sc || 0, spanish: agg.sp || 0 };
+  const allFourActive = ['math', 'english', 'science', 'spanish'].filter(s => subj[s] >= 20).length;
+  return {
+    totalAnswers: agg.total || 0, totalCorrect: agg.totalCorrect || 0, streak: kid.streak || 0, xp: kid.xp || 0,
+    mathAnswers: subj.math, englishAnswers: subj.english, scienceAnswers: subj.science, spanishAnswers: subj.spanish,
+    skillsMastered: mastered, certificates: certs, avatarsOwned: avatars, snacksCollected: snacks,
+    gamesPlayed, bestBlitz, allFourActive
   };
+}
+
+function checkBadges(kidId) {
+  const stats = achievementStats(kidId);
   const earned = new Set(db.prepare('SELECT badge_id FROM badges WHERE kid_id=?').all(kidId).map(r => r.badge_id));
   const events = [];
   for (const b of BADGES) {
-    if (!earned.has(b.id) && b.test(stats)) {
+    if (!earned.has(b.id) && (stats[b.stat] || 0) >= b.goal) {
       db.prepare('INSERT INTO badges (kid_id, badge_id) VALUES (?,?)').run(kidId, b.id);
-      events.push({ type: 'badge', badge: { id: b.id, name: b.name, emoji: b.emoji } });
+      events.push({ type: 'badge', badge: { id: b.id, name: b.name, emoji: b.emoji, rarity: b.rarity } });
     }
   }
   return events;
+}
+
+// The full Trophy Case payload: every badge (earned + locked-with-progress),
+// rank ladder, certificates, collection counts, and the next goals to chase.
+function achievements(kidId) {
+  checkBadges(kidId); // make sure anything newly-earned is recorded first
+  const stats = achievementStats(kidId);
+  const earnedRows = db.prepare('SELECT badge_id, earned_at FROM badges WHERE kid_id=?').all(kidId);
+  const earnedAt = Object.fromEntries(earnedRows.map(r => [r.badge_id, r.earned_at]));
+  const badges = BADGES.map(b => {
+    const cur = stats[b.stat] || 0;
+    const done = !!earnedAt[b.id] || cur >= b.goal;
+    return {
+      id: b.id, name: b.name, emoji: b.emoji, rarity: b.rarity, cat: b.cat, desc: b.desc,
+      goal: b.goal, cur: Math.min(cur, b.goal), earned: done, earned_at: earnedAt[b.id] || null
+    };
+  });
+  const earnedCount = badges.filter(b => b.earned).length;
+  // Next goals: closest unearned badges by % progress (only ones actually started or near)
+  const nextGoals = badges.filter(b => !b.earned)
+    .map(b => ({ ...b, pct: b.cur / b.goal }))
+    .sort((a, b) => b.pct - a.pct)
+    .slice(0, 3);
+  const certs = db.prepare('SELECT * FROM certificates WHERE kid_id=? ORDER BY issued_at DESC').all(kidId);
+  const kid = db.prepare('SELECT xp, coins, streak FROM kids WHERE id=?').get(kidId);
+  return {
+    stats, badges, earnedCount, totalBadges: BADGES.length, nextGoals,
+    certificates: certs, xp: kid.xp, coins: kid.coins, streak: kid.streak,
+    rarityCounts: ['common', 'rare', 'epic', 'legendary'].map(r => ({
+      rarity: r, earned: badges.filter(b => b.rarity === r && b.earned).length,
+      total: badges.filter(b => b.rarity === r).length
+    }))
+  };
 }
 
 // ---------- reporting ----------
@@ -385,5 +466,5 @@ function setLevel(kidId, subject, level) {
 
 module.exports = {
   getSubjectState, nextActivity, recordAnswer, placementNext, reportCard,
-  gradeName, subjectLabel, setLevel, maxGrade, BADGES, MASTERED, STRUGGLING
+  gradeName, subjectLabel, setLevel, maxGrade, achievements, BADGES, MASTERED, STRUGGLING
 };

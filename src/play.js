@@ -20,7 +20,21 @@ const AVATAR_CATALOG = {
     { id: 'trex', emoji: '🦖', price: 90, rarity: 'epic' }, { id: 'shark', emoji: '🦈', price: 65, rarity: 'rare' },
     { id: 'wolf', emoji: '🐺', price: 55, rarity: 'rare' }, { id: 'lion', emoji: '🦁', price: 55, rarity: 'rare' },
     { id: 'genie', emoji: '🧞', price: 120, rarity: 'legendary' }, { id: 'dragonlord', emoji: '🐲', price: 150, rarity: 'legendary' },
-    { id: 'fairy', emoji: '🧚', price: 180, rarity: 'legendary' }, { id: 'merking', emoji: '🧜‍♂️', price: 200, rarity: 'legendary' }
+    { id: 'fairy', emoji: '🧚', price: 180, rarity: 'legendary' }, { id: 'merking', emoji: '🧜‍♂️', price: 200, rarity: 'legendary' },
+    // People characters (cartoon-style)
+    { id: 'princess', emoji: '👸', price: 40 }, { id: 'prince', emoji: '🤴', price: 40 },
+    { id: 'artist', emoji: '🧑‍🎨', price: 35 }, { id: 'chef', emoji: '🧑‍🍳', price: 35 },
+    { id: 'detective', emoji: '🕵️', price: 45, rarity: 'rare' }, { id: 'pirate', emoji: '🏴‍☠️', price: 45, rarity: 'rare' },
+    { id: 'rockstar', emoji: '🧑‍🎤', price: 50, rarity: 'rare' }, { id: 'scientist', emoji: '🧑‍🔬', price: 40 },
+    { id: 'cowgirl', emoji: '🤠', price: 35 }, { id: 'farmer', emoji: '🧑‍🌾', price: 35 },
+    { id: 'elf', emoji: '🧝', price: 60, rarity: 'epic' }, { id: 'vampire', emoji: '🧛', price: 65, rarity: 'epic' },
+    // Cute cartoon animals
+    { id: 'monkey', emoji: '🐵', price: 20 }, { id: 'rabbit', emoji: '🐰', price: 20 },
+    { id: 'koala', emoji: '🐨', price: 25 }, { id: 'pig', emoji: '🐷', price: 20 },
+    { id: 'frog', emoji: '🐸', price: 20 }, { id: 'cow', emoji: '🐮', price: 20 },
+    { id: 'chick', emoji: '🐤', price: 15 }, { id: 'penguin', emoji: '🐧', price: 25 },
+    { id: 'bear', emoji: '🐻', price: 25 }, { id: 'hamster', emoji: '🐹', price: 20 },
+    { id: 'owl', emoji: '🦉', price: 30, rarity: 'rare' }, { id: 'hedgehog', emoji: '🦔', price: 30, rarity: 'rare' }
   ],
   hat: [
     { id: 'none', emoji: '', price: 0 }, { id: 'crown', emoji: '👑', price: 25 },
