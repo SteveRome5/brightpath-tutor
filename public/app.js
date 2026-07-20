@@ -559,9 +559,9 @@ route('landing', async () => {
     <div class="statband reveal">
       <div><b>K–12</b><span>Every grade level</span></div>
       <div><b>4</b><span>Core subjects</span></div>
-      <div><b>138</b><span>Skill areas</span></div>
+      <div><b>156</b><span>Skill areas</span></div>
+      <div><b>156</b><span>Guided lessons</span></div>
       <div><b>10k+</b><span>Adaptive questions</span></div>
-      <div><b>8</b><span>Learning games</span></div>
     </div>
     <h2 class="section-title reveal">How it works</h2>
     <p class="section-sub">The same three moves a good teacher makes, built into every session.</p>
@@ -653,11 +653,17 @@ route('landing', async () => {
 
     <div class="card reveal" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:6px">Simple plans</h2>
-      <p class="center muted" style="margin-bottom:20px">7-day free trial. Cancel anytime.</p>
+      <p class="center muted" style="margin-bottom:20px">Start with a 7-day free trial. No credit card to begin, and you can cancel anytime.</p>
       <p class="center" style="margin:-8px 0 20px;font-weight:600">Centers like Kumon, Sylvan, and Mathnasium tend to run $150 to $200 a month <i>per subject</i>, and a private tutor is often $40 to $80 an hour. Gallop covers all four subjects, all year, for less than a single week at a center.</p>
       <div class="plans">
         <div class="plan"><h3>Solo</h3><div class="price">$34<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">One student · all four subjects · lessons, adaptive tutor & reports</p></div>
         <div class="plan hot"><span class="tag">MOST POPULAR</span><h3>Family</h3><div class="price">$54<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">Up to four students · all subjects · lessons, reports, certificates & buddies</p></div>
+      </div>
+      <div class="trust-strip">
+        <span>🎁 7 days free, no card to start</span>
+        <span>↩️ Cancel anytime in one click</span>
+        <span>🔒 Payments secured by Stripe</span>
+        <span>🙈 We never see your card number</span>
       </div>
       <div class="compare">
         <div class="compare-head"><span>How Gallop compares</span></div>
@@ -677,10 +683,21 @@ route('landing', async () => {
         <p class="muted center" style="font-size:.8rem;margin-top:10px">Competitor pricing reflects commonly published U.S. rates and varies by location; comparison is for general guidance.</p>
       </div>
     </div>
+    <div class="card reveal faq" style="margin-top:40px">
+      <h2 class="center" style="margin-bottom:18px">Questions parents ask</h2>
+      <details><summary>Do I need a credit card to start?</summary><p>No. Your first 7 days are free, and you can set up your children and use everything without entering any payment details. We only ask for a card if you choose to continue after the trial.</p></details>
+      <details><summary>What does it cost after the trial?</summary><p>Solo is $34 a month for one student, and Family is $54 a month for up to four. Both are billed monthly and include all four subjects, the guided lessons, the adaptive tutor, the games, and the parent reports. Nothing is sold as an add-on.</p></details>
+      <details><summary>What ages and subjects does it cover?</summary><p>Every grade from kindergarten through 12th, in Math, English, Science, and Spanish. Each child is placed at their real level in each subject, so a strong reader who finds math harder starts in the right spot for both.</p></details>
+      <details><summary>Can I cancel anytime?</summary><p>Yes, in one click from your parent dashboard. Cancelling stops any future charges, and your child keeps access through the time you have already paid for.</p></details>
+      <details><summary>Is my child safe, and is our data private?</summary><p>Yes. There are no ads and we never sell your data. Children connect only with buddies you approve, and they can send only pre-written cheers, so there is no open chat and no way for strangers to reach them. Payments run through Stripe, so we never see or store your card number.</p></details>
+      <details><summary>What devices does it work on?</summary><p>Any device with a web browser: phone, tablet, laptop, or desktop. There is nothing to install, and progress syncs automatically across devices.</p></details>
+      <details><summary>How is this different from a worksheet app or a tutoring center?</summary><p>Gallop teaches each concept with a short guided lesson before the practice, then adapts every question to your child, across all four subjects, for a small fraction of what a tutoring center charges per subject.</p></details>
+      <details><summary>How do I get help?</summary><p>Email <a href="mailto:support@learnwithgallop.com">support@learnwithgallop.com</a> or message <a href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">@learnwithgallop</a> on Instagram, and a real person will get back to you.</p></details>
+    </div>
   </div>
   <div class="site-footer">© ${new Date().getFullYear()} Gallop Learning Academy · Adaptive tutoring for grades K–12<br>
     <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow along on Instagram at @learnwithgallop</a><br>
-    <a href="#terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="#privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
+    <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="#terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="#privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
   </div>`);
   wireChrome();
 });
@@ -811,7 +828,8 @@ route('signup', async () => {
       <label>Password (6+ characters)</label><input id="f-pass" type="password">
       <div class="error-msg" id="f-err"></div>
       <button class="btn green" style="margin-top:18px;width:100%" id="f-go">Start Free Trial →</button>
-      <p class="muted center" style="margin-top:12px">Already have an account? <a href="#login">Log in</a></p>
+      <p class="muted center" style="margin-top:10px;font-size:.85rem">7 days free · No credit card required · Cancel anytime</p>
+      <p class="muted center" style="margin-top:10px">Already have an account? <a href="#login">Log in</a></p>
       <p class="muted center" style="margin-top:8px;font-size:.8rem">By signing up you agree to our <a href="#terms">Terms</a> and <a href="#privacy">Privacy Policy</a>.</p>
     </div></div>`);
   wireChrome();
@@ -1960,6 +1978,18 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
   if ('speechSynthesis' in window) speechSynthesis.getVoices();
   // installable app (iPad home screen, Chromebook, etc.)
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  // Handle the return from Stripe checkout so paying never dumps you on the homepage.
+  const billing = new URLSearchParams(location.search).get('billing');
+  if (billing) history.replaceState(null, '', location.pathname); // strip ?billing=… from the URL
+  if (billing === 'success') {
+    // The webhook that marks the account active can lag the redirect by a moment; re-check once.
+    try {
+      const notYet = () => State.me && State.me.role === 'parent' && State.me.parent && State.me.parent.sub_status !== 'active';
+      if (notYet()) { await new Promise(r => setTimeout(r, 1600)); await refreshMe(); }
+    } catch (e) {}
+    location.hash = '#parent';
+    setTimeout(() => { try { Confetti.burst(160); Sound.levelup(); } catch (e) {} }, 350);
+  }
   // let games.js register its routes before first render
   setTimeout(navigate, 0);
 })();
