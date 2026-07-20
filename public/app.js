@@ -623,10 +623,26 @@ route('landing', async () => {
     <div class="card reveal" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:6px">Simple plans</h2>
       <p class="center muted" style="margin-bottom:20px">7-day free trial. Cancel anytime.</p>
-      <p class="center" style="margin:-8px 0 20px;font-weight:600">Tutoring centers charge $150–200 per month <i>per subject</i>. Gallop covers all four — for less than one week of Kumon.</p>
+      <p class="center" style="margin:-8px 0 20px;font-weight:600">Tutoring centers like Kumon, Sylvan, and Mathnasium charge $150–200 a month <i>per subject</i> — and private tutors run $40–80 an hour. Gallop covers all four subjects, all year, for less than one week at a center.</p>
       <div class="plans">
         <div class="plan"><h3>Solo</h3><div class="price">$29<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">One student · all four subjects · full adaptive tutor & reports</p></div>
         <div class="plan hot"><span class="tag">MOST POPULAR</span><h3>Family</h3><div class="price">$49<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">Up to four students · all subjects · reports, certificates & buddies</p></div>
+      </div>
+      <div class="compare">
+        <div class="compare-head"><span>How Gallop compares</span></div>
+        <table class="compare-table">
+          <thead><tr><th></th><th class="us">Gallop</th><th>Learning centers<br><span>(Kumon, Sylvan, Mathnasium)</span></th><th>Private tutor</th></tr></thead>
+          <tbody>
+            <tr><td>Typical cost</td><td class="us"><b>$29–49 / mo</b></td><td>$150–200 / mo <i>per subject</i></td><td>$40–80 / hour</td></tr>
+            <tr><td>All 4 subjects included</td><td class="us">✅</td><td>❌ pay per subject</td><td>❌ usually one</td></tr>
+            <tr><td>Adapts to each child</td><td class="us">✅ every answer</td><td>➖ worksheet levels</td><td>✅ if it's a good one</td></tr>
+            <tr><td>Learn anytime, any device</td><td class="us">✅ 24/7</td><td>❌ scheduled visits</td><td>❌ booked sessions</td></tr>
+            <tr><td>Progress reports & certificates</td><td class="us">✅ automatic</td><td>➖ periodic</td><td>➖ varies</td></tr>
+            <tr><td>Strengths & career insights</td><td class="us">✅ built in</td><td>❌</td><td>❌</td></tr>
+            <tr><td>Games, rewards & motivation</td><td class="us">✅ arcade + trophies</td><td>❌</td><td>❌</td></tr>
+          </tbody>
+        </table>
+        <p class="muted center" style="font-size:.8rem;margin-top:10px">Competitor pricing reflects commonly published U.S. rates and varies by location; comparison is for general guidance.</p>
       </div>
     </div>
   </div>
