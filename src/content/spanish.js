@@ -428,6 +428,66 @@ const skills = [
       { p: 'Immersion means…', a: 'surrounding yourself with the language (shows, music, talking)', w: ['studying one hour a year', 'only reading dictionaries', 'avoiding native speakers'], h: 'Live in the language.', e: 'Immersion — through media and conversation — builds real fluency!' },
       { p: 'When you don\'t know a word mid-conversation, a fluent strategy is to…', a: 'describe it with other words you DO know', w: ['stop talking completely', 'switch fully to English', 'invent a random word'], h: 'Circumlocution keeps you talking!', e: 'Talking around a word ("the thing for cutting paper") keeps conversations flowing!' }
     ])
+  },
+  {
+    id: 'sp.4.gustar', name: 'Me Gusta — Likes & Dislikes', grade: 4,
+    gen: fromBank([
+      { p: "\"Me gusta el chocolate\" means…", a: "I like chocolate", w: ["I hate chocolate", "I have chocolate", "I want water"], h: "Gusta = is pleasing.", e: "\"Me gusta\" = I like it! 🍫" },
+      { p: "To say you like MORE than one thing (\"I like tacos\"), you use…", a: "Me gustan los tacos", w: ["Me gusta los tacos", "Me gustar tacos", "Yo gusto tacos"], h: "Plural things → gustan.", e: "With plural nouns, use \"me gustan\"! 🌮" },
+      { p: "\"¿Te gusta el fútbol?\" is asking…", a: "Do you like soccer?", w: ["Do you play soccer?", "Where is soccer?", "I like soccer"], h: "Te = to you.", e: "\"¿Te gusta…?\" = Do you like…? ⚽" },
+      { p: "\"No me gusta la tarea\" means…", a: "I do not like homework", w: ["I love homework", "I do homework", "I finished homework"], h: "No = not.", e: "\"No me gusta\" = I don't like it! 📚" },
+      { p: "To say a friend likes something (\"She likes music\"), say…", a: "A ella le gusta la música", w: ["Yo me gusta música", "Tú gustas música", "Ella gustan música"], h: "le = to him/her.", e: "\"Le gusta\" = he/she likes it! 🎵" },
+      { p: "\"Me encanta\" is even stronger than gusta. It means…", a: "I love it", w: ["I sort of like it", "I dislike it", "I am unsure"], h: "Encantar = to delight.", e: "\"Me encanta\" = I LOVE it! 💖" },
+      { p: "\"¿Qué te gusta hacer?\" asks…", a: "What do you like to do?", w: ["What is your name?", "Where do you live?", "How old are you?"], h: "hacer = to do.", e: "\"¿Qué te gusta hacer?\" = What do you like to do? 🎨" }
+    ])
+  },
+  {
+    id: 'sp.5.daily', name: 'La Rutina Diaria — Daily Routine', grade: 5,
+    gen: fromBank([
+      { p: "\"Me despierto a las siete\" means…", a: "I wake up at seven", w: ["I sleep at seven", "I eat at seven", "I run at seven"], h: "Despertar = to wake.", e: "\"Me despierto\" = I wake up! ⏰" },
+      { p: "\"Desayuno\" is the meal you eat in the…", a: "morning (breakfast)", w: ["evening", "middle of the night", "afternoon only"], h: "Des-AYUNO breaks the fast.", e: "El desayuno = breakfast! 🥞" },
+      { p: "Reflexive: \"I brush my teeth\" is \"Me ___ los dientes.\"", a: "cepillo", w: ["cepillas", "cepilla", "cepillar"], h: "Yo form ends in -o.", e: "\"Me cepillo los dientes\" = I brush my teeth! 🪥" },
+      { p: "\"Después de la escuela\" means…", a: "after school", w: ["before school", "during school", "instead of school"], h: "Después = after.", e: "\"Después de\" = after! 🏫" },
+      { p: "\"Voy a la cama\" means…", a: "I go to bed", w: ["I make the bed", "I clean the room", "I wake up"], h: "la cama = the bed.", e: "\"Voy a la cama\" = I go to bed! 🛏️" },
+      { p: "\"Todos los días\" means…", a: "every day", w: ["some days", "never", "last week"], h: "Todos = all.", e: "\"Todos los días\" = every day! 📅" },
+      { p: "\"Almuerzo\" is the meal in the…", a: "middle of the day (lunch)", w: ["early morning", "late night", "only on weekends"], h: "Between desayuno and cena.", e: "El almuerzo = lunch! 🥪" }
+    ])
+  },
+  {
+    id: 'sp.6.commands', name: 'Mandatos — Requests & Commands', grade: 6,
+    gen: fromBank([
+      { p: "\"¡Escucha!\" (to a friend) is a command meaning…", a: "Listen!", w: ["I listen", "Listening", "They listen"], h: "Command drops the -s.", e: "\"¡Escucha!\" = Listen! (command) 👂" },
+      { p: "A polite \"Please sit down\" uses…", a: "Siéntate, por favor", w: ["Yo me siento", "Tú sientas", "Sentar por favor"], h: "Reflexive command.", e: "\"Siéntate, por favor\" = Please sit down! 🪑" },
+      { p: "\"No hables\" means…", a: "Don't talk", w: ["Talk!", "I talk", "You talked"], h: "No + command = don't.", e: "\"No hables\" = Don't talk! 🤫" },
+      { p: "\"Ven aquí\" means…", a: "Come here", w: ["Go away", "Sit there", "Look up"], h: "Venir command.", e: "\"Ven aquí\" = Come here! 👋" },
+      { p: "To tell the class \"Open your books,\" a teacher says…", a: "Abran los libros", w: ["Abro los libros", "Abrir libros", "Abres el libro"], h: "Plural (ustedes) command.", e: "\"Abran los libros\" = Open your books! 📖" },
+      { p: "\"Dime\" means…", a: "Tell me", w: ["Tell him", "Ask her", "I tell"], h: "di + me.", e: "\"Dime\" = Tell me! 💬" },
+      { p: "\"Espera un momento\" means…", a: "Wait a moment", w: ["Run a moment", "Sleep a moment", "Eat a moment"], h: "Esperar = to wait.", e: "\"Espera un momento\" = Wait a moment! ⏳" }
+    ])
+  },
+  {
+    id: 'sp.7.places', name: 'En la Ciudad — Around Town', grade: 7,
+    gen: fromBank([
+      { p: "\"El supermercado\" is where you buy…", a: "food and groceries", w: ["books to read", "clothes only", "stamps only"], h: "Super-MERCADO = market.", e: "El supermercado = the grocery store! 🛒" },
+      { p: "To ask \"Where is the bathroom?\" you say…", a: "¿Dónde está el baño?", w: ["¿Qué hora es?", "¿Cómo estás?", "¿Cuánto cuesta?"], h: "Dónde = where.", e: "\"¿Dónde está el baño?\" = Where is the bathroom? 🚻" },
+      { p: "\"Gira a la derecha\" means…", a: "Turn right", w: ["Turn left", "Go straight", "Stop here"], h: "Derecha = right.", e: "\"Gira a la derecha\" = Turn right! ➡️" },
+      { p: "\"La biblioteca\" is a place to…", a: "borrow and read books", w: ["buy medicine", "watch movies", "eat dinner"], h: "Biblio = books.", e: "La biblioteca = the library! 📚" },
+      { p: "\"¿Cuánto cuesta?\" asks…", a: "How much does it cost?", w: ["What time is it?", "Where is it?", "Who are you?"], h: "Cuesta = costs.", e: "\"¿Cuánto cuesta?\" = How much is it? 💰" },
+      { p: "\"El hospital\" is where you go when you are…", a: "sick or hurt", w: ["hungry for tacos", "shopping for shoes", "learning to swim"], h: "A cognate!", e: "El hospital = the hospital! 🏥" },
+      { p: "\"Sigue derecho\" (or \"recto\") means…", a: "Go straight ahead", w: ["Turn around", "Stop", "Turn right"], h: "Derecho/recto = straight.", e: "\"Sigue derecho\" = Keep going straight! ⬆️" }
+    ])
+  },
+  {
+    id: 'sp.8.travel', name: 'De Viaje — Travel & Real Situations', grade: 8,
+    gen: fromBank([
+      { p: "At a restaurant, \"La cuenta, por favor\" asks for…", a: "the check/bill", w: ["the menu", "more water", "the bathroom"], h: "La cuenta = the bill.", e: "\"La cuenta, por favor\" = The check, please! 🧾" },
+      { p: "At the airport, \"el vuelo\" means…", a: "the flight", w: ["the luggage", "the ticket", "the gate"], h: "Volar = to fly.", e: "El vuelo = the flight! ✈️" },
+      { p: "\"Estoy perdido\" means…", a: "I am lost", w: ["I am tired", "I am hungry", "I am happy"], h: "Perder = to lose.", e: "\"Estoy perdido/a\" = I'm lost! 🗺️" },
+      { p: "To politely ask someone to speak slower: \"Más ___, por favor.\"", a: "despacio", w: ["rápido", "alto", "tarde"], h: "Despacio = slowly.", e: "\"Más despacio, por favor\" = Slower, please! 🐢" },
+      { p: "\"¿Me puede ayudar?\" means…", a: "Can you help me?", w: ["Can I pay?", "Where is it?", "What time is it?"], h: "Ayudar = to help.", e: "\"¿Me puede ayudar?\" = Can you help me? 🙋" },
+      { p: "\"La habitación\" at a hotel is your…", a: "room", w: ["breakfast", "key", "suitcase"], h: "Where you sleep.", e: "La habitación = the (hotel) room! 🛎️" },
+      { p: "\"No entiendo, ¿puede repetir?\" means…", a: "I don't understand, can you repeat?", w: ["I agree completely", "Let's go now", "I am finished"], h: "Repetir = to repeat.", e: "A lifesaver phrase: \"Can you repeat that?\" 🔁" }
+    ])
   }
 ];
 

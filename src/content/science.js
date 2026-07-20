@@ -409,6 +409,114 @@ const skills = [
       { p: "The observation that distant galaxies are moving away from us supports the theory of…", a: "an expanding universe (Big Bang)", w: ["a shrinking universe", "a static universe", "a flat Earth"], h: "Redshift is the clue.", e: "Galaxies racing apart means the universe is expanding from a hot, dense start!" },
       { p: "A vaccine creates immunity by…", a: "training the immune system to recognize a threat safely", w: ["injecting the full disease to fight", "replacing white blood cells", "sterilizing the blood"], h: "Practice without the real danger.", e: "Vaccines are a rehearsal — the immune system learns the enemy before a real attack!" }
     ])
+  },
+  {
+    id: 's.1.animals1', name: 'Animal Homes & Bodies', grade: 1,
+    gen: fromBank([
+      { p: "A fish uses its gills to…", a: "take in oxygen from water", w: ["walk on land", "see in the dark", "hear music"], h: "How does a fish breathe?", e: "Gills pull oxygen out of water — that's how fish breathe! 🐟" },
+      { p: "Which animal is best built to dig tunnels underground?", a: "a mole", w: ["a bird", "a fish", "a butterfly"], h: "Strong front paws for digging!", e: "Moles have shovel-like paws to dig their tunnel homes! 🐹" },
+      { p: "A bird's feathers help it…", a: "fly and stay warm", w: ["swim underwater", "dig holes", "eat rocks"], h: "Feathers are light and cozy.", e: "Feathers keep birds warm AND help them fly! 🐦" },
+      { p: "Why do polar bears have thick fur and fat?", a: "to stay warm in the cold", w: ["to swim faster", "to look fluffy", "to climb trees"], h: "Where do polar bears live?", e: "Thick fur and blubber keep polar bears warm in the freezing Arctic! 🐻‍❄️" },
+      { p: "A turtle's shell is mainly for…", a: "protection", w: ["swimming fast", "flying", "digging"], h: "What does a shell do when danger comes?", e: "The hard shell is armor that keeps a turtle safe! 🐢" },
+      { p: "Which animal makes its home in a hive?", a: "a bee", w: ["a dog", "a horse", "a snake"], h: "Buzz buzz!", e: "Bees live together in a hive and make honey! 🐝" },
+      { p: "Ducks have webbed feet to help them…", a: "paddle through water", w: ["climb trees", "run fast on land", "dig deep holes"], h: "What are webbed feet good for?", e: "Webbed feet work like paddles for swimming! 🦆" }
+    ])
+  },
+  {
+    id: 's.3.life', name: 'Life Cycles & Survival', grade: 3,
+    gen: fromBank([
+      { p: "A caterpillar changes into a butterfly. This big body change is called…", a: "metamorphosis", w: ["hibernation", "migration", "photosynthesis"], h: "Meta- means change!", e: "Metamorphosis is a total body makeover — caterpillar to butterfly! 🦋" },
+      { p: "Birds fly south for winter. Traveling to find warmth or food is called…", a: "migration", w: ["metamorphosis", "evaporation", "germination"], h: "They move to a new place.", e: "Migration is a long journey animals make each year! 🦅" },
+      { p: "A camouflaged animal is hard to see because it…", a: "blends in with its surroundings", w: ["is invisible", "glows brightly", "is very loud"], h: "Think of a green bug on a green leaf.", e: "Camouflage hides animals from predators — survival gear! 🦎" },
+      { p: "What does a seed need to sprout and grow?", a: "water, warmth, and soil", w: ["candy and soda", "darkness only", "loud music"], h: "What helps a plant baby start?", e: "Seeds need water, warmth, and soil to germinate! 🌱" },
+      { p: "Bears sleep deeply all winter to save energy. This is called…", a: "hibernation", w: ["migration", "evaporation", "respiration"], h: "A long winter nap.", e: "Hibernation lets bears survive winter when food is scarce! 🐻" },
+      { p: "Why do some animals have sharp claws and teeth?", a: "to catch and eat prey", w: ["to look scary only", "for decoration", "to dig for gold"], h: "Predators need tools to hunt.", e: "Sharp claws and teeth are adaptations for hunting! 🐯" },
+      { p: "A chick hatching from an egg is part of the chicken's…", a: "life cycle", w: ["food chain", "habitat", "migration"], h: "Egg → chick → hen → egg again.", e: "A life cycle is the stages of life from birth to adult! 🐣" }
+    ])
+  },
+  {
+    id: 's.4.matter', name: 'Matter & Energy', grade: 4,
+    gen: fromBank([
+      { p: "Heating an ice cube changes it from a solid to a…", a: "liquid", w: ["gas instantly", "rock", "new element"], h: "Ice melts when warmed.", e: "Adding heat melts a solid into a liquid! 🧊→💧" },
+      { p: "Which is an example of energy from the sun being used by living things?", a: "a plant making food", w: ["a rock rolling downhill", "a magnet sticking", "ice freezing"], h: "What uses sunlight to grow?", e: "Plants turn sunlight into food — solar energy at work! ☀️🌿" },
+      { p: "Sound travels by making the air…", a: "vibrate", w: ["freeze", "glow", "disappear"], h: "Feel a speaker buzz.", e: "Sound is vibrations moving through air to your ears! 🔊" },
+      { p: "A material that lets electricity flow through it is a…", a: "conductor", w: ["insulator", "liquid only", "gas only"], h: "Metals do this well.", e: "Conductors (like copper) let electricity flow; insulators block it! ⚡" },
+      { p: "When you rub your hands together fast, they get warm. This makes…", a: "heat energy from friction", w: ["light energy", "sound only", "electricity"], h: "Rubbing creates warmth.", e: "Friction turns motion into heat energy! 🔥" },
+      { p: "Evaporation happens when a liquid turns into a…", a: "gas", w: ["solid", "new color", "bigger liquid"], h: "A puddle drying in the sun.", e: "Heat turns liquid water into water vapor (gas) — evaporation! 💨" },
+      { p: "A flashlight turns stored chemical energy in a battery into…", a: "light energy", w: ["sound energy", "cold", "gravity"], h: "What comes out of a flashlight?", e: "Batteries store chemical energy; the bulb turns it into light! 🔦" }
+    ])
+  },
+  {
+    id: 's.6.body', name: 'Human Body Systems', grade: 6,
+    gen: fromBank([
+      { p: "The system that pumps blood through your body is the…", a: "circulatory system", w: ["digestive system", "nervous system", "skeletal system"], h: "Its star is the heart.", e: "The circulatory system (heart + vessels) delivers blood everywhere! ❤️" },
+      { p: "Your lungs are the main organs of the…", a: "respiratory system", w: ["digestive system", "muscular system", "circulatory system"], h: "Breathing in and out.", e: "The respiratory system takes in oxygen and removes carbon dioxide! 🫁" },
+      { p: "The brain and nerves make up the…", a: "nervous system", w: ["skeletal system", "immune system", "digestive system"], h: "It sends electric signals.", e: "The nervous system is your body's control-and-messaging network! 🧠" },
+      { p: "Food is broken down for energy by the…", a: "digestive system", w: ["respiratory system", "nervous system", "skeletal system"], h: "Starts with a bite.", e: "The digestive system turns food into fuel your cells can use! 🍎" },
+      { p: "Bones and joints form the…", a: "skeletal system", w: ["circulatory system", "nervous system", "respiratory system"], h: "Your body's frame.", e: "The skeletal system supports you and protects your organs! 🦴" },
+      { p: "Which system defends the body against germs?", a: "the immune system", w: ["the skeletal system", "the muscular system", "the digestive system"], h: "It fights invaders.", e: "White blood cells of the immune system battle germs! 🛡️" },
+      { p: "Muscles move your bones by…", a: "contracting and relaxing", w: ["growing longer forever", "turning to bone", "making blood"], h: "Muscles pull.", e: "Muscles pull on bones by contracting — that's how you move! 💪" }
+    ])
+  },
+  {
+    id: 's.8.waves', name: 'Waves, Light & Sound', grade: 8,
+    gen: fromBank([
+      { p: "Light travels much faster than sound. That's why in a storm you…", a: "see lightning before hearing thunder", w: ["hear thunder first", "feel it before seeing it", "smell it first"], h: "Which sense wins the race?", e: "Light outruns sound, so the flash beats the boom! ⚡" },
+      { p: "The number of waves passing a point each second is the wave's…", a: "frequency", w: ["amplitude", "wavelength", "speed"], h: "Measured in hertz (Hz).", e: "Higher frequency = higher pitch or bluer light! 🌈" },
+      { p: "A prism splits white light into colors because each color…", a: "bends by a different amount", w: ["is louder", "travels slower than sound", "has no energy"], h: "Refraction separates them.", e: "Different colors refract differently — that's a rainbow! 🌈" },
+      { p: "Sound cannot travel through…", a: "empty space (a vacuum)", w: ["air", "water", "solid steel"], h: "What does sound need?", e: "Sound needs a medium — space is silent! 🚀" },
+      { p: "The height of a wave, linked to how loud or bright it is, is its…", a: "amplitude", w: ["frequency", "wavelength", "period"], h: "Bigger wave = more energy.", e: "Amplitude sets loudness (sound) or brightness (light)! 🔊" },
+      { p: "Echoes happen when sound waves…", a: "reflect off a surface", w: ["disappear", "turn into light", "speed up forever"], h: "Bouncing back.", e: "An echo is sound reflecting back to your ears! 🏔️" },
+      { p: "Radio, microwaves, and visible light are all types of…", a: "electromagnetic waves", w: ["sound waves", "water waves", "earthquakes"], h: "They travel at light speed.", e: "They're all electromagnetic waves — same family, different energy! 📡" }
+    ])
+  },
+  {
+    id: 's.9.chem', name: 'Atoms & Chemical Bonds', grade: 9,
+    gen: fromBank([
+      { p: "The center of an atom, holding protons and neutrons, is the…", a: "nucleus", w: ["electron cloud", "molecule", "ion"], h: "Tiny and dense.", e: "The nucleus holds protons (+) and neutrons; electrons orbit it! ⚛️" },
+      { p: "When two atoms SHARE electrons, they form a…", a: "covalent bond", w: ["ionic bond", "nuclear bond", "magnetic bond"], h: "Sharing, not stealing.", e: "Covalent bonds share electrons — like in water (H₂O)! 💧" },
+      { p: "An atom that has gained or lost electrons becomes a charged…", a: "ion", w: ["isotope", "molecule", "compound"], h: "Charge comes from electrons.", e: "Losing electrons makes a + ion; gaining makes a − ion! ⚡" },
+      { p: "The periodic table organizes elements by their…", a: "atomic number (number of protons)", w: ["color", "weight in pounds", "discovery date"], h: "Each element's ID number.", e: "Elements line up by proton count — the atomic number! 📋" },
+      { p: "Water (H₂O) is a compound because it is…", a: "two or more elements chemically joined", w: ["a single element", "a mixture you can filter", "a type of atom"], h: "H and O bonded together.", e: "Compounds are elements chemically bonded in fixed ratios! 🧪" },
+      { p: "In a chemical reaction, atoms are…", a: "rearranged, never created or destroyed", w: ["destroyed for energy", "made from nothing", "turned into light only"], h: "Conservation of mass.", e: "Atoms just rearrange — total mass stays the same! ⚖️" },
+      { p: "Elements in the same COLUMN of the periodic table tend to…", a: "react in similar ways", w: ["have identical mass", "be the same color", "be liquids"], h: "Columns are families.", e: "Grouped elements share chemical behavior — like a family! 👪" }
+    ])
+  },
+  {
+    id: 's.10.evolution', name: 'Evolution & Ecology', grade: 10,
+    gen: fromBank([
+      { p: "Natural selection means individuals best suited to their environment tend to…", a: "survive and reproduce", w: ["live forever", "stop changing", "shrink over time"], h: "Survival of the FIT.", e: "Helpful traits get passed on — that's natural selection! 🦎" },
+      { p: "Fossils give scientists evidence of…", a: "organisms that lived long ago", w: ["future animals", "modern city life", "the weather tomorrow"], h: "Ancient remains in rock.", e: "Fossils are a record of life across deep time! 🦕" },
+      { p: "Two species that both benefit from living together show…", a: "mutualism", w: ["predation", "competition", "parasitism"], h: "Both win.", e: "Like bees and flowers — mutualism helps both partners! 🐝🌸" },
+      { p: "A trait that helps an organism survive in its environment is an…", a: "adaptation", w: ["accident", "decoration", "disease"], h: "It aids survival.", e: "Adaptations (like a cactus storing water) boost survival! 🌵" },
+      { p: "Energy in a food chain originally comes from…", a: "the sun", w: ["the soil", "the biggest predator", "the moon"], h: "Producers capture it.", e: "Sunlight → plants → animals: every chain starts with the sun! ☀️" },
+      { p: "If a keystone predator is removed, an ecosystem often…", a: "becomes unbalanced", w: ["stays exactly the same", "instantly heals", "turns to desert overnight"], h: "One species holds it together.", e: "Removing a keystone species disrupts the whole web! 🐺" },
+      { p: "Closely related species sharing an ancestor is evidence for…", a: "common descent (evolution)", w: ["spontaneous creation", "magic", "random chance only"], h: "A shared family tree.", e: "Shared ancestry explains why species resemble each other! 🌳" }
+    ])
+  },
+  {
+    id: 's.11.chem', name: 'Chemistry: Reactions & Moles', grade: 11,
+    gen: fromBank([
+      { p: "Balancing a chemical equation ensures the same number of each atom on…", a: "both sides of the arrow", w: ["only the left", "only the right", "neither side"], h: "Conservation of mass again.", e: "Atoms aren't lost — both sides must match! ⚖️" },
+      { p: "A substance that speeds up a reaction without being used up is a…", a: "catalyst", w: ["reactant", "product", "solvent"], h: "It helps but survives.", e: "Catalysts (like enzymes) lower the energy needed to react! 🧫" },
+      { p: "The pH scale measures how acidic or basic a solution is. pH 7 is…", a: "neutral", w: ["very acidic", "very basic", "impossible"], h: "Right in the middle.", e: "pH 7 (pure water) is neutral; lower = acid, higher = base! 💧" },
+      { p: "One mole of any substance contains about 6.02 × 10²³…", a: "particles", w: ["grams", "liters", "degrees"], h: "Avogadro's number.", e: "A mole is a chemist's 'dozen' — 6.02×10²³ particles! 🔢" },
+      { p: "In an exothermic reaction, energy is…", a: "released (often as heat)", w: ["absorbed and it gets cold", "created from nothing", "destroyed"], h: "Exo = exit.", e: "Exothermic reactions give OFF heat — like burning fuel! 🔥" },
+      { p: "An acid and a base react to form water and a…", a: "salt", w: ["gas only", "metal", "new element"], h: "Neutralization reaction.", e: "Acid + base → water + salt: neutralization! 🧂" },
+      { p: "The rate of a reaction usually increases when you…", a: "raise the temperature", w: ["cool it down", "remove all reactants", "turn off the lights"], h: "Hotter = faster collisions.", e: "Higher temperature speeds up particle collisions and reactions! 🌡️" }
+    ])
+  },
+  {
+    id: 's.12.earth', name: 'Earth, Climate & Space Systems', grade: 12,
+    gen: fromBank([
+      { p: "The greenhouse effect warms Earth because certain gases…", a: "trap heat in the atmosphere", w: ["block all sunlight", "cool the surface", "create oxygen"], h: "Like a blanket.", e: "Greenhouse gases trap heat, keeping Earth warm — too much overheats it! 🌍" },
+      { p: "Most of the Sun's energy reaches Earth as…", a: "radiation (light)", w: ["sound waves", "wind", "ocean currents"], h: "It crosses empty space.", e: "Energy travels from the Sun as electromagnetic radiation! ☀️" },
+      { p: "The theory that continents slowly move over time is…", a: "plate tectonics", w: ["the water cycle", "natural selection", "the greenhouse effect"], h: "Giant plates drift.", e: "Plate tectonics explains earthquakes, volcanoes, and drifting continents! 🌋" },
+      { p: "Rising global temperatures are linked mainly to increased…", a: "carbon dioxide from burning fossil fuels", w: ["oxygen from plants", "moonlight", "ocean salt"], h: "A greenhouse gas.", e: "Burning fossil fuels adds CO₂, intensifying the greenhouse effect! 🏭" },
+      { p: "A light-year measures…", a: "distance, not time", w: ["how long a year is", "the Sun's age", "a planet's weight"], h: "How far light travels in a year.", e: "A light-year is a DISTANCE — how far light goes in one year! 🌌" },
+      { p: "The water cycle is powered mainly by energy from…", a: "the Sun", w: ["the Moon", "earthquakes", "car engines"], h: "It drives evaporation.", e: "The Sun evaporates water, driving the whole water cycle! 💧" },
+      { p: "Renewable energy sources include…", a: "solar and wind", w: ["coal and oil", "natural gas", "gasoline"], h: "They don't run out.", e: "Solar and wind are renewable — they won't run out like fossil fuels! 🌬️☀️" }
+    ])
   }
 ];
 
