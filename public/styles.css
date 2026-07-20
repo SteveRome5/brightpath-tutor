@@ -546,6 +546,18 @@ body[data-theme="academy"] .mem-card.up span { color: #e6d9a8; }
 body[data-theme="academy"] .mem-card.matched { background: #16362e; }
 body[data-theme="academy"] .mem-card.matched span { color: #7fe0c0; }
 
+/* bakery quest */
+.bq-stage { position: relative; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); margin-bottom: 14px; }
+.bq-bubble {
+  position: relative; margin: -14px 14px 0; background: #fff; border: 2px solid #f3d9c6;
+  border-radius: 14px; padding: 12px 16px; font-weight: 600; color: #5a3b28; line-height: 1.5;
+  box-shadow: 0 6px 18px -10px rgba(120,70,40,.5); font-size: 1.02rem;
+}
+.bq-card { background: #fffaf4; border-color: #f0dcc9; }
+.bq-q { font-weight: 700; font-size: 1.12rem; color: #3a2a1e; margin: 2px 0 14px; line-height: 1.5; }
+.bq-good { background: #eafaf1; border-left: 4px solid #1f8a5f; color: #14603f; border-radius: 10px; padding: 12px 14px; font-weight: 600; line-height: 1.5; }
+.bq-bad { background: #fdf0e8; border-left: 4px solid #d97b4f; color: #9a4a24; border-radius: 10px; padding: 12px 14px; font-weight: 600; line-height: 1.5; }
+
 /* word search */
 .ws-grid { display: grid; gap: 4px; }
 .ws-cell {

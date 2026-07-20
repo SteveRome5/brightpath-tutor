@@ -47,6 +47,7 @@
     const s = await api(`/play/${kidId()}/status`);
     const k = s.kid;
     const games = [
+      { id: 'bakery', emoji: '🧁', name: 'Bakery Quest', desc: 'Run the Gallop Bakery for a day — use real math to bake, price, and bank a profit!' },
       { id: 'blitz', emoji: '⚡', name: 'Lightning Round', desc: '60 seconds. Rapid-fire questions. Build a combo — beat your best!' },
       { id: 'lemonade', emoji: '🍋', name: 'Lemonade Tycoon', desc: 'Run your own stand — buy smart, price right, bank the profit!' },
       { id: 'memory', emoji: '🃏', name: 'Memory Match', desc: 'Flip cards, match pairs — Spanish words, math facts & more!' },
@@ -88,7 +89,7 @@
   // ======================= GAME DISPATCH =======================
   route('game', async (which) => {
     if (needKid()) return;
-    const starters = { memory: startMemory, wordsearch: startWordSearch, code: startCode, room: startRoom, art: startArt, lemonade: startLemonade, market: startMarket, blitz: startBlitz };
+    const starters = { bakery: startBakery, memory: startMemory, wordsearch: startWordSearch, code: startCode, room: startRoom, art: startArt, lemonade: startLemonade, market: startMarket, blitz: startBlitz };
     const fn = starters[which];
     if (!fn) { location.hash = '#play'; return; }
     await gated(which, fn);
@@ -644,6 +645,214 @@
       render(flash);
     }
     render();
+  }
+
+  // ======================= BAKERY QUEST =======================
+  // "Why do I need this?" answered by DOING it: you run a real bakery for a day, and every
+  // real task (batching, scaling a recipe, pricing, making change, counting profit) is solved
+  // with the exact math the child is learning. Scales by grade so it fits a 1st grader or a
+  // 9th grader. Each step ends by naming the skill AND where it's used in real life.
+  function startBakery() {
+    const grade = (State.me.kid && State.me.kid.grade) || 3;
+    const band = grade <= 1 ? 0 : grade <= 3 ? 1 : grade <= 5 ? 2 : 3;
+    const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+    const pick = a => a[Math.floor(Math.random() * a.length)];
+    const shuf = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const money = n => '$' + (Math.round(n * 100) / 100).toFixed(2);
+    // 4 unique choice strings, padded if a distractor collides
+    const mc = (ans, distractors) => { const set = new Set([ans]); for (const d of distractors) { if (set.size >= 4) break; if (d != null && String(d) !== ans) set.add(String(d)); } let k = 1; while (set.size < 4) { set.add(ans + ' '.repeat(k)); k++; } return shuf([...set]); };
+
+    const st = { seed: 50, cost: 0, revenue: 0, made: 0, sold: 0, price: 0, stars: 0, idx: 0, perfect: true };
+
+    // ---------- Build the day's scenes for this grade band ----------
+    const per = band === 0 ? 6 : 12;                    // cupcakes per tray
+    const trays = R(2, 4);
+    const order = per * trays;                           // total cupcakes ordered
+    const unit = band === 0 ? 1 : pick([0.6, 0.7, 0.8]); // ingredient cost per cupcake
+    st.made = order;
+    const ingredientCost = Math.round(order * unit * 100) / 100; // spent when you bake (price step)
+    const makesBase = band <= 1 ? per : 6;              // recipe yield
+    const flourBase = band <= 1 ? 3 : 2;               // cups of flour for the base recipe
+    const mult = order / makesBase;
+    const flourNeeded = mult * flourBase;
+
+    const customers = ['🧑', '👩', '👨', '🧑‍🦱', '👵', '🧒', '👧', '🧑‍🦰'];
+
+    // Scene 1 — batch it (counting / multiplication / division)
+    const s1 = band === 0
+      ? { cap: `A birthday party orders ${order} cupcakes! You already made ${order - R(2, 4)}. Wait, let's keep it simple:`, q: `The party wants ${trays} bags with ${per} cupcakes in each bag. How many cupcakes is that in all?`, ans: String(order), dis: [order - per, order + per, per + trays], skill: 'multiplication', why: 'Bakers group things in trays and bags every day, that\'s what times tables are for.' }
+      : { cap: `📋 A school just ordered ${order} cupcakes for a fair!`, q: `Your trays hold ${per} cupcakes each. How many full trays do you need to bake ${order}?`, ans: String(order / per), dis: [order / per + 1, order / per - 1, Math.round(order / (per / 2))], skill: 'division', why: 'Every kitchen batches food into trays, division tells you how many batches to make.' };
+
+    // Scene 2 — scale the recipe (addition / ratios / fractions)
+    const s2 = band === 0
+      ? { cap: `🥣 Time to mix the batter.`, q: `One bowl of batter uses ${flourBase} cups of flour. You need ${trays} bowls. How many cups of flour in all?`, ans: String(flourBase * trays), dis: [flourBase + trays, flourBase * trays + 1, flourBase * (trays - 1)], skill: 'repeated addition', why: 'Doubling and tripling a recipe is real math cooks use every single day.' }
+      : { cap: `🥣 Your recipe card is for a small batch, but this order is big.`, q: `The recipe makes ${makesBase} cupcakes with ${flourBase} cups of flour. For ${order} cupcakes, how many cups of flour do you need?`, ans: String(flourNeeded), dis: [flourNeeded + flourBase, flourNeeded - flourBase, flourBase * (order / makesBase) + 1], skill: 'ratios & scaling', why: 'This is THE reason recipes and ratios matter: scale it wrong and the whole batch is ruined.' };
+
+    // costs are now spent
+    // Scene 3 — set the price (strategic choice, simulated demand)
+    const fair = Math.max(band === 0 ? 2 : unit + 0.7, unit * 2);
+    const priceOpts = band === 0
+      ? [{ label: '$2 each (cheap)', p: 2, mult: 1.0 }, { label: '$3 each (fair)', p: 3, mult: 1.0 }, { label: '$6 each (steep)', p: 6, mult: 0.5 }]
+      : [{ label: money(Math.round((unit + 0.2) * 100) / 100) + ' each (barely above cost)', p: Math.round((unit + 0.2) * 100) / 100, mult: 1.0 },
+         { label: money(Math.round((unit + 0.9) * 100) / 100) + ' each (fair markup)', p: Math.round((unit + 0.9) * 100) / 100, mult: 1.0 },
+         { label: money(Math.round((unit + 2.5) * 100) / 100) + ' each (pricey)', p: Math.round((unit + 2.5) * 100) / 100, mult: 0.55 }];
+
+    // Scene 5 — profit (subtraction / margin)
+
+    // ---------- Hand-drawn SVG bakery ----------
+    function cupcake(x, y, s) {
+      return `<g transform="translate(${x},${y}) scale(${s})">
+        <path d="M-15 2 L15 2 L11 26 L-11 26 Z" fill="#e7c9a0"/>
+        <path d="M-15 2 L15 2 L14 8 L-14 8 Z" fill="#d3a878"/>
+        <path d="M-17 3 q3 -15 8 -15 q3 -8 9 -3 q7 -2 8 8 q6 3 1 10 Z" fill="#f7a8c4"/>
+        <path d="M-11 0 q2 -9 6 -9 q4 -6 8 0 q5 3 2 9 Z" fill="#ffc2da"/>
+        <circle cx="1" cy="-9" r="3.5" fill="#e2445c"/><circle cx="0" cy="-10" r="1.2" fill="#fff" opacity=".7"/>
+      </g>`;
+    }
+    function stage(caption, customer, mood) {
+      const shown = Math.min(6, Math.max(0, st.made && st.idx > 0 ? 6 : Math.round((st.idx) / 5 * 6)));
+      let cakes = ''; for (let i = 0; i < 6; i++) cakes += cupcake(70 + i * 62, 176, i < Math.max(1, shown) ? 1 : 0.001);
+      const starRow = '★★★★★'.split('').map((s, i) => `<tspan fill="${i < st.stars ? '#ffd23f' : 'rgba(255,255,255,.35)'}">★</tspan>`).join('');
+      return `<div class="bq-stage">
+        <svg viewBox="0 0 480 260" width="100%" style="display:block">
+          <defs>
+            <linearGradient id="bqsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe8d6"/><stop offset="1" stop-color="#ffd0b0"/></linearGradient>
+            <linearGradient id="bqwood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9764a"/><stop offset="1" stop-color="#9c5f38"/></linearGradient>
+          </defs>
+          <rect x="0" y="0" width="480" height="260" fill="url(#bqsky)"/>
+          <rect x="0" y="0" width="480" height="16" fill="#ef8fb3"/>
+          ${Array.from({ length: 12 }).map((_, i) => `<rect x="${i * 42}" y="0" width="21" height="16" fill="${i % 2 ? '#ef8fb3' : '#f8bcd4'}"/>`).join('')}
+          <rect x="150" y="34" width="180" height="46" rx="10" fill="#7a4a2b"/>
+          <text x="240" y="55" text-anchor="middle" font-family="Georgia,serif" font-size="15" fill="#ffe8d6" font-weight="700">GALLOP</text>
+          <text x="240" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="12" fill="#ffd0b0">· BAKERY ·</text>
+          <text x="404" y="44" font-size="17">${starRow ? '' : ''}</text>
+          <text x="360" y="44" font-size="15" font-family="Fredoka,sans-serif">${starRow}</text>
+          <rect x="20" y="150" width="440" height="14" rx="4" fill="#caa06f"/>
+          <rect x="20" y="164" width="440" height="70" fill="url(#bqwood)"/>
+          <rect x="20" y="150" width="440" height="84" fill="none"/>
+          <rect x="30" y="158" width="420" height="42" rx="8" fill="#fff" opacity=".16"/>
+          ${cakes}
+          <g transform="translate(392,150)"><rect x="0" y="-4" width="70" height="34" rx="6" fill="#3d7a5a"/><text x="35" y="18" text-anchor="middle" font-size="15" fill="#fff" font-family="Fredoka,sans-serif" font-weight="700">${money(st.seed - st.cost + st.revenue)}</text></g>
+          <text x="70" y="140" font-size="46">${customer || '🧑'}</text>
+        </svg>
+        <div class="bq-bubble">${esc(caption)}</div>
+      </div>`;
+    }
+
+    // ---------- Skill scene ----------
+    function renderSkill(sc, customer) {
+      const choices = mc(sc.ans, sc.dis.map(String));
+      app().innerHTML = topbar(`<div class="container" style="max-width:640px">
+        <div class="lesson-top"><b>🧁 Bakery Quest — Order ${st.idx + 1} of 5</b><b>💰 ${money(st.seed - st.cost + st.revenue)}</b></div>
+        ${stage(sc.cap, customer)}
+        <div class="card bq-card">
+          <p class="bq-q">${esc(sc.q)}</p>
+          <div class="choices" id="bq-choices">
+            ${choices.map((c, i) => `<button class="choice" data-c="${esc(c)}">${esc(c)}</button>`).join('')}
+          </div>
+          <div id="bq-feed"></div>
+        </div>
+      </div>`);
+      wireChrome();
+      document.querySelectorAll('#bq-choices .choice').forEach(b => b.onclick = () => {
+        const correct = b.dataset.c === sc.ans;
+        document.querySelectorAll('#bq-choices .choice').forEach(x => x.disabled = true);
+        if (correct) {
+          b.classList.add('correct'); Sound.correct(); Confetti.burst(28);
+          if (st.perfect) st.stars = Math.min(5, st.stars + 1);
+          $('#bq-feed').innerHTML = `<div class="bq-good">✅ ${esc(sc.why)}</div><button class="btn green" id="bq-next" style="margin-top:12px">Next →</button>`;
+        } else {
+          b.classList.add('wrong'); st.perfect = false; Sound.wrong();
+          document.querySelectorAll('#bq-choices .choice').forEach(x => { if (x.dataset.c === sc.ans) x.classList.add('answer-reveal'); });
+          $('#bq-feed').innerHTML = `<div class="bq-bad">The answer is <b>${esc(sc.ans)}</b>. ${esc(sc.why)}</div><button class="btn green" id="bq-next" style="margin-top:12px">Keep going →</button>`;
+        }
+        $('#bq-next').onclick = () => { Sound.click(); st.perfect = true; st.idx++; step(); };
+      });
+    }
+
+    // ---------- Price scene (a real business decision) ----------
+    function renderPrice() {
+      st.cost = ingredientCost; // ingredients are paid for now that the batch is baked
+      app().innerHTML = topbar(`<div class="container" style="max-width:640px">
+        <div class="lesson-top"><b>🧁 Bakery Quest — Order 3 of 5</b><b>💰 ${money(st.seed - st.cost)}</b></div>
+        ${stage(`Your ${st.made} cupcakes are baked and cooling. Ingredients cost you ${money(st.cost)}. Now the big decision every shop owner makes: what do you charge?`, '🧑‍🍳')}
+        <div class="card bq-card">
+          <p class="bq-q">Pick your price per cupcake. Charge too little and you barely make money, too much and fewer people buy. What's smart?</p>
+          <div class="choices" id="bq-prices">
+            ${priceOpts.map((o, i) => `<button class="choice" data-i="${i}">${esc(o.label)}</button>`).join('')}
+          </div>
+          <div id="bq-feed"></div>
+        </div>
+      </div>`);
+      wireChrome();
+      document.querySelectorAll('#bq-prices .choice').forEach(b => b.onclick = () => {
+        const o = priceOpts[Number(b.dataset.i)];
+        document.querySelectorAll('#bq-prices .choice').forEach(x => x.disabled = true);
+        b.classList.add('correct');
+        st.price = o.p;
+        st.sold = Math.round(st.made * o.mult);
+        st.revenue = Math.round(st.sold * o.p * 100) / 100;
+        Sound.badge(); Confetti.burst(24);
+        const soldOut = st.sold >= st.made;
+        $('#bq-feed').innerHTML = `<div class="bq-good">At ${money(o.p)} each, you sold <b>${st.sold}</b> of ${st.made} cupcakes${soldOut ? ' — sold out! 🎉' : ' (some went unsold).'}<br>Money brought in: <b>${money(st.revenue)}</b>. Pricing is a real trade-off every business balances.</div><button class="btn green" id="bq-next" style="margin-top:12px">Ring it up →</button>`;
+        $('#bq-next').onclick = () => { Sound.click(); st.perfect = true; st.idx++; step(); };
+      });
+    }
+
+    // ---------- Make change (scene 4) ----------
+    function renderChange(customer) {
+      const q = band === 0 ? 1 : band === 1 ? R(1, 2) : band === 2 ? R(2, 3) : R(2, 4);
+      const due = Math.round(st.price * q * 100) / 100;
+      // Always hand over a standard bill that actually covers the purchase (never negative change).
+      const bill = due <= 5 ? 5 : due <= 10 ? 10 : due <= 20 ? 20 : Math.ceil(due / 5) * 5;
+      const change = Math.round((bill - due) * 100) / 100;
+      const sc = {
+        cap: `A neighbor wants ${q} cupcakes to take home.`,
+        q: `${q} cupcakes at ${money(st.price)} each is ${money(due)}. They hand you a ${money(bill)} bill. How much change do you give back?`,
+        ans: money(change),
+        dis: [money(bill - Math.round(st.price * q * 100) / 100 + st.price), money(due), money(bill - st.price)],
+        skill: 'subtraction with money', why: 'Making change fast and correct is real work at every register, and it keeps customers trusting you.'
+      };
+      renderSkill(sc, customer);
+    }
+
+    // ---------- Results ----------
+    function renderResult() {
+      const profit = Math.round((st.revenue - st.cost) * 100) / 100;
+      const score = Math.max(10, Math.round((st.revenue) + st.stars * 20));
+      let title, line;
+      if (band >= 3) {
+        const margin = st.revenue > 0 ? Math.round((profit / st.revenue) * 100) : 0;
+        title = profit >= 0 ? `Profit: ${money(profit)} (${margin}% margin) 🧁` : `Down ${money(-profit)} today 📉`;
+        line = `You brought in ${money(st.revenue)} and spent ${money(st.cost)}. Profit = revenue − costs = ${money(profit)}. That margin is exactly how real founders judge a business.`;
+      } else {
+        title = profit >= 0 ? `You made ${money(profit)} profit! 🧁` : `You lost ${money(-profit)} today 📉`;
+        line = profit >= 0 ? `Money in (${money(st.revenue)}) minus money out (${money(st.cost)}) = ${money(profit)} profit. That's how every shop knows if the day worked!` : `Costs (${money(st.cost)}) were more than sales (${money(st.revenue)}). Next time price a little higher or waste less, that's real business thinking.`;
+      }
+      finishGame('bakery', score, title, line + (st.stars === 5 ? ' ⭐ Perfect run, five-star baker!' : ''));
+    }
+
+    // ---------- Step machine (renderSkill/renderPrice bump st.idx then call step) ----------
+    function step() {
+      switch (st.idx) {
+        case 0: return renderSkill(s1, pick(customers));
+        case 1: return renderSkill(s2, '🧑‍🍳');
+        case 2: return renderPrice();
+        case 3: return renderChange(pick(customers));
+        case 4: {
+          const profit = Math.round((st.revenue - st.cost) * 100) / 100;
+          return renderSkill({
+            cap: 'The shop is closing. Time to count the day.',
+            q: `You brought in ${money(st.revenue)} and your ingredients cost ${money(st.cost)}. What was your profit today?`,
+            ans: money(profit),
+            dis: [money(st.revenue + st.cost), money(st.revenue), money(profit + st.cost)],
+            skill: 'subtraction', why: 'Profit = money in minus money out. It\'s the number that tells you if a business actually works.'
+          }, '🧑‍🍳');
+        }
+        default: return renderResult();
+      }
+    }
+    step();
   }
 
   // ======================= AVATAR BUILDER =======================
