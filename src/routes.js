@@ -6,6 +6,7 @@ const adaptive = require('./adaptive');
 const content = require('./content');
 const billing = require('./stripe');
 const play = require('./play');
+const gscore = require('./score');
 
 const router = express.Router();
 router.use(play.router);
@@ -148,8 +149,12 @@ router.get('/learn/:kidId/overview', auth.requireKid, auth.requireActiveSub, (re
     const meta = content.SUBJECTS[sub];
     const m = db.prepare('SELECT AVG(mastery) AS m FROM skill_state WHERE kid_id=? AND subject=? AND attempts>0').get(req.kid.id, sub);
     const today = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND subject=? AND date(ts)=date('now')").get(req.kid.id, sub);
-    return { subject: sub, label: meta.label, emoji: meta.emoji, color: meta.color, level: st.level, levelName: adaptive.gradeName(Math.round(st.level)), placed: !!st.placed, avgMastery: m.m, answersToday: today.n || 0 };
+    const srows = db.prepare('SELECT skill_id, mastery FROM skill_state WHERE kid_id=? AND subject=?').all(req.kid.id, sub);
+    const gallopScore = srows.length ? gscore.subjectScore(sub, Object.fromEntries(srows.map(r => [r.skill_id, r.mastery]))) : null;
+    return { subject: sub, label: meta.label, emoji: meta.emoji, color: meta.color, level: st.level, levelName: adaptive.gradeName(Math.round(st.level)), placed: !!st.placed, avgMastery: m.m, answersToday: today.n || 0, gallopScore };
   });
+  const _perSub = {}; subjects.forEach(s => { if (s.gallopScore != null) _perSub[s.subject] = s.gallopScore; });
+  const gallopOverall = gscore.overall(_perSub);
   // Smart "Up Next": weakest, least-practiced-today subject — or first placement needed
   let recommended = null;
   const placedSubs = subjects.filter(s => s.placed);
@@ -166,7 +171,7 @@ router.get('/learn/:kidId/overview', auth.requireKid, auth.requireActiveSub, (re
   const week = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-7 days')").get(req.kid.id);
   const lastWeek = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-14 days') AND ts < datetime('now','-7 days')").get(req.kid.id);
   const activeDays = db.prepare("SELECT DISTINCT date(ts) AS d FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-14 days')").all(req.kid.id).map(r => r.d);
-  res.json({ kid: publicKid(db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id)), subjects, weekAnswers: week.n || 0, lastWeek: { answers: lastWeek.n || 0, correct: lastWeek.c || 0 }, recommended, activeDays });
+  res.json({ kid: publicKid(db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id)), subjects, weekAnswers: week.n || 0, lastWeek: { answers: lastWeek.n || 0, correct: lastWeek.c || 0 }, recommended, activeDays, gallopOverall });
 });
 
 // placement quiz

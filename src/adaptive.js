@@ -501,7 +501,7 @@ function gradeName(g) {
   return g === 0 ? 'Kindergarten' : `Grade ${g}`;
 }
 function subjectLabel(s) {
-  return { math: 'Math', english: 'English', science: 'Science', spanish: 'Spanish' }[s] || s;
+  return { math: 'Math', english: 'English & Reading', science: 'Science', spanish: 'Spanish' }[s] || s;
 }
 // Report-card letter grade on a STANDARD, transparent scale, based on ACCURACY
 // (percent correct), which is what parents expect, not the internal mastery
