@@ -972,6 +972,7 @@ route('home', async () => {
         </div>`).join('')}
     </div>
     <div class="zone-row">
+      <div class="zone-card" onclick="location.hash='#learn'"><span class="zemoji">📖</span><b>Lessons</b><span class="muted">${playful() ? 'Learn how it works before you play!' : 'Short lessons that teach the concept first'}</span></div>
       <div class="zone-card" onclick="location.hash='#play'"><span class="zemoji">🕹️</span><b>${playful() ? 'Play Zone' : 'Arcade'}</b><span class="muted">${playful() ? 'Games cost 1 🎟️, earn tokens by learning!' : 'Break games, 1 token each, earned by correct answers'}</span></div>
       <div class="zone-card" onclick="location.hash='#avatar'"><span class="zemoji">🎨</span><b>${playful() ? 'My Avatar' : 'Avatar'}</b><span class="muted">${playful() ? 'Spend coins on hats, pets & worlds' : 'Customize your profile with earned coins'}</span></div>
       <div class="zone-card" onclick="location.hash='#snacks'"><span class="zemoji">🍿</span><b>${playful() ? 'Snack Shack' : 'Snack Shack'}</b><span class="muted">${playful() ? 'Spend coins on treats from the vending machine!' : 'Trade coins for snacks & treats'}</span></div>
@@ -1170,6 +1171,8 @@ route('lesson', async (subject, mode) => {
     // to TYPE the answer, recall beats recognition for real mastery.
     const numericQ = qn.choices.every(c => /^-?\d+(\.\d+)?$/.test(String(c).trim()));
     const typed = subject === 'math' && numericQ && (State.me.kid.grade >= 2) && Math.random() < 0.3;
+    // If we have a real lesson that teaches this exact skill, offer it right here.
+    const teachLesson = (window.BP.lessonForSkill && data.skill) ? window.BP.lessonForSkill(subject, data.skill.id) : null;
     app().innerHTML = topbar(`<div class="container lesson-wrap">
       <div class="lesson-top">
         <b>${focus ? '🎯 Focus Session: ' + esc(SUBJECT_STYLE[subject] === style ? subject.charAt(0).toUpperCase() + subject.slice(1) : subject) : style.emoji + ' ' + style.cheer}</b>
@@ -1178,6 +1181,7 @@ route('lesson', async (subject, mode) => {
       </div>
       <div class="q-card">
         <span class="q-skill" style="background:${style.color}">${esc(qn.skillName)} · ${esc(modeLabel)}</span>
+        ${teachLesson ? `<button class="btn ghost small learn-this" style="float:right;color:${style.color};border-color:${style.color};margin-left:6px" onclick="location.hash='#teach/${teachLesson.id}'">📖 Learn this</button>` : ''}
         <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
         ${qn.passage ? passageHTML(qn.passage, playful()) : ''}
         <div class="q-prompt">${esc(qn.prompt)}</div>
