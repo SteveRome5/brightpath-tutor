@@ -157,6 +157,14 @@ CREATE TABLE IF NOT EXISTS cheers (
   ts TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS snacks (
+  kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+  snack_id TEXT NOT NULL,
+  qty INTEGER DEFAULT 0,
+  last_bought TEXT DEFAULT (datetime('now')),
+  PRIMARY KEY (kid_id, snack_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_challenges_open ON challenges(to_kid, game, status);
 `);
 

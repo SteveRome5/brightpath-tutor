@@ -7,6 +7,21 @@ const MASTERED = 0.8;
 const STRUGGLING = 0.45;
 const LEVEL_WINDOW = 1; // skills within [level-1, level] are the active zone
 
+// Anti-repeat: remember the last N prompts served to each kid per subject so the
+// same question doesn't come back around while they'd still recognize it.
+const RECENT_MAX = 30;
+const recentQs = new Map(); // "kidId:subject" -> [prompt, ...]
+function recentSet(kidId, subject) { return new Set(recentQs.get(`${kidId}:${subject}`) || []); }
+function noteRecent(kidId, subject, prompt) {
+  if (!prompt) return;
+  const key = `${kidId}:${subject}`;
+  const arr = recentQs.get(key) || [];
+  arr.push(prompt);
+  if (arr.length > RECENT_MAX) arr.splice(0, arr.length - RECENT_MAX);
+  recentQs.set(key, arr);
+  if (recentQs.size > 5000) recentQs.clear(); // memory guard
+}
+
 // ---------- state helpers ----------
 function getSubjectState(kidId, subject) {
   let row = db.prepare('SELECT * FROM subject_state WHERE kid_id=? AND subject=?').get(kidId, subject);
@@ -76,7 +91,8 @@ function placementNext(kidId, subject, history) {
   const skill = pickFrom[Math.floor(Math.random() * pickFrom.length)];
   // Placement questions run gentle (0.35): we're measuring the level, not stress-testing it.
   // Kids prove understanding on basics first; lessons ramp difficulty afterward.
-  const question = content.generateQuestion(subject, skill.id, 0.35);
+  const question = content.generateQuestion(subject, skill.id, 0.35, recentSet(kidId, subject));
+  if (question) noteRecent(kidId, subject, question.prompt);
   return { done: false, probeGrade: probe, question };
 }
 
@@ -118,8 +134,8 @@ function nextActivity(kidId, subject) {
       const r = old[Math.floor(Math.random() * old.length)];
       const sk = content.getSkill(subject, r.skill_id);
       if (sk) {
-        const question = content.generateQuestion(subject, sk.id, Math.max(0.3, r.mastery - 0.2));
-        if (question) return { question, mode: 'retention', level: state.level, skill: { id: sk.id, name: sk.name, grade: sk.grade, mastery: r.mastery } };
+        const question = content.generateQuestion(subject, sk.id, Math.max(0.3, r.mastery - 0.2), recentSet(kidId, subject));
+        if (question) { noteRecent(kidId, subject, question.prompt); return { question, mode: 'retention', level: state.level, skill: { id: sk.id, name: sk.name, grade: sk.grade, mastery: r.mastery } }; }
       }
     }
   }
@@ -154,7 +170,8 @@ function nextActivity(kidId, subject) {
 
   // difficulty scales with mastery — easier when struggling, harder when hot
   const d = Math.max(0.15, Math.min(0.95, chosen.st.mastery + (mode === 'boost' ? -0.15 : 0.1)));
-  const question = content.generateQuestion(subject, chosen.skill.id, d);
+  const question = content.generateQuestion(subject, chosen.skill.id, d, recentSet(kidId, subject));
+  if (question) noteRecent(kidId, subject, question.prompt);
   return {
     question, mode, level: state.level,
     skill: { id: chosen.skill.id, name: chosen.skill.name, grade: chosen.skill.grade, mastery: chosen.st.mastery }

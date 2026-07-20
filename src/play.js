@@ -14,7 +14,13 @@ const AVATAR_CATALOG = {
     { id: 'robot', emoji: '🤖', price: 0 }, { id: 'astronaut', emoji: '🧑‍🚀', price: 0 },
     { id: 'tiger', emoji: '🐯', price: 0 }, { id: 'octopus', emoji: '🐙', price: 0 },
     { id: 'axolotl', emoji: '🦎', price: 30 }, { id: 'narwhal', emoji: '🦭', price: 30 },
-    { id: 'phoenix', emoji: '🐦‍🔥', price: 60 }, { id: 'alien', emoji: '👽', price: 40 }
+    { id: 'phoenix', emoji: '🐦‍🔥', price: 60 }, { id: 'alien', emoji: '👽', price: 40 },
+    { id: 'ninja', emoji: '🥷', price: 70, rarity: 'epic' }, { id: 'wizard', emoji: '🧙', price: 70, rarity: 'epic' },
+    { id: 'superhero', emoji: '🦸', price: 80, rarity: 'epic' }, { id: 'mermaid', emoji: '🧜‍♀️', price: 75, rarity: 'epic' },
+    { id: 'trex', emoji: '🦖', price: 90, rarity: 'epic' }, { id: 'shark', emoji: '🦈', price: 65, rarity: 'rare' },
+    { id: 'wolf', emoji: '🐺', price: 55, rarity: 'rare' }, { id: 'lion', emoji: '🦁', price: 55, rarity: 'rare' },
+    { id: 'genie', emoji: '🧞', price: 120, rarity: 'legendary' }, { id: 'dragonlord', emoji: '🐲', price: 150, rarity: 'legendary' },
+    { id: 'fairy', emoji: '🧚', price: 180, rarity: 'legendary' }, { id: 'merking', emoji: '🧜‍♂️', price: 200, rarity: 'legendary' }
   ],
   hat: [
     { id: 'none', emoji: '', price: 0 }, { id: 'crown', emoji: '👑', price: 25 },
@@ -22,7 +28,10 @@ const AVATAR_CATALOG = {
     { id: 'party', emoji: '🥳', price: 15 }, { id: 'grad', emoji: '🎓', price: 20 },
     { id: 'cowboy', emoji: '🤠', price: 15 }, { id: 'halo', emoji: '😇', price: 30 },
     { id: 'headphones', emoji: '🎧', price: 20 }, { id: 'flower', emoji: '🌺', price: 15 },
-    { id: 'helmet', emoji: '⛑️', price: 15 }, { id: 'santa', emoji: '🎅', price: 30 }
+    { id: 'helmet', emoji: '⛑️', price: 15 }, { id: 'santa', emoji: '🎅', price: 30 },
+    { id: 'ninjaband', emoji: '🎏', price: 40, rarity: 'rare' }, { id: 'viking', emoji: '🪖', price: 45, rarity: 'rare' },
+    { id: 'wizardhat', emoji: '🧙‍♂️', price: 55, rarity: 'epic' }, { id: 'firecrown', emoji: '🔥', price: 90, rarity: 'legendary' },
+    { id: 'rainbowhalo', emoji: '🌈', price: 100, rarity: 'legendary' }
   ],
   accessory: [
     { id: 'none', emoji: '', price: 0 }, { id: 'glasses', emoji: '👓', price: 10 },
@@ -30,7 +39,10 @@ const AVATAR_CATALOG = {
     { id: 'medal', emoji: '🏅', price: 20 }, { id: 'guitar', emoji: '🎸', price: 25 },
     { id: 'wand', emoji: '🪄', price: 25 }, { id: 'skateboard', emoji: '🛹', price: 20 },
     { id: 'trophy', emoji: '🏆', price: 35 }, { id: 'books', emoji: '📚', price: 15 },
-    { id: 'soccer', emoji: '⚽', price: 15 }, { id: 'controller', emoji: '🎮', price: 25 }
+    { id: 'soccer', emoji: '⚽', price: 15 }, { id: 'controller', emoji: '🎮', price: 25 },
+    { id: 'lightsaber', emoji: '⚔️', price: 55, rarity: 'epic' }, { id: 'shield', emoji: '🛡️', price: 45, rarity: 'rare' },
+    { id: 'jetpack', emoji: '🚀', price: 70, rarity: 'epic' }, { id: 'crystalball', emoji: '🔮', price: 60, rarity: 'epic' },
+    { id: 'lightning', emoji: '⚡', price: 100, rarity: 'legendary' }, { id: 'diamond', emoji: '💎', price: 120, rarity: 'legendary' }
   ],
   bg: [
     { id: 'purple', emoji: '💜', price: 0 }, { id: 'rainbow', emoji: '🌈', price: 20 },
@@ -38,7 +50,10 @@ const AVATAR_CATALOG = {
     { id: 'castle', emoji: '🏰', price: 30 }, { id: 'volcano', emoji: '🌋', price: 30 },
     { id: 'city', emoji: '🌆', price: 20 }, { id: 'garden', emoji: '🌻', price: 15 },
     { id: 'sunset', emoji: '🌅', price: 20 }, { id: 'winter', emoji: '❄️', price: 25 },
-    { id: 'spooky', emoji: '🎃', price: 30 }, { id: 'holiday', emoji: '🎄', price: 30 }
+    { id: 'spooky', emoji: '🎃', price: 30 }, { id: 'holiday', emoji: '🎄', price: 30 },
+    { id: 'galaxy', emoji: '🌠', price: 50, rarity: 'epic' }, { id: 'aurora', emoji: '🌌', price: 60, rarity: 'epic' },
+    { id: 'underwater', emoji: '🐠', price: 45, rarity: 'rare' }, { id: 'dragonlair', emoji: '🐉', price: 90, rarity: 'legendary' },
+    { id: 'rainbowroad', emoji: '🌈', price: 100, rarity: 'legendary' }
   ],
   pet: [
     { id: 'none', emoji: '', price: 0 }, { id: 'pup', emoji: '🐶', price: 30 },
@@ -46,7 +61,10 @@ const AVATAR_CATALOG = {
     { id: 'turtle', emoji: '🐢', price: 25 }, { id: 'butterfly', emoji: '🦋', price: 20 },
     { id: 'dino', emoji: '🦕', price: 40 }, { id: 'sloth', emoji: '🦥', price: 35 },
     { id: 'owl', emoji: '🦉', price: 30 }, { id: 'hamster', emoji: '🐹', price: 25 },
-    { id: 'parrot', emoji: '🦜', price: 30 }, { id: 'pony', emoji: '🐴', price: 45 }
+    { id: 'parrot', emoji: '🦜', price: 30 }, { id: 'pony', emoji: '🐴', price: 45 },
+    { id: 'babydragon', emoji: '🐲', price: 70, rarity: 'epic' }, { id: 'foxkit', emoji: '🦊', price: 40, rarity: 'rare' },
+    { id: 'penguin', emoji: '🐧', price: 35, rarity: 'rare' }, { id: 'unicornpet', emoji: '🦄', price: 90, rarity: 'legendary' },
+    { id: 'phoenixpet', emoji: '🔥', price: 110, rarity: 'legendary' }
   ]
 };
 const CHEER_LIST = [
@@ -77,6 +95,47 @@ function catalogFor(ownedSet) {
 }
 
 function itemFor(slot, id) { return (AVATAR_CATALOG[slot] || []).find(i => i.id === id) || null; }
+
+// ---------- Snack Shack & Vending Machine ----------
+// Two coin sinks kids love: the Vending Machine (quick, cheap treats) and the
+// Snack Shack (fancier, pricier goodies). Buying = a little collectible reward.
+const SNACKS = {
+  vending: [
+    { id: 'chips', emoji: '🥔', name: 'Chips', price: 5 },
+    { id: 'soda', emoji: '🥤', name: 'Fizzy Pop', price: 5 },
+    { id: 'candy', emoji: '🍬', name: 'Candy', price: 4 },
+    { id: 'choco', emoji: '🍫', name: 'Chocolate Bar', price: 6 },
+    { id: 'pretzel', emoji: '🥨', name: 'Pretzel', price: 5 },
+    { id: 'gum', emoji: '🍥', name: 'Bubble Gum', price: 3 },
+    { id: 'cookie', emoji: '🍪', name: 'Cookie', price: 6 },
+    { id: 'popcorn', emoji: '🍿', name: 'Popcorn', price: 7 },
+    { id: 'lolli', emoji: '🍭', name: 'Lollipop', price: 4 },
+    { id: 'juice', emoji: '🧃', name: 'Juice Box', price: 5 },
+    { id: 'cracker', emoji: '🧀', name: 'Cheese Crackers', price: 6 },
+    { id: 'water', emoji: '💧', name: 'Water', price: 2 }
+  ],
+  shack: [
+    { id: 'pizza', emoji: '🍕', name: 'Pizza Slice', price: 12 },
+    { id: 'burger', emoji: '🍔', name: 'Burger', price: 14 },
+    { id: 'fries', emoji: '🍟', name: 'Fries', price: 10 },
+    { id: 'hotdog', emoji: '🌭', name: 'Hot Dog', price: 11 },
+    { id: 'taco', emoji: '🌮', name: 'Taco', price: 12 },
+    { id: 'icecream', emoji: '🍦', name: 'Ice Cream', price: 10 },
+    { id: 'donut', emoji: '🍩', name: 'Donut', price: 9 },
+    { id: 'cupcake', emoji: '🧁', name: 'Cupcake', price: 10 },
+    { id: 'pancakes', emoji: '🥞', name: 'Pancakes', price: 13 },
+    { id: 'sushi', emoji: '🍣', name: 'Sushi', price: 16, rarity: 'rare' },
+    { id: 'ramen', emoji: '🍜', name: 'Ramen Bowl', price: 15, rarity: 'rare' },
+    { id: 'pretzelbig', emoji: '🥐', name: 'Croissant', price: 11 },
+    { id: 'shake', emoji: '🥤', name: 'Milkshake', price: 12 },
+    { id: 'nachos', emoji: '🧀', name: 'Nachos', price: 13 },
+    { id: 'cake', emoji: '🍰', name: 'Cake Slice', price: 14 },
+    { id: 'feast', emoji: '🍱', name: 'Bento Feast', price: 25, rarity: 'epic' },
+    { id: 'sundae', emoji: '🍨', name: 'Giant Sundae', price: 30, rarity: 'epic' },
+    { id: 'goldapple', emoji: '🍎', name: 'Golden Apple', price: 50, rarity: 'legendary' }
+  ]
+};
+function snackFor(machine, id) { return (SNACKS[machine] || []).find(s => s.id === id) || null; }
 function kidPublic(k) {
   return {
     id: k.id, name: k.name, avatar: k.avatar, avatar_config: safeJson(k.avatar_config),
@@ -124,6 +183,28 @@ router.post('/play/:kidId/avatar/equip', auth.requireKid, (req, res) => {
   db.prepare('UPDATE kids SET avatar_config=?, avatar=COALESCE(?, avatar) WHERE id=?')
     .run(JSON.stringify(clean), clean.base || null, req.kid.id);
   res.json({ ok: true, config: clean });
+});
+
+// ---------- snacks ----------
+router.get('/play/:kidId/snacks', auth.requireKid, (req, res) => {
+  const owned = {};
+  for (const r of db.prepare('SELECT snack_id, qty FROM snacks WHERE kid_id=?').all(req.kid.id)) owned[r.snack_id] = r.qty;
+  const kid = db.prepare('SELECT coins FROM kids WHERE id=?').get(req.kid.id);
+  const totals = db.prepare('SELECT COALESCE(SUM(qty),0) AS n FROM snacks WHERE kid_id=?').get(req.kid.id).n;
+  res.json({ machines: SNACKS, owned, coins: kid.coins, totalSnacks: totals });
+});
+
+router.post('/play/:kidId/snacks/buy', auth.requireKid, (req, res) => {
+  const { machine, snackId } = req.body || {};
+  const snack = snackFor(machine, snackId);
+  if (!snack) return res.status(400).json({ error: 'Unknown snack' });
+  const kid = db.prepare('SELECT coins FROM kids WHERE id=?').get(req.kid.id);
+  if (kid.coins < snack.price) return res.status(400).json({ error: `Need ${snack.price - kid.coins} more coins — keep learning! 🪙` });
+  db.prepare('UPDATE kids SET coins = coins - ? WHERE id=?').run(snack.price, req.kid.id);
+  db.prepare(`INSERT INTO snacks (kid_id, snack_id, qty, last_bought) VALUES (?,?,1,datetime('now'))
+    ON CONFLICT(kid_id, snack_id) DO UPDATE SET qty = qty + 1, last_bought = datetime('now')`).run(req.kid.id, snack.id);
+  const qty = db.prepare('SELECT qty FROM snacks WHERE kid_id=? AND snack_id=?').get(req.kid.id, snack.id).qty;
+  res.json({ ok: true, coins: kid.coins - snack.price, snack: { ...snack, machine }, qty });
 });
 
 // ---------- games ----------
@@ -269,4 +350,4 @@ router.post('/buddies/:kidId/seen', auth.requireKid, (req, res) => {
   res.json({ ok: true });
 });
 
-module.exports = { router, CHEER_LIST, AVATAR_CATALOG };
+module.exports = { router, CHEER_LIST, AVATAR_CATALOG, SNACKS };
