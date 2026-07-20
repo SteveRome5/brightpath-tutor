@@ -32,7 +32,13 @@ const skills = [
       { p: '"¿Cómo estás?" asks…', a: 'How are you?', w: ['What is your name?', 'Where do you live?', 'How old are you?'], h: 'A friendly check-in!', e: '¿Cómo estás? = How are you? Answer: ¡Bien!' },
       { p: '"Sí" means yes. What means NO?', a: 'no (same word!)', w: ['nada', 'nunca', 'salud'], h: 'Easiest word ever.', e: 'No = no in both languages. Sí = yes!' },
       { p: 'You bump into someone by accident. You say…', a: 'perdón (sorry/excuse me)', w: ['gracias', 'hola', 'adiós'], h: 'It sounds like "pardon"!', e: 'Perdón = sorry! Cognates to the rescue.' },
-      { p: '"Hasta luego" means…', a: 'see you later', w: ['good morning', 'thank you', 'right now'], h: 'Said when leaving!', e: 'Hasta luego = until later! 👋' }
+      { p: '"Hasta luego" means…', a: 'see you later', w: ['good morning', 'thank you', 'right now'], h: 'Said when leaving!', e: 'Hasta luego = until later! 👋' },
+      { p: 'How do you say "good afternoon" in Spanish?', a: 'buenas tardes', w: ['buenos días', 'buenas noches', 'hasta luego'], h: 'Tardes = afternoon.', e: '"Buenas tardes" — used after midday!' },
+      { p: 'Someone says "¿Cómo estás?" They are asking…', a: 'how are you?', w: ['what is your name?', 'how old are you?', 'where are you?'], h: 'Estás = you are.', e: '"¿Cómo estás?" = How are you?' },
+      { p: 'The polite reply to "gracias" is…', a: 'de nada', w: ['por favor', 'adiós', 'hola'], h: 'It means "you\'re welcome."', e: '"De nada" = it\'s nothing / you\'re welcome!' },
+      { p: '"Me llamo Margaux" means…', a: 'my name is Margaux', w: ['I am ten', 'I like Margaux', 'goodbye Margaux'], h: 'Llamo = I call (myself).', e: '"Me llamo…" is how you say your name!' },
+      { p: '"Buenas noches" is used when…', a: 'it is nighttime', w: ['it is morning', 'you are hungry', 'you are leaving forever'], h: 'Noches = nights.', e: '"Buenas noches" = good night / good evening!' },
+      { p: 'To ask someone\'s name politely you say…', a: '¿Cómo te llamas?', w: ['¿Cuántos años?', '¿Dónde vives?', '¿Qué hora es?'], h: 'Llamas = you call yourself.', e: '"¿Cómo te llamas?" = What\'s your name?' }
     ])
   },
   {
@@ -73,7 +79,13 @@ const skills = [
       { p: 'Snow and clouds are "blanco". Blanco means…', a: 'white', w: ['blue', 'black', 'silver'], h: 'Snowman color! ⛄', e: 'Blanco = white. Negro is its opposite!' },
       { p: 'A pumpkin 🎃 is "anaranjado" (or naranja), meaning…', a: 'orange', w: ['yellow', 'purple', 'pink'], h: 'Same word as the fruit!', e: 'Naranja = orange — the color AND the fruit!' },
       { p: 'Grapes and eggplants are "morado". Morado means…', a: 'purple', w: ['green', 'blue', 'gray'], h: '🍇 color!', e: 'Morado = purple.' },
-      { p: '"¿De qué color es el cielo?" asks about the color of the…', a: 'sky', w: ['sea', 'grass', 'sun'], h: 'Cielo — look up!', e: 'El cielo = the sky. ¡Es azul!' }
+      { p: '"¿De qué color es el cielo?" asks about the color of the…', a: 'sky', w: ['sea', 'grass', 'sun'], h: 'Cielo — look up!', e: 'El cielo = the sky. ¡Es azul!' },
+      { p: '"Rojo" is the color of a fire truck. It means…', a: 'red', w: ['blue', 'green', 'yellow'], h: 'Think of a rose: rojo.', e: 'Rojo = red! 🔴' },
+      { p: 'The sun is often drawn "amarillo". That means…', a: 'yellow', w: ['purple', 'black', 'white'], h: '☀️', e: 'Amarillo = yellow!' },
+      { p: 'Grass and leaves are "verde", which is…', a: 'green', w: ['orange', 'pink', 'brown'], h: '🌿', e: 'Verde = green!' },
+      { p: '"Negro" is the color of night. It means…', a: 'black', w: ['white', 'gray', 'gold'], h: '🌑', e: 'Negro = black!' },
+      { p: '"Blanco" is the color of snow and milk. It means…', a: 'white', w: ['blue', 'red', 'brown'], h: '❄️🥛', e: 'Blanco = white!' },
+      { p: 'Mixing red and blue makes "morado", which is…', a: 'purple', w: ['green', 'orange', 'pink'], h: '🍇', e: 'Morado = purple!' }
     ])
   },
 
@@ -91,7 +103,13 @@ const skills = [
       { p: '"El bebé" of the family is…', a: 'the baby', w: ['the dad', 'the dog', 'the oldest kid'], h: 'Sounds just like English!', e: 'El bebé = the baby. 👶' },
       { p: '"Mi hermana es pequeña" means my sister is…', a: 'small/little', w: ['tall', 'loud', 'fast'], h: 'Pequeño = tiny.', e: 'Pequeña = small. Grande = big!' },
       { p: '"Los padres" means…', a: 'the parents', w: ['the fathers only', 'the priests', 'the cousins'], h: 'Mamá + papá together.', e: 'Los padres = parents (mom AND dad).' },
-      { p: '"La familia" means…', a: 'the family', w: ['the house', 'the party', 'the food'], h: 'It sounds a lot like the English word!', e: 'Familia = family. Cognates make Spanish friendly!' }
+      { p: '"La familia" means…', a: 'the family', w: ['the house', 'the party', 'the food'], h: 'It sounds a lot like the English word!', e: 'Familia = family. Cognates make Spanish friendly!' },
+      { p: '"La hermana" is a girl with the same parents as you. It means…', a: 'sister', w: ['brother', 'cousin', 'aunt'], h: 'Herman-A = the girl one.', e: 'La hermana = sister! (El hermano = brother)' },
+      { p: '"El abuelo" is your dad\'s dad. It means…', a: 'grandfather', w: ['uncle', 'baby', 'friend'], h: 'Abuel-O = the man.', e: 'El abuelo = grandfather! (La abuela = grandmother)' },
+      { p: '"Mi mamá y mi papá" are my…', a: 'mom and dad', w: ['aunt and uncle', 'sisters', 'grandparents'], h: 'Easy cognates!', e: 'Mamá = mom, papá = dad!' },
+      { p: '"El bebé" cries and drinks milk. It means…', a: 'the baby', w: ['the dog', 'the grandpa', 'the teacher'], h: 'Sounds like "baby"!', e: 'El bebé = the baby! 👶' },
+      { p: '"Tengo dos hermanos" means I have two…', a: 'brothers/siblings', w: ['dogs', 'houses', 'friends'], h: 'Tengo = I have.', e: '"Tengo dos hermanos" = I have two brothers/siblings!' },
+      { p: '"La tía" is your mom\'s sister. It means…', a: 'aunt', w: ['uncle', 'niece', 'cousin'], h: 'Tí-A = the woman.', e: 'La tía = aunt! (El tío = uncle)' }
     ])
   },
   {
@@ -107,7 +125,13 @@ const skills = [
       { p: '"La tortuga" carries its house on its back. 🐢 Tortuga means…', a: 'turtle', w: ['snail', 'crab', 'frog'], h: 'Slow and steady!', e: 'La tortuga = the turtle.' },
       { p: 'Which animal is "el cerdo"? 🐷', a: 'the pig', w: ['the sheep', 'the duck', 'the goat'], h: 'It says oink (¡oinc!).', e: 'El cerdo = the pig.' },
       { p: '"El león" is the king of the jungle. León means…', a: 'lion', w: ['tiger', 'bear', 'wolf'], h: 'ROAR! 🦁', e: 'El león = the lion.' },
-      { p: '"La mariposa" has beautiful wings and visits flowers. Mariposa means…', a: 'butterfly', w: ['bee', 'bird', 'ladybug'], h: '🦋 It was a caterpillar once!', e: 'La mariposa = the butterfly — one of the prettiest Spanish words!' }
+      { p: '"La mariposa" has beautiful wings and visits flowers. Mariposa means…', a: 'butterfly', w: ['bee', 'bird', 'ladybug'], h: '🦋 It was a caterpillar once!', e: 'La mariposa = the butterfly — one of the prettiest Spanish words!' },
+      { p: '"El gato" says meow. It means…', a: 'the cat', w: ['the dog', 'the bird', 'the fish'], h: '🐱', e: 'El gato = the cat!' },
+      { p: '"El perro" is a loyal pet that barks. It means…', a: 'the dog', w: ['the cat', 'the horse', 'the pig'], h: '🐶 Guau guau!', e: 'El perro = the dog!' },
+      { p: '"El caballo" is big and you can ride it. It means…', a: 'the horse', w: ['the cow', 'the sheep', 'the goat'], h: '🐴 Margaux loves these!', e: 'El caballo = the horse!' },
+      { p: '"El pájaro" flies and sings in trees. It means…', a: 'the bird', w: ['the fish', 'the cat', 'the frog'], h: '🐦', e: 'El pájaro = the bird!' },
+      { p: '"El pez" swims in water. It means…', a: 'the fish', w: ['the duck', 'the snake', 'the bee'], h: '🐟', e: 'El pez = the fish!' },
+      { p: '"La vaca" says "muu" and gives milk. It means…', a: 'the cow', w: ['the pig', 'the hen', 'the horse'], h: '🐄', e: 'La vaca = the cow!' }
     ])
   },
   {
@@ -123,7 +147,13 @@ const skills = [
       { p: '"La naranja" is a fruit full of vitamin C. 🍊 Naranja means…', a: 'orange', w: ['lemon', 'apple', 'melon'], h: 'Same as the color!', e: 'La naranja = orange (fruit and color!).' },
       { p: '"El pollo" is in tacos, soup, and nuggets. 🍗 Pollo means…', a: 'chicken', w: ['beef', 'fish', 'pork'], h: 'Double L sounds like Y: "POH-yoh".', e: 'El pollo = chicken.' },
       { p: '"El helado" is the BEST dessert on a hot day. 🍦 Helado means…', a: 'ice cream', w: ['cake', 'candy', 'hot soup'], h: 'Hielo = ice… helado = ?', e: 'El helado = ice cream. ¡Qué rico!' },
-      { p: '"Quiero pizza, por favor" means…', a: 'I want pizza, please', w: ['I ate pizza already', 'The pizza is cold', 'Where is the pizza?'], h: 'Quiero = I want.', e: 'Quiero = I want — the most useful restaurant word!' }
+      { p: '"Quiero pizza, por favor" means…', a: 'I want pizza, please', w: ['I ate pizza already', 'The pizza is cold', 'Where is the pizza?'], h: 'Quiero = I want.', e: 'Quiero = I want — the most useful restaurant word!' },
+      { p: '"El agua" is what you drink when thirsty. It means…', a: 'water', w: ['bread', 'milk', 'juice'], h: '💧', e: 'El agua = water!' },
+      { p: '"La manzana" is a crunchy red fruit. It means…', a: 'apple', w: ['banana', 'orange', 'grape'], h: '🍎', e: 'La manzana = apple!' },
+      { p: '"El pan" is baked and you make sandwiches with it. It means…', a: 'bread', w: ['cheese', 'rice', 'egg'], h: '🍞', e: 'El pan = bread!' },
+      { p: '"La leche" is white and comes from cows. It means…', a: 'milk', w: ['water', 'soup', 'tea'], h: '🥛', e: 'La leche = milk!' },
+      { p: '"Tengo hambre" means…', a: 'I am hungry', w: ['I am thirsty', 'I am tired', 'I am happy'], h: 'Hambre = hunger.', e: '"Tengo hambre" = I\'m hungry!' },
+      { p: '"Me gusta el helado" means I like…', a: 'ice cream', w: ['vegetables', 'water', 'fish'], h: '🍦', e: '"Me gusta el helado" = I like ice cream!' }
     ])
   },
 
@@ -140,7 +170,13 @@ const skills = [
       { p: 'Christmas 🎄 is in "diciembre", which is…', a: 'December', w: ['November', 'October', 'July'], h: 'The last month!', e: 'Diciembre = December, month #12.' },
       { p: '"Mañana" can mean tomorrow or…', a: 'morning', w: ['midnight', 'last week', 'never'], h: '"Mañana por la mañana" = tomorrow morning!', e: 'Mañana = tomorrow AND morning — context tells you which!' },
       { p: 'How many days are in "una semana" (a week)?', a: 'siete (7)', w: ['cinco (5)', 'diez (10)', 'doce (12)'], h: 'Lunes through domingo.', e: 'Una semana = 7 días!' },
-      { p: 'Summer vacation usually starts in "junio", which is…', a: 'June', w: ['January', 'July', 'April'], h: 'Right before julio.', e: 'Junio = June — summer kickoff! ☀️' }
+      { p: 'Summer vacation usually starts in "junio", which is…', a: 'June', w: ['January', 'July', 'April'], h: 'Right before julio.', e: 'Junio = June — summer kickoff! ☀️' },
+      { p: '"Lunes" is the first school day of the week. It means…', a: 'Monday', w: ['Friday', 'Sunday', 'Wednesday'], h: 'Start of the week.', e: 'Lunes = Monday!' },
+      { p: '"Sábado" and "domingo" make up the…', a: 'weekend', w: ['school days', 'months', 'holidays'], h: 'No school!', e: 'Sábado (Sat) + domingo (Sun) = weekend!' },
+      { p: '"Hoy es viernes" means today is…', a: 'Friday', w: ['Tuesday', 'Monday', 'Thursday'], h: 'Hoy = today.', e: '"Hoy es viernes" = Today is Friday! 🎉' },
+      { p: '"Diciembre" is the month with winter holidays. It means…', a: 'December', w: ['October', 'March', 'August'], h: 'Sounds like December!', e: 'Diciembre = December! ❄️' },
+      { p: '"Mañana" can mean "morning" OR…', a: 'tomorrow', w: ['yesterday', 'night', 'week'], h: 'Two meanings!', e: '"Mañana" = morning or tomorrow, from context!' },
+      { p: 'How many days are in "una semana"?', a: 'seven', w: ['five', 'ten', 'twelve'], h: 'Semana = week.', e: 'Una semana = one week = 7 days!' }
     ])
   },
   {
@@ -155,7 +191,13 @@ const skills = [
       { p: 'You smile and talk with your "boca". Boca means…', a: 'mouth', w: ['cheek', 'ear', 'forehead'], h: 'Where your teeth live!', e: 'La boca = mouth. 😁' },
       { p: '"El pelo" can be rubio, negro, or café. Pelo means…', a: 'hair', w: ['hat', 'eye', 'skin'], h: 'You brush it every morning.', e: 'El pelo = hair.' },
       { p: 'You bend your "rodillas" to jump. Rodillas means…', a: 'knees', w: ['elbows', 'ankles', 'wrists'], h: 'From the song — knees! 🦵', e: 'Las rodillas = knees.' },
-      { p: '"Me duele el estómago" means my ___ hurts.', a: 'stomach', w: ['head', 'foot', 'ear'], h: 'Too much helado!', e: 'El estómago = stomach. Me duele = it hurts me.' }
+      { p: '"Me duele el estómago" means my ___ hurts.', a: 'stomach', w: ['head', 'foot', 'ear'], h: 'Too much helado!', e: 'El estómago = stomach. Me duele = it hurts me.' },
+      { p: '"La cabeza" is on top of your neck and holds your brain. It means…', a: 'head', w: ['hand', 'foot', 'knee'], h: '🧠', e: 'La cabeza = head!' },
+      { p: '"La mano" has five fingers. It means…', a: 'hand', w: ['ear', 'nose', 'leg'], h: '✋', e: 'La mano = hand!' },
+      { p: '"Los ojos" let you see. They are your…', a: 'eyes', w: ['ears', 'teeth', 'feet'], h: '👀', e: 'Los ojos = eyes!' },
+      { p: '"La boca" is what you eat and talk with. It means…', a: 'mouth', w: ['nose', 'eye', 'arm'], h: '👄', e: 'La boca = mouth!' },
+      { p: '"El pie" is at the bottom of your leg. It means…', a: 'foot', w: ['hand', 'head', 'back'], h: '🦶', e: 'El pie = foot!' },
+      { p: '"Los dientes" are white and you brush them. They are your…', a: 'teeth', w: ['eyes', 'ears', 'toes'], h: '🦷', e: 'Los dientes = teeth!' }
     ])
   },
   {
@@ -170,7 +212,13 @@ const skills = [
       { p: '"Lo siento" means…', a: 'I\'m sorry', w: ['I\'m sitting', 'I feel great', 'See you soon'], h: 'Said when you feel bad about something.', e: 'Lo siento = I\'m sorry (literally "I feel it").' },
       { p: 'Your friend shows you their new bike. 🚲 You say "¡Qué ___!" (How cool!)', a: 'chévere / genial', w: ['triste', 'aburrido', 'frío'], h: 'It\'s a compliment!', e: '¡Qué chévere! = How cool! Different countries, same excitement.' },
       { p: '"¿Cuánto cuesta?" is the shopping question meaning…', a: 'How much does it cost?', w: ['What time is it?', 'Where is the store?', 'Do you like it?'], h: 'Ask it before you buy!', e: '¿Cuánto cuesta? = How much? Essential market Spanish! 🛒' },
-      { p: '"Con permiso" is the polite way to say…', a: 'excuse me (passing through)', w: ['thank you very much', 'good night', 'welcome'], h: 'Squeezing past someone in a crowd.', e: 'Con permiso = excuse me. ¡Muy educado!' }
+      { p: '"Con permiso" is the polite way to say…', a: 'excuse me (passing through)', w: ['thank you very much', 'good night', 'welcome'], h: 'Squeezing past someone in a crowd.', e: 'Con permiso = excuse me. ¡Muy educado!' },
+      { p: '"Lo siento" is what you say when you…', a: 'are sorry', w: ['are happy', 'say hello', 'are hungry'], h: 'An apology.', e: '"Lo siento" = I\'m sorry.' },
+      { p: '"¿Puedo ir al baño?" politely asks…', a: 'may I go to the bathroom?', w: ['what time is it?', 'where do you live?', 'how are you?'], h: 'Very useful in class!', e: '"¿Puedo ir al baño?" = May I go to the bathroom?' },
+      { p: '"No entiendo" is helpful in class. It means…', a: 'I don\'t understand', w: ['I understand', 'I\'m done', 'I\'m hungry'], h: 'Entiendo = I understand.', e: '"No entiendo" — great to tell a teacher!' },
+      { p: '"¿Cómo se dice…?" is used to ask…', a: 'how do you say…?', w: ['what time is it?', 'how much?', 'who are you?'], h: 'For learning new words!', e: '"¿Cómo se dice?" = How do you say…?' },
+      { p: '"Más despacio, por favor" asks someone to speak…', a: 'more slowly', w: ['louder', 'in English', 'faster'], h: 'Despacio = slow.', e: '"Más despacio" = slower, please!' },
+      { p: '"Buen provecho" is said…', a: 'before eating a meal', w: ['before sleeping', 'when leaving', 'when angry'], h: 'Like "enjoy your meal."', e: '"Buen provecho" = enjoy your meal! 🍽️' }
     ])
   },
 
@@ -187,7 +235,13 @@ const skills = [
       { p: 'Pick the correct one: "Los niños ___ en el parque." (The kids are at the park)', a: 'están', w: ['son', 'es', 'soy'], h: 'Location right now → estar.', e: 'Location always takes estar: están en el parque. 🌳' },
       { p: '"Estoy feliz" vs "Soy feliz" — what\'s the difference?', a: 'Estoy = happy right now; Soy = a happy person in general', w: ['They mean exactly the same', 'Estoy is past tense', 'Soy is a question'], h: 'Temporary mood vs permanent personality!', e: 'Estar = state today; ser = who you are. Both happy! 😊' },
       { p: 'Pick the correct one: "El café ___ frío." (The coffee has gone cold)', a: 'está', w: ['es', 'eres', 'somos'], h: 'It wasn\'t always cold — current condition!', e: 'A changeable condition → está frío. ☕' },
-      { p: '"Mis padres son doctores" uses SER because being a doctor is…', a: 'a profession/identity (lasting)', w: ['a temporary mood', 'a location', 'a question'], h: 'Jobs and identity take ser.', e: 'Professions use ser: son doctores. 🩺' }
+      { p: '"Mis padres son doctores" uses SER because being a doctor is…', a: 'a profession/identity (lasting)', w: ['a temporary mood', 'a location', 'a question'], h: 'Jobs and identity take ser.', e: 'Professions use ser: son doctores. 🩺' },
+      { p: '"Yo ___ cansado hoy." (I am tired today — a temporary feeling):', a: 'estoy', w: ['soy', 'es', 'son'], h: 'Feelings/conditions = ESTAR.', e: 'Estoy — temporary states use estar!' },
+      { p: '"Ella ___ alta." (She is tall — a lasting trait):', a: 'es', w: ['está', 'estoy', 'están'], h: 'Traits = SER.', e: 'Es — permanent characteristics use ser!' },
+      { p: '"Nosotros ___ en la escuela." (We are at school — location):', a: 'estamos', w: ['somos', 'es', 'son'], h: 'Location = ESTAR.', e: 'Estamos — location always uses estar!' },
+      { p: '"¿De dónde ___ tú?" (Where are you from? — origin):', a: 'eres', w: ['estás', 'es', 'somos'], h: 'Origin = SER.', e: 'Eres — where you\'re from uses ser!' },
+      { p: '"La sopa ___ caliente." (The soup is hot — a current condition):', a: 'está', w: ['es', 'soy', 'son'], h: 'Condition right now = ESTAR.', e: 'Está — a temporary condition uses estar!' },
+      { p: '"Hoy ___ lunes." (Today is Monday — days use…):', a: 'es', w: ['está', 'estoy', 'son'], h: 'Days/dates = SER.', e: 'Es — dates and days use ser!' }
     ])
   },
   {
@@ -220,7 +274,13 @@ const skills = [
       { p: '"¿Cuántos años tienes?" asks…', a: 'How old are you?', w: ['How tall are you?', 'How many pets do you have?', 'What year is it?'], h: 'Literally "how many years do you have?"', e: '¿Cuántos años tienes? = How old are you? Tengo diez años!' },
       { p: '"¿Dónde está el aeropuerto?" would you ask when you need…', a: 'directions to the airport', w: ['a plane ticket price', 'the flight time', 'a taxi\'s name'], h: '¿Dónde? = where!', e: '¿Dónde está...? = Where is...? Travel essential! ✈️' },
       { p: 'Which question word asks "WHICH one?"', a: '¿Cuál?', w: ['¿Quién?', '¿Cuándo?', '¿Por qué?'], h: '¿Cuál es tu color favorito?', e: '¿Cuál? = Which? ¿Cuál prefieres? = Which do you prefer?' },
-      { p: 'Spanish questions start with an upside-down mark: ¿ — why?', a: 'It signals a question is coming before you read it', w: ['It\'s a typo tradition', 'It marks loud speech', 'It replaces the period'], h: 'Helpful warning at the START!', e: 'Spanish brackets questions ¿like this? — you know the tone from word one!' }
+      { p: 'Spanish questions start with an upside-down mark: ¿ — why?', a: 'It signals a question is coming before you read it', w: ['It\'s a typo tradition', 'It marks loud speech', 'It replaces the period'], h: 'Helpful warning at the START!', e: 'Spanish brackets questions ¿like this? — you know the tone from word one!' },
+      { p: '"¿Cómo?" asks…', a: 'how?', w: ['what?', 'when?', 'who?'], h: 'Cómo = how.', e: '¿Cómo? = How?' },
+      { p: '"¿Cuándo?" asks about…', a: 'when? (time)', w: ['where?', 'why?', 'how many?'], h: 'Cuándo = when.', e: '¿Cuándo? = When?' },
+      { p: '"¿Dónde está el baño?" asks…', a: 'where is the bathroom?', w: ['when is lunch?', 'who are you?', 'how much is it?'], h: 'Dónde = where.', e: '¿Dónde? = Where?' },
+      { p: '"¿Por qué?" asks…', a: 'why?', w: ['how?', 'who?', 'which?'], h: 'Two words = why.', e: '¿Por qué? = Why? (Porque = because!)' },
+      { p: '"¿Cuántos años tienes?" asks…', a: 'how old are you?', w: ['what\'s your name?', 'where do you live?', 'how are you?'], h: 'Años = years.', e: 'Literally "how many years do you have?" = how old are you?' },
+      { p: '"¿Quién es ella?" asks…', a: 'who is she?', w: ['what is that?', 'where is she?', 'why her?'], h: 'Quién = who.', e: '¿Quién? = Who?' }
     ])
   },
   {
@@ -253,7 +313,12 @@ const skills = [
       { p: '"Los perros ___" (the fast dogs):', a: 'rápidos', w: ['rápido', 'rápidas', 'rápida'], h: 'Los perros = masculine AND plural.', e: 'Masculine plural → -os: los perros rápidos. 🐕💨' },
       { p: '"Las manzanas ___" (the red apples):', a: 'rojas', w: ['rojo', 'rojos', 'roja'], h: 'Las manzanas = feminine plural.', e: 'Feminine plural → -as: las manzanas rojas. 🍎🍎' },
       { p: 'In Spanish, most adjectives go ___ the noun (opposite of English!):', a: 'after', w: ['before', 'nowhere', 'inside'], h: '"El gato negro," not "el negro gato."', e: 'Spanish flips it: noun first, adjective after — el gato negro!' },
-      { p: 'Which phrase is correct?', a: 'la música fantástica', w: ['la música fantástico', 'el música fantástica', 'la músicas fantástica'], h: 'Match gender AND number.', e: 'La música (fem. sing.) + fantástica. ¡Perfecto! 🎶' }
+      { p: 'Which phrase is correct?', a: 'la música fantástica', w: ['la música fantástico', 'el música fantástica', 'la músicas fantástica'], h: 'Match gender AND number.', e: 'La música (fem. sing.) + fantástica. ¡Perfecto! 🎶' },
+      { p: '"Los libros ___" (the red books). Fill in:', a: 'rojos', w: ['roja', 'rojo', 'rojas'], h: 'Masculine plural noun → -os ending.', e: 'Libros is masculine plural → rojos!' },
+      { p: '"Una casa ___" (a white house). Fill in:', a: 'blanca', w: ['blanco', 'blancos', 'blancas'], h: 'Feminine singular → -a.', e: 'Casa is feminine singular → blanca!' },
+      { p: 'Adjectives in Spanish usually come…', a: 'after the noun', w: ['before the noun', 'only at the end of sentences', 'never near nouns'], h: '"Casa blanca," not "blanca casa."', e: 'Most Spanish adjectives follow the noun they describe!' },
+      { p: '"Las niñas ___" (the tall girls). Fill in:', a: 'altas', w: ['alto', 'altos', 'alta'], h: 'Feminine plural → -as.', e: 'Niñas is feminine plural → altas!' },
+      { p: '"El coche ___" (the fast car). Fill in:', a: 'rápido', w: ['rápida', 'rápidos', 'rápidas'], h: 'Masculine singular → -o.', e: 'Coche is masculine singular → rápido!' }
     ])
   },
   {
@@ -263,7 +328,12 @@ const skills = [
       { p: '"Ella ___ a la fiesta el sábado." (She went to the party):', a: 'fue', w: ['va', 'irá', 'yendo'], h: '"Ir" (to go) is wildly irregular in the past.', e: 'Fue = she went. Ir and ser share this form — context tells you which!' },
       { p: '"Nosotros ___ mucho en el concierto." (We danced a lot):', a: 'bailamos', w: ['bailan', 'bailaré', 'bailando'], h: '-AR verb with nosotros.', e: 'Bailamos = we danced. (Same spelling as present — context is key!) 💃' },
       { p: '"¿___ tú la película?" (Did you watch the movie?):', a: 'Viste', w: ['Ves', 'Verás', 'Viendo'], h: 'Ver (to see) with tú in the past.', e: 'Viste = you saw/watched. 🎬' },
-      { p: '"Yo ___ mi tarea anoche." (I did my homework last night):', a: 'hice', w: ['hago', 'haré', 'haciendo'], h: 'Hacer is irregular: yo → h_c_.', e: 'Hice = I did/made. Hacer is a must-know irregular!' }
+      { p: '"Yo ___ mi tarea anoche." (I did my homework last night):', a: 'hice', w: ['hago', 'haré', 'haciendo'], h: 'Hacer is irregular: yo → h_c_.', e: 'Hice = I did/made. Hacer is a must-know irregular!' },
+      { p: '"Ayer yo ___ al parque." (Yesterday I went to the park):', a: 'fui', w: ['voy', 'iré', 'vaya'], h: 'Ir in preterite: fui.', e: 'Fui = I went (irregular preterite of ir/ser)!' },
+      { p: '"Ella ___ una carta." (She wrote a letter):', a: 'escribió', w: ['escribe', 'escribirá', 'escribiendo'], h: '-IÓ ending = he/she did it.', e: 'Escribió = she wrote (preterite)!' },
+      { p: 'The preterite tense is used for actions that…', a: 'are completed in the past', w: ['happen every day', 'will happen', 'are happening now'], h: 'Done and finished.', e: 'Preterite = a finished past action, like "I ate."' },
+      { p: '"Nosotros ___ pizza anoche." (We ate pizza last night):', a: 'comimos', w: ['comemos', 'comeremos', 'comíamos'], h: '-IMOS preterite for nosotros.', e: 'Comimos = we ate (last night)!' },
+      { p: '"¿Qué ___ tú ayer?" (What did you do yesterday?):', a: 'hiciste', w: ['haces', 'harás', 'haga'], h: 'Hacer preterite tú: hiciste.', e: 'Hiciste = you did (irregular preterite)!' }
     ])
   },
   {
@@ -273,7 +343,12 @@ const skills = [
       { p: 'You want the check. You politely say…', a: 'La cuenta, por favor', w: ['El menú, por favor', 'Más agua, por favor', 'Buenos días'], h: 'Cuenta = bill/account.', e: 'La cuenta, por favor = the check, please!' },
       { p: 'Someone says "¡Que tengas un buen fin de semana!" They wish you…', a: 'a good weekend', w: ['a good meal', 'good luck on a test', 'a happy birthday'], h: 'Fin de semana = end of the week.', e: 'A kind weekend wish! Reply: "¡Igualmente!" (same to you!)' },
       { p: '"Estoy aprendiendo español desde hace dos años" means…', a: 'I\'ve been learning Spanish for two years', w: ['I will learn Spanish in two years', 'I taught Spanish for two years', 'Spanish takes two years'], h: 'Desde hace + time = "for (duration)".', e: '"Desde hace dos años" = for two years and counting. ¡Sigue así!' },
-      { p: 'Your friend says "¡No manches!" (Mexican slang). They mean roughly…', a: '"No way! You\'re kidding!"', w: ['"Don\'t touch!"', '"Clean that up!"', '"Hurry up!"'], h: 'It\'s an expression of surprise.', e: 'Slang alert! ¡No manches! = No way! Real Spanish lives in slang. 😄' }
+      { p: 'Your friend says "¡No manches!" (Mexican slang). They mean roughly…', a: '"No way! You\'re kidding!"', w: ['"Don\'t touch!"', '"Clean that up!"', '"Hurry up!"'], h: 'It\'s an expression of surprise.', e: 'Slang alert! ¡No manches! = No way! Real Spanish lives in slang. 😄' },
+      { p: 'A friend says "¿Qué tal?" A natural reply is…', a: 'Todo bien, ¿y tú?', w: ['Tengo doce años', 'Es azul', 'Son las tres'], h: 'It\'s a casual "how\'s it going?"', e: '"¿Qué tal?" → "Todo bien, ¿y tú?" (All good, and you?)' },
+      { p: '"Vale" in Spain is used to mean…', a: 'okay / got it', w: ['goodbye', 'expensive', 'never'], h: 'Very common in Spain.', e: '"Vale" = okay! (In Spain especially.)' },
+      { p: 'If someone says "¡Qué chévere!" they think something is…', a: 'cool / awesome', w: ['boring', 'expensive', 'broken'], h: 'Positive slang (Caribbean/S. America).', e: '"¡Qué chévere!" = How cool!' },
+      { p: 'To politely order in a café: "Me ___ un café, por favor."', a: 'pone', w: ['come', 'vivo', 'hablo'], h: '"Me pone…" = could you get me…', e: '"Me pone un café" is a natural way to order!' },
+      { p: '"Nos vemos" at the end of a chat means…', a: 'see you (later)', w: ['I\'m sorry', 'good luck', 'I don\'t know'], h: 'Vemos = we see (each other).', e: '"Nos vemos" = see you around!' }
     ])
   },
 
@@ -285,7 +360,12 @@ const skills = [
       { p: 'The subjunctive is used for…', a: 'wishes, doubts, and emotions — not facts', w: ['only past events', 'only questions', 'commands to dogs'], h: 'W.E.I.R.D.O: Wishes, Emotions, Impersonal, Recommendations, Doubt, Ojalá.', e: 'Subjunctive = the mood of uncertainty and desire.' },
       { p: '"Ojalá que ___ a la playa." (Hopefully we go to the beach):', a: 'vayamos', w: ['vamos', 'iremos', 'fuimos'], h: 'Ojalá ALWAYS triggers subjunctive.', e: 'Ojalá (from Arabic "inshallah"!) + vayamos. 🏖️' },
       { p: '"Es importante que los estudiantes ___ cada día." (It\'s important that students practice):', a: 'practiquen', w: ['practican', 'practicarán', 'practicando'], h: '"Es importante que..." = impersonal opinion → subjunctive.', e: 'Impersonal expressions trigger it: practiquen.' },
-      { p: 'Which sentence needs NO subjunctive?', a: 'Sé que estudias mucho. (I KNOW you study a lot)', w: ['Dudo que estudies. (I doubt...)', 'Espero que estudies. (I hope...)', 'Quiero que estudies. (I want...)'], h: 'Certainty = indicative; doubt/desire = subjunctive.', e: 'Knowing is certain → normal indicative. The rest are wishes/doubts!' }
+      { p: 'Which sentence needs NO subjunctive?', a: 'Sé que estudias mucho. (I KNOW you study a lot)', w: ['Dudo que estudies. (I doubt...)', 'Espero que estudies. (I hope...)', 'Quiero que estudies. (I want...)'], h: 'Certainty = indicative; doubt/desire = subjunctive.', e: 'Knowing is certain → normal indicative. The rest are wishes/doubts!' },
+      { p: 'The subjunctive is often triggered by wishes, like: "Quiero que tú ___."', a: 'estudies', w: ['estudias', 'estudiaste', 'estudiar'], h: 'Querer que + subjunctive.', e: '"Quiero que estudies" = I want you to study (subjunctive)!' },
+      { p: '"Es importante que nosotros ___ agua." (that we drink water):', a: 'bebamos', w: ['bebemos', 'bebimos', 'beber'], h: 'Impersonal expression + subjunctive.', e: '"Es importante que bebamos" uses subjunctive!' },
+      { p: 'Doubt triggers subjunctive: "No creo que él ___ razón." (that he is right):', a: 'tenga', w: ['tiene', 'tuvo', 'tener'], h: 'No creer = doubt = subjunctive.', e: '"No creo que tenga razón" — doubt uses subjunctive!' },
+      { p: '"Ojalá que ___ sol mañana." (I hope it\'s sunny tomorrow):', a: 'haga', w: ['hace', 'hizo', 'hacer'], h: 'Ojalá always takes subjunctive.', e: '"Ojalá que haga sol" = Hopefully it\'s sunny!' },
+      { p: 'Emotion triggers it too: "Me alegro de que tú ___ aquí." (that you are here):', a: 'estés', w: ['estás', 'estabas', 'estar'], h: 'Alegrarse de que + subjunctive.', e: '"Me alegro de que estés aquí" — emotion + subjunctive!' }
     ])
   },
   {
@@ -295,7 +375,12 @@ const skills = [
       { p: '"El Día de los Muertos" in Mexico is a celebration that…', a: 'joyfully honors and remembers loved ones who have died', w: ['is identical to Halloween', 'marks the new year', 'celebrates the harvest only'], h: 'Marigolds, ofrendas, sugar skulls — and joy, not fear.', e: 'Families build ofrendas with photos, food, and marigolds to welcome spirits home. 💀🌼' },
       { p: 'Lee: "Aunque llovía, el partido continuó porque era la final del campeonato." ¿Por qué continuó el partido?', a: 'Porque era la final del campeonato', w: ['Porque no llovía', 'Porque los jugadores querían irse', 'Porque el árbitro lo canceló'], h: 'Aunque = although/even though.', e: 'Championship final = the show goes on, rain or not! ⚽' },
       { p: 'Spanish is an official language in about how many countries?', a: 'around 20', w: ['3', 'exactly 50', 'only Spain and Mexico'], h: 'From Argentina to Guinea Ecuatorial!', e: '~20 countries, ~500 million speakers — you\'re learning a superpower. 🌎' },
-      { p: 'Lee: "Marisol ahorró durante seis meses para comprar su primera guitarra. Cuando por fin la tocó, supo que valió la pena." ¿Qué significa "valió la pena"?', a: 'It was worth it', w: ['It was too expensive', 'It broke quickly', 'She returned it'], h: 'Six months of saving, then joy…', e: 'Valer la pena = to be worth it. Great idiom! 🎸' }
+      { p: 'Lee: "Marisol ahorró durante seis meses para comprar su primera guitarra. Cuando por fin la tocó, supo que valió la pena." ¿Qué significa "valió la pena"?', a: 'It was worth it', w: ['It was too expensive', 'It broke quickly', 'She returned it'], h: 'Six months of saving, then joy…', e: 'Valer la pena = to be worth it. Great idiom! 🎸' },
+      { p: 'Lee: "El mercado abre a las ocho y cierra a las dos." ¿A qué hora cierra el mercado?', a: 'a las dos', w: ['a las ocho', 'a las seis', 'no cierra'], h: 'Cierra = closes.', e: 'It closes "a las dos" — at two o\'clock!' },
+      { p: '"Aunque llovía, decidimos caminar." The word "aunque" means…', a: 'although', w: ['because', 'after', 'if'], h: 'Contrast word.', e: 'Aunque = although/even though!' },
+      { p: 'Lee: "A Diego le encanta cocinar para su familia los domingos." ¿Qué le gusta hacer a Diego?', a: 'cocinar (cook)', w: ['dormir', 'correr', 'estudiar'], h: 'Le encanta = he loves.', e: 'Diego loves to cook for his family on Sundays!' },
+      { p: '"La cultura del flamenco viene de…" — flamenco is a famous dance and music from…', a: 'España (Spain)', w: ['Japón', 'Canadá', 'Egipto'], h: 'Andalucía, southern Spain.', e: 'Flamenco comes from Spain — especially Andalucía! 💃' },
+      { p: '"El Día de los Muertos" is a Mexican tradition that…', a: 'honors and remembers loved ones who died', w: ['celebrates the new year', 'is a soccer match', 'marks summer vacation'], h: 'Not scary — it\'s loving remembrance.', e: 'Día de los Muertos honors those who\'ve passed, with color and joy! 🌼' }
     ])
   },
   {
@@ -305,7 +390,12 @@ const skills = [
       { p: 'The difference between "por" and "para": use PARA for…', a: 'destinations, deadlines, and purposes', w: ['duration and exchanges', 'only past events', 'nothing — they\'re identical'], h: 'Para = goal-oriented (think "purpose").', e: 'Para = purpose/destination; por = cause/duration/exchange.' },
       { p: '"Llevo tres horas esperando el autobús" uses "llevar" to express…', a: 'how long you\'ve been doing something', w: ['carrying something heavy', 'wearing clothes', 'taking someone somewhere'], h: 'Llevar + time + gerund = duration in progress.', e: 'Llevo tres horas esperando = I\'ve been waiting three hours. Native-level structure! 🚌' },
       { p: '"El libro fue escrito por una autora chilena" is in ___ voice.', a: 'passive (ser + past participle)', w: ['active', 'subjunctive', 'imperative'], h: 'The book didn\'t write itself — but it\'s the subject!', e: 'Fue escrito = was written. Passive with ser + participle.' },
-      { p: 'Pick the correct relative pronoun: "La ciudad ___ nací es hermosa." (The city where I was born...):', a: 'donde', w: ['quien', 'cuyo', 'cual'], h: 'It refers to a PLACE.', e: 'Donde = where. La ciudad donde nací = the city where I was born.' }
+      { p: 'Pick the correct relative pronoun: "La ciudad ___ nací es hermosa." (The city where I was born...):', a: 'donde', w: ['quien', 'cuyo', 'cual'], h: 'It refers to a PLACE.', e: 'Donde = where. La ciudad donde nací = the city where I was born.' },
+      { p: '"Si yo ___ rico, viajaría por el mundo." (If I were rich…) — this uses the:', a: 'imperfect subjunctive (fuera)', w: ['present tense', 'future tense', 'command form'], h: 'Hypotheticals: Si + imperfect subjunctive.', e: '"Si yo fuera rico, viajaría…" — classic conditional!' },
+      { p: '"Para" and "por" both can mean "for." "Trabajo ___ ganar dinero" (in order to earn) uses…', a: 'para', w: ['por', 'pero', 'pora'], h: 'Para = purpose/goal.', e: 'Para expresses purpose: "in order to."' },
+      { p: 'The phrase "se me olvidó" literally shifts blame, meaning…', a: 'I forgot (it slipped from me)', w: ['I threw it away', 'I remembered', 'I found it'], h: 'A common "no-fault" construction.', e: '"Se me olvidó" = I forgot — but it "happened to me"!' },
+      { p: '"Habría ido si me hubieran invitado." This sentence expresses…', a: 'something that would have happened but didn\'t', w: ['a daily routine', 'a future plan', 'a command'], h: 'Conditional perfect + past perfect subjunctive.', e: 'A regret about the past: "I would have gone if they\'d invited me."' },
+      { p: '"Llevo tres años estudiando español" means…', a: 'I\'ve been studying Spanish for three years', w: ['I\'ll study for three years', 'I studied three years ago', 'I forgot Spanish'], h: 'Llevar + time + gerund = ongoing duration.', e: '"Llevo tres años estudiando" = an action still going on!' }
     ])
   },
   {
@@ -315,7 +405,12 @@ const skills = [
       { p: '"Quisiera" instead of "quiero" when ordering makes you sound…', a: 'more polite and refined', w: ['confused', 'angry', 'childish'], h: 'It\'s the difference between "I want" and "I would like."', e: 'Quisiera = I would like. Small change, big politeness upgrade.' },
       { p: 'The phrase "no obstante" in an essay means…', a: 'nevertheless / however', w: ['obviously', 'in conclusion', 'for example'], h: 'It introduces a contrast.', e: 'No obstante = nevertheless. Essay-level connector! 📝' },
       { p: '"Cada vez más personas estudian español" translates best as…', a: 'More and more people are studying Spanish', w: ['Every person studies Spanish once', 'Sometimes people study Spanish', 'People study Spanish every time'], h: 'Cada vez más = an increasing trend.', e: '"Cada vez más" = more and more — a pattern worth knowing.' },
-      { p: 'True fluency mostly comes from…', a: 'regular practice speaking, listening, and reading real Spanish', w: ['memorizing the dictionary', 'one intensive weekend', 'only grammar drills'], h: 'What would your favorite teacher say?', e: 'Consistency beats cramming. ¡Sigue practicando — ya casi eres bilingüe! 🌟' }
+      { p: 'True fluency mostly comes from…', a: 'regular practice speaking, listening, and reading real Spanish', w: ['memorizing the dictionary', 'one intensive weekend', 'only grammar drills'], h: 'What would your favorite teacher say?', e: 'Consistency beats cramming. ¡Sigue practicando — ya casi eres bilingüe! 🌟' },
+      { p: 'The best way to sound natural is to learn language in…', a: 'chunks and phrases, not just single words', w: ['alphabetical order', 'only grammar rules', 'random vocabulary lists'], h: 'Phrases carry real meaning.', e: 'Native speakers think in phrases — so should learners!' },
+      { p: '"Cognates" like "información" and "animal" are helpful because they…', a: 'look and mean nearly the same in both languages', w: ['are always false friends', 'are only in textbooks', 'never appear in speech'], h: 'Free vocabulary!', e: 'Thousands of Spanish-English cognates give you a head start!' },
+      { p: 'A "false friend" (falso amigo) like "embarazada" actually means…', a: 'pregnant (not embarrassed!)', w: ['embarrassed', 'famous', 'tired'], h: 'Careful — it fools learners!', e: '"Embarazada" = pregnant. A classic false friend!' },
+      { p: 'Immersion means…', a: 'surrounding yourself with the language (shows, music, talking)', w: ['studying one hour a year', 'only reading dictionaries', 'avoiding native speakers'], h: 'Live in the language.', e: 'Immersion — through media and conversation — builds real fluency!' },
+      { p: 'When you don\'t know a word mid-conversation, a fluent strategy is to…', a: 'describe it with other words you DO know', w: ['stop talking completely', 'switch fully to English', 'invent a random word'], h: 'Circumlocution keeps you talking!', e: 'Talking around a word ("the thing for cutting paper") keeps conversations flowing!' }
     ])
   }
 ];
