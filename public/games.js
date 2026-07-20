@@ -857,9 +857,10 @@
     function badgeCell(b) {
       const rar = ` rar-${b.rarity}`;
       const pct = Math.round(b.cur / b.goal * 100);
-      return `<div class="badge-cell ${b.earned ? 'earned' + rar : 'locked'}" data-badge="${b.id}" title="${esc(b.name)}">
+      return `<div class="badge-cell ${b.earned ? 'earned' + rar : 'locked'}" data-badge="${b.id}" title="${esc(b.name)}: ${esc(b.desc || '')}">
         <div class="badge-emoji">${b.earned ? b.emoji : '🔒'}</div>
         <div class="badge-name">${esc(b.name)}</div>
+        <div class="badge-desc">${esc(b.desc || '')}</div>
         ${b.earned ? `<div class="badge-rar rar-tag-${b.rarity}">${RAR_NAME[b.rarity]}</div>`
           : `<div class="badge-prog"><div class="badge-prog-fill" style="width:${pct}%"></div></div><div class="badge-prog-txt">${b.cur}/${b.goal}</div>`}
       </div>`;

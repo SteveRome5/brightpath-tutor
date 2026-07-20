@@ -552,10 +552,15 @@ route('landing', async () => {
     <h1>A personal tutor for every child, at every level.</h1>
     <p class="hero-tagline">Every child has a pace. Gallop finds it.</p>
     <p>Gallop finds each child's real level in every subject, then adapts each lesson to how they actually learn. The teaching stays grounded in the real world, the progress reports are honest, and the whole program grows up alongside your child. By the high school years it even helps you see where their strengths could lead.</p>
-    <button class="btn" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start your 7-day free trial</button>
-    <button class="btn ghost" style="margin-left:8px" onclick="location.hash='#demo'">Try a sample lesson</button>
-    <button class="btn ghost" style="margin-left:8px" onclick="location.hash='#kid-login'">Student sign-in</button>
-    <div class="horse-runner">🐎</div>
+    <div class="hero-cta">
+      <button class="btn hero-primary" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start your 7-day free trial</button>
+      <div class="hero-cta-row">
+        <button class="btn ghost" onclick="location.hash='#demo'">Try a sample lesson</button>
+        <button class="btn ghost" onclick="location.hash='#kid-login'">Student sign-in</button>
+      </div>
+      <p class="hero-cta-note muted">No credit card to start · Cancel anytime</p>
+    </div>
+    <div class="horse-runner"><img src="/logo.svg" alt="" class="horse-runner-img"></div>
   </div>
   <div class="container">
     <div class="statband reveal">

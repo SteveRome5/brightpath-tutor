@@ -13743,6 +13743,10 @@
         <div><h1>📖 Lessons</h1><p class="muted" style="margin-top:4px">Short teaching moments. See it, hear it, try it. Then go practice.</p></div>
         <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#home'">← Home</button></div>
       </div>
+      <div class="learn-tabs">
+        <button class="learn-tab ${!only ? 'active' : ''}" onclick="location.hash='#learn'">All subjects</button>
+        ${['math', 'english', 'science', 'spanish'].map(s => `<button class="learn-tab ${only === s ? 'active' : ''}" style="--sub:${SUB[s].color}" onclick="location.hash='#learn/${s}'">${SUB[s].emoji} ${SUB[s].name}</button>`).join('')}
+      </div>
       ${subjects.map(section).join('')}
     </div>`);
     wireChrome();
