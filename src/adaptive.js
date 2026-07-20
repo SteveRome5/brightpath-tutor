@@ -380,6 +380,64 @@ function letterGrade(avg) {
   return 'Growing 🌱';
 }
 
+// Curated career pathways. Each is matched against a child's subject-strength
+// profile. `sig` weights which subjects the career leans on. `why` ties the
+// child's strength to a real-world payoff; `hs` is what to focus on in high school.
+const CAREER_PATHS = [
+  { id: 'engineer', title: 'Engineering', emoji: '⚙️', sig: { math: 1, science: 0.8 }, why: 'Strong math + science minds design bridges, robots, rockets and apps. Every problem solved in lessons is the same muscle engineers use daily.', hs: 'Physics, calculus, and a coding or robotics elective.' },
+  { id: 'cs', title: 'Computer Science & AI', emoji: '💻', sig: { math: 1, science: 0.5 }, why: 'Logical, pattern-loving thinkers thrive in software, data, and AI — some of the fastest-growing, best-paid fields.', hs: 'AP Computer Science, statistics, and a personal coding project.' },
+  { id: 'medicine', title: 'Medicine & Health', emoji: '🩺', sig: { science: 1, english: 0.5 }, why: 'Science mastery plus clear communication is the foundation of doctors, nurses, and researchers who help people every day.', hs: 'Biology, chemistry, and volunteering in a clinic or hospital.' },
+  { id: 'research', title: 'Scientist / Researcher', emoji: '🔬', sig: { science: 1, math: 0.6 }, why: 'Curiosity about how the world works — plus the math to measure it — drives discoveries in labs and universities.', hs: 'Lab sciences, statistics, and a science-fair research project.' },
+  { id: 'finance', title: 'Finance & Business', emoji: '📈', sig: { math: 1, english: 0.4 }, why: 'Comfort with numbers powers careers in investing, accounting, and running companies — turning skills into real earning power.', hs: 'Economics, statistics, and a school business or investing club.' },
+  { id: 'entrepreneur', title: 'Entrepreneur', emoji: '🚀', sig: { math: 0.7, english: 0.7 }, why: 'Founders blend numbers (pricing, budgets) with words (pitching, selling). The lemonade and market games are literally practice for this.', hs: 'Business, public speaking, and starting a small side venture.' },
+  { id: 'law', title: 'Law & Policy', emoji: '⚖️', sig: { english: 1, science: 0.3 }, why: 'Reading closely, arguing clearly, and reasoning carefully are exactly what lawyers, judges, and leaders do.', hs: 'Debate, government, and rigorous reading & writing courses.' },
+  { id: 'writer', title: 'Writing & Media', emoji: '✍️', sig: { english: 1 }, why: 'Word wizards become authors, journalists, marketers, and screenwriters — storytelling is one of the most durable human skills.', hs: 'Creative writing, journalism (school paper), and literature.' },
+  { id: 'educator', title: 'Education & Psychology', emoji: '🎓', sig: { english: 0.8, science: 0.5 }, why: 'Explaining ideas and understanding people leads to teaching, counseling, and psychology — shaping the next generation.', hs: 'Psychology, writing, and tutoring or mentoring younger kids.' },
+  { id: 'global', title: 'Global & Diplomacy', emoji: '🌍', sig: { spanish: 1, english: 0.7 }, why: 'Speaking more than one language opens international business, diplomacy, and travel careers — the world runs on bilingual talent.', hs: 'Advanced Spanish, world history, and a cultural exchange.' },
+  { id: 'healthbilingual', title: 'Bilingual Healthcare', emoji: '🏥', sig: { spanish: 0.8, science: 0.8 }, why: 'Bilingual nurses and doctors are in huge demand — combining science with Spanish means serving twice the community.', hs: 'Biology, medical Spanish, and clinic volunteering.' },
+  { id: 'design', title: 'Architecture & Design', emoji: '📐', sig: { math: 0.8, science: 0.4, english: 0.3 }, why: 'Geometry and spatial reasoning become buildings, products, and games that people use and love.', hs: 'Geometry, art/design, and a drafting or CAD elective.' },
+  { id: 'environment', title: 'Environmental Science', emoji: '🌱', sig: { science: 1, math: 0.5 }, why: 'Understanding ecosystems and data helps protect the planet — one of the defining challenges (and job markets) of this generation.', hs: 'Environmental science, chemistry, and a sustainability project.' },
+  { id: 'communicator', title: 'Marketing & Communications', emoji: '📣', sig: { english: 0.9, spanish: 0.4 }, why: 'Persuasion and clear writing drive advertising, PR, and brand-building — turning ideas into things people want.', hs: 'Writing, a second language, and running a club\'s social media.' }
+];
+
+// Analyze a child's strengths and (grade-gated) surface career pathways.
+function careerInsights(kidId) {
+  const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(kidId);
+  const grade = kid.grade || 0;
+  const subs = ['math', 'english', 'science', 'spanish'].map(sub => {
+    const state = getSubjectState(kidId, sub);
+    const rows = db.prepare('SELECT mastery FROM skill_state WHERE kid_id=? AND subject=? AND attempts>0').all(kidId, sub);
+    const avg = rows.length ? rows.reduce((a, r) => a + r.mastery, 0) / rows.length : null;
+    const agg = db.prepare('SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND subject=?').get(kidId, sub);
+    const acc = agg.n ? agg.c / agg.n : null;
+    // strength score: blend mastery (60%) + accuracy (40%); null if not enough data
+    const score = avg == null ? null : Math.max(0, Math.min(1, (avg * 0.6 + (acc == null ? avg : acc) * 0.4)));
+    return { subject: sub, label: subjectLabel(sub), placed: !!state.placed, level: Math.round(state.level), answers: agg.n || 0, mastery: avg, accuracy: acc, score };
+  });
+  const active = subs.filter(s => s.score != null && s.answers >= 5);
+  const ranked = active.slice().sort((a, b) => b.score - a.score);
+  const scoreOf = sub => { const s = subs.find(x => x.subject === sub); return s && s.score != null ? s.score : 0; };
+  // Career match: weighted signature score, only if there's enough signal
+  const pathways = CAREER_PATHS.map(c => {
+    let num = 0, den = 0;
+    for (const [sub, w] of Object.entries(c.sig)) { num += scoreOf(sub) * w; den += w; }
+    return { ...c, match: den ? num / den : 0 };
+  }).sort((a, b) => b.match - a.match);
+  const enough = active.length >= 1 && ranked.length && ranked[0].score >= 0.4;
+  const band = grade >= 9 ? 'pathways' : grade >= 6 ? 'explore' : 'emerging';
+  const topStrengths = ranked.filter(s => s.score >= 0.6).slice(0, 2);
+  const growthAreas = ranked.filter(s => s.score < 0.5).sort((a, b) => a.score - b.score).slice(0, 2)
+    .map(s => ({ subject: s.subject, label: s.label, score: s.score,
+      why: `A little more ${s.label.toLowerCase()} practice will round out ${kid.name}'s profile and keep the most doors open.` }));
+  return {
+    grade, band, ranked,
+    hasData: enough,
+    topStrengths: topStrengths.map(s => ({ subject: s.subject, label: s.label, score: s.score, level: s.level })),
+    growthAreas,
+    pathways: enough ? pathways.filter(p => p.match >= 0.35).slice(0, band === 'pathways' ? 4 : 3) : []
+  };
+}
+
 function reportCard(kidId) {
   const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(kidId);
   const subjects = ['math', 'english', 'science', 'spanish'].map(sub => {
@@ -425,7 +483,8 @@ function reportCard(kidId) {
     kid: { id: kid.id, name: kid.name, avatar: kid.avatar, grade: kid.grade, xp: kid.xp, coins: kid.coins, streak: kid.streak, weekly_goal: kid.weekly_goal, calendar_mode: kid.calendar_mode },
     subjects, badges, certificates: certs, weekAnswers: week.n || 0,
     history,
-    pace: pace(kid)
+    pace: pace(kid),
+    career: careerInsights(kidId)
   };
 }
 
@@ -466,5 +525,5 @@ function setLevel(kidId, subject, level) {
 
 module.exports = {
   getSubjectState, nextActivity, recordAnswer, placementNext, reportCard,
-  gradeName, subjectLabel, setLevel, maxGrade, achievements, BADGES, MASTERED, STRUGGLING
+  gradeName, subjectLabel, setLevel, maxGrade, achievements, careerInsights, BADGES, MASTERED, STRUGGLING
 };
