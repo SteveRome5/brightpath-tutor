@@ -5,6 +5,14 @@
 const $ = sel => document.querySelector(sel);
 const app = () => $('#app');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function toast(msg) {
+  document.querySelectorAll('.gallop-toast').forEach(t => t.remove());
+  const t = document.createElement('div');
+  t.className = 'gallop-toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3800);
+}
 
 async function api(path, opts = {}) {
   const res = await fetch('/api' + path, {
@@ -783,6 +791,7 @@ route('placement', async (subject) => {
       <div class="q-card">
         <span class="q-skill" style="background:${style.color}">${esc(qn.skillName)}</span>
         <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
+        ${qn.passage ? `<div class="passage-box"><span class="passage-tag">📖 ${playful() ? 'Read the story' : 'Read the passage'}</span>${esc(qn.passage)}</div>` : ''}
         <div class="q-prompt">${esc(qn.prompt)}</div>
         <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}
           <button class="choice idk" data-i="-1">🤷 ${playful() ? "I haven't learned this yet" : "Haven't covered this yet"}</button>
@@ -866,6 +875,10 @@ route('lesson', async (subject, mode) => {
     const modeLabel = { boost: '💪 Power-Up (extra practice!)', learn: '🌱 New Challenge', review: '✨ Quick Review', retention: '🧠 Memory Check (keeping it sharp!)' }[data.mode] || '';
     const qStart = Date.now();
     let answered = false;
+    // Typed-answer mode: ~30% of numeric math questions (grade 2+) ask the kid
+    // to TYPE the answer — recall beats recognition for real mastery.
+    const numericQ = qn.choices.every(c => /^-?\d+(\.\d+)?$/.test(String(c).trim()));
+    const typed = subject === 'math' && numericQ && (State.me.kid.grade >= 2) && Math.random() < 0.3;
     app().innerHTML = topbar(`<div class="container lesson-wrap">
       <div class="lesson-top">
         <b>${focus ? '🎯 Focus Session — ' + esc(SUBJECT_STYLE[subject] === style ? subject.charAt(0).toUpperCase() + subject.slice(1) : subject) : style.emoji + ' ' + style.cheer}</b>
@@ -875,8 +888,14 @@ route('lesson', async (subject, mode) => {
       <div class="q-card">
         <span class="q-skill" style="background:${style.color}">${esc(qn.skillName)} · ${esc(modeLabel)}</span>
         <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
+        ${qn.passage ? `<div class="passage-box"><span class="passage-tag">📖 ${playful() ? 'Read the story' : 'Read the passage'}</span>${esc(qn.passage)}</div>` : ''}
         <div class="q-prompt">${esc(qn.prompt)}</div>
-        <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
+        ${typed ? `<div class="typed-wrap">
+          <input id="typed-in" class="typed-input" inputmode="decimal" autocomplete="off" placeholder="${playful() ? 'Type your answer!' : 'Your answer'}" aria-label="Type your answer">
+          <button class="btn green" id="typed-go">Check ✓</button>
+        </div>
+        <p class="muted" style="margin-top:8px;font-size:.85rem">${playful() ? '🧠 No choices this time — show what you know!' : 'Free response — recall practice.'}</p>`
+        : `<div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>`}
         <div class="hint-box" id="hint-box">💡 ${esc(qn.hint || 'Trust yourself — read it once more, slowly.')}</div>
         <div class="feedback" id="feedback" aria-live="polite"></div>
         <div class="lesson-actions">
@@ -884,6 +903,7 @@ route('lesson', async (subject, mode) => {
           <button class="btn green" id="next-btn" style="display:none">Next →</button>
           <button class="btn ghost small" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:auto" onclick="location.hash='#home'">Exit</button>
         </div>
+        <div class="too-tricky"><button class="tt-btn" id="tt-btn">${playful() ? '🐴 Whoa — too tricky? Gallop back to easier questions' : 'Too difficult? Step back a level'}</button></div>
         <div class="mastery-mini">Skill power: <span id="mastery-pct">${Math.round((data.skill.mastery || 0) * 100)}%</span>
           <div class="mastery-bar"><div id="mastery-fill" style="width:${(data.skill.mastery || 0) * 100}%"></div></div>
         </div>
@@ -893,21 +913,26 @@ route('lesson', async (subject, mode) => {
     $('#say-btn').onclick = () => Voice.speak(qn.voice || qn.prompt, subject === 'spanish' ? 'es-ES' : 'en-US');
     if (Voice.auto) Voice.speak(qn.voice || qn.prompt, subject === 'spanish' ? 'es-ES' : 'en-US');
     $('#hint-btn').onclick = () => { $('#hint-box').classList.add('show'); Sound.click(); };
+    $('#tt-btn').onclick = async () => {
+      Sound.click();
+      const btn = $('#tt-btn'); btn.disabled = true; btn.textContent = playful() ? '🐴 Galloping back…' : 'Adjusting…';
+      try {
+        const r = await api(`/learn/${kidId}/level-shift/${subject}`, { method: 'POST', body: { delta: -1 } });
+        toast(playful() ? `🌈 No worries! We galloped back to ${r.levelName} questions. You've got this!` : `Level adjusted to ${r.levelName}.`);
+        nextQuestion();
+      } catch (e) { btn.disabled = false; btn.textContent = playful() ? '🐴 Whoa — too tricky? Gallop back to easier questions' : 'Too difficult? Step back a level'; }
+    };
     // Keyboard: 1-4 answer, Enter = next, H = hint (great for desktop & teens)
     document.onkeydown = e => {
       if (document.querySelector('.celebrate')) return;
+      const ti = document.activeElement && document.activeElement.id === 'typed-in';
+      if (ti) { if (e.key === 'Enter') { const g = $('#typed-go'); if (g && !g.disabled) g.click(); } return; }
       if (e.key >= '1' && e.key <= '4') { const c = document.querySelectorAll('.choice')[Number(e.key) - 1]; if (c && !c.disabled) c.click(); }
       else if (e.key === 'Enter') { const nb = $('#next-btn'); if (nb && nb.style.display !== 'none') nb.click(); }
       else if (e.key.toLowerCase() === 'h') { const hb = $('#hint-btn'); if (hb) hb.click(); }
     };
 
-    document.querySelectorAll('.choice').forEach(b => b.onclick = async () => {
-      if (answered) return; answered = true;
-      const i = Number(b.dataset.i);
-      const correct = i === qn.answerIndex;
-      document.querySelectorAll('.choice').forEach(x => x.disabled = true);
-      b.classList.add(correct ? 'correct' : 'wrong');
-      if (!correct) document.querySelectorAll('.choice')[qn.answerIndex].classList.add('reveal');
+    async function settle(correct) {
       const fb = $('#feedback');
       const why = whyLine(subject, qn.skillName);
       if (correct) {
@@ -951,7 +976,33 @@ route('lesson', async (subject, mode) => {
       $('#next-btn').style.display = 'inline-flex';
       $('#next-btn').focus();
       $('#next-btn').onclick = () => { Sound.click(); nextQuestion(); };
+    }
+
+    document.querySelectorAll('.choice').forEach(b => b.onclick = () => {
+      if (answered) return; answered = true;
+      const i = Number(b.dataset.i);
+      const correct = i === qn.answerIndex;
+      document.querySelectorAll('.choice').forEach(x => x.disabled = true);
+      b.classList.add(correct ? 'correct' : 'wrong');
+      if (!correct) document.querySelectorAll('.choice')[qn.answerIndex].classList.add('reveal');
+      settle(correct);
     });
+
+    const tgo = $('#typed-go');
+    if (tgo) {
+      const tin = $('#typed-in');
+      tin.focus();
+      tgo.onclick = () => {
+        if (answered) return;
+        const val = tin.value.trim();
+        if (!val) { tin.focus(); return; }
+        answered = true;
+        const correct = Number(val) === Number(qn.choices[qn.answerIndex]);
+        tin.disabled = true; tgo.disabled = true;
+        tin.classList.add(correct ? 'good' : 'bad');
+        settle(correct);
+      };
+    }
   }
 
   function celebrate(ev) {
@@ -1240,7 +1291,21 @@ route('parent', async () => {
               <button class="btn green small" data-start="${k.id}">▶ Start</button>
               <button class="btn small" data-report="${k.id}">📊 Report</button>
               <button class="btn small" data-weekly="${k.id}" title="Printable weekly summary">📄</button>
+              <button class="btn small" data-edit="${k.id}" title="Edit learner">✏️</button>
               <button class="btn coral small" data-del="${k.id}">✕</button>
+            </div>
+            <div class="kid-edit" id="edit-${k.id}" style="display:none">
+              <div class="ke-grid">
+                <div><label>Name</label><input class="ke-name" value="${esc(k.name)}"></div>
+                <div><label>Grade</label><select class="ke-grade">${['K', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((g, i) => `<option value="${i}" ${k.grade === i ? 'selected' : ''}>${g === 'K' ? 'K' : g}</option>`).join('')}</select></div>
+                <div><label>PIN</label><input class="ke-pin" maxlength="4" inputmode="numeric" placeholder="unchanged"></div>
+                <div><label>Weekly goal</label><select class="ke-goal">${[6, 9, 12, 15, 20].map(g => `<option value="${g}" ${(k.weekly_goal || 12) === g ? 'selected' : ''}>${g * 10} answers/wk</option>`).join('')}</select></div>
+                <div><label>Schedule</label><select class="ke-cal">${['traditional', 'yearround', 'homeschool'].map(c => `<option value="${c}" ${k.calendar_mode === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
+              </div>
+              <div class="error-msg ke-err"></div>
+              <button class="btn small green" data-save-edit="${k.id}" style="margin-top:8px">Save ✓</button>
+              <button class="btn ghost small" data-cancel-edit="${k.id}" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px;margin-top:8px">Cancel</button>
+              <div class="ke-levels" id="levels-${k.id}"><p class="muted" style="font-size:.85rem">Loading levels…</p></div>
             </div>`).join('') : '<p class="muted">Add your first learner below! 👇</p>'}
         </div>
         <h4 style="margin-top:18px">Add a learner</h4>
@@ -1359,6 +1424,54 @@ route('parent', async () => {
     div.querySelector('button').onclick = () => { div.remove(); const f = $('#nk-name'); if (f) { f.scrollIntoView({ behavior: 'smooth', block: 'center' }); f.focus(); } };
     document.body.appendChild(div);
   }
+  async function loadLevels(kidId) {
+    const box = $('#levels-' + kidId);
+    if (!box) return;
+    try {
+      const r = await api('/kids/' + kidId + '/levels');
+      box.innerHTML = `<b style="font-size:.85rem">📚 Working levels <span class="muted" style="font-weight:400">(if a subject feels too hard, lower it — Gallop re-adapts from there)</span></b>
+        <div class="lvl-rows">${r.levels.map(l => `
+          <div class="lvl-row">
+            <span class="lvl-sub">${esc(l.label)}</span>
+            <span class="lvl-name muted">${esc(l.levelName)}</span>
+            ${l.placed ? `<button class="btn ghost small lvl-btn" data-lvl-set="${kidId}:${l.subject}:${l.level - 1}" ${l.level <= 0 ? 'disabled' : ''}>− easier</button>
+            <button class="btn ghost small lvl-btn" data-lvl-set="${kidId}:${l.subject}:${l.level + 1}" ${l.level >= l.max ? 'disabled' : ''}>harder +</button>` : ''}
+          </div>`).join('')}</div>`;
+      box.querySelectorAll('[data-lvl-set]').forEach(btn => btn.onclick = async () => {
+        const [kid, subject, level] = btn.dataset.lvlSet.split(':');
+        btn.disabled = true;
+        try {
+          const res = await api('/kids/' + kid + '/level', { method: 'POST', body: { subject, level: Number(level) } });
+          Sound.badge(); toast(`${subject.charAt(0).toUpperCase() + subject.slice(1)} moved to ${res.levelName}.`);
+          loadLevels(Number(kid));
+        } catch (e) { btn.disabled = false; }
+      });
+    } catch (e) { box.innerHTML = ''; }
+  }
+  document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
+    const el = $('#edit-' + b.dataset.edit);
+    if (el) {
+      const opening = el.style.display === 'none';
+      el.style.display = opening ? 'block' : 'none'; Sound.click();
+      if (opening) loadLevels(Number(b.dataset.edit));
+    }
+  });
+  document.querySelectorAll('[data-cancel-edit]').forEach(b => b.onclick = () => { const el = $('#edit-' + b.dataset.cancelEdit); if (el) el.style.display = 'none'; });
+  document.querySelectorAll('[data-save-edit]').forEach(b => b.onclick = async () => {
+    const box = $('#edit-' + b.dataset.saveEdit);
+    const body = {
+      name: box.querySelector('.ke-name').value.trim(),
+      grade: Number(box.querySelector('.ke-grade').value),
+      weekly_goal: Number(box.querySelector('.ke-goal').value),
+      calendar_mode: box.querySelector('.ke-cal').value
+    };
+    const pin = box.querySelector('.ke-pin').value.trim();
+    if (pin) body.pin = pin;
+    try {
+      await api('/kids/' + b.dataset.saveEdit, { method: 'PATCH', body });
+      Sound.badge(); navigate();
+    } catch (e) { const err = box.querySelector('.ke-err'); err.textContent = e.message; err.classList.add('show'); }
+  });
   document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => enterKid(Number(b.dataset.start)));
   document.querySelectorAll('[data-report]').forEach(b => b.onclick = () => location.hash = '#report/' + b.dataset.report);
   document.querySelectorAll('[data-weekly]').forEach(b => b.onclick = () => location.hash = '#weekly/' + b.dataset.weekly);
@@ -1442,7 +1555,7 @@ route('admin', async () => {
       </div>
       <div>
         <div class="card">
-          <h3>🧾 Recent families</h3>
+          <h3>🧾 Recent families <a class="btn ghost small" style="float:right;color:#1f5e46;border-color:#1f5e46" href="/api/admin/export.csv" download>⬇️ CSV</a></h3>
           <div style="margin-top:10px;overflow-x:auto">
             ${d.recent.map(p => `
               <div class="kid-row" style="flex-wrap:wrap">
