@@ -211,9 +211,10 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
     db.prepare('INSERT INTO certificates (kid_id, subject, title, level) VALUES (?,?,?,?)').run(kidId, subject, title, lvl);
     events.push({ type: 'levelup', subject, newLevel: lvl + 1, certificate: title });
   }
-  // gentle level-down: sustained struggle across the level
-  const recent = db.prepare(`SELECT correct FROM activity_log WHERE kid_id=? AND subject=? ORDER BY id DESC LIMIT 12`).all(kidId, subject);
-  if (recent.length >= 12 && recent.filter(r => r.correct).length <= 3 && state.level > 0) {
+  // gentle level-down: sustained struggle across the level (8 answers is enough
+  // signal — a kid missing 6 of 8 shouldn't have to grind 4 more before relief)
+  const recent = db.prepare(`SELECT correct FROM activity_log WHERE kid_id=? AND subject=? ORDER BY id DESC LIMIT 8`).all(kidId, subject);
+  if (recent.length >= 8 && recent.filter(r => r.correct).length <= 2 && state.level > 0) {
     db.prepare('UPDATE subject_state SET level=? WHERE kid_id=? AND subject=?').run(Math.max(0, state.level - 1), kidId, subject);
     events.push({ type: 'support', subject, newLevel: Math.max(0, state.level - 1) });
   }
@@ -357,7 +358,15 @@ function pace(kid) {
   return { label, startISO: start.toISOString().slice(0, 10), endISO: end.toISOString().slice(0, 10), pctThroughYear: pct };
 }
 
+// Manually shift a kid's level in a subject (kid "too tricky" button / parent control).
+function setLevel(kidId, subject, level) {
+  getSubjectState(kidId, subject); // ensure row
+  const lv = Math.max(0, Math.min(maxGrade(subject), Number(level)));
+  db.prepare('UPDATE subject_state SET level=?, placed=1 WHERE kid_id=? AND subject=?').run(lv, kidId, subject);
+  return lv;
+}
+
 module.exports = {
   getSubjectState, nextActivity, recordAnswer, placementNext, reportCard,
-  gradeName, subjectLabel, BADGES, MASTERED, STRUGGLING
+  gradeName, subjectLabel, setLevel, maxGrade, BADGES, MASTERED, STRUGGLING
 };

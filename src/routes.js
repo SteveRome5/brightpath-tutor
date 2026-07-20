@@ -190,7 +190,7 @@ router.post('/learn/:kidId/placement/:subject', auth.requireKid, auth.requireAct
   const answerIdx = question.choices.indexOf(question.answer);
   res.json({
     done: false, probeGrade: result.probeGrade, progress: history.length,
-    question: { prompt: question.prompt, choices: question.choices, voice: question.voice, answerIndex: answerIdx, skillName: question.skillName }
+    question: { prompt: question.prompt, choices: question.choices, voice: question.voice, passage: question.passage || null, answerIndex: answerIdx, skillName: question.skillName }
   });
 });
 
@@ -210,6 +210,7 @@ router.get('/learn/:kidId/next/:subject', auth.requireKid, auth.requireActiveSub
     mode: activity.mode, level: activity.level, skill: activity.skill,
     question: {
       prompt: qn.prompt, choices: qn.choices, voice: qn.voice, hint: qn.hint, explain: qn.explain,
+      passage: qn.passage || null,
       answerIndex: answerIdx, skillId: qn.skillId, skillName: qn.skillName, difficulty: qn.difficulty
     }
   });
@@ -267,6 +268,38 @@ router.post('/learn/:kidId/placement/:subject/retake', auth.requireKid, (req, re
   res.json({ ok: true });
 });
 
+// Kid taps "Too tricky?" — gallop back one level (or "Ready for more" — up one)
+router.post('/learn/:kidId/level-shift/:subject', auth.requireKid, (req, res) => {
+  const { subject } = req.params;
+  if (!content.SUBJECTS[subject]) return res.status(404).json({ error: 'Unknown subject' });
+  const delta = Number((req.body || {}).delta) < 0 ? -1 : 1;
+  const state = adaptive.getSubjectState(req.kid.id, subject);
+  const newLevel = adaptive.setLevel(req.kid.id, subject, Math.round(state.level) + delta);
+  res.json({ ok: true, level: newLevel, levelName: adaptive.gradeName(newLevel) });
+});
+
+// Parent view + set a learner's per-subject levels (from the ✏️ edit panel)
+router.get('/kids/:kidId/levels', auth.requireParent, (req, res) => {
+  const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
+  if (!kid) return res.status(404).json({ error: 'Learner not found.' });
+  const levels = Object.keys(content.SUBJECTS).map(sub => {
+    const st = db.prepare('SELECT level, placed FROM subject_state WHERE kid_id=? AND subject=?').get(kid.id, sub);
+    return { subject: sub, label: adaptive.subjectLabel(sub), placed: !!(st && st.placed),
+             level: st ? Math.round(st.level) : null,
+             levelName: st && st.placed ? adaptive.gradeName(Math.round(st.level)) : 'Not placed yet',
+             max: adaptive.maxGrade(sub) };
+  });
+  res.json({ levels });
+});
+router.post('/kids/:kidId/level', auth.requireParent, (req, res) => {
+  const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
+  if (!kid) return res.status(404).json({ error: 'Learner not found.' });
+  const { subject, level } = req.body || {};
+  if (!content.SUBJECTS[subject] || level == null) return res.status(400).json({ error: 'Need a subject and level.' });
+  const newLevel = adaptive.setLevel(kid.id, subject, Number(level));
+  res.json({ ok: true, level: newLevel, levelName: adaptive.gradeName(newLevel) });
+});
+
 // ---------- admin (owner only) ----------
 router.get('/admin/overview', auth.requireAdmin, (req, res) => {
   // Test accounts (from development/QA) are excluded from business numbers
@@ -298,6 +331,21 @@ router.get('/admin/overview', auth.requireAdmin, (req, res) => {
     FROM parents p WHERE ${pNot.replace(/^id/, 'p.id')} ORDER BY p.created_at DESC LIMIT 25`).all();
   const gradeBands = db.prepare(`SELECT CASE WHEN grade<=2 THEN 'K-2' WHEN grade<=5 THEN '3-5' WHEN grade<=8 THEN '6-8' ELSE '9-12' END AS band, COUNT(*) AS n FROM kids WHERE ${kNot} GROUP BY band`).all();
   res.json({ totals, byStatus, mrr, signups, recent, gradeBands });
+});
+
+// CSV export of real families (admin)
+router.get('/admin/export.csv', auth.requireAdmin, (req, res) => {
+  const TEST_SQL = "(email LIKE '%@example.com' OR email LIKE '%@t.com' OR email LIKE '%gallop-test.com')";
+  const rows = db.prepare(`SELECT p.name, p.email, p.sub_status, p.sub_plan, p.created_at, p.trial_ends,
+      (SELECT COUNT(*) FROM kids k WHERE k.parent_id=p.id) AS kids,
+      (SELECT COUNT(*) FROM activity_log a JOIN kids k2 ON a.kid_id=k2.id WHERE k2.parent_id=p.id) AS totalAnswers
+    FROM parents p WHERE NOT ${TEST_SQL} ORDER BY p.created_at DESC`).all();
+  const csvCell = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+  const csv = ['name,email,status,plan,joined,trial_ends,kids,total_answers',
+    ...rows.map(r => [r.name, r.email, r.sub_status, r.sub_plan, r.created_at, r.trial_ends, r.kids, r.totalAnswers].map(csvCell).join(','))].join('\n');
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="gallop-families.csv"');
+  res.send(csv);
 });
 
 // ---------- family weekly stats (sibling leaderboard) ----------
