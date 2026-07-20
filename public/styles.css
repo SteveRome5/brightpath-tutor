@@ -1235,3 +1235,8 @@ body[data-theme="academy"] .lw-passage { background: #2a2921; border-color: #4a4
 /* Custom brand horse gliding across (smoother than the old emoji) */
 .horse-runner-img { height: 40px; width: auto; display: block; filter: drop-shadow(0 3px 4px rgba(0,0,0,.18)); }
 .horse-runner { animation: run-across 20s cubic-bezier(.4,0,.6,1) infinite 3s, runner-bob .55s ease-in-out infinite; opacity: .85; }
+
+/* Gallop Score chip on the home — the headline number, always climbing */
+.gscore-chip { background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 18%, transparent), color-mix(in srgb, var(--accent) 18%, transparent)) !important;
+  border: 1px solid color-mix(in srgb, var(--brand) 40%, transparent) !important; font-weight: 700; }
+.gscore-chip b { font-family: var(--font-display); font-size: 1.05rem; }

@@ -9,7 +9,7 @@
   const { $, app, esc, route, navigate, topbar, wireChrome, State, Sound, Voice, Confetti } = BP;
   const SUB = {
     math: { color: '#6C5CE7', emoji: '🔢', name: 'Math' },
-    english: { color: '#00B894', emoji: '📚', name: 'English' },
+    english: { color: '#00B894', emoji: '📚', name: 'English & Reading' },
     science: { color: '#0984E3', emoji: '🔬', name: 'Science' },
     spanish: { color: '#E17055', emoji: '🌎', name: 'Spanish' }
   };

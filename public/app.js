@@ -958,6 +958,7 @@ route('home', async () => {
       <div>
         <h1>${playful() ? `Hi ${esc(k.name)}! Ready to level up? ⚡` : `Welcome back, ${esc(k.name)}.`}</h1>
         <div class="stat-chips" style="margin-top:8px">
+          ${data.gallopOverall != null ? `<span class="chip gscore-chip" title="Your all-subjects Gallop Score — it climbs with everything you truly learn">🏆 Gallop Score <b>${data.gallopOverall}</b></span>` : ''}
           ${(() => { const r = rankFor(k.xp); return `<span class="chip rank-chip" title="${r.next ? (r.next.at - k.xp) + ' XP to ' + r.next.name : 'Top rank!'}">🏇 ${r.name}</span>`; })()}
           <span class="chip">${playful() ? '🔥 ' : ''}${k.streak}-day streak</span>
           <span class="chip">${playful() ? '⚡ ' : ''}${k.xp} XP</span>
