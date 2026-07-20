@@ -566,6 +566,35 @@ const skills = [
 
   // ---------- READING COMPREHENSION (dedicated passage skills) ----------
   {
+    id: 'e.k.story', name: 'Little Stories', grade: 0,
+    gen: fromBank([
+      { pg: 'Sam has a red ball. The ball rolls under the bed. Sam gets a stick to pull it out.', p: 'What color is Sam\'s ball?', a: 'red', w: ['blue', 'green', 'yellow'], h: 'Listen to the first sentence.', e: 'Sam has a RED ball! 🔴' },
+      { pg: 'The cat is on the mat. The cat is soft. The cat says purr.', p: 'Where is the cat?', a: 'on the mat', w: ['in a box', 'up a tree', 'on the bed'], h: 'The cat is ON something.', e: 'The cat is on the mat! 🐱' },
+      { pg: 'Meg sees a big bug. The bug is green. The bug hops away.', p: 'What did the bug do?', a: 'it hopped away', w: ['it went to sleep', 'it ate lunch', 'it sang a song'], h: 'What did the bug do at the end?', e: 'The bug hopped away! 🦗' },
+      { pg: 'Dad and I bake a cake. We mix and stir. The cake smells so good!', p: 'What are they making?', a: 'a cake', w: ['a pizza', 'soup', 'a sandwich'], h: 'They bake and mix and stir.', e: 'They are baking a cake! 🎂' },
+      { pg: 'The sun is up. The birds sing. It is time to play!', p: 'What time of day is it?', a: 'morning', w: ['night', 'bedtime', 'winter'], h: 'The sun is up and birds sing.', e: 'The sun is up — it is morning! ☀️' },
+      { pg: 'Ben has a little dog. The dog can run fast. The dog likes to play fetch.', p: 'What does the dog like?', a: 'to play fetch', w: ['to take a bath', 'to read books', 'to fly'], h: 'What does the dog like to do?', e: 'The dog likes to play fetch! 🐶' },
+      { pg: 'It is cold outside. Mia puts on her hat. She puts on her warm coat.', p: 'Why does Mia put on a coat?', a: 'because it is cold', w: ['because it is hot', 'because it is her birthday', 'because she is hungry'], h: 'What is the weather like?', e: 'It is cold, so Mia bundles up! 🧥' },
+      { pg: 'The frog is on a log. It jumps into the pond. Splash!', p: 'Where did the frog jump?', a: 'into the pond', w: ['onto a rock', 'up a hill', 'into a hat'], h: 'Splash! Where did it land?', e: 'The frog jumped into the pond — splash! 🐸' },
+      { pg: 'Lily plants a seed. She gives it water. A flower grows!', p: 'What grows from the seed?', a: 'a flower', w: ['a tree', 'a rock', 'a bug'], h: 'What comes up at the end?', e: 'A flower grows! 🌸' },
+      { pg: 'The bus is yellow. It stops at my street. I get on and wave to Mom.', p: 'What color is the bus?', a: 'yellow', w: ['red', 'green', 'purple'], h: 'The first sentence tells you.', e: 'The bus is yellow! 🚌' }
+    ])
+  },
+  {
+    id: 'e.1.story', name: 'Story Friends', grade: 1,
+    gen: fromBank([
+      { pg: 'Zoe found a lost kitten in the rain. She wrapped it in her scarf and carried it home. Her mom helped her make a warm bed in a box. The kitten fell fast asleep.', p: 'How did Zoe help the kitten?', a: 'She kept it warm and safe', w: ['She left it outside', 'She chased it away', 'She gave it to a dog'], h: 'What did Zoe DO for the kitten?', e: 'Zoe was kind — she kept the kitten warm and safe! 🐱' },
+      { pg: 'Max wanted to ride his bike with no training wheels. He fell down two times. But he kept trying, and on the third try — he did it! He rode all the way to the corner.', p: 'What helped Max ride his bike?', a: 'He kept trying', w: ['He gave up', 'He got a new bike', 'He asked a robot'], h: 'What did Max do after he fell?', e: 'Max kept trying — and he did it! 🚲 Never give up!' },
+      { pg: 'The ants marched in a line. Each ant carried a crumb bigger than its head. Together they moved a whole cookie back to their nest. Teamwork!', p: 'How did the ants move the cookie?', a: 'They worked together', w: ['One big ant did it alone', 'They asked a bird', 'They rolled it downhill'], h: 'What is the last word?', e: 'The ants worked together — teamwork! 🐜' },
+      { pg: 'Ravi lost his tooth at lunch. He put it in his pocket so he would not lose it. That night he put it under his pillow and made a wish.', p: 'Where did Ravi put his tooth at lunch?', a: 'in his pocket', w: ['under his pillow', 'in the trash', 'in his shoe'], h: 'At LUNCH, where did it go?', e: 'He put it in his pocket to keep it safe! 🦷' },
+      { pg: 'It was too rainy to play outside. So Ana built a fort with couch cushions and blankets. She read books inside her cozy cave all afternoon.', p: 'Why did Ana build a fort inside?', a: 'because it was rainy outside', w: ['because it was sunny', 'because she was in trouble', 'because it was nighttime'], h: 'What was the weather?', e: 'It was rainy, so Ana made indoor fun! ⛺' },
+      { pg: 'Leo shared his crayons with the new kid, Sam. Sam smiled and drew a big blue whale. By the end of the day, Leo and Sam were friends.', p: 'What happened because Leo shared?', a: 'He made a new friend', w: ['He lost his crayons', 'He got in trouble', 'Nothing happened'], h: 'What happened by the end of the day?', e: 'Sharing helped Leo make a friend! 🖍️' },
+      { pg: 'The little seed was scared to grow. But the sun was warm and the rain was gentle. Slowly, the seed pushed up and became a tall sunflower that could see the whole garden.', p: 'What did the seed become?', a: 'a tall sunflower', w: ['a small rock', 'a busy bee', 'a rain cloud'], h: 'What did it grow into?', e: 'The brave little seed became a sunflower! 🌻' },
+      { pg: 'Grandpa and Nina baked bread together. Nina helped knead the dough. While it baked, the whole house smelled warm and sweet. They ate it with honey.', p: 'What did Nina and Grandpa make?', a: 'bread', w: ['ice cream', 'a kite', 'a snowman'], h: 'They kneaded dough and baked it.', e: 'They baked warm bread together! 🍞' },
+      { pg: 'A turtle and a rabbit had a race. The rabbit ran fast, then took a nap. The turtle went slow but never stopped. The turtle won!', p: 'Why did the turtle win?', a: 'It never stopped', w: ['It was faster', 'It took a shortcut', 'It flew'], h: 'The turtle was slow but did WHAT?', e: 'Slow and steady wins the race! 🐢' }
+    ])
+  },
+  {
     id: 'e.2.stories', name: 'Story Time', grade: 2,
     gen: fromBank([
       { pg: 'Pip was the smallest puppy at the shelter. Nobody picked him for weeks. Then a girl in a wheelchair rolled up to his cage. Pip did not jump or bark like the other dogs. He just sat calmly and put his paw on her hand. "This one," she smiled.', p: 'Why did the girl choose Pip?', a: 'He was calm and gentle with her', w: ['He was the biggest puppy', 'He barked the loudest', 'He did tricks'], h: 'What did Pip do differently from the other dogs?', e: 'Pip\'s calm, gentle paw won her heart. Being yourself works! 🐾' },

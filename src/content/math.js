@@ -2,6 +2,15 @@
 // Each skill: { id, name, grade, gen(d) } where d = difficulty 0..1
 const { rint, pick, shuffle, numChoices, textChoices, q, KID_NAMES, FOODS, TOYS, PLACES } = require('./helpers');
 
+// Build 4 guaranteed-distinct "<n>π" answer choices around a correct coefficient.
+function piDistractors(coeff) {
+  const set = new Set([coeff]);
+  const cands = [coeff * 2, Math.max(1, Math.round(coeff / 2)), coeff + 2, coeff + 1, Math.max(1, coeff - 1), coeff + 4, coeff * 4];
+  for (const c of cands) { if (set.size >= 4) break; if (c !== coeff && c > 0) set.add(c); }
+  let f = coeff + 5; while (set.size < 4) { if (!set.has(f)) set.add(f); f++; }
+  return shuffle([...set]).map(c => `${c}π`);
+}
+
 const skills = [
   // ---------- KINDERGARTEN (0) ----------
   {
@@ -474,16 +483,43 @@ const skills = [
   {
     id: 'm.6.percent', name: 'Percent Power', grade: 6,
     gen(d) {
-      const base = pick(d > 0.5 ? [40, 60, 80, 120, 200] : [20, 50, 100]);
-      const pct = pick(d > 0.5 ? [10, 20, 25, 50, 75] : [10, 50]);
-      const ans = base * pct / 100;
-      return q({
-        prompt: `SALE! 🛍️ Sneakers cost $${base} and are ${pct}% off. How many dollars do you SAVE?`,
+      const base = pick(d > 0.5 ? [40, 60, 80, 120, 150, 200, 240] : [20, 40, 50, 100]);
+      const pct = pick(d > 0.5 ? [10, 15, 20, 25, 30, 40, 60, 75] : [10, 25, 50]);
+      const ans = Math.round(base * pct / 100 * 100) / 100;
+      const mode = pick(['save', 'tip', 'tax', 'score', 'whatpct', 'left']);
+      if (mode === 'tip') {
+        return q({ prompt: `Dinner 🍝 costs $${base}. You leave a ${pct}% tip. How much is the TIP?`,
+          choices: numChoices(ans, () => pick([ans, base * (pct + 5) / 100, ans + 2, ans * 2])).map(c => `$${c}`),
+          answer: `$${ans}`, hint: `${pct}% of $${base}.`, explain: `${pct}% × $${base} = $${ans} tip.` });
+      }
+      if (mode === 'tax') {
+        const total = base + ans;
+        return q({ prompt: `A game 🎮 costs $${base} plus ${pct}% sales tax. What's the TOTAL you pay?`,
+          choices: numChoices(total, () => pick([total, base, ans, total + 5])).map(c => `$${c}`),
+          answer: `$${total}`, hint: `Find the tax, then add it to $${base}.`, explain: `Tax = $${ans}; $${base} + $${ans} = $${total}.` });
+      }
+      if (mode === 'score') {
+        const total = pick([20, 25, 40, 50]); const got = Math.round(total * pct / 100);
+        return q({ prompt: `On a ${total}-question test 📝 you got ${pct}% correct. How many questions did you get right?`,
+          choices: numChoices(got, () => pick([got, total - got, got + 1, got + 2])),
+          answer: got, hint: `${pct}% of ${total}.`, explain: `${pct}% × ${total} = ${got} correct.` });
+      }
+      if (mode === 'whatpct') {
+        const part = pick([5, 10, 15, 20, 30]); const whole = part * pick([2, 4, 5, 10]);
+        const p = Math.round(part / whole * 100);
+        return q({ prompt: `You made ${part} of your ${whole} free throws 🏀. What PERCENT did you make?`,
+          choices: numChoices(p, () => pick([p, p + 10, p - 10, 100 - p])).map(c => `${c}%`),
+          answer: `${p}%`, hint: `part ÷ whole × 100.`, explain: `${part} ÷ ${whole} = ${p}%.` });
+      }
+      if (mode === 'left') {
+        const left = base - ans;
+        return q({ prompt: `A $${base} jacket 🧥 is ${pct}% off. What's the SALE price you actually pay?`,
+          choices: numChoices(left, () => pick([left, ans, base, left + 5])).map(c => `$${c}`),
+          answer: `$${left}`, hint: `Save ${pct}%, pay the rest.`, explain: `$${base} − $${ans} off = $${left}.` });
+      }
+      return q({ prompt: `SALE! 🛍️ Sneakers cost $${base} and are ${pct}% off. How many dollars do you SAVE?`,
         choices: numChoices(ans, () => pick([ans, base - ans, ans + 5, ans * 2])).map(c => `$${c}`),
-        answer: `$${ans}`,
-        hint: `${pct}% means ${pct} out of every 100.`,
-        explain: `${pct}% of $${base} = $${ans} saved.`
-      });
+        answer: `$${ans}`, hint: `${pct}% means ${pct} out of every 100.`, explain: `${pct}% of $${base} = $${ans} saved.` });
     }
   },
   {
@@ -616,14 +652,28 @@ const skills = [
   {
     id: 'm.8.pythag', name: 'Pythagorean Theorem', grade: 8,
     gen(d) {
-      const triples = d > 0.5 ? [[3, 4, 5], [6, 8, 10], [5, 12, 13], [9, 12, 15]] : [[3, 4, 5], [6, 8, 10]];
+      const triples = d > 0.5 ? [[3, 4, 5], [6, 8, 10], [5, 12, 13], [9, 12, 15], [8, 15, 17], [7, 24, 25], [10, 24, 26], [12, 16, 20]] : [[3, 4, 5], [6, 8, 10], [5, 12, 13]];
       const [a, b, c] = pick(triples);
+      const ctx = pick([
+        `A ladder 🪜 rests ${a} ft from a wall and reaches ${b} ft up. How long is the ladder?`,
+        `A TV screen 📺 is ${a} in wide and ${b} in tall. What is its diagonal (screen size)?`,
+        `A park path cuts across a rectangle ${a} m by ${b} m. How long is the diagonal shortcut?`,
+        `A kite string ✈️ goes ${a} m sideways and ${b} m up. How long is the string?`,
+        `A ramp covers ${a} ft of ground and rises ${b} ft. How long is the ramp surface?`
+      ]);
+      // Sometimes ask for a missing LEG instead of the hypotenuse
+      if (d > 0.5 && Math.random() < 0.35) {
+        return q({ prompt: `A ${c}-ft ladder 🪜 leans so its top is ${b} ft up a wall. How far is its BASE from the wall? (a² + b² = c²)`,
+          choices: numChoices(a, () => pick([a, c - b, a + 1, a - 1, b])).map(v => `${v} ft`),
+          answer: `${a} ft`, hint: `c² − b² = a². Then square-root.`, explain: `${c * c} − ${b * b} = ${a * a}, √${a * a} = ${a} ft.` });
+      }
+      const unit = ctx.includes(' in ') || ctx.includes('screen') ? 'in' : ctx.includes(' m ') || ctx.includes(' m,') ? 'm' : 'ft';
       return q({
-        prompt: `A ladder problem 🪜: a ladder's base is ${a} ft from a wall and reaches ${b} ft up. How long is the ladder? (a² + b² = c²)`,
-        choices: numChoices(c, () => pick([c, a + b, c + 1, c - 1, b])).map(v => `${v} ft`),
-        answer: `${c} ft`,
+        prompt: `${ctx} (a² + b² = c²)`,
+        choices: numChoices(c, () => pick([c, a + b, c + 1, c - 1, b])).map(v => `${v} ${unit}`),
+        answer: `${c} ${unit}`,
         hint: `${a}² + ${b}² = ?  Then take the square root.`,
-        explain: `${a * a} + ${b * b} = ${c * c}, and √${c * c} = ${c} ft.`
+        explain: `${a * a} + ${b * b} = ${c * c}, and √${c * c} = ${c} ${unit}.`
       });
     }
   },
@@ -721,15 +771,32 @@ const skills = [
   {
     id: 'm.10.circles', name: 'Circles', grade: 10,
     gen(d) {
-      const r = rint(2, d > 0.5 ? 10 : 6);
-      const isArea = Math.random() > 0.5;
-      const ans = isArea ? `${r * r}π` : `${2 * r}π`;
+      const obj = pick(['pizza 🍕', 'trampoline', 'clock 🕐', 'garden fountain', 'bike wheel 🚲', 'round pool', 'dinner plate', 'Ferris wheel 🎡']);
+      const mode = pick(['area', 'circ', 'fromDiam', 'realCirc']);
+      if (mode === 'fromDiam') {
+        const diam = rint(4, d > 0.5 ? 20 : 12) * 2; const r = diam / 2;
+        const isArea = Math.random() > 0.5;
+        const coeff = isArea ? r * r : diam;
+        const piCoeffs = piDistractors(coeff);
+        return q({ prompt: `A ${obj} has DIAMETER ${diam} units. Find its ${isArea ? 'AREA' : 'CIRCUMFERENCE'} (in terms of π).`,
+          choices: piCoeffs, answer: `${coeff}π`,
+          hint: isArea ? 'radius = diameter ÷ 2, then πr²' : 'Circumference = πd', explain: isArea ? `r = ${r}, so π×${r}² = ${r * r}π.` : `π × d = ${diam}π.` });
+      }
+      if (mode === 'realCirc') {
+        const r = rint(2, 10); const ans = Math.round(2 * Math.PI * r * 10) / 10;
+        return q({ prompt: `A ${obj} has radius ${r} m. About how far around is it? (use π ≈ 3.14)`,
+          choices: numChoices(ans, () => Math.round((2 * Math.PI * r + pick([-3, 3, 6, -6, r])) * 10) / 10).map(v => `${v} m`),
+          answer: `${ans} m`, hint: 'C = 2πr ≈ 2 × 3.14 × r', explain: `2 × 3.14 × ${r} ≈ ${ans} m.` });
+      }
+      const r = rint(2, d > 0.5 ? 12 : 7);
+      const isArea = mode === 'area';
+      const coeff = isArea ? r * r : 2 * r;
       return q({
-        prompt: `A circular pizza has radius ${r} inches. What is its ${isArea ? 'AREA' : 'CIRCUMFERENCE'} (in terms of π)?`,
-        choices: textChoices(ans, [`${r * r}π`, `${2 * r}π`, `${r}π`, `${4 * r}π`, `${r * r * 2}π`]),
-        answer: ans,
+        prompt: `A round ${obj} has radius ${r} units. What is its ${isArea ? 'AREA' : 'CIRCUMFERENCE'} (in terms of π)?`,
+        choices: piDistractors(coeff),
+        answer: `${coeff}π`,
         hint: isArea ? 'Area = πr²' : 'Circumference = 2πr',
-        explain: isArea ? `π × ${r}² = ${r * r}π sq in.` : `2 × π × ${r} = ${2 * r}π in.`
+        explain: isArea ? `π × ${r}² = ${r * r}π sq units.` : `2 × π × ${r} = ${2 * r}π units.`
       });
     }
   },

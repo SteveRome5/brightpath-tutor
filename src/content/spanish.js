@@ -38,7 +38,11 @@ const skills = [
       { p: 'The polite reply to "gracias" is…', a: 'de nada', w: ['por favor', 'adiós', 'hola'], h: 'It means "you\'re welcome."', e: '"De nada" = it\'s nothing / you\'re welcome!' },
       { p: '"Me llamo Margaux" means…', a: 'my name is Margaux', w: ['I am ten', 'I like Margaux', 'goodbye Margaux'], h: 'Llamo = I call (myself).', e: '"Me llamo…" is how you say your name!' },
       { p: '"Buenas noches" is used when…', a: 'it is nighttime', w: ['it is morning', 'you are hungry', 'you are leaving forever'], h: 'Noches = nights.', e: '"Buenas noches" = good night / good evening!' },
-      { p: 'To ask someone\'s name politely you say…', a: '¿Cómo te llamas?', w: ['¿Cuántos años?', '¿Dónde vives?', '¿Qué hora es?'], h: 'Llamas = you call yourself.', e: '"¿Cómo te llamas?" = What\'s your name?' }
+      { p: 'To ask someone\'s name politely you say…', a: '¿Cómo te llamas?', w: ['¿Cuántos años?', '¿Dónde vives?', '¿Qué hora es?'], h: 'Llamas = you call yourself.', e: '"¿Cómo te llamas?" = What\'s your name?' },
+      { p: '"Por favor" is a polite phrase meaning…', a: 'please', w: ['thank you', 'goodbye', 'sorry'], h: 'Say it when you ask for something.', e: '"Por favor" = please! Always polite. 🙏' },
+      { p: '"Gracias" means…', a: 'thank you', w: ['hello', 'please', 'no'], h: 'Say it when someone helps you.', e: '"Gracias" = thank you!' },
+      { p: 'If a friend says "Adiós," they are saying…', a: 'goodbye', w: ['good morning', 'I am hungry', 'let\'s play'], h: 'It is said when leaving.', e: '"Adiós" = goodbye! 👋' },
+      { p: '"Sí" means yes. What means NO in Spanish?', a: 'no', w: ['sí', 'hola', 'gato'], h: 'It is almost the same as English!', e: '"No" = no — easy one!' }
     ])
   },
   {
@@ -85,7 +89,11 @@ const skills = [
       { p: 'Grass and leaves are "verde", which is…', a: 'green', w: ['orange', 'pink', 'brown'], h: '🌿', e: 'Verde = green!' },
       { p: '"Negro" is the color of night. It means…', a: 'black', w: ['white', 'gray', 'gold'], h: '🌑', e: 'Negro = black!' },
       { p: '"Blanco" is the color of snow and milk. It means…', a: 'white', w: ['blue', 'red', 'brown'], h: '❄️🥛', e: 'Blanco = white!' },
-      { p: 'Mixing red and blue makes "morado", which is…', a: 'purple', w: ['green', 'orange', 'pink'], h: '🍇', e: 'Morado = purple!' }
+      { p: 'Mixing red and blue makes "morado", which is…', a: 'purple', w: ['green', 'orange', 'pink'], h: '🍇', e: 'Morado = purple!' },
+      { p: 'Count in Spanish: uno, dos, ___?', a: 'tres', w: ['cuatro', 'cinco', 'diez'], h: 'One, two, ___', e: 'uno(1), dos(2), tres(3)!' },
+      { p: 'How do you say the number 5 in Spanish?', a: 'cinco', w: ['tres', 'siete', 'diez'], h: 'Think of a "sink".', e: 'cinco = 5! ✋' },
+      { p: '"Diez" is which number?', a: '10', w: ['2', '5', '8'], h: 'It is the biggest one in 1-10.', e: 'diez = 10! 🔟' },
+      { p: 'You have "dos" cookies 🍪🍪. How many is that?', a: '2', w: ['1', '3', '4'], h: 'dos sounds like "dose".', e: 'dos = 2!' }
     ])
   },
 
@@ -131,7 +139,11 @@ const skills = [
       { p: '"El caballo" is big and you can ride it. It means…', a: 'the horse', w: ['the cow', 'the sheep', 'the goat'], h: '🐴 Margaux loves these!', e: 'El caballo = the horse!' },
       { p: '"El pájaro" flies and sings in trees. It means…', a: 'the bird', w: ['the fish', 'the cat', 'the frog'], h: '🐦', e: 'El pájaro = the bird!' },
       { p: '"El pez" swims in water. It means…', a: 'the fish', w: ['the duck', 'the snake', 'the bee'], h: '🐟', e: 'El pez = the fish!' },
-      { p: '"La vaca" says "muu" and gives milk. It means…', a: 'the cow', w: ['the pig', 'the hen', 'the horse'], h: '🐄', e: 'La vaca = the cow!' }
+      { p: '"La vaca" says "muu" and gives milk. It means…', a: 'the cow', w: ['the pig', 'the hen', 'the horse'], h: '🐄', e: 'La vaca = the cow!' },
+      { p: '"El elefante" is huge and gray with a long trunk. It means…', a: 'the elephant 🐘', w: ['the mouse', 'the cat', 'the fish'], h: 'It is a big cognate!', e: 'El elefante = the elephant!' },
+      { p: '"La tortuga" moves very slowly and has a shell. It means…', a: 'the turtle 🐢', w: ['the rabbit', 'the bird', 'the snake'], h: 'Slow with a shell.', e: 'La tortuga = the turtle!' },
+      { p: '"El león" says ROAR and is king of the jungle. It means…', a: 'the lion 🦁', w: ['the lamb', 'the dog', 'the pig'], h: 'Sounds like "lee-own".', e: '¡El león! The lion roars! 🦁' },
+      { p: '"El pato" says "cuac cuac" and swims in ponds. It means…', a: 'the duck 🦆', w: ['the cow', 'the horse', 'the bee'], h: 'Quack quack!', e: 'El pato = the duck!' }
     ])
   },
   {
@@ -153,7 +165,11 @@ const skills = [
       { p: '"El pan" is baked and you make sandwiches with it. It means…', a: 'bread', w: ['cheese', 'rice', 'egg'], h: '🍞', e: 'El pan = bread!' },
       { p: '"La leche" is white and comes from cows. It means…', a: 'milk', w: ['water', 'soup', 'tea'], h: '🥛', e: 'La leche = milk!' },
       { p: '"Tengo hambre" means…', a: 'I am hungry', w: ['I am thirsty', 'I am tired', 'I am happy'], h: 'Hambre = hunger.', e: '"Tengo hambre" = I\'m hungry!' },
-      { p: '"Me gusta el helado" means I like…', a: 'ice cream', w: ['vegetables', 'water', 'fish'], h: '🍦', e: '"Me gusta el helado" = I like ice cream!' }
+      { p: '"Me gusta el helado" means I like…', a: 'ice cream', w: ['vegetables', 'water', 'fish'], h: '🍦', e: '"Me gusta el helado" = I like ice cream!' },
+      { p: '"El queso" goes on pizza and tacos. It means…', a: 'cheese 🧀', w: ['bread', 'milk', 'apple'], h: 'Say "KEH-so".', e: 'El queso = cheese!' },
+      { p: '"El plátano" is a long yellow fruit monkeys love. It means…', a: 'banana 🍌', w: ['grape', 'orange', 'cherry'], h: 'Peel it!', e: 'El plátano = banana!' },
+      { p: '"El huevo" comes from a chicken and you can fry it. It means…', a: 'egg 🥚', w: ['ham', 'rice', 'soup'], h: 'Say "WEH-vo".', e: 'El huevo = egg!' },
+      { p: '"Quiero más, por favor" means…', a: 'I want more, please', w: ['I am done, thanks', 'no more food', 'where is lunch'], h: 'Más = more.', e: '"Quiero más, por favor" = I want more, please!' }
     ])
   },
 

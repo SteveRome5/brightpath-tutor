@@ -35,7 +35,11 @@ const skills = [
       { p: "You find a shiny red apple. Which sense tells you it is red?", a: "sight (eyes)", w: ["hearing", "touch", "taste"], h: "Look at it!", e: "Eyes see colors — red, green, gold!" },
       { p: "Sand at the beach feels warm and tickly between your toes. Which sense is that?", a: "touch", w: ["hearing", "sight", "smell"], h: "Your toes are feeling it!", e: "Skin all over your body can feel — even your toes!" },
       { p: "Which sense would tell you milk has gone yucky BEFORE you drink it?", a: "smell", w: ["hearing", "sight only", "touch"], h: "Take a little sniff first.", e: "A sniff test protects you — noses are safety helpers!" },
-      { p: "A butterfly lands on your finger so gently. Which TWO senses notice it?", a: "sight and touch", w: ["taste and smell", "hearing and taste", "smell only"], h: "You SEE it land and FEEL its tiny feet!", e: "Eyes watch it, skin feels the tickle. Two senses teaming up!" }
+      { p: "A butterfly lands on your finger so gently. Which TWO senses notice it?", a: "sight and touch", w: ["taste and smell", "hearing and taste", "smell only"], h: "You SEE it land and FEEL its tiny feet!", e: "Eyes watch it, skin feels the tickle. Two senses teaming up!" },
+      { p: "Fun fact! Your sense of smell can remember over 10,000 different smells. Which body part smells?", a: "the nose 👃", w: ["the elbow", "the knee", "the ear"], h: "Sniff sniff!", e: "Your amazing nose remembers thousands of smells!" },
+      { p: "Which sense helps you feel if a puppy's nose is wet and cold?", a: "touch", w: ["hearing", "sight", "taste"], h: "You feel it with your skin.", e: "Touch tells you wet, dry, hot, and cold!" },
+      { p: "Popcorn is popping AND smells buttery. Which TWO senses are you using?", a: "hearing and smell 🍿", w: ["taste and touch", "sight and taste", "touch only"], h: "You HEAR pops and SMELL butter!", e: "Two senses working together — ears and nose!" },
+      { p: "Your tongue has about 10,000 tiny taste buds! What do they help you do?", a: "taste food", w: ["hear music", "see colors", "smell flowers"], h: "They are on your tongue.", e: "Taste buds help you taste sweet, salty, sour, and bitter!" }
     ])
   },
   {
@@ -56,7 +60,11 @@ const skills = [
       { p: "A fish breathes underwater using its…", a: "gills", w: ["nose", "ears", "paws"], h: "Look at the slits on its sides.", e: "Gills take air right out of the water!" },
       { p: "Which animal sleeps all winter long? 💤", a: "a bear", w: ["a dog", "a chicken", "a goldfish"], h: "It naps in a cozy cave.", e: "That long winter sleep is called hibernation!" },
       { p: "Why do birds build nests?", a: "to keep their eggs and babies safe", w: ["to play games", "to hide from rain only", "to store toys"], h: "What goes IN the nest?", e: "Nests are cozy cradles for eggs and chicks!" },
-      { p: "Which animal carries its house on its back? 🐌", a: "a snail", w: ["a horse", "a bunny", "a fish"], h: "It moves sloooowly.", e: "A snail's shell is its home — always with it!" }
+      { p: "Which animal carries its house on its back? 🐌", a: "a snail", w: ["a horse", "a bunny", "a fish"], h: "It moves sloooowly.", e: "A snail's shell is its home — always with it!" },
+      { p: "A baby kangaroo is called a joey and rides in its mom's pouch! Where does a joey ride?", a: "in a pouch 🦘", w: ["on a bike", "in a nest", "under water"], h: "Mom has a special pocket.", e: "Joeys ride safe in mom's pouch!" },
+      { p: "Which animal never stops growing its whole life — and can be as long as a bus?", a: "a whale 🐋", w: ["a mouse", "a cat", "a bee"], h: "It lives in the ocean and is HUGE.", e: "Blue whales are the biggest animals ever — bigger than a bus!" },
+      { p: "Owls can turn their heads almost all the way around! When do owls hunt?", a: "at night 🦉", w: ["at lunch", "in the morning", "never"], h: "Owls sleep in the day.", e: "Owls are night hunters with super-turning heads!" },
+      { p: "A group of lions is called a…", a: "pride 🦁", w: ["flock", "school", "swarm"], h: "Lions live in families.", e: "A lion family is called a pride!" }
     ])
   },
   {
@@ -99,7 +107,11 @@ const skills = [
       { p: "A sunflower turns its face during the day to follow the…", a: "sun", w: ["moon", "wind", "bees"], h: "Its name is a clue!", e: "Young sunflowers track the sun across the sky — sun-chasers!" },
       { p: "What travels on the wind, on animal fur, and even in bird tummies to grow new plants?", a: "seeds", w: ["leaves", "roots", "rocks"], h: "Dandelion fluff is full of them!", e: "Seeds hitch rides everywhere — that is how plants spread!" },
       { p: "Why do bees visit flowers?", a: "to drink nectar — and they carry pollen flower to flower", w: ["to take naps", "to hide from birds", "to eat the leaves"], h: "They get dusted with yellow powder!", e: "Bees get a snack, flowers get pollen delivered. Teamwork!" },
-      { p: "You forget to water your bean plant for two weeks. What happens?", a: "it droops and dries out", w: ["it grows twice as fast", "it turns into a cactus", "nothing changes"], h: "Plants are thirsty living things!", e: "No water = a droopy plant. Living things need care!" }
+      { p: "You forget to water your bean plant for two weeks. What happens?", a: "it droops and dries out", w: ["it grows twice as fast", "it turns into a cactus", "nothing changes"], h: "Plants are thirsty living things!", e: "No water = a droopy plant. Living things need care!" },
+      { p: "A giant sunflower can grow taller than a grown-up! What does it turn to follow?", a: "the sun ☀️", w: ["the moon", "cars", "the wind"], h: "Its name is a big hint!", e: "Young sunflowers follow the sun across the sky!" },
+      { p: "Some trees live for THOUSANDS of years. What part carries water up from the roots?", a: "the trunk and stem", w: ["the flowers", "the leaves only", "the fruit"], h: "It is the tall middle part.", e: "The trunk is like a giant straw carrying water up!" },
+      { p: "Why are most leaves green?", a: "they have a green helper (chlorophyll) that catches sunlight", w: ["they are painted", "they are cold", "they are sleeping"], h: "It catches sunlight to make food.", e: "Chlorophyll is green and turns sunlight into food!" },
+      { p: "A cactus lives in the dry desert. How does it survive with little rain?", a: "it stores water inside its thick stem 🌵", w: ["it drinks soda", "it never needs water", "it moves to the ocean"], h: "Where does it keep water?", e: "Cactuses store water inside to survive the dry desert!" }
     ])
   },
   {
@@ -120,7 +132,11 @@ const skills = [
       { p: "Which one is a liquid?", a: "orange juice", w: ["a spoon", "an ice cube", "a balloon"], h: "It takes the shape of its cup!", e: "Liquids flow and fit their container — juice, milk, water!" },
       { p: "You leave a puddle in the sun. Hours later it is gone! Where did it go?", a: "it evaporated into the air", w: ["it turned to stone", "a cloud drank it with a straw", "it sank to the middle of Earth"], h: "The sun warmed it up, up, and away…", e: "Sun heat turns puddles into invisible water vapor. Evaporation!" },
       { p: "A balloon is squishy because it is full of…", a: "gas (air)", w: ["solid rocks", "water", "sand"], h: "What do you blow into it?", e: "Air is a gas — it spreads out to fill the whole balloon!" },
-      { p: "Which change can you UNDO: melting an ice pop, or baking a cake?", a: "melting the ice pop — refreeze it!", w: ["baking the cake", "both", "neither"], h: "Can you un-bake a cake?", e: "Freezing and melting flip back and forth; baking changes things forever!" }
+      { p: "Which change can you UNDO: melting an ice pop, or baking a cake?", a: "melting the ice pop — refreeze it!", w: ["baking the cake", "both", "neither"], h: "Can you un-bake a cake?", e: "Freezing and melting flip back and forth; baking changes things forever!" },
+      { p: "Water is special — it's the only thing on Earth found naturally as a solid, a liquid, AND a gas. Ice is water as a…", a: "solid", w: ["gas", "shadow", "sound"], h: "Ice is hard and keeps its shape.", e: "Frozen water = solid ice!" },
+      { p: "Blow up a balloon. What fills it and makes it squishy?", a: "gas (air)", w: ["solid rock", "liquid water", "sand"], h: "You breathe it in and out.", e: "Air is a gas that spreads to fill the balloon!" },
+      { p: "Chocolate melts in your warm hand. Melting turns a solid into a…", a: "liquid 🍫", w: ["gas", "rock", "cloud"], h: "It goes from hard to drippy.", e: "Heat melts solid chocolate into liquid!" },
+      { p: "Steam rising off hot cocoa is water as a…", a: "gas", w: ["solid", "liquid", "metal"], h: "It floats up into the air.", e: "Heat turns water into invisible gas that we see as steam!" }
     ])
   },
   {
