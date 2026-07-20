@@ -49,6 +49,7 @@ function q(o) {
     hint: o.hint || '',
     explain: o.explain || '',
     voice: o.voice || o.prompt.replace(/[×÷]/g, m => (m === '×' ? ' times ' : ' divided by ')),
+    passage: o.passage || null,
     art: o.art || null
   };
 }
