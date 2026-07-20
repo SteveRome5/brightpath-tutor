@@ -87,8 +87,8 @@ const CHEER_LIST = [
   { id: 'rocket', text: 'To the moon! 🚀' }, { id: 'clap', text: 'Amazing streak! 👏' },
   { id: 'race', text: 'On to the next badge! ⚡' }, { id: 'hi', text: 'Hi from your buddy! 👋' }
 ];
-const GAMES = ['memory', 'wordsearch', 'code', 'room', 'art', 'lemonade', 'market', 'blitz'];
-const GAME_NAMES = { memory: 'Memory Match', wordsearch: 'Word Search', code: 'Code Quest', room: 'Room Designer', art: 'Art Studio', lemonade: 'Lemonade Tycoon', market: 'Market Mogul', blitz: 'Lightning Round' };
+const GAMES = ['bakery', 'memory', 'wordsearch', 'code', 'room', 'art', 'lemonade', 'market', 'blitz'];
+const GAME_NAMES = { bakery: 'Bakery Quest', memory: 'Memory Match', wordsearch: 'Word Search', code: 'Code Quest', room: 'Room Designer', art: 'Art Studio', lemonade: 'Lemonade Tycoon', market: 'Market Mogul', blitz: 'Lightning Round' };
 
 // Seasonal items appear only in their season (scarcity keeps the shop fresh);
 // once owned, they're yours forever.
