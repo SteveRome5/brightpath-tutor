@@ -166,6 +166,10 @@ function settleLevel(history, fallback, maxG) {
   // if they got nothing right, start at the bottom, support beats overwhelm.
   const anyCorrect = history.filter(h => h.correct).map(h => h.grade);
   if (anyCorrect.length) return Math.max(0, Math.min(maxG, Math.max(...anyCorrect) - 1));
+  // Got nothing cleanly right, but do not dump an enrolled older child into Kindergarten
+  // over one bad assessment. Sit them just below their enrolled grade so support still
+  // beats overwhelm, without erasing years of school. (fallback = enrolled grade.)
+  if (Number.isFinite(fallback) && fallback > 0) return Math.max(0, Math.min(maxG, fallback - 1));
   return 0;
 }
 function maxGrade(subject) {
@@ -264,12 +268,15 @@ function nextActivity(kidId, subject) {
 }
 
 // Recent accuracy across the skills at a given grade (for pacing decisions).
-function recentLevelAccuracy(kidId, subject, grade, limit = 12) {
+// sinceAid (optional): only count answers logged AFTER this activity id, so the demote
+// path can look strictly at work done since the last level change (no stale pre-change
+// answers), which is what prevents a demotion from immediately cascading another grade down.
+function recentLevelAccuracy(kidId, subject, grade, limit = 12, sinceAid = 0) {
   const ids = content.skillsForSubject(subject).filter(s => s.grade === grade).map(s => s.id);
   if (!ids.length) return null;
   const placeholders = ids.map(() => '?').join(',');
-  const rows = db.prepare(`SELECT correct FROM activity_log WHERE kid_id=? AND subject=? AND skill_id IN (${placeholders})
-    ORDER BY id DESC LIMIT ?`).all(kidId, subject, ...ids, limit);
+  const rows = db.prepare(`SELECT correct FROM activity_log WHERE kid_id=? AND subject=? AND skill_id IN (${placeholders}) AND id > ?
+    ORDER BY id DESC LIMIT ?`).all(kidId, subject, ...ids, sinceAid, limit);
   if (rows.length < 4) return null;
   return rows.filter(r => r.correct).length / rows.length;
 }
@@ -356,9 +363,10 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
       events.push({ type: 'levelup', subject, newLevel: lvl + 1, certificate: title });
     } else if (lvl > 0) {
       // DEMOTE (support): sustained low accuracy at the level since the last change.
-      // Only looks at answers SINCE the change, so a fresh promotion gets a fair
-      // trial and we never cascade multiple grades down in a row.
-      const downAcc = recentLevelAccuracy(kidId, subject, lvl, 8);
+      // Only looks at answers SINCE the change (id > last_change_aid), so a fresh
+      // promotion/demotion gets a fair trial on new work and we never cascade multiple
+      // grades down in a row on stale pre-change answers.
+      const downAcc = recentLevelAccuracy(kidId, subject, lvl, 8, state.last_change_aid || 0);
       if (downAcc != null && downAcc <= 0.35) {
         db.prepare('UPDATE subject_state SET level=?, last_change_aid=? WHERE kid_id=? AND subject=?').run(lvl - 1, latestAid, kidId, subject);
         events.push({ type: 'support', subject, newLevel: lvl - 1 });
@@ -624,7 +632,7 @@ function reportCard(kidId) {
     }
     // Gallop Score, this subject's headline progress number (200–1200).
     const masteryMap = Object.fromEntries(rows.map(r => [r.skill_id, r.mastery]));
-    const gallopScore = rows.length ? gscore.subjectScore(sub, masteryMap) : null;
+    const gallopScore = rows.length ? gscore.subjectScore(sub, masteryMap, state.placed ? state.level : undefined) : null;
     const gradeEquiv = gallopScore != null ? gscore.gradeEquivalent(sub, gallopScore) : null;
     return {
       subject: sub, label: subjectLabel(sub), level: state.level, levelName: gradeName(Math.round(state.level)),

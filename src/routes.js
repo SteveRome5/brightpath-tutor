@@ -16,11 +16,34 @@ const AVATARS = ['fox', 'panda', 'dragon', 'unicorn', 'robot', 'astronaut', 'tig
 // In-memory placement sessions (short-lived)
 const placements = new Map(); // key `${kidId}:${subject}` -> history[]
 
+// Dependency-free rate limiter for auth endpoints: caps attempts per IP+route window to
+// stop password/PIN brute-force and credential stuffing. In-memory (fine for a single
+// instance); swap for a shared store if we ever scale horizontally.
+const _rl = new Map();
+setInterval(() => { const now = Date.now(); for (const [k, v] of _rl) if (v.reset < now) _rl.delete(k); }, 60000).unref?.();
+function rateLimit({ windowMs = 15 * 60000, max = 20, key = 'rl' } = {}) {
+  return (req, res, next) => {
+    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || req.socket?.remoteAddress || 'unknown';
+    const id = `${key}:${ip}`;
+    const now = Date.now();
+    let e = _rl.get(id);
+    if (!e || e.reset < now) { e = { count: 0, reset: now + windowMs }; _rl.set(id, e); }
+    e.count++;
+    if (e.count > max) {
+      res.setHeader('Retry-After', Math.ceil((e.reset - now) / 1000));
+      return res.status(429).json({ error: 'Too many attempts. Please wait a few minutes and try again.' });
+    }
+    next();
+  };
+}
+const loginLimiter = rateLimit({ windowMs: 15 * 60000, max: 20, key: 'login' });
+const pinLimiter = rateLimit({ windowMs: 15 * 60000, max: 15, key: 'pin' });
+
 // ---------- parent auth ----------
-router.post('/auth/signup', (req, res) => {
+router.post('/auth/signup', loginLimiter, (req, res) => {
   const { email, name, password } = req.body || {};
-  if (!email || !name || !password || password.length < 6)
-    return res.status(400).json({ error: 'Need email, name, and a password of 6+ characters.' });
+  if (!email || !name || !password || password.length < 8)
+    return res.status(400).json({ error: 'Need email, name, and a password of 8+ characters.' });
   try {
     const id = auth.createParent(email, name, password);
     auth.syncAdminFlag(db.prepare('SELECT * FROM parents WHERE id=?').get(id));
@@ -51,7 +74,7 @@ router.post('/auth/enter-kid', auth.requireParent, (req, res) => {
   res.json({ ok: true, kid: publicKid(kid) });
 });
 
-router.post('/auth/login', (req, res) => {
+router.post('/auth/login', loginLimiter, (req, res) => {
   const { email, password } = req.body || {};
   const p = auth.verifyParent(email || '', password || '');
   if (!p) return res.status(401).json({ error: 'Email or password is incorrect.' });
@@ -60,9 +83,9 @@ router.post('/auth/login', (req, res) => {
   res.json({ ok: true });
 });
 
-router.post('/auth/change-password', auth.requireParent, (req, res) => {
+router.post('/auth/change-password', loginLimiter, auth.requireParent, (req, res) => {
   const { current, next } = req.body || {};
-  if (!next || next.length < 6) return res.status(400).json({ error: 'New password needs 6+ characters.' });
+  if (!next || next.length < 8) return res.status(400).json({ error: 'New password needs 8+ characters.' });
   if (!auth.verifyParent(req.parent.email, current || '')) return res.status(401).json({ error: 'Current password is incorrect.' });
   auth.setPassword(req.parent.id, next);
   res.json({ ok: true });
@@ -75,20 +98,24 @@ router.post('/auth/logout', (req, res) => {
 });
 
 // Kid login: pick family email + kid + PIN (works on any device)
-router.post('/auth/kid-login', (req, res) => {
+router.post('/auth/kid-login', pinLimiter, (req, res) => {
   const { email, kidId, pin } = req.body || {};
   const parent = db.prepare('SELECT * FROM parents WHERE email=?').get((email || '').toLowerCase().trim());
-  if (!parent) return res.status(401).json({ error: 'Family not found — check the email.' });
-  const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(kidId), parent.id);
-  if (!kid || kid.pin !== String(pin)) return res.status(401).json({ error: 'Wrong PIN — try again!' });
+  const kid = parent ? db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(kidId), parent.id) : null;
+  // Uniform error (do not reveal whether the family/child exists vs. the PIN was wrong).
+  if (!kid || !auth.verifyPin(pin, kid.pin)) return res.status(401).json({ error: 'That email, learner, and PIN did not match. Try again!' });
+  // Transparently upgrade a legacy plaintext PIN to a salted hash on successful login.
+  if (auth.isLegacyPin(kid.pin)) { try { db.prepare('UPDATE kids SET pin=? WHERE id=?').run(auth.hashPin(String(pin)), kid.id); } catch (e) {} }
   const token = auth.createSession('kid', kid.id);
   res.cookie('bp_session', token, COOKIE_OPTS);
   res.json({ ok: true, kid: publicKid(kid) });
 });
 
-router.get('/auth/family-kids', (req, res) => {
+router.get('/auth/family-kids', pinLimiter, (req, res) => {
   const parent = db.prepare('SELECT * FROM parents WHERE email=?').get((req.query.email || '').toLowerCase().trim());
-  if (!parent) return res.status(404).json({ error: 'Family not found.' });
+  // Return an empty list rather than a 404 so this endpoint cannot be used to enumerate
+  // which emails have accounts. (Child names are only listed for a real family email.)
+  if (!parent) return res.json({ kids: [] });
   const kids = db.prepare('SELECT id, name, avatar FROM kids WHERE parent_id=?').all(parent.id);
   res.json({ kids });
 });
@@ -114,14 +141,18 @@ function publicKid(k) {
 
 // ---------- kid management (parent) ----------
 router.post('/kids', auth.requireParent, (req, res) => {
-  const { name, grade, pin, avatar, calendar_mode } = req.body || {};
-  if (!name || grade == null || !/^\d{4}$/.test(String(pin)))
-    return res.status(400).json({ error: 'Need a name, grade, and a 4-digit PIN.' });
+  const { name, grade, pin, avatar, calendar_mode, consent } = req.body || {};
+  if (!name || grade == null || !Number.isFinite(Number(grade)) || !/^\d{4}$/.test(String(pin)))
+    return res.status(400).json({ error: 'Need a name, a valid grade, and a 4-digit PIN.' });
+  // COPPA: a parent must affirmatively consent before we create a child profile / collect any data.
+  if (consent !== true) return res.status(400).json({ error: 'Please confirm you are the parent or guardian and consent to creating this learner.' });
+  const cleanName = String(name).trim().slice(0, 40);
+  if (!cleanName) return res.status(400).json({ error: 'Need a name.' });
   const count = db.prepare('SELECT COUNT(*) AS n FROM kids WHERE parent_id=?').get(req.parent.id).n;
   const plan = billing.PLANS[req.parent.sub_plan] || billing.PLANS.family;
   if (count >= plan.kids) return res.status(400).json({ error: `Your ${plan.name} plan supports up to ${plan.kids} learner(s).` });
-  const info = db.prepare('INSERT INTO kids (parent_id, name, grade, pin, avatar, calendar_mode) VALUES (?,?,?,?,?,?)')
-    .run(req.parent.id, String(name).trim(), Math.max(0, Math.min(12, Number(grade))), String(pin), AVATARS.includes(avatar) ? avatar : 'fox', calendar_mode || 'traditional');
+  const info = db.prepare('INSERT INTO kids (parent_id, name, grade, pin, avatar, calendar_mode, consent_at) VALUES (?,?,?,?,?,?, datetime(\'now\'))')
+    .run(req.parent.id, cleanName, Math.max(0, Math.min(12, Math.round(Number(grade)))), auth.hashPin(String(pin)), AVATARS.includes(avatar) ? avatar : 'fox', calendar_mode || 'traditional');
   res.json({ ok: true, kidId: info.lastInsertRowid });
 });
 
@@ -129,9 +160,11 @@ router.patch('/kids/:kidId', auth.requireParent, (req, res) => {
   const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
   if (!kid) return res.status(404).json({ error: 'Learner not found.' });
   const { name, grade, pin, avatar, calendar_mode, weekly_goal } = req.body || {};
+  if (pin != null && pin !== '' && !/^\d{4}$/.test(String(pin))) return res.status(400).json({ error: 'PIN must be 4 digits.' });
+  const gradeVal = grade != null && Number.isFinite(Number(grade)) ? Math.max(0, Math.min(12, Math.round(Number(grade)))) : null;
   db.prepare(`UPDATE kids SET name=COALESCE(?,name), grade=COALESCE(?,grade), pin=COALESCE(?,pin),
               avatar=COALESCE(?,avatar), calendar_mode=COALESCE(?,calendar_mode), weekly_goal=COALESCE(?,weekly_goal) WHERE id=?`)
-    .run(name || null, grade != null ? Number(grade) : null, pin ? String(pin) : null, avatar || null, calendar_mode || null, weekly_goal != null ? Number(weekly_goal) : null, kid.id);
+    .run(name ? String(name).trim().slice(0, 40) : null, gradeVal, pin ? auth.hashPin(String(pin)) : null, avatar || null, calendar_mode || null, weekly_goal != null ? Number(weekly_goal) : null, kid.id);
   res.json({ ok: true });
 });
 
@@ -150,7 +183,7 @@ router.get('/learn/:kidId/overview', auth.requireKid, auth.requireActiveSub, (re
     const m = db.prepare('SELECT AVG(mastery) AS m FROM skill_state WHERE kid_id=? AND subject=? AND attempts>0').get(req.kid.id, sub);
     const today = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND subject=? AND date(ts)=date('now')").get(req.kid.id, sub);
     const srows = db.prepare('SELECT skill_id, mastery FROM skill_state WHERE kid_id=? AND subject=?').all(req.kid.id, sub);
-    const gallopScore = srows.length ? gscore.subjectScore(sub, Object.fromEntries(srows.map(r => [r.skill_id, r.mastery]))) : null;
+    const gallopScore = srows.length ? gscore.subjectScore(sub, Object.fromEntries(srows.map(r => [r.skill_id, r.mastery])), st.placed ? st.level : undefined) : null;
     return { subject: sub, label: meta.label, emoji: meta.emoji, color: meta.color, level: st.level, levelName: adaptive.gradeName(Math.round(st.level)), placed: !!st.placed, avgMastery: m.m, answersToday: today.n || 0, gallopScore };
   });
   const _perSub = {}; subjects.forEach(s => { if (s.gallopScore != null) _perSub[s.subject] = s.gallopScore; });
@@ -192,6 +225,7 @@ router.post('/learn/:kidId/placement/:subject', auth.requireKid, auth.requireAct
     return res.json({ done: true, level: result.level, levelName: adaptive.gradeName(Math.round(result.level)) });
   }
   const { question } = result;
+  if (!question || !question.choices) return res.status(503).json({ error: 'Hiccup loading the question — tap to try again!' });
   const answerIdx = question.choices.indexOf(question.answer);
   res.json({
     done: false, probeGrade: result.probeGrade, progress: history.length,
@@ -205,10 +239,12 @@ router.get('/learn/:kidId/next/:subject', auth.requireKid, auth.requireActiveSub
   if (!content.SUBJECTS[subject]) return res.status(404).json({ error: 'Unknown subject' });
   let activity = null;
   // A single flaky generator must never freeze a kid's session — retry, then fail soft.
-  for (let attempt = 0; attempt < 3 && !activity; attempt++) {
+  // A truthy activity whose question failed to generate (question:null) still counts as a
+  // miss here, otherwise indexing qn.choices below would throw a 500 instead of the soft 503.
+  for (let attempt = 0; attempt < 3 && !(activity && activity.question); attempt++) {
     try { activity = adaptive.nextActivity(req.kid.id, subject); } catch (e) { activity = null; }
   }
-  if (!activity) return res.status(503).json({ error: 'Hiccup loading the next question — tap to try again!' });
+  if (!activity || !activity.question) return res.status(503).json({ error: 'Hiccup loading the next question — tap to try again!' });
   const qn = activity.question;
   const answerIdx = qn.choices.indexOf(qn.answer);
   res.json({
@@ -304,7 +340,7 @@ router.post('/kids/:kidId/level', auth.requireParent, (req, res) => {
   const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
   if (!kid) return res.status(404).json({ error: 'Learner not found.' });
   const { subject, level } = req.body || {};
-  if (!content.SUBJECTS[subject] || level == null) return res.status(400).json({ error: 'Need a subject and level.' });
+  if (!content.SUBJECTS[subject] || level == null || !Number.isFinite(Number(level))) return res.status(400).json({ error: 'Need a subject and a valid level.' });
   const newLevel = adaptive.setLevel(kid.id, subject, Number(level));
   res.json({ ok: true, level: newLevel, levelName: adaptive.gradeName(newLevel) });
 });
@@ -331,8 +367,8 @@ router.get('/admin/overview', auth.requireAdmin, (req, res) => {
   };
   const byStatus = Object.fromEntries(db.prepare(`SELECT sub_status, COUNT(*) AS n FROM parents WHERE ${pNot} GROUP BY sub_status`).all().map(r => [r.sub_status, r.n]));
   const activeByPlan = db.prepare(`SELECT sub_plan, COUNT(*) AS n FROM parents WHERE sub_status='active' AND ${pNot} GROUP BY sub_plan`).all();
-  const PRICES = { solo: 29, family: 49 };
-  const mrr = activeByPlan.reduce((t, r) => t + (PRICES[r.sub_plan] || 0) * r.n, 0);
+  // Source MRR from the live plan prices so it can't drift from what customers are charged.
+  const mrr = activeByPlan.reduce((t, r) => t + ((billing.PLANS[r.sub_plan] || {}).priceMonthly || 0) * r.n, 0);
   const signups = db.prepare(`SELECT date(created_at) AS d, COUNT(*) AS n FROM parents WHERE ${pNot} AND created_at >= datetime('now','-14 days') GROUP BY date(created_at)`).all();
   const recent = db.prepare(`SELECT p.id, p.email, p.name, p.sub_status, p.sub_plan, p.trial_ends, p.created_at,
       (SELECT COUNT(*) FROM kids k WHERE k.parent_id=p.id) AS kids,

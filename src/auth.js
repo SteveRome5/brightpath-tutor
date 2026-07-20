@@ -44,6 +44,28 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+// Child PINs are hashed at rest (salted scrypt) so a DB/backup leak does not hand over
+// usable child logins. verifyPin transparently accepts legacy plaintext PINs so existing
+// accounts keep working; callers upgrade them to a hash on the next successful login.
+function hashPin(pin) {
+  const salt = crypto.randomBytes(8).toString('hex');
+  const h = crypto.scryptSync(String(pin), salt, 32).toString('hex');
+  return `s2$${salt}$${h}`;
+}
+function verifyPin(pin, stored) {
+  if (stored == null) return false;
+  const s = String(stored);
+  if (s.startsWith('s2$')) {
+    const parts = s.split('$');
+    if (parts.length !== 3) return false;
+    const cand = crypto.scryptSync(String(pin), parts[1], 32).toString('hex');
+    const a = Buffer.from(cand), b = Buffer.from(parts[2]);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+  return s === String(pin); // legacy plaintext
+}
+function isLegacyPin(stored) { return stored != null && !String(stored).startsWith('s2$'); }
+
 function setPassword(parentId, password) {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = hashPassword(password, salt);
@@ -56,9 +78,21 @@ function createSession(kind, refId) {
   return token;
 }
 
+// Absolute session lifetimes. A leaked/stale token should not be valid forever,
+// especially on the shared family devices kids use.
+const SESSION_TTL_DAYS = { parent: 90, kid: 30 };
 function getSession(token) {
   if (!token) return null;
-  return db.prepare('SELECT * FROM sessions WHERE token=?').get(token) || null;
+  const s = db.prepare('SELECT * FROM sessions WHERE token=?').get(token);
+  if (!s) return null;
+  const ttl = SESSION_TTL_DAYS[s.kind] || 30;
+  // created_at is stored as UTC "YYYY-MM-DD HH:MM:SS"; append Z so it parses as UTC.
+  const created = s.created_at ? new Date(s.created_at.replace(' ', 'T') + 'Z') : null;
+  if (created && !isNaN(created) && (Date.now() - created.getTime()) > ttl * 86400000) {
+    db.prepare('DELETE FROM sessions WHERE token=?').run(token);
+    return null;
+  }
+  return s;
 }
 
 function destroySession(token) {
@@ -101,4 +135,4 @@ function requireActiveSub(req, res, next) {
   return res.status(402).json({ error: 'subscription_required', message: 'Your free trial has ended. Subscribe to keep learning!' });
 }
 
-module.exports = { createParent, verifyParent, setPassword, createSession, getSession, destroySession, requireParent, requireKid, requireActiveSub, requireAdmin, syncAdminFlag };
+module.exports = { createParent, verifyParent, setPassword, hashPin, verifyPin, isLegacyPin, createSession, getSession, destroySession, requireParent, requireKid, requireActiveSub, requireAdmin, syncAdminFlag };

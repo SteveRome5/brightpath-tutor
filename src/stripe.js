@@ -6,8 +6,19 @@ const db = require('./db');
 
 const KEY = process.env.STRIPE_SECRET_KEY || '';
 const stripe = KEY ? require('stripe')(KEY) : null;
+// Demo billing grants a paid plan with no payment — safe for local/testing only. It must
+// never run in production, or any signed-in parent could grant themselves free access by
+// clicking Subscribe. Allowed only when Stripe is unconfigured AND we are not in production
+// (or an explicit opt-in flag is set).
+const DEMO_BILLING_OK = !stripe && (process.env.NODE_ENV !== 'production' || process.env.ALLOW_DEMO_BILLING === '1');
+if (!stripe && process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_BILLING !== '1') {
+  console.warn('  ⚠  Stripe is not configured in production. Billing is DISABLED (no demo grants). Set STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET.');
+}
+if (stripe && !process.env.STRIPE_WEBHOOK_SECRET) {
+  console.warn('  ⚠  STRIPE_SECRET_KEY is set but STRIPE_WEBHOOK_SECRET is missing. Webhooks will be REJECTED until it is configured (subscriptions will not activate).');
+}
 
-// Three tiers by number of learners. `envPrice` is the Stripe Price ID (price_...) set in Render.
+// Two tiers by number of learners. `envPrice` is the Stripe Price ID (price_...) set in Render.
 // `available` is true in demo mode, or in Stripe mode only when that tier's Price ID is configured,
 // so a tier never shows a "Subscribe" button it can't actually check out. Existing subscribers keep
 // whatever Stripe price their subscription was created with; new prices only affect new checkouts.
@@ -24,7 +35,10 @@ async function createCheckout(parent, plan, origin) {
   const planKey = PLANS[plan] ? plan : 'family';
   const p = PLANS[planKey];
   if (!stripe) {
-    // Demo mode: activate instantly so the full product flow is testable
+    if (!DEMO_BILLING_OK) {
+      return { error: 'Payments are not available right now. Please contact support@learnwithgallop.com.' };
+    }
+    // Demo mode (non-production only): activate instantly so the full product flow is testable
     db.prepare("UPDATE parents SET sub_status='active', sub_plan=? WHERE id=?").run(planKey, parent.id);
     return { demo: true, url: origin + '/?billing=success' };
   }
@@ -62,12 +76,16 @@ async function createPortal(parent, origin) {
 // Webhook: keeps sub_status in sync with Stripe
 function webhookHandler(req, res) {
   if (!stripe) return res.json({ received: true, demo: true });
+  // Never trust an unsigned webhook body. In Stripe mode the signing secret is mandatory:
+  // without it, anyone could POST a forged "checkout.session.completed" and grant themselves
+  // (or cancel a paying customer's) subscription. Reject rather than JSON.parse.
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    return res.status(500).send('Webhook not configured');
+  }
   let event;
   try {
     const sig = req.headers['stripe-signature'];
-    event = process.env.STRIPE_WEBHOOK_SECRET
-      ? stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET)
-      : JSON.parse(req.body);
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
     return res.status(400).send(`Webhook error: ${err.message}`);
   }

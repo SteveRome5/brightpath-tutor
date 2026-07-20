@@ -27,12 +27,24 @@ function model(subject) {
 }
 
 // masteryMap: { skillId: mastery } for this child+subject (missing = 0, unattempted).
-function subjectScore(subject, masteryMap) {
+// reachedLevel (optional): the grade the child has been PLACED at. The adaptive engine
+// only ever serves the child's current grade and the one just below it, so skills at
+// lower grades are never practiced and their mastery stays 0 forever. But placement (and
+// every later promotion) required the child to clear those lower grades, so we credit
+// them as reached. Without this, a strong 5th-grader who has mastered all of grade 5
+// would score like a 1st-grader, because grades 0-4 read as 0 mastery. That made the
+// headline number and the parent-facing grade equivalent wrong for anyone above grade ~1.
+function subjectScore(subject, masteryMap, reachedLevel) {
   const m = model(subject);
-  const earned = m.skills.reduce((a, s) => a + s.w * credit(masteryMap[s.id]), 0);
+  const reached = Number.isFinite(reachedLevel) ? Math.round(reachedLevel) : -1;
+  const effective = s => {
+    const actual = masteryMap[s.id] || 0;
+    // Grades strictly below the placed grade are treated as cleared (credited at 0.9),
+    // never lowering a child who has since surpassed that mastery on their own.
+    return s.grade < reached ? Math.max(actual, 0.9) : actual;
+  };
+  const earned = m.skills.reduce((a, s) => a + s.w * credit(effective(s)), 0);
   let raw = FLOOR + SPAN * (earned / m.totalW);
-  // Headroom above grade 12: once the tree is deeply mastered, extra depth keeps the
-  // number inching up so it never dead-ends (a score that stops climbing stops mattering).
   return Math.round(Math.min(raw, FLOOR + SPAN));
 }
 

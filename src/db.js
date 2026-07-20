@@ -182,7 +182,9 @@ for (const stmt of [
   "ALTER TABLE kids ADD COLUMN play_tokens INTEGER DEFAULT 3",
   "ALTER TABLE kids ADD COLUMN correct_since_token INTEGER DEFAULT 0",
   "ALTER TABLE parents ADD COLUMN is_admin INTEGER DEFAULT 0",
-  "ALTER TABLE subject_state ADD COLUMN last_change_aid INTEGER DEFAULT 0"
+  "ALTER TABLE subject_state ADD COLUMN last_change_aid INTEGER DEFAULT 0",
+  // COPPA: timestamp a parent affirmed consent to collect this child's info (set at learner creation)
+  "ALTER TABLE kids ADD COLUMN consent_at TEXT"
 ]) {
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }
