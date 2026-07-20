@@ -55,65 +55,117 @@ function activeSkills(kidId, subject) {
 }
 
 // ---------- placement ----------
-// Adaptive placement: start at declared grade, step up/down based on answers.
+// COMPREHENSIVE adaptive placement. We probe grade by grade, asking 2 questions
+// at each grade before deciding (one lucky guess or one careless slip never
+// decides a child's whole path), climb while they pass and descend while they
+// miss, and settle at the HIGHEST grade they demonstrably pass — placing them on
+// the correct path with just enough headroom to grow, never bored, never lost.
+const PLACE_PER_GRADE = 2;      // questions asked at each grade before moving on
+const PLACE_MAX = 14;           // hard cap on total placement questions
+const PLACE_PASS = 0.6;         // ≥60% at a grade = "passes" that grade
+const PLACE_FAIL = 0.5;         // <50% at a grade = "fails" that grade
+
+function gradeTallies(history) {
+  const t = {};
+  for (const h of history) { (t[h.grade] = t[h.grade] || { c: 0, n: 0 }).n++; if (h.correct) t[h.grade].c++; }
+  return t;
+}
+function highestPassed(tallies) {
+  const g = Object.keys(tallies).map(Number).filter(x => tallies[x].n >= PLACE_PER_GRADE && tallies[x].c / tallies[x].n >= PLACE_PASS);
+  return g.length ? Math.max(...g) : -1;
+}
 function placementNext(kidId, subject, history) {
   // history: [{grade, correct}]
   getSubjectState(kidId, subject); // ensure the row exists so the final UPDATE always lands
   const kid = db.prepare('SELECT grade FROM kids WHERE id=?').get(kidId);
   const maxG = maxGrade(subject);
-  // Start one grade BELOW enrollment: a kid entering 2nd grade has finished 1st,
-  // not 2nd — starting at material they know builds confidence, and strong kids
-  // step up within two questions anyway.
-  let probe = subject === 'spanish' ? 0 : Math.min(Math.max(0, kid.grade - 1), maxG);
-  // Probes never climb more than 3 grades above enrollment — a strong 2nd-grade
-  // reader should NOT be shown high-school vocabulary during placement.
-  const probeCap = subject === 'spanish' ? maxG : Math.min(maxG, kid.grade + 3);
+  const enrolled = subject === 'spanish' ? 0 : Math.min(Math.max(0, kid.grade), maxG);
+  // Start one grade BELOW enrollment — a kid entering 2nd grade has finished 1st,
+  // not 2nd. Confidence first; strong kids climb fast.
+  const start = subject === 'spanish' ? 0 : Math.max(0, enrolled - 1);
+  // Never show material more than 3 grades above enrollment during placement.
+  const probeCap = subject === 'spanish' ? maxG : Math.min(maxG, enrolled + 3);
+  const tallies = gradeTallies(history);
+
+  // Decide the next probe grade. We stay MONOTONIC-AWARE: once a child has clearly
+  // passed grade H, a later stray miss at or below H is treated as noise (we don't
+  // sink them) — instead we push upward to keep finding their true ceiling.
+  const hp = highestPassed(tallies);
+  let probe = start;
   if (history.length) {
-    const last = history[history.length - 1];
-    const streak = tailStreak(history);
-    if (last.correct) probe = Math.min(probeCap, last.grade + (streak >= 2 ? 2 : 1));
-    else probe = Math.max(0, last.grade - (streak >= 2 ? 2 : 1));
+    const lastGrade = history[history.length - 1].grade;
+    const gt = tallies[lastGrade];
+    if (gt.n < PLACE_PER_GRADE) {
+      probe = lastGrade;                                   // finish confirming this grade
+    } else if (gt.c / gt.n >= PLACE_PASS) {
+      probe = Math.min(probeCap, lastGrade + 1);           // passed → climb
+    } else if (hp >= 0 && lastGrade <= hp) {
+      probe = Math.min(probeCap, hp + 1);                  // stray low miss → keep climbing past best pass
+    } else {
+      probe = Math.max(0, lastGrade - 1);                  // genuine miss above our best → descend
+    }
   }
-  const done = history.length >= 8 || oscillating(history);
+
+  // Stop when we've BRACKETED the level (highest passed grade + the grade above it
+  // confirmed-failed, or passing the ceiling), or hit the question cap.
+  const done = history.length >= PLACE_MAX || placementBracketed(tallies, probeCap, start);
   if (done) {
-    let level = settleLevel(history, subject === 'spanish' ? 0 : kid.grade);
-    // Place ambitiously but sanely: at most 3 grades above enrollment
-    // (Spanish is a years-of-study ladder, so beginners always start low anyway.)
-    if (subject !== 'spanish') level = Math.min(level, Math.min(maxGrade(subject), kid.grade + 3));
+    let level = settleLevel(history, enrolled, maxG);
+    if (subject !== 'spanish') level = Math.min(level, probeCap);
+    level = Math.max(0, Math.min(maxG, level));
     db.prepare('UPDATE subject_state SET level=?, placed=1 WHERE kid_id=? AND subject=?').run(level, kidId, subject);
-    // Seed skill states in the zone so reports look alive
-    const all = content.skillsForSubject(subject).filter(s => s.grade === Math.round(level));
-    for (const s of all) getSkillState(kidId, subject, s.id);
+    // Seed the placed-level skill states so the first lessons + reports feel alive.
+    for (const s of content.skillsForSubject(subject).filter(s => s.grade === Math.round(level))) getSkillState(kidId, subject, s.id);
     return { done: true, level };
   }
+
   const skillsAt = content.skillsForSubject(subject).filter(s => s.grade === probe);
   const pickFrom = skillsAt.length ? skillsAt : content.skillsForSubject(subject);
+  // Prefer a skill we haven't probed yet at this grade, for breadth of assessment.
+  const probedIds = new Set(); // (best-effort; history doesn't store skillId, so vary by random)
   const skill = pickFrom[Math.floor(Math.random() * pickFrom.length)];
-  // Placement questions run gentle (0.35): we're measuring the level, not stress-testing it.
-  // Kids prove understanding on basics first; lessons ramp difficulty afterward.
-  const question = content.generateQuestion(subject, skill.id, 0.35, recentSet(kidId, subject));
+  // Placement runs at a fair, mid difficulty (0.4): hard enough to distinguish real
+  // understanding from guessing, gentle enough not to punish a shaky-but-capable kid.
+  const question = content.generateQuestion(subject, skill.id, 0.4, recentSet(kidId, subject));
   if (question) noteRecent(kidId, subject, question.prompt);
   return { done: false, probeGrade: probe, question };
 }
 
-function tailStreak(history) {
-  let n = 0;
-  const want = history[history.length - 1].correct;
-  for (let i = history.length - 1; i >= 0 && history[i].correct === want; i--) n++;
-  return n;
+// Bracketed = decisive placement found. Either the child's highest clearly-passed
+// grade sits right below a confirmed-failed grade, or they passed the ceiling, or
+// they couldn't clear the very first (floor) grade. Anchored on highest-passed so
+// a stray miss elsewhere never ends placement prematurely.
+function placementBracketed(tallies, cap, start) {
+  const hp = highestPassed(tallies);
+  if (hp >= 0) {
+    if (hp >= cap) return true;                                    // passed the ceiling
+    const up = tallies[hp + 1];
+    if (up && up.c / up.n < PLACE_FAIL) {
+      // Confirm a fail before ending — and demand an EXTRA confirmation (3 tries)
+      // when this would place the child below their starting grade, so a single
+      // unlucky moment can never sink a capable student's whole placement.
+      const need = (hp + 1 <= start) ? 3 : PLACE_PER_GRADE;
+      if (up.n >= need) return true;                               // pass hp, fail hp+1 (confirmed)
+    }
+    return false;
+  }
+  // Never passed anything yet: only decisive if they've clearly failed the floor grade.
+  if (tallies[0] && tallies[0].n >= PLACE_PER_GRADE && tallies[0].c / tallies[0].n < PLACE_FAIL) return true;
+  return false;
 }
-function oscillating(history) {
-  if (history.length < 6) return false;
-  const t = history.slice(-4);
-  return t[0].correct !== t[1].correct && t[1].correct !== t[2].correct && t[2].correct !== t[3].correct;
-}
-function settleLevel(history, fallback) {
-  const correctGrades = history.filter(h => h.correct).map(h => h.grade);
-  if (!correctGrades.length) return Math.max(0, Math.min(fallback, 1));
-  // highest grade answered correctly at least once, softened by miss pattern
-  const top = Math.max(...correctGrades);
-  const missesAtTop = history.filter(h => h.grade >= top && !h.correct).length;
-  return Math.max(0, Math.min(maxGrade('math'), missesAtTop >= 2 ? top - 1 : top));
+
+// Settle at the highest grade the child clearly PASSES (majority correct, ≥2 tries).
+// Falls back gracefully: a little credit for scattered correct answers, a floor at 0.
+function settleLevel(history, fallback, maxG) {
+  const tallies = gradeTallies(history);
+  const passed = Object.keys(tallies).map(Number)
+    .filter(g => tallies[g].n >= PLACE_PER_GRADE && tallies[g].c / tallies[g].n >= PLACE_PASS);
+  if (passed.length) return Math.min(maxG, Math.max(...passed));
+  // No grade cleanly passed. If they got some right, sit just below the highest attempt;
+  // if they got nothing right, start at the bottom — support beats overwhelm.
+  const anyCorrect = history.filter(h => h.correct).map(h => h.grade);
+  if (anyCorrect.length) return Math.max(0, Math.min(maxG, Math.max(...anyCorrect) - 1));
+  return 0;
 }
 function maxGrade(subject) {
   const all = content.skillsForSubject(subject);
@@ -168,14 +220,40 @@ function nextActivity(kidId, subject) {
     mode = 'review';
   }
 
-  // difficulty scales with mastery — easier when struggling, harder when hot
-  const d = Math.max(0.15, Math.min(0.95, chosen.st.mastery + (mode === 'boost' ? -0.15 : 0.1)));
+  // Difficulty adapts to the child, with two guardrails:
+  //  • STUCK support — a skill tried 5+ times still under 0.35 gets the gentlest
+  //    questions (0.15) so a struggling child gets a real foothold, not a wall.
+  //  • ANTI-BOREDOM — a mastered skill on a hot win streak ramps HARDER so a
+  //    capable kid (hi, Margaux) is always stretched, never coasting on easy reps.
+  const stuck = chosen.st.attempts >= 5 && chosen.st.mastery < 0.35;
+  let d;
+  if (stuck) {
+    d = 0.15;
+    mode = 'boost';
+  } else {
+    let bump = mode === 'boost' ? -0.15 : 0.1;
+    if (chosen.st.mastery >= MASTERED && (chosen.st.win_streak || 0) >= 3) bump = 0.2; // crushing it → stretch
+    // Cap at 0.85 so "challenging" never tips into "impossible" — a mastered skill
+    // stays engaging without knocking the child's mastery back down.
+    d = Math.max(0.15, Math.min(0.85, chosen.st.mastery + bump));
+  }
   const question = content.generateQuestion(subject, chosen.skill.id, d, recentSet(kidId, subject));
   if (question) noteRecent(kidId, subject, question.prompt);
   return {
     question, mode, level: state.level,
-    skill: { id: chosen.skill.id, name: chosen.skill.name, grade: chosen.skill.grade, mastery: chosen.st.mastery }
+    skill: { id: chosen.skill.id, name: chosen.skill.name, grade: chosen.skill.grade, mastery: chosen.st.mastery, stuck }
   };
+}
+
+// Recent accuracy across the skills at a given grade (for pacing decisions).
+function recentLevelAccuracy(kidId, subject, grade, limit = 12) {
+  const ids = content.skillsForSubject(subject).filter(s => s.grade === grade).map(s => s.id);
+  if (!ids.length) return null;
+  const placeholders = ids.map(() => '?').join(',');
+  const rows = db.prepare(`SELECT correct FROM activity_log WHERE kid_id=? AND subject=? AND skill_id IN (${placeholders})
+    ORDER BY id DESC LIMIT ?`).all(kidId, subject, ...ids, limit);
+  if (rows.length < 4) return null;
+  return rows.filter(r => r.correct).length / rows.length;
 }
 
 function weightedLowest(list) {
@@ -187,9 +265,16 @@ function weightedLowest(list) {
 // ---------- recording answers & progression ----------
 function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
   const st = getSkillState(kidId, subject, skillId);
+  const d0 = (difficulty == null ? 0.5 : difficulty);
   let m = st.mastery;
-  if (correct) m = m + 0.16 * (1 - m) * (0.7 + (difficulty || 0.5) * 0.6);
-  else m = m * 0.72;
+  if (correct) {
+    m = m + 0.16 * (1 - m) * (0.7 + d0 * 0.6);
+  } else {
+    // Missing an EASY question means you really don't know it (bigger drop);
+    // missing a HARD one is more forgivable — so a capable kid stretching into
+    // tough questions doesn't get their mastery wrecked by an occasional slip.
+    m = m * (0.72 + 0.12 * (d0 - 0.5));   // ≈ ×0.68 (easy) … ×0.77 (hard)
+  }
   m = Math.max(0.05, Math.min(1, m));
   db.prepare(`UPDATE skill_state SET mastery=?, attempts=attempts+1, correct=correct+?,
               win_streak=?, last_seen=datetime('now') WHERE kid_id=? AND subject=? AND skill_id=?`)
@@ -214,26 +299,44 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
       db.prepare('UPDATE kids SET correct_since_token = ? WHERE id=?').run(cst >= 5 ? 0 : cst, kidId);
     }
   }
-  // level-up check: all current-level skills mastered
+  // ---- progression: promote/demote with hysteresis so a child settles at the
+  // right level instead of bouncing. A COOLDOWN of 6 answers must pass after any
+  // level change before another — no thrash, no overshooting several grades at once.
   const state = getSubjectState(kidId, subject);
   const lvl = Math.round(state.level);
-  const levelSkills = content.skillsForSubject(subject).filter(s => s.grade === lvl);
-  const allMastered = levelSkills.length > 0 && levelSkills.every(s => {
-    const ss = db.prepare('SELECT mastery, attempts FROM skill_state WHERE kid_id=? AND subject=? AND skill_id=?').get(kidId, subject, s.id);
-    return ss && ss.mastery >= MASTERED && ss.attempts >= 3;
-  });
-  if (allMastered && lvl < maxGrade(subject)) {
-    db.prepare('UPDATE subject_state SET level=? WHERE kid_id=? AND subject=?').run(lvl + 1, kidId, subject);
-    const title = `${subjectLabel(subject)} — ${gradeName(lvl)} Complete!`;
-    db.prepare('INSERT INTO certificates (kid_id, subject, title, level) VALUES (?,?,?,?)').run(kidId, subject, title, lvl);
-    events.push({ type: 'levelup', subject, newLevel: lvl + 1, certificate: title });
-  }
-  // gentle level-down: sustained struggle across the level (8 answers is enough
-  // signal — a kid missing 6 of 8 shouldn't have to grind 4 more before relief)
-  const recent = db.prepare(`SELECT correct FROM activity_log WHERE kid_id=? AND subject=? ORDER BY id DESC LIMIT 8`).all(kidId, subject);
-  if (recent.length >= 8 && recent.filter(r => r.correct).length <= 2 && state.level > 0) {
-    db.prepare('UPDATE subject_state SET level=? WHERE kid_id=? AND subject=?').run(Math.max(0, state.level - 1), kidId, subject);
-    events.push({ type: 'support', subject, newLevel: Math.max(0, state.level - 1) });
+  const latestAid = db.prepare('SELECT MAX(id) AS m FROM activity_log WHERE kid_id=? AND subject=?').get(kidId, subject).m || 0;
+  const sinceChange = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND subject=? AND id > ?')
+    .get(kidId, subject, state.last_change_aid || 0).n;
+  const COOLDOWN = 6;
+  if (sinceChange >= COOLDOWN) {
+    const levelSkills = content.skillsForSubject(subject).filter(s => s.grade === lvl);
+    // PROMOTE: sustained ≥85% accuracy across the level, every skill practiced ≥2×,
+    // and a real body of work at the level (≥ max(8, 2× the skills)). A school year
+    // is long — this is genuine grade mastery, never a lucky streak. But a capable
+    // kid (hi, Margaux) who's truly ready climbs in ~12–18 questions, never bored.
+    const totalAtLevel = levelSkills.length ? db.prepare(
+      `SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND subject=? AND skill_id IN (${levelSkills.map(() => '?').join(',')})`
+    ).get(kidId, subject, ...levelSkills.map(s => s.id)).n : 0;
+    const allPracticed = levelSkills.length > 0 && levelSkills.every(s => {
+      const ss = db.prepare('SELECT attempts FROM skill_state WHERE kid_id=? AND subject=? AND skill_id=?').get(kidId, subject, s.id);
+      return ss && ss.attempts >= 2;
+    });
+    const upAcc = recentLevelAccuracy(kidId, subject, lvl, 15);
+    if (lvl < maxGrade(subject) && allPracticed && totalAtLevel >= Math.max(8, levelSkills.length * 2) && upAcc != null && upAcc >= 0.85) {
+      db.prepare('UPDATE subject_state SET level=?, last_change_aid=? WHERE kid_id=? AND subject=?').run(lvl + 1, latestAid, kidId, subject);
+      const title = `${subjectLabel(subject)} — ${gradeName(lvl)} Complete!`;
+      db.prepare('INSERT INTO certificates (kid_id, subject, title, level) VALUES (?,?,?,?)').run(kidId, subject, title, lvl);
+      events.push({ type: 'levelup', subject, newLevel: lvl + 1, certificate: title });
+    } else if (lvl > 0) {
+      // DEMOTE (support): sustained low accuracy at the level since the last change.
+      // Only looks at answers SINCE the change, so a fresh promotion gets a fair
+      // trial and we never cascade multiple grades down in a row.
+      const downAcc = recentLevelAccuracy(kidId, subject, lvl, 8);
+      if (downAcc != null && downAcc <= 0.35) {
+        db.prepare('UPDATE subject_state SET level=?, last_change_aid=? WHERE kid_id=? AND subject=?').run(lvl - 1, latestAid, kidId, subject);
+        events.push({ type: 'support', subject, newLevel: lvl - 1 });
+      }
+    }
   }
   events.push(...checkBadges(kidId));
   return { mastery: m, xpGained: xp, events };
@@ -448,10 +551,25 @@ function reportCard(kidId) {
     const strengths = rows.filter(r => r.mastery >= MASTERED).sort((a, b) => b.mastery - a.mastery).slice(0, 3);
     const focus = rows.filter(r => r.mastery < STRUGGLING && r.attempts >= 2).sort((a, b) => a.mastery - b.mastery).slice(0, 3);
     const nameOf = id => { const s = content.getSkill(sub, id); return s ? s.name : id; };
+    // Pace status — the guardrails, made visible: is this child cruising (elevate),
+    // holding steady, or needing extra care right now?
+    // Status uses the child's RECENT overall experience in the subject (last ~15
+    // answers) — stable, and honest to what they've actually been feeling lately.
+    const recentRows = db.prepare('SELECT correct FROM activity_log WHERE kid_id=? AND subject=? ORDER BY id DESC LIMIT 15').all(kidId, sub);
+    const recentAcc = recentRows.length >= 8 ? recentRows.filter(r => r.correct).length / recentRows.length : null;
+    let status = 'building';
+    if (state.placed && (agg.n || 0) >= 8) {
+      // ~65–80% is the healthy "challenging but doable" zone — that's on-track, not
+      // a worry. Support flags genuine struggle; excelling = cruising, raise the bar.
+      if (recentAcc != null && recentAcc < 0.5) status = 'needs-support';
+      else if ((recentAcc != null && recentAcc >= 0.85) || (avg != null && avg >= MASTERED && !focus.length)) status = 'excelling';
+      else if (recentAcc != null) status = 'on-track';
+    }
     return {
       subject: sub, label: subjectLabel(sub), level: state.level, levelName: gradeName(Math.round(state.level)),
       placed: !!state.placed, avgMastery: avg, letter: avg == null ? '—' : letterGrade(avg),
       questionsAnswered: agg.n || 0, accuracy: agg.n ? (agg.c / agg.n) : null,
+      status, recentAccuracy: recentAcc,
       strengths: strengths.map(r => nameOf(r.skill_id)),
       focusAreas: focus.map(r => nameOf(r.skill_id)),
       // full per-skill drill-down for parents
