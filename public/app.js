@@ -162,10 +162,42 @@ const WHY_TOPICS = {
       teen: ['Climate science and space exploration are hiring this generation.'] },
     { match: /force|motion|energy|electric|magnet|physic/i,
       young: ['Roller coaster designers use this science to make rides thrilling AND safe! 🎢'],
-      teen: ['Every rocket, EV, and power grid runs on these principles.'] }
+      teen: ['Every rocket, EV, and power grid runs on these principles.'] },
+    { match: /cell|dna|genetic|biolog|microb/i,
+      young: ['Doctors and vets peek at cells to keep bodies healthy! 🔬', 'Everything alive is built from cells — even YOU! 🧬'],
+      teen: ['CRISPR, vaccines, cancer research — the biotech boom starts with cells.', 'Understanding DNA is the doorway to medicine and genetic engineering.'] },
+    { match: /ecosystem|environment|climate|conserv/i,
+      young: ['Park rangers use this to protect animals and forests! 🌲', 'Every plant and animal has a job in nature\'s team! 🐝'],
+      teen: ['Environmental science and green energy are defining careers of your generation.', 'Reading ecosystems is how we solve the climate challenge.'] }
   ],
   spanish: []
 };
+// Extra life-skills topic buckets — appended so each subject keeps its original
+// matches while gaining more specific, career-relevant real-world connections.
+WHY_TOPICS.english.push(
+  { match: /argument|evidence|persua|rhetoric|inference|claim|bias|author/i,
+    young: ['Spotting a good reason from a bad one keeps you smart and safe! 🕵️'],
+    teen: ['Recognizing weak evidence and spin means ads and headlines can\'t fool you.', 'Lawyers, journalists, and leaders win by reasoning from real evidence.'] }
+);
+WHY_TOPICS.math.push(
+  { match: /algebra|equation|variable|expression|slope|linear|function/i,
+    young: ['Solving for the missing number is like being a math detective! 🔍'],
+    teen: ['Algebra is the language of coding, engineering, and problem-solving itself.', 'Every app, spreadsheet, and simulation is algebra under the hood.'] },
+  { match: /probab|odds|chance|statist/i,
+    young: ['Knowing the chances helps you make smart choices in games! 🎲'],
+    teen: ['Probability is how doctors weigh risks and investors weigh bets — a core adult skill.'] }
+);
+WHY_TOPICS.spanish.push(
+  { match: /greeting|hola|phrase|conversa/i,
+    young: ['You could say hi and make a new friend anywhere in the world! 🌎', 'Travelers use these words to feel at home in new places! ✈️'],
+    teen: ['A warm greeting in someone\'s language opens doors business and diplomacy can\'t.'] },
+  { match: /family|animal|food|color|number|body/i,
+    young: ['You could order tacos or name your pet in Spanish! 🌮', 'Every new word is a new door to another culture! 🚪'],
+    teen: ['Everyday vocabulary is the foundation of real fluency — and fluency pays.'] },
+  { match: /verb|ser|estar|tense|preterite|subjunctive|grammar/i,
+    young: ['Verbs let you tell stories about what everyone is doing! 🎭'],
+    teen: ['Mastering verbs is the leap from "tourist Spanish" to true bilingual fluency — a career multiplier.'] }
+);
 // XP ranks — every learner climbs the stable, Foal to Thoroughbred 🏇
 const RANKS = [['Foal', 0], ['Pony Pal', 100], ['Trotter', 250], ['Canterer', 500], ['Galloper', 1000], ['Trailblazer', 2000], ['Champion', 4000], ['Legend', 8000], ['Thoroughbred', 15000]];
 function rankFor(xp) {
@@ -527,9 +559,9 @@ route('landing', async () => {
     <div class="statband reveal">
       <div><b>K–12</b><span>Every grade level</span></div>
       <div><b>4</b><span>Core subjects</span></div>
-      <div><b>131</b><span>Skill areas</span></div>
+      <div><b>138</b><span>Skill areas</span></div>
+      <div><b>10k+</b><span>Adaptive questions</span></div>
       <div><b>8</b><span>Learning games</span></div>
-      <div><b>1:1</b><span>Adaptive pacing</span></div>
     </div>
     <h2 class="section-title reveal">How it works</h2>
     <p class="section-sub">Three principles, borrowed from the best teachers you ever had.</p>
@@ -1254,6 +1286,55 @@ route('lesson', async (subject, mode) => {
 });
 
 // ======================= report card =======================
+// Parent "Strengths & Future Paths" card — grows with the student. Emerging
+// interests early, concrete career pathways in the high-school years.
+function renderCareer(c, k) {
+  const SUBCOL = { math: '#5b5bd6', english: '#0f9d76', science: '#2f78c2', spanish: '#d26440' };
+  const SUBEMO = { math: '🔢', english: '📚', science: '🔬', spanish: '🌎' };
+  const bandTitle = c.band === 'pathways' ? '🎯 Career Pathways' : c.band === 'explore' ? '🧭 Strengths & Career Explorer' : '🌱 Emerging Strengths';
+  const intro = c.band === 'pathways'
+    ? `Based on ${esc(k.name)}'s performance, here are career directions that fit their strengths — and how to prepare in high school.`
+    : c.band === 'explore'
+    ? `${esc(k.name)}'s strengths are starting to point somewhere. Here's where these skills lead — worth exploring together.`
+    : `It's early, but ${esc(k.name)} is already building strengths. Here's a peek at where these skills can lead one day.`;
+  if (!c.hasData) {
+    return `<div class="card career-card">
+      <div class="career-head"><h3>${bandTitle}</h3></div>
+      <p class="muted" style="margin-top:6px">Once ${esc(k.name)} has answered a few questions in each subject, we'll map their strengths to real-world paths right here — and it grows more specific as they get older.</p>
+    </div>`;
+  }
+  // strength bars (ranked subjects)
+  const bars = c.ranked.map(s => `
+    <div class="str-row">
+      <span class="str-name">${SUBEMO[s.subject]} ${esc(s.label)}</span>
+      <span class="str-bar"><span class="str-fill" style="width:${Math.round((s.score || 0) * 100)}%;background:${SUBCOL[s.subject]}"></span></span>
+      <span class="str-pct">${Math.round((s.score || 0) * 100)}</span>
+    </div>`).join('');
+  const strengthChips = c.topStrengths.length
+    ? `<p style="margin:2px 0 0">💪 <b>Excelling in:</b> ${c.topStrengths.map(s => `<span class="pill strength">${SUBEMO[s.subject]} ${esc(s.label)}</span>`).join(' ')}</p>` : '';
+  const growth = c.growthAreas.length
+    ? `<p style="margin:8px 0 0">🎯 <b>Room to grow:</b> ${c.growthAreas.map(s => `<span class="pill focus">${esc(s.label)}</span>`).join(' ')} <span class="muted" style="font-size:.85rem">— ${esc(c.growthAreas[0].why)}</span></p>` : '';
+  const paths = c.pathways.map(p => `
+    <div class="path-card">
+      <div class="path-emoji">${p.emoji}</div>
+      <div class="path-body">
+        <div class="path-top"><b>${esc(p.title)}</b><span class="path-match" title="How well this fits ${esc(k.name)}'s current strengths">${Math.round(p.match * 100)}% match</span></div>
+        <p class="path-why">${esc(p.why)}</p>
+        ${c.band === 'pathways' ? `<p class="path-hs">🎓 <b>High-school focus:</b> ${esc(p.hs)}</p>` : ''}
+      </div>
+    </div>`).join('');
+  return `<div class="card career-card">
+    <div class="career-head"><h3>${bandTitle}</h3><span class="career-badge">${c.band === 'pathways' ? 'High School' : c.band === 'explore' ? 'Middle Years' : 'Early Years'}</span></div>
+    <p class="muted" style="margin:4px 0 14px">${intro}</p>
+    <div class="strength-panel">${bars}</div>
+    ${strengthChips}
+    ${growth}
+    <h4 style="margin:18px 0 10px">${c.band === 'pathways' ? 'Pathways that fit these strengths' : 'Where these skills can lead'}</h4>
+    <div class="path-grid">${paths}</div>
+    <p class="muted" style="font-size:.78rem;margin-top:12px">These suggestions come from ${esc(k.name)}'s mastery and accuracy across subjects. They sharpen as more work is completed and update automatically as ${esc(k.name)} grows.</p>
+  </div>`;
+}
+
 route('report', async (kidId) => {
   const r = await api(`/learn/${kidId}/report`);
   const k = r.kid;
@@ -1296,6 +1377,7 @@ route('report', async (kidId) => {
         </div>`).join('')}
       </div>
     </div>
+    ${isParent && r.career ? renderCareer(r.career, k) : ''}
     ${isParent && r.history ? (() => {
       const H = r.history, max = Math.max(1, ...H.map(x => x.answers));
       const total = H.reduce((t, x) => t + x.answers, 0);
