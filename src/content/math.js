@@ -40,16 +40,34 @@ const skills = [
     id: 'm.k.shapes', name: 'Shape Detective', grade: 0,
     gen() {
       const shapes = [
-        ['circle', 'a pizza 🍕 (the whole pie!)', '⚪'], ['square', 'a cracker 🍘', '⬜'],
-        ['triangle', 'a slice of watermelon 🍉', '🔺'], ['rectangle', 'a door 🚪', '▭'],
-        ['star', 'a starfish at the beach', '⭐'], ['heart', 'a valentine card', '❤️']
+        ['circle', 'a pizza 🍕 (the whole pie!)', 0], ['square', 'a cracker 🍘', 4],
+        ['triangle', 'a slice of watermelon 🍉', 3], ['rectangle', 'a door 🚪', 4],
+        ['star', 'a starfish at the beach ⭐', 5], ['heart', 'a valentine card ❤️', 0],
+        ['circle', 'a clock 🕐', 0], ['circle', 'a full moon 🌕', 0], ['circle', 'a wheel 🛞', 0],
+        ['square', 'a waffle 🧇', 4], ['square', 'a checkerboard tile', 4],
+        ['triangle', 'a party hat 🥳', 3], ['triangle', 'a slice of pizza 🍕', 3], ['triangle', 'a yield sign', 3],
+        ['rectangle', 'a phone 📱', 4], ['rectangle', 'a dollar bill 💵', 4], ['rectangle', 'a book 📖', 4],
+        ['oval', 'an egg 🥚', 0], ['oval', 'a football 🏈', 0],
+        ['diamond', 'a kite 🪁', 4], ['star', 'a sheriff badge', 5], ['heart', 'a candy heart', 0],
+        ['hexagon', 'a honeycomb cell 🍯', 6], ['hexagon', 'a soccer ball patch ⚽', 6]
       ];
-      const [name, real] = pick(shapes);
+      const allNames = ['circle', 'square', 'triangle', 'rectangle', 'star', 'heart', 'oval', 'diamond', 'hexagon'];
+      const [name, real, sides] = pick(shapes);
+      // Two flavors: name-the-shape, or count-the-sides (only for shapes with straight sides)
+      if (sides >= 3 && Math.random() < 0.4) {
+        return q({
+          prompt: `A ${name} has how many sides? (Think of ${real}.)`,
+          choices: textChoices(String(sides), ['0 (it\'s round!)', String(sides - 1), String(sides + 1), String(sides + 2)].filter(x => x !== String(sides))),
+          answer: String(sides),
+          hint: 'Trace around the edge and count each straight side!',
+          explain: `A ${name} has ${sides} sides. Great counting!`
+        });
+      }
       return q({
         prompt: `Real-life shapes! What shape is ${real}?`,
-        choices: textChoices(name, shapes.map(s => s[0])),
+        choices: textChoices(name, allNames.filter(n => n !== name)),
         answer: name,
-        hint: 'Picture it in your mind. Count the sides!',
+        hint: 'Picture it in your mind. Is it round, or does it have corners?',
         explain: `Yes! ${real} is shaped like a ${name}.`
       });
     }
@@ -215,7 +233,10 @@ const skills = [
   {
     id: 'm.2.measure', name: 'Measure It!', grade: 2,
     gen(d) {
-      const items = [['a crayon', 9, 'cm'], ['a skateboard', 70, 'cm'], ['a door', 2, 'meters'], ['a goldfish', 6, 'cm'], ['a soccer field', 100, 'meters']];
+      const items = [['a crayon', 9, 'cm'], ['a skateboard', 70, 'cm'], ['a door', 2, 'meters'], ['a goldfish', 6, 'cm'], ['a soccer field', 100, 'meters'],
+        ['a pencil', 18, 'cm'], ['a school bus', 12, 'meters'], ['a ladybug', 1, 'cm'], ['a bathtub', 2, 'meters'], ['your thumb', 5, 'cm'],
+        ['a basketball hoop', 3, 'meters'], ['a dollar bill', 15, 'cm'], ['a giraffe', 5, 'meters'], ['a paperclip', 3, 'cm'], ['a garden hose', 15, 'meters'],
+        ['a shoe', 25, 'cm'], ['a flagpole', 8, 'meters'], ['a strawberry', 4, 'cm'], ['a couch', 2, 'meters'], ['a jump rope', 3, 'meters']];
       const [item, real, unit] = pick(items);
       const wrongs = unit === 'cm' ? [`${real} meters`, `${real * 10} meters`, `${Math.max(1, Math.round(real / 3))} km`] : [`${real} cm`, `${real * 100} km`, `${real} mm`];
       return q({
