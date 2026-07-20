@@ -1,4 +1,4 @@
-// BrightPath Math — K-12 skill tree with real-life question generators
+// BrightPath Math, K-12 skill tree with real-life question generators
 // Each skill: { id, name, grade, gen(d) } where d = difficulty 0..1
 const { rint, pick, shuffle, numChoices, textChoices, q, KID_NAMES, FOODS, TOYS, PLACES } = require('./helpers');
 
@@ -51,7 +51,7 @@ const skills = [
       const shapes = [
         ['circle', 'a pizza 🍕 (the whole pie!)', 0], ['square', 'a cracker 🍘', 4],
         ['triangle', 'a slice of watermelon 🍉', 3], ['rectangle', 'a door 🚪', 4],
-        ['star', 'a starfish at the beach ⭐', 5], ['heart', 'a valentine card ❤️', 0],
+        ['star', 'a starfish at the beach', 5], ['heart', 'a valentine card', 0],
         ['circle', 'a clock 🕐', 0], ['circle', 'a full moon 🌕', 0], ['circle', 'a wheel 🛞', 0],
         ['square', 'a waffle 🧇', 4], ['square', 'a checkerboard tile', 4],
         ['triangle', 'a party hat 🥳', 3], ['triangle', 'a slice of pizza 🍕', 3], ['triangle', 'a yield sign', 3],
@@ -264,7 +264,7 @@ const skills = [
     gen(d) {
       const a = rint(2, d > 0.5 ? 12 : 9), b = rint(2, d > 0.5 ? 12 : 9);
       const ctx = pick([
-        `A spider has 8 legs — but let's try: ${a} spiders with ${b} spots each. Total spots?`,
+        `A spider has 8 legs, but let's try: ${a} spiders with ${b} spots each. Total spots?`,
         `${a} rows of chairs with ${b} chairs each for the talent show. How many chairs?`,
         `${a} packs of gum, ${b} pieces per pack. How many pieces?`
       ]);
@@ -365,9 +365,22 @@ const skills = [
   {
     id: 'm.4.equivfrac', name: 'Equivalent Fractions', grade: 4,
     gen(d) {
-      const den = pick([2, 3, 4, 5]), num = rint(1, den - 1), m = pick(d > 0.5 ? [3, 4, 5] : [2, 3]);
+      const den = pick([2, 3, 4, 5, 6, 8, 10]), num = rint(1, den - 1), m = pick(d > 0.5 ? [3, 4, 5, 6] : [2, 3, 4]);
+      const ctx = pick(['flour', 'sugar', 'milk', 'water', 'juice']);
+      const mode = pick(['make', 'make', 'simplify']);
+      if (mode === 'simplify') {
+        // Give an unreduced fraction and ask for the simplest form
+        const bigNum = num * m, bigDen = den * m;
+        return q({
+          prompt: `Which fraction is EQUAL to ${bigNum}/${bigDen} but written in simplest form?`,
+          choices: textChoices(`${num}/${den}`, [`${num + 1}/${den}`, `${num}/${den + 1}`, `${bigNum}/${bigDen - 1}`, `${num * 2}/${den}`]),
+          answer: `${num}/${den}`,
+          hint: `Divide top and bottom by ${m}.`,
+          explain: `${bigNum} ÷ ${m} = ${num} and ${bigDen} ÷ ${m} = ${den}, so ${bigNum}/${bigDen} = ${num}/${den}.`
+        });
+      }
       return q({
-        prompt: `Recipe remix! 👩‍🍳 A recipe needs ${num}/${den} cup of flour. You triple-check with a different cup: which fraction is EQUAL to ${num}/${den}?`,
+        prompt: `A recipe needs ${num}/${den} cup of ${ctx}. Which fraction is EQUAL to ${num}/${den}?`,
         choices: textChoices(`${num * m}/${den * m}`, [`${num + 1}/${den + 1}`, `${num * m}/${den * m + 1}`, `${num}/${den * m}`, `${den}/${num || 1}`]),
         answer: `${num * m}/${den * m}`,
         hint: 'Multiply top AND bottom by the same number.',
@@ -381,11 +394,20 @@ const skills = [
       const dollars = rint(1, d > 0.5 ? 9 : 5), cents = rint(5, 95);
       const total = dollars + cents / 100;
       const ans = total.toFixed(2);
+      // Build clean, guaranteed-distinct wrong forms (a decimal-place slip, a dime off,
+      // and a dollar off), padding if any collide, so the question always has 4 choices.
+      const set = new Set();
+      set.add(`$${(dollars + cents / 10).toFixed(2)}`);
+      set.add(`$${(total + 0.1).toFixed(2)}`);
+      set.add(`$${(total + 1).toFixed(2)}`);
+      let k = 2;
+      while (set.size < 3) { set.add(`$${(total + k * 0.1 + 0.2).toFixed(2)}`); k++; }
+      set.delete(`$${ans}`);
       return q({
         prompt: `You scan a snack at self-checkout: ${dollars} dollars and ${cents} cents. How is that written as a decimal?`,
-        choices: textChoices(`$${ans}`, [`$${dollars}.${cents * 10}`, `$${(dollars + cents / 10).toFixed(2)}`, `$${dollars}.0${cents}`, `$${(total + 0.1).toFixed(2)}`]),
+        choices: textChoices(`$${ans}`, [...set]),
         answer: `$${ans}`,
-        hint: 'Cents are hundredths — two digits after the point.',
+        hint: 'Cents are hundredths, so two digits after the point.',
         explain: `${dollars} and ${cents}/100 = $${ans}.`
       });
     }
@@ -393,14 +415,44 @@ const skills = [
   {
     id: 'm.4.factors', name: 'Factors & Multiples', grade: 4,
     gen(d) {
-      const n = pick(d > 0.5 ? [24, 36, 48, 30] : [12, 16, 18, 20]);
+      const n = pick(d > 0.5 ? [24, 36, 48, 30, 40, 42, 54, 60, 56, 45] : [12, 16, 18, 20, 15, 21, 28, 32, 27, 14]);
       const factors = [];
       for (let i = 1; i <= n; i++) if (n % i === 0) factors.push(i);
-      const yes = pick(factors.filter(f => f > 1 && f < n));
       const nos = [];
       for (let i = 2; i < n; i++) if (n % i !== 0) nos.push(i);
+      const item = pick(FOODS.concat(['cupcakes', 'party favors', 'trading cards', 'juice boxes']));
+      const mode = pick(['factor', 'factor', 'notfactor', 'multiple']);
+      if (mode === 'notfactor' && nos.length) {
+        const no = pick(nos);
+        // Use the full factor list (including 1 and n) so numbers with few proper factors
+        // still yield 3 distinct factor distractors.
+        const yesFactors = shuffle(factors.filter(f => f !== no)).slice(0, 3);
+        if (yesFactors.length === 3) {
+          return q({
+            prompt: `Which number is NOT a factor of ${n}? (It would leave a remainder.)`,
+            choices: textChoices(String(no), yesFactors.map(String)),
+            answer: no,
+            hint: `Try dividing ${n} by each. A factor divides evenly.`,
+            explain: `${n} ÷ ${no} does not come out even, so ${no} is not a factor of ${n}.`
+          });
+        }
+      }
+      if (mode === 'multiple') {
+        const base = pick(factors.filter(f => f >= 2 && f <= 9));
+        const mult = base * pick([2, 3, 4, 5]);
+        const notMults = [];
+        for (let i = base + 1; i < mult + base * 3; i++) if (i % base !== 0) notMults.push(i);
+        return q({
+          prompt: `Which number is a MULTIPLE of ${base}?`,
+          choices: textChoices(String(mult), shuffle(notMults).slice(0, 3).map(String)),
+          answer: mult,
+          hint: `Count by ${base}s: ${base}, ${base * 2}, ${base * 3}, ...`,
+          explain: `${base} × ${mult / base} = ${mult}, so ${mult} is a multiple of ${base}.`
+        });
+      }
+      const yes = pick(factors.filter(f => f > 1 && f < n));
       return q({
-        prompt: `You want to split ${n} cupcakes into equal boxes with none left over. Which box size works?`,
+        prompt: `You want to split ${n} ${item} into equal boxes with none left over. Which box size works?`,
         choices: textChoices(String(yes), shuffle(nos).slice(0, 3).map(String)),
         answer: yes,
         hint: `Does the number divide ${n} evenly?`,
@@ -415,10 +467,16 @@ const skills = [
     gen(d) {
       const den = pick(d > 0.5 ? [6, 8, 10, 12] : [4, 6, 8]);
       let a = rint(1, den - 2), b = rint(1, den - a - 1);
+      // Guaranteed-distinct wrong forms: added the denominators, subtracted instead of
+      // added, and an off-by-one top. Padded so there are always 3 distractors.
+      const ansStr = `${a + b}/${den}`;
+      const set = new Set([`${a + b}/${den * 2}`, `${Math.max(1, Math.abs(a - b))}/${den}`, `${a + b + 1}/${den}`]);
+      set.delete(ansStr);
+      let ex = 2; while (set.size < 3) { set.add(`${a + b}/${den + ex}`); ex++; }
       return q({
         prompt: `Pizza party math: you eat ${a}/${den} of a pizza and your cousin eats ${b}/${den}. How much did you eat together?`,
-        choices: textChoices(`${a + b}/${den}`, [`${a + b}/${den * 2}`, `${a * b}/${den}`, `${a + b + 1}/${den}`, `${a + b}/${den + den}`]),
-        answer: `${a + b}/${den}`,
+        choices: textChoices(ansStr, [...set]),
+        answer: ansStr,
         hint: 'Same denominator? Just add the tops.',
         explain: `${a}/${den} + ${b}/${den} = ${a + b}/${den}.`
       });
@@ -499,10 +557,14 @@ const skills = [
           answer: `$${total}`, hint: `Find the tax, then add it to $${base}.`, explain: `Tax = $${ans}; $${base} + $${ans} = $${total}.` });
       }
       if (mode === 'score') {
-        const total = pick([20, 25, 40, 50]); const got = Math.round(total * pct / 100);
-        return q({ prompt: `On a ${total}-question test 📝 you got ${pct}% correct. How many questions did you get right?`,
+        const total = pick([20, 25, 40, 50]);
+        // Only use a percent that yields a WHOLE number of questions for this total, so the
+        // stated percent and the count of correct answers are exactly consistent.
+        const spct = pick([10, 20, 25, 30, 40, 50, 60, 75, 80].filter(p => (total * p) % 100 === 0));
+        const got = total * spct / 100;
+        return q({ prompt: `On a ${total}-question test 📝 you got ${spct}% correct. How many questions did you get right?`,
           choices: numChoices(got, () => pick([got, total - got, got + 1, got + 2])),
-          answer: got, hint: `${pct}% of ${total}.`, explain: `${pct}% × ${total} = ${got} correct.` });
+          answer: got, hint: `${spct}% of ${total}.`, explain: `${spct}% × ${total} = ${got} correct.` });
       }
       if (mode === 'whatpct') {
         const part = pick([5, 10, 15, 20, 30]); const whole = part * pick([2, 4, 5, 10]);
@@ -582,10 +644,16 @@ const skills = [
     gen(d) {
       const red = rint(1, 5), blue = rint(1, 5), green = d > 0.5 ? rint(1, 4) : 0;
       const total = red + blue + green;
+      // Guaranteed-distinct wrong forms (inverted, red-vs-not-red odds, off-by-one),
+      // padded so there are always 3 distractors even when red == blue.
+      const ansStr = `${red}/${total}`;
+      const set = new Set([`${total}/${red}`, `${red}/${Math.max(1, total - red)}`, `${blue}/${total}`, `${red + 1}/${total}`]);
+      set.delete(ansStr);
+      let ex = 1; while (set.size < 3) { set.add(`${red}/${total + ex}`); ex++; }
       return q({
         prompt: `A claw machine 🕹️ has ${red} red, ${blue} blue${green ? `, and ${green} green` : ''} plushies. If it grabs one at random, what's the chance it's red?`,
-        choices: textChoices(`${red}/${total}`, [`${blue}/${total}`, `${red}/${blue}`, `1/${red}`, `${total}/${red}`]),
-        answer: `${red}/${total}`,
+        choices: textChoices(ansStr, [...set]),
+        answer: ansStr,
         hint: 'Favorable outcomes over total outcomes.',
         explain: `${red} red out of ${total} total = ${red}/${total}.`
       });
@@ -639,9 +707,37 @@ const skills = [
   {
     id: 'm.8.expon', name: 'Exponents', grade: 8,
     gen(d) {
-      const base = pick([2, 3, d > 0.5 ? 5 : 4]), e = rint(2, d > 0.5 ? 4 : 3);
+      const mode = pick(['power', 'power', 'product', 'quotient']);
+      if (mode === 'product') {
+        // Product rule: a^m × a^n = a^(m+n)
+        const base = pick([2, 3, 5, 10, 'x']), m1 = rint(2, 5), n1 = rint(2, 5);
+        return q({
+          prompt: `Simplify using exponent rules: ${base}^${m1} × ${base}^${n1}`,
+          choices: textChoices(`${base}^${m1 + n1}`, [`${base}^${m1 * n1}`, `${base}^${Math.abs(m1 - n1)}`, `${base}${base}^${m1 + n1}`, `${base}^${m1 + n1 + 1}`]),
+          answer: `${base}^${m1 + n1}`,
+          hint: 'When multiplying like bases, ADD the exponents.',
+          explain: `${base}^${m1} × ${base}^${n1} = ${base}^(${m1}+${n1}) = ${base}^${m1 + n1}.`
+        });
+      }
+      if (mode === 'quotient') {
+        // Quotient rule: a^m ÷ a^n = a^(m−n), keep m>n
+        const base = pick([2, 3, 5, 10, 'x']), n1 = rint(2, 4), m1 = n1 + rint(1, 4);
+        return q({
+          prompt: `Simplify using exponent rules: ${base}^${m1} ÷ ${base}^${n1}`,
+          choices: textChoices(`${base}^${m1 - n1}`, [`${base}^${m1 + n1}`, `${base}^${m1 * n1}`, `${base}^${m1}`, `${base}^${m1 - n1 + 1}`]),
+          answer: `${base}^${m1 - n1}`,
+          hint: 'When dividing like bases, SUBTRACT the exponents.',
+          explain: `${base}^${m1} ÷ ${base}^${n1} = ${base}^(${m1}−${n1}) = ${base}^${m1 - n1}.`
+        });
+      }
+      const base = pick([2, 3, 4, 5, 6, 7, 10]), e = rint(2, d > 0.5 ? 4 : 3);
+      const ctx = pick([
+        `A video goes viral: each round, ${base} people each share it with ${base} new people. After ${e} rounds it reaches ${base}^${e} people. What is ${base}^${e}?`,
+        `A cell splits into ${base} every stage. After ${e} stages you have ${base}^${e} cells. What is ${base}^${e}?`,
+        `What is the value of ${base}^${e} (that is, ${base} raised to the power ${e})?`
+      ]);
       return q({
-        prompt: `A video goes viral 📱: each hour, ${base} people each share it with ${base} new people. After ${e} rounds it reaches ${base}^${e} people. What is ${base}^${e}?`,
+        prompt: ctx,
         choices: numChoices(Math.pow(base, e), () => pick([Math.pow(base, e), base * e, Math.pow(base, e) + base, Math.pow(e, base)])),
         answer: Math.pow(base, e),
         hint: `Multiply ${base} by itself ${e} times.`,
@@ -702,7 +798,7 @@ const skills = [
         prompt: `Concert tickets 🎫: adult + kid ticket = $${x + y}. Adult − kid = $${x - y}. What does the ADULT ticket cost?`,
         choices: numChoices(x, () => pick([x, y, x + y, Math.abs(x - y) || 1])).map(v => `$${v}`),
         answer: `$${x}`,
-        hint: 'Add the two equations — the kid price cancels out.',
+        hint: 'Add the two equations, the kid price cancels out.',
         explain: `Adding: 2×adult = $${2 * x}, so adult = $${x} (kid = $${y}).`
       });
     }
@@ -832,27 +928,41 @@ const skills = [
   {
     id: 'm.11.exponential', name: 'Exponential Growth', grade: 11,
     gen(d) {
-      const p = pick([100, 200, 500]), n = rint(2, d > 0.5 ? 4 : 3);
-      const ans = p * Math.pow(2, n);
+      const factor = pick([2, 2, 3, 5, 10]);
+      const p = pick([50, 100, 150, 200, 300, 500, 1000]);
+      const n = rint(2, d > 0.5 ? 4 : 3);
+      const ans = p * Math.pow(factor, n);
+      const word = factor === 2 ? 'DOUBLES' : factor === 3 ? 'TRIPLES' : `grows ${factor}×`;
+      const ctx = pick([
+        `Your channel's subscribers ${word} every month. Starting at ${p}, how many after ${n} months?`,
+        `A bacteria colony ${word} every hour. Starting with ${p} cells, how many after ${n} hours?`,
+        `A rumor spreads and ${word} each day. If ${p} people know it today, how many know it after ${n} more days?`
+      ]);
       return q({
-        prompt: `Your channel's subscribers DOUBLE every month 📈. Starting at ${p}, how many after ${n} months?`,
-        choices: numChoices(ans, () => pick([ans, p * 2 * n, ans / 2, ans * 2])),
+        prompt: ctx,
+        choices: numChoices(ans, () => pick([ans, p * factor * n, ans / factor, p + factor * n, ans + p])),
         answer: ans,
-        hint: `${p} × 2^${n}.`,
-        explain: `${p} × ${Math.pow(2, n)} = ${ans} subscribers.`
+        hint: `Multiply the start by ${factor} once for each period: ${p} × ${factor}^${n}.`,
+        explain: `${p} × ${factor}^${n} = ${p} × ${Math.pow(factor, n)} = ${ans}.`
       });
     }
   },
   {
     id: 'm.11.logs', name: 'Logarithms', grade: 11,
     gen(d) {
-      const base = pick([2, 3, 10]), e = rint(2, d > 0.5 ? 5 : 3);
+      const base = pick([2, 3, 4, 5, 10]), e = rint(2, d > 0.5 ? 5 : 3);
+      const val = Math.pow(base, e);
+      const ctx = pick([
+        `Earthquake and sound scales use logs. What is log base ${base} of ${val}?`,
+        `What is log base ${base} of ${val}? (Ask: ${base} to what power equals ${val}?)`,
+        `Evaluate log_${base}(${val}).`
+      ]);
       return q({
-        prompt: `Earthquake scales use logs! What is log base ${base} of ${Math.pow(base, e)}?`,
-        choices: numChoices(e, () => pick([e, base, Math.pow(base, e) / base, e + 1, e - 1])),
+        prompt: ctx,
+        choices: numChoices(e, () => pick([e, base, val / base, e + 1, e - 1])),
         answer: e,
-        hint: `${base} to WHAT power gives ${Math.pow(base, e)}?`,
-        explain: `${base}^${e} = ${Math.pow(base, e)}, so the log is ${e}.`
+        hint: `${base} to WHAT power gives ${val}?`,
+        explain: `${base}^${e} = ${val}, so log base ${base} of ${val} is ${e}.`
       });
     }
   },
@@ -860,10 +970,16 @@ const skills = [
     id: 'm.11.poly', name: 'Polynomial Operations', grade: 11,
     gen(d) {
       const a = rint(1, 4), b = rint(1, d > 0.5 ? 8 : 5), c = rint(1, 4), e = rint(1, 6);
+      // Guaranteed-distinct wrong forms (wrong variable on the linear term, everything
+      // collapsed to x, an off-by-one coefficient), padded so there are always 3.
+      const ansStr = `${a + c}x² + ${b + e}x`;
+      const set = new Set([`${a + c}x² + ${b + e}x²`, `${a + c + b + e}x`, `${a + c}x² + ${b + e + 1}x`, `${a * c}x² + ${b * e}x`]);
+      set.delete(ansStr);
+      let ex = 2; while (set.size < 3) { set.add(`${a + c + ex}x² + ${b + e}x`); ex++; }
       return q({
         prompt: `Simplify: (${a}x² + ${b}x) + (${c}x² + ${e}x)`,
-        choices: textChoices(`${a + c}x² + ${b + e}x`, [`${a + c}x² + ${b + e}x²`, `${a + b}x² + ${c + e}x`, `${a * c}x² + ${b * e}x`, `${a + c + b + e}x`]),
-        answer: `${a + c}x² + ${b + e}x`,
+        choices: textChoices(ansStr, [...set]),
+        answer: ansStr,
         hint: 'Combine like terms: x² with x², x with x.',
         explain: `(${a}+${c})x² + (${b}+${e})x = ${a + c}x² + ${b + e}x.`
       });
@@ -874,15 +990,20 @@ const skills = [
   {
     id: 'm.12.trig', name: 'Trigonometry', grade: 12,
     gen(d) {
-      const angles = d > 0.5
-        ? [['sin', 30, '1/2'], ['cos', 60, '1/2'], ['sin', 90, '1'], ['cos', 0, '1'], ['tan', 45, '1'], ['sin', 45, '√2/2'], ['cos', 45, '√2/2']]
-        : [['sin', 30, '1/2'], ['cos', 60, '1/2'], ['sin', 90, '1'], ['tan', 45, '1']];
+      const easy = [['sin', 30, '1/2'], ['cos', 60, '1/2'], ['sin', 90, '1'], ['cos', 0, '1'], ['tan', 45, '1'], ['sin', 0, '0'], ['cos', 90, '0'], ['tan', 0, '0']];
+      const hard = [['cos', 30, '√3/2'], ['sin', 60, '√3/2'], ['sin', 45, '√2/2'], ['cos', 45, '√2/2'], ['tan', 60, '√3'], ['tan', 30, '√3/3']];
+      const angles = d > 0.5 ? easy.concat(hard) : easy;
       const [fn, ang, ans] = pick(angles);
+      const ctx = pick([
+        `Ferris wheel heights use trig. What is ${fn}(${ang}°)?`,
+        `On the unit circle, what is the exact value of ${fn}(${ang}°)?`,
+        `A ramp's angle is ${ang}°. What is ${fn}(${ang}°)?`
+      ]);
       return q({
-        prompt: `Ferris wheel math 🎡 (heights use trig!): what is ${fn}(${ang}°)?`,
-        choices: textChoices(ans, ['1/2', '1', '0', '√2/2', '√3/2', '2']),
+        prompt: ctx,
+        choices: textChoices(ans, ['1/2', '1', '0', '√2/2', '√3/2', '√3', '√3/3', '2']),
         answer: ans,
-        hint: 'Picture the unit circle.',
+        hint: 'Picture the unit circle and the special right triangles (30-60-90 and 45-45-90).',
         explain: `${fn}(${ang}°) = ${ans}.`
       });
     }
@@ -904,12 +1025,36 @@ const skills = [
   {
     id: 'm.12.limits', name: 'Intro to Limits', grade: 12,
     gen(d) {
-      const a = rint(2, d > 0.5 ? 7 : 5);
+      const mode = pick(['diffsq', 'diffsq', 'factor', 'direct']);
+      const a = rint(2, d > 0.5 ? 9 : 6);
+      if (mode === 'factor') {
+        // (x² − Sx + P)/(x − a) = (x − a)(x − c)/(x − a) → x − c, limit a − c
+        let c = rint(1, 6); if (c === a) c = a + 1;
+        const S = a + c, P = a * c;
+        return q({
+          prompt: `As x approaches ${a}, what does (x² − ${S}x + ${P}) / (x − ${a}) approach?`,
+          choices: numChoices(a - c, () => pick([a - c, a + c, a, c, a - c + 1])),
+          answer: a - c,
+          hint: `Factor the top into (x − ${a})(x − ${c}), then cancel (x − ${a}).`,
+          explain: `The expression simplifies to x − ${c}, which approaches ${a} − ${c} = ${a - c}.`
+        });
+      }
+      if (mode === 'direct') {
+        // Continuous polynomial, direct substitution: lim x→a of (x² + bx)
+        const b = rint(2, 6), ans = a * a + b * a;
+        return q({
+          prompt: `As x approaches ${a}, what does x² + ${b}x approach? (This function is continuous, so substitute.)`,
+          choices: numChoices(ans, () => pick([ans, a * a, a + b, 2 * a + b, ans + a])),
+          answer: ans,
+          hint: `Just plug in x = ${a}.`,
+          explain: `${a}² + ${b}·${a} = ${a * a} + ${b * a} = ${ans}.`
+        });
+      }
       return q({
-        prompt: `Speedometer thinking 🏎️ (limits!): as x approaches ${a}, what does (x² − ${a * a}) / (x − ${a}) approach?`,
+        prompt: `As x approaches ${a}, what does (x² − ${a * a}) / (x − ${a}) approach?`,
         choices: numChoices(2 * a, () => pick([2 * a, a, a * a, 0, 2 * a + 1])),
         answer: 2 * a,
-        hint: `Factor the top: (x−${a})(x+${a}).`,
+        hint: `Factor the top as a difference of squares: (x − ${a})(x + ${a}).`,
         explain: `It simplifies to x + ${a}, which approaches ${2 * a}.`
       });
     }
@@ -918,10 +1063,16 @@ const skills = [
     id: 'm.12.vectors', name: 'Vectors', grade: 12,
     gen(d) {
       const x1 = rint(1, 6), y1 = rint(1, 6), x2 = rint(1, d > 0.5 ? 8 : 5), y2 = rint(1, 5);
+      const ansStr = `⟨${x1 + x2}, ${y1 + y2}⟩`;
+      // Guaranteed-distinct wrong forms (multiplied parts, off-by-one on x, off-by-one on y,
+      // subtracted), padded so there are always 3 distractors.
+      const set = new Set([`⟨${x1 * x2}, ${y1 * y2}⟩`, `⟨${x1 + x2 + 1}, ${y1 + y2}⟩`, `⟨${x1 + x2}, ${y1 + y2 + 1}⟩`, `⟨${x2 - x1}, ${y2 - y1}⟩`]);
+      set.delete(ansStr);
+      let ex = 2; while (set.size < 3) { set.add(`⟨${x1 + x2 + ex}, ${y1 + y2}⟩`); ex++; }
       return q({
         prompt: `Drone flight 🚁: it flies vector ⟨${x1}, ${y1}⟩ then ⟨${x2}, ${y2}⟩. What's the total displacement vector?`,
-        choices: textChoices(`⟨${x1 + x2}, ${y1 + y2}⟩`, [`⟨${x1 * x2}, ${y1 * y2}⟩`, `⟨${x1 + y1}, ${x2 + y2}⟩`, `⟨${x2 - x1}, ${y2 - y1}⟩`, `⟨${x1 + x2 + 1}, ${y1 + y2}⟩`]),
-        answer: `⟨${x1 + x2}, ${y1 + y2}⟩`,
+        choices: textChoices(ansStr, [...set]),
+        answer: ansStr,
         hint: 'Add x-parts together and y-parts together.',
         explain: `⟨${x1}+${x2}, ${y1}+${y2}⟩ = ⟨${x1 + x2}, ${y1 + y2}⟩.`
       });
