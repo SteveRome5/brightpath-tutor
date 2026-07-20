@@ -223,12 +223,26 @@ const Sound = (() => {
 // plays in the FUN zones (arcade, avatar, snacks, trophies) so lessons stay focused.
 const Music = (() => {
   let on = localStorage.bp_music === '1';   // default OFF until a kid switches it on
-  let ctx = null, master = null, timer = null, step = 0, mood = 'chill', playing = false;
-  // Chord loops as semitone offsets from a root; pentatonic-ish for a pleasant, never-wrong feel.
-  const MOODS = {
-    chill:   { root: 220.0, tempo: 2000, wave: 'sine',     chords: [[0,7,12,16],[-2,5,10,14],[3,10,15,19],[-4,3,8,12]], arp: [0,7,12,16,19,16,12,7], padGain: .05, arpGain: .045, filt: 900 },
-    playful: { root: 293.66, tempo: 1500, wave: 'triangle', chords: [[0,4,7,12],[5,9,12,17],[7,11,14,19],[2,5,9,14]], arp: [0,4,7,12,7,4], padGain: .045, arpGain: .05, filt: 1600 }
+  let ctx = null, master = null, timer = null, step = 0, group = 'chill', playing = false;
+  let track = null, trackIdx = 0, barsOnTrack = 0;
+  // A library of procedural tracks. Offsets are semitones from `root`; scales are
+  // pentatonic-friendly so every note lands pleasantly. Each track has its own
+  // chords, arpeggio, bass pattern, timbre and melody scale for a distinct feel.
+  const TRACKS = {
+    // ---- older learners: chill / lo-fi / ambient ----
+    lofi:     { root: 220.00, tempo: 1900, wave: 'sine',     chords: [[0,7,12,16],[-2,5,10,14],[3,10,15,19],[-4,3,8,12]], arp: [0,7,12,16,19,16,12,7], mel: [0,3,7,10,12], padGain: .05, arpGain: .04, bassGain: .06, filt: 900, bell: true },
+    midnight: { root: 196.00, tempo: 2100, wave: 'sine',     chords: [[0,3,7,10],[-2,3,5,10],[-4,0,3,7],[-5,-2,3,7]], arp: [0,3,7,10,12,10,7,3], mel: [0,3,5,7,10], padGain: .052, arpGain: .036, bassGain: .06, filt: 780, bell: true },
+    focus:    { root: 174.61, tempo: 2300, wave: 'triangle', chords: [[0,7,12],[5,12,17],[-3,4,9],[2,9,14]], arp: [0,7,12,7], mel: [0,2,5,7,9], padGain: .055, arpGain: .03, bassGain: .05, filt: 700, bell: false },
+    cosmos:   { root: 164.81, tempo: 2200, wave: 'sine',     chords: [[0,5,10,14],[2,7,12,16],[-3,2,7,12],[-5,0,5,10]], arp: [0,5,10,14,17,14,10,5], mel: [0,5,7,10,12], padGain: .05, arpGain: .038, bassGain: .058, filt: 1000, bell: true },
+    // ---- younger learners: bright / bouncy / adventurous ----
+    sunny:     { root: 293.66, tempo: 1500, wave: 'triangle', chords: [[0,4,7,12],[5,9,12,17],[7,11,14,19],[2,5,9,14]], arp: [0,4,7,12,7,4], mel: [0,4,7,9,12], padGain: .045, arpGain: .05, bassGain: .055, filt: 1600, bell: true },
+    adventure: { root: 261.63, tempo: 1400, wave: 'square',   chords: [[0,4,7],[5,9,12],[9,12,16],[7,11,14]], arp: [0,4,7,12,7,4], mel: [0,2,4,7,9], padGain: .03, arpGain: .045, bassGain: .05, filt: 1500, bell: false },
+    bubbles:   { root: 329.63, tempo: 1350, wave: 'sine',     chords: [[0,5,9,12],[-3,2,7,12],[0,4,9,14],[5,9,12,16]], arp: [0,5,9,12,16,12,9,5], mel: [0,5,9,12,14], padGain: .04, arpGain: .05, bassGain: .05, filt: 1900, bell: true },
+    arcade:    { root: 277.18, tempo: 1250, wave: 'square',   chords: [[0,4,7,12],[3,7,10,15],[5,9,12,17],[-2,3,7,10]], arp: [0,4,7,12,16,12,7,4], mel: [0,3,5,7,10], padGain: .028, arpGain: .04, bassGain: .05, filt: 2200, bell: false }
   };
+  const PLAYLIST = { chill: ['lofi', 'midnight', 'focus', 'cosmos'], playful: ['sunny', 'adventure', 'bubbles', 'arcade'] };
+  const BARS_PER_TRACK = 8;  // rotate to the next track for variety after 8 bars
+
   function note(freq, t, dur, gain, wave, filtHz) {
     const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
     o.type = wave; o.frequency.value = freq;
@@ -240,34 +254,50 @@ const Music = (() => {
     o.start(t); o.stop(t + dur + 0.05);
   }
   function semis(root, s) { return root * Math.pow(2, s / 12); }
+  function pickTrackForGroup() {
+    const list = PLAYLIST[group] || PLAYLIST.chill;
+    track = TRACKS[list[trackIdx % list.length]];
+    trackIdx++; barsOnTrack = 0;
+  }
   function schedule() {
     if (!playing) return;
-    const M = MOODS[mood], t = ctx.currentTime + 0.05, beat = M.tempo / 1000;
+    const M = track, t = ctx.currentTime + 0.05, beat = M.tempo / 1000;
     const chord = M.chords[step % M.chords.length];
-    // soft sustained pad (whole chord)
-    chord.forEach(s => note(semis(M.root, s), t, beat * 1.9, M.padGain, M.wave, M.filt));
-    // arpeggio sprinkled across the bar
+    // sustained pad (whole chord)
+    chord.forEach(s => note(semis(M.root, s), t, beat * 1.9, M.padGain * (0.85 + Math.random() * 0.3), M.wave, M.filt));
+    // bass: root two octaves down, with a soft mid-bar pulse for groove
+    note(semis(M.root / 2, chord[0]), t, beat * 1.1, M.bassGain, 'triangle', 500);
+    note(semis(M.root / 2, chord[0] + 7), t + beat, beat * 0.9, M.bassGain * 0.7, 'triangle', 500);
+    // arpeggio across the bar
     const per = beat / M.arp.length * 2;
     M.arp.forEach((s, i) => note(semis(M.root * 2, s + chord[0]), t + i * per, per * 1.3, M.arpGain, 'sine', M.filt + 400));
+    // gentle melody: a couple of pentatonic notes, humanized, not every bar
+    if (step % 2 === 0) {
+      const mel = M.mel, n1 = mel[Math.floor(Math.random() * mel.length)] + 12, n2 = mel[Math.floor(Math.random() * mel.length)] + 12;
+      note(semis(M.root, n1 + chord[0]), t + beat * 0.5, beat * 0.6, M.arpGain * 1.1, M.wave === 'square' ? 'triangle' : 'sine', M.filt + 800);
+      if (Math.random() < 0.6) note(semis(M.root, n2 + chord[0]), t + beat * 1.3, beat * 0.6, M.arpGain, 'sine', M.filt + 800);
+    }
     // occasional shimmer bell
-    if (step % 2 === 1) note(semis(M.root * 4, chord[1]), t + beat, beat * 1.2, 0.03, 'sine', 3000);
-    step++;
+    if (M.bell && step % 2 === 1) note(semis(M.root * 4, chord[1]), t + beat, beat * 1.2, 0.028, 'sine', 3200);
+    step++; barsOnTrack++;
+    if (barsOnTrack >= BARS_PER_TRACK) pickTrackForGroup();  // rotate track for variety
     timer = setTimeout(schedule, M.tempo);
   }
   function start(which) {
     if (!on) return;
-    mood = which || mood;
+    if (which && which !== group) { group = which; trackIdx = 0; if (playing) pickTrackForGroup(); }
+    else group = which || group;
     try {
       ctx = Sound.ctx();
       if (ctx.state === 'suspended') ctx.resume();
       if (!master) { master = ctx.createGain(); master.gain.value = 0; master.connect(ctx.destination); }
       master.gain.cancelScheduledValues(ctx.currentTime);
       master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
-      master.gain.linearRampToValueAtTime(0.9, ctx.currentTime + 1.5); // gentle fade-in
-      if (!playing) { playing = true; step = 0; schedule(); }
+      master.gain.linearRampToValueAtTime(0.85, ctx.currentTime + 1.5); // gentle fade-in
+      if (!playing) { playing = true; step = 0; pickTrackForGroup(); schedule(); }
     } catch (e) { /* audio unsupported — fine */ }
   }
-  function stop(hard) {
+  function stop() {
     if (!playing) return;
     try {
       if (master) { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6); }
@@ -278,10 +308,12 @@ const Music = (() => {
   return {
     start, stop,
     get on() { return on; },
-    setMood(m) { if (m !== mood && playing) { mood = m; } else { mood = m; } },
+    get nowPlaying() { const list = PLAYLIST[group] || []; return list[(trackIdx - 1 + list.length) % list.length]; },
+    // Skip to the next track in the current playlist (for a "next track" button)
+    skip() { if (playing) { pickTrackForGroup(); step = 0; } },
     toggle(currentMood) {
       on = !on; localStorage.bp_music = on ? '1' : '0';
-      if (on) start(currentMood); else stop(true);
+      if (on) start(currentMood); else stop();
       return on;
     }
   };
@@ -451,6 +483,7 @@ function topbar(inner = '') {
         <div class="sound-menu" id="sound-menu" hidden>
           <button class="sound-opt" id="sfx-toggle"><span>🔊 Sound effects</span><span class="sw ${Sound.muted ? '' : 'on'}" id="sfx-sw"></span></button>
           <button class="sound-opt" id="music-toggle"><span>🎵 Background music</span><span class="sw ${Music.on ? 'on' : ''}" id="music-sw"></span></button>
+          <button class="sound-opt sound-skip" id="music-skip"><span>⏭️ Next track</span><span class="muted" style="font-size:.78rem">shuffle</span></button>
         </div>
       </div>
       ${right}
@@ -465,6 +498,8 @@ function wireChrome() {
     const sfxSw = $('#sfx-sw'), musicSw = $('#music-sw');
     $('#sfx-toggle').onclick = (e) => { e.stopPropagation(); const muted = Sound.toggle(); sfxSw.classList.toggle('on', !muted); if (!muted) Sound.click(); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
     $('#music-toggle').onclick = (e) => { e.stopPropagation(); const isOn = Music.toggle(currentMusicMood()); musicSw.classList.toggle('on', isOn); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
+    const skip = $('#music-skip');
+    if (skip) skip.onclick = (e) => { e.stopPropagation(); if (!Music.on) { Music.toggle(currentMusicMood()); if ($('#music-sw')) $('#music-sw').classList.add('on'); } else { Music.skip(); } };
   }
   const lb = $('#logout-btn');
   if (lb) lb.onclick = async () => { await api('/auth/logout', { method: 'POST' }); await refreshMe(); location.hash = '#'; };
