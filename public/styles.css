@@ -310,6 +310,30 @@ body[data-theme="academy"] .zone-card .zemoji { font-size: 1.5rem; }
 body[data-theme="academy"] .kid-header h1 { font-size: 1.5rem; }
 body[data-theme="academy"] .big-emoji { font-size: 3.4rem; }
 
+/* Up Next smart recommendation */
+.up-next { display: flex; align-items: center; gap: 16px; background: linear-gradient(120deg, var(--accent-soft, #f6ecd3), #fff); border: 2px solid var(--accent); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 16px; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; box-shadow: var(--shadow); }
+.up-next:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(0,0,0,.14); }
+.un-emoji { font-size: 2.6rem; }
+.un-text { flex: 1; display: flex; flex-direction: column; gap: 2px; color: var(--ink); }
+.un-label { font-size: .72rem; font-weight: 800; letter-spacing: .14em; color: var(--accent); }
+.un-text b { font-size: 1.15rem; }
+.un-sub { font-size: .85rem; color: #7d8496; }
+body[data-theme="junior"] .up-next { border-radius: 24px; }
+body[data-theme="junior"] .un-emoji { font-size: 3.2rem; }
+body[data-theme="junior"] .un-text b { font-size: 1.3rem; }
+body[data-theme="academy"] .up-next { background: rgba(255,255,255,.06); border-color: var(--accent); }
+body[data-theme="academy"] .un-text { color: #e8ebf2; }
+body[data-theme="academy"] .un-sub { color: #8b94a7; }
+
+/* streak dots + rank */
+.streak-dots { display: flex; align-items: center; gap: 5px; margin-top: 8px; }
+.sdot { width: 9px; height: 9px; border-radius: 50%; background: #e3e0d8; }
+.sdot.on { background: #1f8a5f; box-shadow: 0 0 0 2px rgba(31,138,95,.2); }
+body[data-theme="academy"] .sdot { background: #2a3350; }
+body[data-theme="academy"] .sdot.on { background: #2fae7d; }
+.sdot-label { font-size: .72rem; color: #98a0af; margin-left: 6px; }
+.rank-chip { background: var(--accent); color: #fff; font-weight: 800; }
+
 /* Focus Session launcher (teens) */
 .focus-launch { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 16px; color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
 .focus-launch .muted-inv { opacity: .8; font-size: .88rem; }

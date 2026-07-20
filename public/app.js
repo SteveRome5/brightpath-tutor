@@ -158,6 +158,14 @@ const WHY_TOPICS = {
   ],
   spanish: []
 };
+// XP ranks — every learner climbs the stable, Foal to Thoroughbred 🏇
+const RANKS = [['Foal', 0], ['Pony Pal', 100], ['Trotter', 250], ['Canterer', 500], ['Galloper', 1000], ['Trailblazer', 2000], ['Champion', 4000], ['Legend', 8000], ['Thoroughbred', 15000]];
+function rankFor(xp) {
+  let cur = RANKS[0], next = null;
+  for (const r of RANKS) { if (xp >= r[1]) cur = r; else { next = r; break; } }
+  return { name: cur[0], at: cur[1], next: next ? { name: next[0], at: next[1] } : null };
+}
+
 function whyLine(subject, skillName) {
   const topics = WHY_TOPICS[subject] || [];
   const hit = skillName ? topics.find(t => t.match.test(skillName)) : null;
@@ -641,6 +649,7 @@ route('home', async () => {
       <div>
         <h1>${playful() ? `Hi ${esc(k.name)}! Ready to level up? ⚡` : `Welcome back, ${esc(k.name)}.`}</h1>
         <div class="stat-chips" style="margin-top:8px">
+          ${(() => { const r = rankFor(k.xp); return `<span class="chip rank-chip" title="${r.next ? (r.next.at - k.xp) + ' XP to ' + r.next.name : 'Top rank!'}">🏇 ${r.name}</span>`; })()}
           <span class="chip">${playful() ? '🔥 ' : ''}${k.streak}-day streak</span>
           <span class="chip">${playful() ? '⚡ ' : ''}${k.xp} XP</span>
           <span class="chip">${playful() ? '🪙 ' : ''}${k.coins} coins</span>
@@ -650,9 +659,30 @@ route('home', async () => {
       <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#report/${k.id}'">${playful() ? '📊 ' : ''}My Progress</button>
       <button class="btn ghost small" id="autoread-btn">${Voice.auto ? '🗣️ Read-aloud ON' : '🗣️ Read-aloud off'}</button></div>
     </div>
+    ${(() => {
+      const rec = data.recommended; if (!rec) return '';
+      const s = data.subjects.find(x => x.subject === rec.subject); if (!s) return '';
+      const title = rec.type === 'place' ? (playful() ? `Find your ${s.label} level!` : `Take your ${s.label} placement`)
+        : rec.type === 'boost' ? (playful() ? `${s.label} needs a power-up 💪` : `${s.label}: your biggest gains are here`)
+        : rec.type === 'more' ? (playful() ? `Keep the ${s.label} roll going 🔥` : `${s.label}: keep the momentum`)
+        : (playful() ? `Fresh ${s.label} adventure awaits ✨` : `${s.label}: nothing logged today`);
+      const sub = rec.type === 'place' ? (playful() ? 'A quick quiz finds your perfect starting spot.' : 'Short adaptive assessment — a few minutes.')
+        : rec.type === 'boost' ? (playful() ? 'A few wins here and your skill power jumps!' : 'Targeted reps where mastery is lowest.')
+        : (playful() ? 'Your tutor picked this just for you.' : 'Recommended by your progress data.');
+      return `<div class="up-next" data-upnext="${rec.subject}" data-place="${rec.type === 'place' ? 1 : 0}">
+        <div class="un-emoji">${s.emoji}</div>
+        <div class="un-text"><span class="un-label">${playful() ? '🐎 UP NEXT' : 'UP NEXT'}</span><b>${title}</b><span class="un-sub">${sub}</span></div>
+        <button class="btn sun">${rec.type === 'place' ? 'Find my level →' : 'Start →'}</button>
+      </div>`;
+    })()}
     <div class="week-gallop">
       <div class="wg-head"><span>${playful() ? '🏇 This week’s gallop' : 'This week'}</span><span>${data.weekAnswers || 0} / ${(k.weekly_goal || 12) * 10} answers</span></div>
       ${gallopTrack(Math.min(100, (data.weekAnswers || 0) / ((k.weekly_goal || 12) * 10) * 100))}
+      ${(() => {
+        const days = [];
+        for (let i = 13; i >= 0; i--) { const d = new Date(Date.now() - i * 864e5).toISOString().slice(0, 10); days.push({ d, on: (data.activeDays || []).includes(d) }); }
+        return `<div class="streak-dots" title="Your last 14 days">${days.map(x => `<span class="sdot ${x.on ? 'on' : ''}"></span>`).join('')}<span class="sdot-label">${playful() ? 'every dot = a day you learned!' : 'last 14 days'}</span></div>`;
+      })()}
     </div>
     ${questCard}
     ${(k.grade >= 6 && data.subjects.some(s => s.placed)) ? `
@@ -710,6 +740,8 @@ route('home', async () => {
       document.body.appendChild(div);
     }
   } catch (e) { /* recap is a nice-to-have */ }
+  const un = document.querySelector('.up-next');
+  if (un) un.onclick = () => { Sound.click(); location.hash = (un.dataset.place === '1' ? '#placement/' : '#lesson/') + un.dataset.upnext; };
   document.querySelectorAll('[data-focus]').forEach(b => b.onclick = () => { Sound.click(); location.hash = '#lesson/' + b.dataset.focus + '/focus'; });
   document.querySelectorAll('.subject-card').forEach(el => el.onclick = () => {
     Sound.click();
@@ -1229,6 +1261,14 @@ route('parent', async () => {
           <p class="muted center" style="margin-top:10px;font-size:.85rem">${me.billingMode === 'stripe' ? 'Payments powered by Stripe' : 'Demo mode: clicking subscribe activates instantly, no card needed. Set STRIPE_SECRET_KEY to enable real payments.'}</p>
         </div>
         <div class="card">
+          <h3>🔐 Account</h3>
+          <label>Current password</label><input id="cp-cur" type="password" autocomplete="current-password">
+          <label>New password (6+ characters)</label><input id="cp-new" type="password" autocomplete="new-password">
+          <div class="error-msg" id="cp-err"></div>
+          <button class="btn small" style="margin-top:10px" id="cp-go">Change Password</button>
+          <span id="cp-ok" style="margin-left:10px;color:#1f8a5f;font-weight:700;display:none">✓ Updated!</span>
+        </div>
+        <div class="card">
           <h3>🚀 How kids log in (any device)</h3>
           <p class="muted" style="margin-top:8px;line-height:1.6">1. Go to this site on any PC, Mac, or tablet<br>2. Tap <b>Kid Login</b> → enter <b>${esc(p.email)}</b><br>3. They pick their avatar & enter their 4-digit PIN<br><br>That's it — progress syncs everywhere. 🎉</p>
         </div>
@@ -1316,6 +1356,15 @@ route('parent', async () => {
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
     if (confirm('Remove this learner and all their progress?')) { await api('/kids/' + b.dataset.del, { method: 'DELETE' }); navigate(); }
   });
+  const cpg = $('#cp-go');
+  if (cpg) cpg.onclick = async () => {
+    try {
+      await api('/auth/change-password', { method: 'POST', body: { current: $('#cp-cur').value, next: $('#cp-new').value } });
+      $('#cp-cur').value = ''; $('#cp-new').value = ''; $('#cp-err').classList.remove('show');
+      $('#cp-ok').style.display = 'inline'; Sound.badge();
+      setTimeout(() => { const el = $('#cp-ok'); if (el) el.style.display = 'none'; }, 3000);
+    } catch (e) { showError('#cp-err', e.message); }
+  };
   const fam = $('#sub-family'), solo = $('#sub-solo'), portal = $('#sub-portal');
   if (fam) fam.onclick = () => checkout('family');
   if (solo) solo.onclick = () => checkout('solo');
@@ -1350,7 +1399,7 @@ route('admin', async () => {
   const statusPill = st => st === 'active' ? '<span class="pill strength">active</span>' : st === 'trial' ? '<span class="pill" style="background:#fdf3d7;color:#7a5b00">trial</span>' : `<span class="pill focus">${esc(st)}</span>`;
   const maxSign = Math.max(1, ...d.signups.map(x => x.n));
   app().innerHTML = topbar(`<div class="container">
-    <div class="dash-welcome" style="margin-bottom:14px"><h1>🛡️ Gallop Command Center</h1><p>Owner dashboard — live business & learning metrics</p></div>
+    <div class="dash-welcome" style="margin-bottom:14px"><h1>🛡️ Gallop Command Center</h1><p>Owner dashboard — live business & learning metrics${t.testAccounts ? ` · <i>${t.testAccounts} dev/test account${t.testAccounts === 1 ? '' : 's'} hidden from all numbers</i>` : ''}</p></div>
     <div class="statband" style="margin-bottom:18px">
       <div><b>${t.parents}</b><span>Families</span></div>
       <div><b>${t.kids}</b><span>Learners</span></div>
