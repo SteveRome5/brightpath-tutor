@@ -671,8 +671,9 @@
           ${data.catalog[slot].map(item => {
             const own = isOwned(slot, item);
             const equipped = cfg[slot] === item.id;
-            return `<div class="avatar-opt ${equipped ? 'sel' : ''}" data-item="${item.id}" style="min-width:74px;position:relative">
-              ${item.seasonal ? '<span class="limited-tag">⏳ LIMITED</span>' : ''}
+            const rar = item.rarity ? ` rar-${item.rarity}` : '';
+            return `<div class="avatar-opt${rar} ${equipped ? 'sel' : ''}" data-item="${item.id}" style="min-width:74px;position:relative">
+              ${item.seasonal ? '<span class="limited-tag">⏳ LIMITED</span>' : (item.rarity ? `<span class="rar-tag rar-tag-${item.rarity}">${item.rarity === 'legendary' ? '★ LEGENDARY' : item.rarity === 'epic' ? '◆ EPIC' : '● RARE'}</span>` : '')}
               <div style="font-size:2rem">${item.emoji || '🚫'}</div>
               <div style="font-size:.75rem;font-weight:700">${own ? (equipped ? 'Wearing ✓' : 'Owned') : '🪙 ' + item.price}</div>
             </div>`;
@@ -704,6 +705,92 @@
         Sound.levelup(); Confetti.burst(120);
         location.hash = '#home';
       };
+    }
+    render();
+  });
+
+  // ======================= SNACK SHACK & VENDING =======================
+  route('snacks', async () => {
+    if (needKid()) return;
+    const data = await api(`/play/${kidId()}/snacks`);
+    let coins = data.coins;
+    const owned = { ...data.owned };
+    let machine = 'vending';
+    const RAR_LABEL = { rare: '● RARE', epic: '◆ EPIC', legendary: '★ LEGENDARY' };
+    function render() {
+      const list = data.machines[machine];
+      const totalOwned = Object.values(owned).reduce((a, b) => a + b, 0);
+      app().innerHTML = topbar(`<div class="container" style="max-width:760px">
+        <div class="kid-header" style="margin-bottom:14px">
+          <div><h1>🍿 Snack Shack</h1>
+            <div class="stat-chips" style="margin-top:8px">
+              <span class="chip">🪙 ${coins} coins</span>
+              <span class="chip">🎒 ${totalOwned} snacks collected</span>
+            </div>
+          </div>
+          <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#home'">← Home</button></div>
+        </div>
+        <div class="center" style="margin-bottom:14px">
+          <button class="btn ${machine === 'vending' ? 'sun' : 'ghost'} small" style="${machine !== 'vending' ? 'color:#fff;border-color:rgba(255,255,255,.5);' : ''}margin:3px" data-machine="vending">🥤 Vending Machine</button>
+          <button class="btn ${machine === 'shack' ? 'sun' : 'ghost'} small" style="${machine !== 'shack' ? 'color:#fff;border-color:rgba(255,255,255,.5);' : ''}margin:3px" data-machine="shack">🍔 Snack Shack</button>
+        </div>
+        <div class="vending ${machine === 'shack' ? 'is-shack' : ''}">
+          <div class="vending-head">${machine === 'vending' ? '🥤 GALLOP SNACKS' : '🍔 THE SNACK SHACK'}</div>
+          <div class="vending-grid">
+            ${list.map(sn => {
+              const cnt = owned[sn.id] || 0;
+              const rar = sn.rarity ? ` rar-${sn.rarity}` : '';
+              return `<div class="snack-slot${rar}" data-snack="${sn.id}">
+                ${sn.rarity ? `<span class="rar-tag rar-tag-${sn.rarity}">${RAR_LABEL[sn.rarity]}</span>` : ''}
+                ${cnt ? `<span class="snack-count">×${cnt}</span>` : ''}
+                <div class="snack-emoji">${sn.emoji}</div>
+                <div class="snack-name">${esc(sn.name)}</div>
+                <button class="btn sun snack-buy" data-snack="${sn.id}">🪙 ${sn.price}</button>
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="vending-tray"><div class="vending-slot-mouth"></div><div id="drop-zone"></div></div>
+        </div>
+        <p class="center" style="color:#fff;opacity:.9;margin-top:14px">${machine === 'vending' ? 'Quick treats — earn coins by learning, then treat yourself! 🪙' : 'Fancier goodies for big coin-savers. Collect them all! 🏆'}</p>
+      </div>`);
+      wireChrome();
+      document.querySelectorAll('[data-machine]').forEach(b => b.onclick = () => { machine = b.dataset.machine; Sound.click(); render(); });
+      document.querySelectorAll('.snack-buy').forEach(btn => btn.onclick = async (ev) => {
+        ev.stopPropagation();
+        const sn = data.machines[machine].find(s => s.id === btn.dataset.snack);
+        try {
+          const r = await api(`/play/${kidId()}/snacks/buy`, { method: 'POST', body: { machine, snackId: sn.id } });
+          coins = r.coins; owned[sn.id] = r.qty;
+          Sound.correct();
+          dropSnack(sn.emoji);
+          // update this slot's chips live without a full re-render (keeps the drop visible)
+          $('.stat-chips').children[0].textContent = `🪙 ${coins} coins`;
+          const slot = document.querySelector(`.snack-slot[data-snack="${sn.id}"]`);
+          let badge = slot.querySelector('.snack-count');
+          if (!badge) { badge = document.createElement('span'); badge.className = 'snack-count'; slot.appendChild(badge); }
+          badge.textContent = '×' + r.qty;
+        } catch (e) {
+          Sound.wrong();
+          btn.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }], { duration: 280 });
+          btn.textContent = 'Need more 🪙';
+          setTimeout(() => { btn.textContent = '🪙 ' + sn.price; }, 1400);
+        }
+      });
+    }
+    function dropSnack(emoji) {
+      const zone = $('#drop-zone');
+      if (!zone) return;
+      const el = document.createElement('div');
+      el.className = 'snack-drop'; el.textContent = emoji;
+      zone.appendChild(el);
+      el.animate([
+        { transform: 'translateY(-140px) scale(.6) rotate(0deg)', opacity: 0 },
+        { transform: 'translateY(-40px) scale(1) rotate(20deg)', opacity: 1, offset: .5 },
+        { transform: 'translateY(0) scale(1.15) rotate(-8deg)', opacity: 1, offset: .8 },
+        { transform: 'translateY(0) scale(1) rotate(0deg)', opacity: 1 }
+      ], { duration: 800, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+      Confetti.burst(24);
+      setTimeout(() => { el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500 }).onfinish = () => el.remove(); }, 1600);
     }
     render();
   });
