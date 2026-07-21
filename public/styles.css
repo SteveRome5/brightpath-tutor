@@ -4,73 +4,80 @@
            scholar (6-8) · academy (9-12, dark)
    ============================================================ */
 :root {
-  --ink: #16213a;
+  /* ---- Gallop brand palette (Brand Guidelines v1.0) ---- */
+  --ink: #111111;                 /* Ink Black — body text */
   --paper: #ffffff;
-  --pagebg: #f7f4ee;
-  --pagebg2: #f7f4ee;
-  --chrome-ink: #16213a;          /* text that sits on the page background */
-  --chrome-sub: #5b6478;
-  --brand: #1f5e46;               /* hunter green */
-  --brand-2: #2d6a4f;
-  --accent: #c9971c;              /* brass */
-  --accent-soft: #f3e3b2;
+  --pagebg: #FAF8F2;              /* Warm Off-White */
+  --pagebg2: #FAF8F2;
+  --chrome-ink: #111111;          /* text that sits on the page background */
+  --chrome-sub: #555555;          /* Warm Grey — secondary text */
+  --brand: #1A5C38;               /* Forest Green — primary */
+  --brand-2: #21714a;             /* lighter forest for gradients */
+  --deep-forest: #0F3D25;         /* Deep Forest — dark backgrounds */
+  --accent: #C9A84C;              /* Academy Gold */
+  --accent-soft: #efe2bd;
   --math: #5b5bd6; --english: #0f9d76; --science: #2f78c2; --spanish: #d26440;
   --danger: #d64545;
   --card-bg: #ffffff;
-  --card-border: #e8e2d6;
-  --field-border: #d9d2c4;
-  --soft-bg: #f4f1ea;
+  --card-border: #ece7db;
+  --field-border: #ddd6c7;
+  --soft-bg: #F2EEE4;
   --radius: 14px;
   --btn-radius: 10px;
-  --shadow: 0 1px 2px rgba(22, 33, 58, .06), 0 8px 24px rgba(22, 33, 58, .07);
-  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
-  --font-body: 'Mulish', -apple-system, 'Segoe UI', sans-serif;
-  --heading-weight: 600;
+  --shadow: 0 1px 2px rgba(17, 17, 17, .05), 0 8px 24px rgba(26, 92, 56, .08);
+  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-body: 'Montserrat', -apple-system, 'Segoe UI', sans-serif;
+  --heading-weight: 700;
   font-size: 16px;
 }
 
 /* ---- age themes (palettes tuned to learning-color research) ---- */
 /* K-2: warm & sunny — bright sky + golden accents energize little learners */
 body[data-theme="junior"] {
-  --pagebg: #3d8fe0; --pagebg2: #7a67dd;
-  --brand: #f59f37; --brand-2: #ef8b52;
-  --chrome-ink: #ffffff; --chrome-sub: rgba(255,255,255,.88);
+  --pagebg: #1A5C38; --pagebg2: #21714a;     /* Forest Green — warmth via big rounded shapes + gold, on brand */
+  --brand: #1A5C38; --brand-2: #21714a;
+  --accent: #C9A84C; --accent-soft: #efe2bd;
+  --chrome-ink: #ffffff; --chrome-sub: rgba(255,255,255,.9);
   --card-border: transparent;
   --radius: 22px; --btn-radius: 999px;
   --font-display: 'Fredoka', sans-serif; --font-body: 'Fredoka', sans-serif;
-  --shadow: 0 10px 30px rgba(20, 40, 90, .2);
-  --soft-bg: #fef6e7; --field-border: #dfe6e9;
+  --shadow: 0 10px 30px rgba(15, 61, 37, .28);
+  --soft-bg: #eef6f0; --field-border: #dfe6e9;
 }
 /* 3-5: green — proven to aid concentration & reading comprehension */
 body[data-theme="explorer"] {
-  --pagebg: #178a5f; --pagebg2: #2fae7d;
-  --brand: #0d6e4a; --brand-2: #12855a;
-  --chrome-ink: #ffffff; --chrome-sub: rgba(255,255,255,.88);
+  --pagebg: #1A5C38; --pagebg2: #21714a;     /* Forest Green — the on-brand green band */
+  --brand: #0F3D25; --brand-2: #1A5C38;
+  --accent: #C9A84C; --accent-soft: #efe2bd;
+  --chrome-ink: #ffffff; --chrome-sub: rgba(255,255,255,.9);
   --card-border: transparent;
   --radius: 18px; --btn-radius: 14px;
-  --font-display: 'Fredoka', sans-serif; --font-body: 'Mulish', sans-serif;
-  --shadow: 0 8px 26px rgba(8, 55, 40, .2);
-  --soft-bg: #eef8f2; --field-border: #d3e5db;
+  --font-display: 'Fredoka', sans-serif; --font-body: 'Montserrat', sans-serif;
+  --shadow: 0 8px 26px rgba(15, 61, 37, .25);
+  --soft-bg: #eef6f0; --field-border: #d3e5db;
 }
 /* 6-8: calm blue — lowers arousal, sharpens sustained focus */
 body[data-theme="scholar"] {
-  --pagebg: #e9eef6; --pagebg2: #e9eef6;
-  --brand: #2b64ad; --brand-2: #2f74c4;
-  --chrome-ink: #1d2433; --chrome-sub: #5b6478;
+  --pagebg: #FAF8F2; --pagebg2: #FAF8F2;     /* clean warm off-white — calm, on brand */
+  --brand: #1A5C38; --brand-2: #21714a;
+  --accent: #C9A84C; --accent-soft: #efe2bd;
+  --chrome-ink: #111111; --chrome-sub: #555555;
   --radius: 12px; --btn-radius: 9px;
-  --shadow: 0 1px 3px rgba(20, 28, 45, .08), 0 6px 18px rgba(20, 28, 45, .06);
-  --card-border: #dde4ef; --soft-bg: #f0f4fa; --field-border: #cfd9e8;
+  --font-body: 'Montserrat', sans-serif;
+  --shadow: 0 1px 3px rgba(17, 17, 17, .07), 0 6px 18px rgba(26, 92, 56, .07);
+  --card-border: #ece7db; --soft-bg: #F2EEE4; --field-border: #ddd6c7;
 }
 /* 9-12: deep navy dark mode + restrained amber — serious, low-strain, adult */
 body[data-theme="academy"] {
-  --ink: #e8eaf0;
-  --pagebg: #101627; --pagebg2: #101627;
-  --chrome-ink: #e8eaf0; --chrome-sub: #8b94a7;
-  --card-bg: #19203a; --card-border: #2a3352;
-  --soft-bg: #222b47; --field-border: #38426a;
+  --ink: #f2efe6;
+  --pagebg: #0F3D25; --pagebg2: #0c3520;     /* Deep Forest — serious, on-brand dark */
+  --chrome-ink: #f2efe6; --chrome-sub: #a8b8ac;
+  --card-bg: #123f28; --card-border: #1f5236;
+  --soft-bg: #16482e; --field-border: #26603f;
   --radius: 12px; --btn-radius: 8px;
+  --font-body: 'Montserrat', sans-serif;
   --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
-  --accent: #e0b64f; --brand: #3d6fc2; --brand-2: #4a80d6;
+  --accent: #C9A84C; --brand: #C9A84C; --brand-2: #d8bd6a;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
