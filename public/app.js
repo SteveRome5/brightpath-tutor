@@ -613,7 +613,7 @@ route('landing', async () => {
       </div>
       <p class="hero-cta-note muted">No credit card to start · Cancel anytime</p>
     </div>
-    <div class="horse-runner"><img src="/logo-mark.png" alt="" class="horse-runner-img"></div>
+    <div class="hero-journey"><img src="/journey-green.png" alt="" class="journey-img"></div>
   </div>
   <div class="container">
     <div class="statband reveal">
