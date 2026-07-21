@@ -254,6 +254,21 @@ body[data-theme="junior"] .gallop-rail, body[data-theme="explorer"] .gallop-rail
 body[data-theme="academy"] .week-gallop .wg-head { color: #8b94a7; }
 .q-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 30px; }
 .q-skill { display: inline-block; font-size: .8rem; font-weight: 700; padding: 5px 13px; border-radius: 999px; margin-bottom: 14px; color: #fff; }
+/* Strong-nudge: lesson-before-practice hand-off */
+.lesson-gate { padding: 30px 26px 26px; }
+.lg-badge { display: inline-block; background: var(--accent); color: #241c04; font-weight: 800; font-size: .7rem; letter-spacing: .12em; padding: 5px 14px; border-radius: 999px; }
+.lg-steps { display: inline-flex; align-items: center; gap: 10px; margin: 16px auto 20px; }
+.lg-step { font-weight: 700; font-size: .92rem; padding: 8px 16px; border-radius: 999px; background: var(--soft-bg); color: var(--chrome-sub); border: 1.5px solid var(--card-border); }
+.lg-step.on { background: var(--brand); color: #fff; border-color: transparent; }
+.lg-arrow { color: var(--accent); font-weight: 800; font-size: 1.1rem; }
+.lg-go { font-size: 1.05rem; padding: 14px 26px; }
+/* prominent "learn this first" banner inside a practice question */
+.learn-banner { clear: both; display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 4px 0 16px;
+  background: color-mix(in srgb, var(--lb, #1A5C38) 12%, transparent); color: var(--lb, #1A5C38);
+  border: 1.5px solid color-mix(in srgb, var(--lb, #1A5C38) 40%, transparent); border-radius: 12px; padding: 11px 15px; font-size: .92rem; font-weight: 600;
+  transition: transform .12s ease, background .12s ease; }
+.learn-banner:hover { transform: translateY(-1px); background: color-mix(in srgb, var(--lb, #1A5C38) 18%, transparent); }
+.learn-banner .lb-arrow { margin-left: auto; font-weight: 800; }
 .q-prompt { font-size: 1.3rem; font-weight: 600; white-space: pre-line; line-height: 1.5; font-family: var(--font-body); }
 /* Reading-friendly scaling: big, roomy type for early readers */
 body[data-theme="junior"] .q-prompt { font-size: 1.72rem; line-height: 1.65; letter-spacing: .01em; word-spacing: .08em; }

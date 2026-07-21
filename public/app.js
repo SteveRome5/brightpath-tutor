@@ -1265,7 +1265,34 @@ route('lesson', async (subject, mode) => {
     }
   }
 
+  // Strong nudge: when a brand-new skill has a lesson the kid hasn't done yet,
+  // lead with the lesson (Step 1) before the practice (Step 2). Skippable.
+  const gatedSkills = new Set();
+  function lessonDoneFor(teach) { try { return teach && localStorage['bp_lesson_' + teach.id] === '1'; } catch (e) { return false; } }
   function render(data) {
+    const sid = data.skill && data.skill.id;
+    const teach = (window.BP.lessonForSkill && sid) ? window.BP.lessonForSkill(subject, sid) : null;
+    if (teach && !lessonDoneFor(teach) && data.mode === 'learn' && !gatedSkills.has(sid)) return lessonIntro(data, teach);
+    renderQuestion(data);
+  }
+  function lessonIntro(data, teach) {
+    app().innerHTML = topbar(`<div class="container" style="max-width:560px">
+      <div class="lesson-top"><b>${style.emoji} ${style.cheer}</b></div>
+      <div class="card center lesson-gate">
+        <span class="lg-badge">NEW SKILL</span>
+        <div class="big-emoji" style="margin:8px 0 2px">📖</div>
+        <h2 style="margin-bottom:4px">${esc(data.question.skillName || 'A new skill')}</h2>
+        <p class="muted" style="margin:8px auto 2px;max-width:26rem">${playful() ? 'Let’s learn it first with a quick lesson — then you’ll practice it! 💪' : 'Start with a short lesson that teaches this, then jump into the practice.'}</p>
+        <div class="lg-steps"><span class="lg-step on">📖 Lesson</span><span class="lg-arrow">→</span><span class="lg-step">✅ Practice</span></div>
+        <button class="btn green lg-go" id="lg-lesson">Start the lesson →</button>
+        <div><button class="btn ghost small" id="lg-skip" style="margin-top:12px;color:var(--brand);border-color:var(--brand)">Skip to practice</button></div>
+      </div>
+    </div>`);
+    wireChrome();
+    $('#lg-lesson').onclick = () => { Sound.click(); location.hash = '#teach/' + teach.id; };
+    $('#lg-skip').onclick = () => { Sound.click(); gatedSkills.add(data.skill && data.skill.id); renderQuestion(data); };
+  }
+  function renderQuestion(data) {
     const qn = data.question;
     const modeLabel = { boost: '💪 Power-Up (extra practice!)', learn: '🌱 New Challenge', review: '✨ Quick Review', retention: '🧠 Memory Check (keeping it sharp!)' }[data.mode] || '';
     const qStart = Date.now();
@@ -1276,6 +1303,7 @@ route('lesson', async (subject, mode) => {
     const typed = subject === 'math' && numericQ && (State.me.kid.grade >= 2) && Math.random() < 0.3;
     // If we have a real lesson that teaches this exact skill, offer it right here.
     const teachLesson = (window.BP.lessonForSkill && data.skill) ? window.BP.lessonForSkill(subject, data.skill.id) : null;
+    const lessonDone = lessonDoneFor(teachLesson);
     app().innerHTML = topbar(`<div class="container lesson-wrap">
       <div class="lesson-top">
         <b>${focus ? '🎯 Focus Session: ' + esc(SUBJECT_STYLE[subject] === style ? subject.charAt(0).toUpperCase() + subject.slice(1) : subject) : style.emoji + ' ' + style.cheer}</b>
@@ -1284,8 +1312,9 @@ route('lesson', async (subject, mode) => {
       </div>
       <div class="q-card">
         <span class="q-skill" style="background:${style.color}">${esc(qn.skillName)} · ${esc(modeLabel)}</span>
-        ${teachLesson ? `<button class="btn ghost small learn-this" style="float:right;color:${style.color};border-color:${style.color};margin-left:6px" onclick="location.hash='#teach/${teachLesson.id}'">📖 Learn this</button>` : ''}
+        ${teachLesson ? `<button class="btn ghost small learn-this" style="float:right;color:${style.color};border-color:${style.color};margin-left:6px" onclick="location.hash='#teach/${teachLesson.id}'">📖 ${lessonDone ? 'Lesson' : 'Learn this'}</button>` : ''}
         <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
+        ${teachLesson && !lessonDone ? `<div class="learn-banner" style="--lb:${style.color}" onclick="location.hash='#teach/${teachLesson.id}'">📖 <b>New to this skill?</b> Watch the quick lesson first <span class="lb-arrow">→</span></div>` : ''}
         ${qn.passage ? passageHTML(qn.passage, playful()) : ''}
         <div class="q-prompt">${esc(qn.prompt)}</div>
         ${typed ? `<div class="typed-wrap">
