@@ -764,7 +764,7 @@ function legalPage(title, bodyHTML) {
       <h2>${title}</h2>
       <p class="muted" style="margin:6px 0 18px">Last updated: July 19, 2026 · Gallop Learning Academy is operated by Lotus Farms LLC.</p>
       ${bodyHTML}
-      <p style="margin-top:22px"><button class="btn ghost small" style="color:#1f5e46;border-color:#1f5e46" onclick="location.hash='#'">← Back to home</button></p>
+      <p style="margin-top:22px"><button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38" onclick="location.hash='#'">← Back to home</button></p>
     </div></div>`);
   wireChrome();
 }
@@ -833,7 +833,7 @@ route('demo', async () => {
         <button class="btn green" onclick="location.hash='#signup'">Start 7-Day Free Trial →</button>
         <button class="btn sun" style="margin-left:8px" onclick="window.__subscribeIntent=1;location.hash='#signup'">Subscribe now →</button>
         <p class="muted" style="margin-top:10px;font-size:.82rem">Free for 7 days, or subscribe today and skip the wait. Either way you can cancel anytime.</p>
-        <button class="btn ghost small" style="color:#1f5e46;border-color:#1f5e46;margin-top:8px" onclick="location.hash='#'">Back</button>
+        <button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38;margin-top:8px" onclick="location.hash='#'">Back</button>
       </div></div>`);
       wireChrome();
       return;
@@ -1197,7 +1197,7 @@ route('placement', async (subject) => {
       <h2>Level found: ${esc(data.levelName)}!</h2>
       <p class="muted" style="margin:10px 0 20px">We watched how you answered and picked the spot that fits you best in ${esc(subject)}. Not too easy, not too hard, just right. You'll move up as soon as you show you're ready.</p>
       <button class="btn green" onclick="location.hash='#lesson/${subject}'">Start Learning →</button>
-      <button class="btn ghost small" style="color:#6C5CE7;border-color:#6C5CE7;margin-left:8px" onclick="location.hash='#home'">Back Home</button>
+      <button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38;margin-left:8px" onclick="location.hash='#home'">Back Home</button>
     </div></div>`);
     wireChrome();
   }
@@ -1461,7 +1461,7 @@ function statusBadge(status) {
 }
 function statusNote(s) {
   if (s.status === 'excelling') return ' · <b style="color:#1f8a5f">has this down, so we\'re steadily raising the challenge</b>';
-  if (s.status === 'needs-support') return ' · <b style="color:#c9971c">we\'ve eased the difficulty and added extra practice here</b>';
+  if (s.status === 'needs-support') return ' · <b style="color:#C9A84C">we\'ve eased the difficulty and added extra practice here</b>';
   if (s.status === 'on-track') return ' · moving along at a healthy pace';
   return '';
 }
@@ -1525,7 +1525,7 @@ route('report', async (kidId) => {
         <h2>${AVATARS[k.avatar] || '🦊'} ${esc(k.name)}'s Report Card</h2>
         <div>
           <button class="btn small no-print" onclick="window.print()">🖨️ Print</button>
-          ${isParent ? `<button class="btn ghost small no-print" style="color:#6C5CE7;border-color:#6C5CE7" onclick="location.hash='#parent'">← Dashboard</button>` : `<button class="btn green small no-print" onclick="location.hash='#home'">🏠 Home</button>`}
+          ${isParent ? `<button class="btn ghost small no-print" style="color:#1A5C38;border-color:#1A5C38" onclick="location.hash='#parent'">← Dashboard</button>` : `<button class="btn green small no-print" onclick="location.hash='#home'">🏠 Home</button>`}
         </div>
       </div>
       <p class="muted">${r.pace.summer ? `☀️ ${esc(r.pace.note)}` : `${esc(r.pace.label)} · ${Math.round(r.pace.pctThroughYear * 100)}% through the year`} · ${r.weekAnswers} question${r.weekAnswers === 1 ? '' : 's'} this week (goal: ${k.weekly_goal * 10})</p>
@@ -1580,7 +1580,7 @@ route('report', async (kidId) => {
       const bars = H.map((x, i) => {
         const h = Math.round(x.answers / max * 70);
         const acc = x.answers ? x.correct / x.answers : 0;
-        const col = !x.answers ? '#e3e0d8' : acc >= 0.8 ? '#1f8a5f' : acc >= 0.55 ? '#c9971c' : '#d97b4f';
+        const col = !x.answers ? '#e3e0d8' : acc >= 0.8 ? '#1f8a5f' : acc >= 0.55 ? '#C9A84C' : '#d97b4f';
         return `<g><rect x="${i * 34 + 4}" y="${86 - h}" width="26" height="${Math.max(3, h)}" rx="4" fill="${col}"/>
           <text x="${i * 34 + 17}" y="99" font-size="8" text-anchor="middle" fill="#98a0af">${x.day.slice(8)}</text></g>`;
       }).join('');
@@ -1588,7 +1588,7 @@ route('report', async (kidId) => {
         <h3>📈 Last 14 days</h3>
         <p class="muted" style="margin:4px 0 10px">${total} questions · ${total ? Math.round(corr / total * 100) : 0}% correct · active ${activeDays} of 14 days</p>
         <svg viewBox="0 0 480 104" style="width:100%;height:auto" role="img" aria-label="Daily activity chart">${bars}</svg>
-        <p class="muted" style="font-size:.78rem;margin-top:6px">Bar height = questions answered · <span style="color:#1f8a5f">■</span> 80%+ correct · <span style="color:#c9971c">■</span> 55–79% · <span style="color:#d97b4f">■</span> below 55%</p>
+        <p class="muted" style="font-size:.78rem;margin-top:6px">Bar height = questions answered · <span style="color:#1f8a5f">■</span> 80%+ correct · <span style="color:#C9A84C">■</span> 55–79% · <span style="color:#d97b4f">■</span> below 55%</p>
       </div>`;
     })() : ''}
     <div class="card">
@@ -1635,7 +1635,7 @@ route('weekly', async (kidId) => {
   const bars = week.map((x, i) => {
     const h = Math.round(x.answers / max * 60);
     const a2 = x.answers ? x.correct / x.answers : 0;
-    const col = !x.answers ? '#e3e0d8' : a2 >= 0.8 ? '#1f8a5f' : a2 >= 0.55 ? '#c9971c' : '#d97b4f';
+    const col = !x.answers ? '#e3e0d8' : a2 >= 0.8 ? '#1f8a5f' : a2 >= 0.55 ? '#C9A84C' : '#d97b4f';
     const dn = dayNames[new Date(x.day + 'T12:00:00Z').getUTCDay()];
     return `<g><rect x="${i * 64 + 10}" y="${72 - h}" width="44" height="${Math.max(3, h)}" rx="5" fill="${col}"/>
       <text x="${i * 64 + 32}" y="86" font-size="10" text-anchor="middle" fill="#7d8496">${dn}</text>
@@ -1662,14 +1662,14 @@ route('weekly', async (kidId) => {
         <svg viewBox="0 0 458 92" style="width:100%;height:auto;margin:8px 0">${bars}</svg>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
           <div><b style="color:#1f8a5f">💪 Shining at</b><br><span class="muted" style="font-size:.9rem">${strengthList.length ? strengthList.map(esc).join('<br>') : 'Building the basics, stars incoming!'}</span></div>
-          <div><b style="color:#c9971c">🎯 Working on</b><br><span class="muted" style="font-size:.9rem">${focusList.length ? focusList.map(esc).join('<br>') : 'No trouble spots this week!'}</span></div>
+          <div><b style="color:#C9A84C">🎯 Working on</b><br><span class="muted" style="font-size:.9rem">${focusList.length ? focusList.map(esc).join('<br>') : 'No trouble spots this week!'}</span></div>
         </div>
         <p style="margin-top:16px;font-size:.85rem;color:#7d8496;border-top:1px dashed #ddd;padding-top:10px">${total >= 100 ? `Outstanding week, ${esc(k.name)}, over 100 questions! The gallop is real. 🐎` : total >= 50 ? `Great consistency, ${esc(k.name)}, keep that streak alive! 🐎` : total > 0 ? `Every question counts, ${esc(k.name)}, let's pick up the pace next week! 🐎` : `A fresh week awaits, first quest starts today! 🐎`}</p>
       </div>
     </div>
     <div class="center no-print" style="margin-top:16px">
       <button class="btn" onclick="window.print()">🖨️ Print for the Fridge</button>
-      <button class="btn ghost small" style="color:#1f5e46;border-color:#1f5e46;margin-left:8px" onclick="location.hash='#${State.me.role === 'parent' ? 'parent' : 'home'}'">← Back</button>
+      <button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38;margin-left:8px" onclick="location.hash='#${State.me.role === 'parent' ? 'parent' : 'home'}'">← Back</button>
     </div>
   </div>`);
   wireChrome();
@@ -1702,7 +1702,7 @@ route('certificate', async (kidId, certId) => {
     </div>
     <div class="center no-print" style="margin-top:18px">
       <button class="btn" onclick="window.print()">🖨️ Print Certificate</button>
-      <button class="btn ghost small" style="color:#1f5e46;border-color:#1f5e46;margin-left:8px" onclick="location.hash='#report/${kidId}'">← Back to Report</button>
+      <button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38;margin-left:8px" onclick="location.hash='#report/${kidId}'">← Back to Report</button>
     </div>
   </div>`);
   wireChrome();
@@ -2043,7 +2043,7 @@ route('admin', async () => {
       </div>
       <div>
         <div class="card">
-          <h3>🧾 Recent families <a class="btn ghost small" style="float:right;color:#1f5e46;border-color:#1f5e46" href="/api/admin/export.csv" download>⬇️ CSV</a></h3>
+          <h3>🧾 Recent families <a class="btn ghost small" style="float:right;color:#1A5C38;border-color:#1A5C38" href="/api/admin/export.csv" download>⬇️ CSV</a></h3>
           <div style="margin-top:10px;overflow-x:auto">
             ${d.recent.map(p => `
               <div class="kid-row" style="flex-wrap:wrap">

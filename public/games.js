@@ -17,7 +17,7 @@
         <div class="big-emoji">🎟️</div><h2>You need a Play Token!</h2>
         <p class="muted" style="margin:10px 0 18px">${esc(e.data && e.data.message || 'Answer 5 questions correctly in any subject to earn one!')}</p>
         <button class="btn green" onclick="location.hash='#home'">Go Learn & Earn →</button>
-        <button class="btn ghost small" style="color:#6C5CE7;border-color:#6C5CE7;margin-left:8px" onclick="location.hash='#play'">Back</button>
+        <button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38;margin-left:8px" onclick="location.hash='#play'">Back</button>
       </div></div>`);
       wireChrome();
     }
@@ -327,7 +327,7 @@
         <div class="card" style="padding:14px;margin-bottom:10px">
           <b>${esc(ch.text)}</b>
           ${ch.check ? `<button class="btn sun small" style="margin-left:10px" id="check-btn">Check! ✓</button>` : ''}
-          <div style="margin-top:8px">${ROOM_CHALLENGES.map((c, i) => `<button class="btn ghost small" style="color:#6C5CE7;border-color:${i === challengeIdx ? '#6C5CE7' : '#ddd'};margin-right:6px" data-ch="${i}">${done.has(i) ? '✅' : ''} ${i === 0 ? 'Free' : 'Level ' + i}</button>`).join('')}</div>
+          <div style="margin-top:8px">${ROOM_CHALLENGES.map((c, i) => `<button class="btn ghost small" style="color:#1A5C38;border-color:${i === challengeIdx ? '#1A5C38' : '#ddd'};margin-right:6px" data-ch="${i}">${done.has(i) ? '✅' : ''} ${i === 0 ? 'Free' : 'Level ' + i}</button>`).join('')}</div>
         </div>
         <div class="room-grid">
           ${grid.map((item, i) => `<button class="room-cell" data-i="${i}">${item || ''}</button>`).join('')}
@@ -375,7 +375,7 @@
         <canvas id="art-canvas" width="700" height="440"></canvas>
         <div class="center" style="margin-top:10px">
           ${COLORS.map(c => `<button class="paint ${color === c ? 'sel' : ''}" style="background:${c}" data-c="${c}"></button>`).join('')}
-          <button class="btn ghost small" style="color:#6C5CE7;border-color:#6C5CE7" id="size-btn">✏️ ${size < 8 ? 'Thin' : size < 14 ? 'Medium' : 'THICK'}</button>
+          <button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38" id="size-btn">✏️ ${size < 8 ? 'Thin' : size < 14 ? 'Medium' : 'THICK'}</button>
           <button class="btn coral small" id="clear-art">🗑️</button>
           <button class="btn green small" id="save-art">💾 Save My Art</button>
         </div>` : ''}
@@ -518,9 +518,9 @@
           <h3 style="margin-bottom:4px">Today's forecast: ${wx.label}</h3>
           <p class="muted" style="margin-bottom:14px">Hot days = thirsty customers. Rainy days = empty streets. Plan like a real business owner!</p>
           <b>1) How many cups will you make? (each costs 50¢ in lemons & sugar)</b>
-          <div style="margin:8px 0 14px">${[10, 20, 30, 40].map(n => `<button class="btn small ${cups === n ? 'sun' : 'ghost'}" style="margin:3px;${cups !== n ? 'color:#1f5e46;border-color:#1f5e46' : ''}" data-cups="${n}" ${n * CUP_COST > cash ? 'disabled' : ''}>${n} cups (${$$(n * CUP_COST)})</button>`).join('')}</div>
+          <div style="margin:8px 0 14px">${[10, 20, 30, 40].map(n => `<button class="btn small ${cups === n ? 'sun' : 'ghost'}" style="margin:3px;${cups !== n ? 'color:#1A5C38;border-color:#1A5C38' : ''}" data-cups="${n}" ${n * CUP_COST > cash ? 'disabled' : ''}>${n} cups (${$$(n * CUP_COST)})</button>`).join('')}</div>
           <b>2) What price per cup?</b>
-          <div style="margin:8px 0 14px">${[0.5, 1, 1.5, 2].map(p => `<button class="btn small ${price === p ? 'sun' : 'ghost'}" style="margin:3px;${price !== p ? 'color:#1f5e46;border-color:#1f5e46' : ''}" data-price="${p}">${$$(p)}</button>`).join('')}</div>
+          <div style="margin:8px 0 14px">${[0.5, 1, 1.5, 2].map(p => `<button class="btn small ${price === p ? 'sun' : 'ghost'}" style="margin:3px;${price !== p ? 'color:#1A5C38;border-color:#1A5C38' : ''}" data-price="${p}">${$$(p)}</button>`).join('')}</div>
           <button class="btn green" id="open-btn" ${cups && price ? '' : 'disabled'}>Open the Stand! 🏁</button>
         </div>
       </div>`);
@@ -560,7 +560,7 @@
   function startMarket() {
     const STOCKS = [
       { id: 'hay', name: 'HayGrain Farms', short: 'HayGrain', emoji: '🌾', price: 20, wild: 0.05, color: '#4c9f45' },
-      { id: 'sun', name: 'SunVolt Energy', short: 'SunVolt', emoji: '☀️', price: 30, wild: 0.10, color: '#e8a712' },
+      { id: 'sun', name: 'SunVolt Energy', short: 'SunVolt', emoji: '☀️', price: 30, wild: 0.10, color: '#C9A84C' },
       { id: 'pix', name: 'PixelPlay Games', short: 'PixelPlay', emoji: '🎮', price: 15, wild: 0.14, color: '#8e5cf7' },
       { id: 'nova', name: 'Nova Rockets', short: 'Nova', emoji: '🚀', price: 50, wild: 0.22, color: '#eb5757' }
     ];

@@ -83,7 +83,7 @@
       return { html: `<svg viewBox="0 0 ${W} 72" class="lw-svg" width="340" role="img"><line x1="${pad}" y1="40" x2="${W - pad}" y2="40" stroke="#c7cdd6" stroke-width="3"/>${ticks}${jump}${dot}</svg>` };
     },
     sideBySide(spec) {
-      const card = (c) => `<div class="lw-sbs-card" style="border-color:${c.color || '#c9971c'}"><div class="lw-sbs-emoji">${c.emoji || ''}</div><b>${esc(c.title || '')}</b><span>${esc(c.body || '')}</span></div>`;
+      const card = (c) => `<div class="lw-sbs-card" style="border-color:${c.color || '#C9A84C'}"><div class="lw-sbs-emoji">${c.emoji || ''}</div><b>${esc(c.title || '')}</b><span>${esc(c.body || '')}</span></div>`;
       return { html: `<div class="lw-sbs">${(spec.cards || []).map(card).join('')}</div>` };
     },
     // ---- interactive ----
