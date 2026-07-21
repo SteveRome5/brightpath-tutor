@@ -69,7 +69,7 @@
         </div>
         <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#home'">← Subjects</button></div>
       </div>
-      <p style="color:#fff;opacity:.9;margin-bottom:14px">Each game costs 1 🎟️ — every 5 correct answers in your lessons earns a new one. Learn to play! 💪</p>
+      <p class="game-hint" style="margin-bottom:14px">Each game costs 1 🎟️ — every 5 correct answers in your lessons earns a new one. Learn to play! 💪</p>
       <div class="subject-grid">
         ${games.map(g => `
           <div class="subject-card game-card" data-g="${g.id}">
@@ -116,7 +116,7 @@
               <span>${matched.has(c.p) || flipped.includes(i) ? esc(c.v) : '❓'}</span>
             </button>`).join('')}
         </div>
-        <p class="center" style="color:#fff;margin-top:14px">Match each picture or problem with its pair!</p>
+        <p class="game-hint">Match each picture or problem with its pair!</p>
       </div>`);
       wireChrome();
       document.querySelectorAll('.mem-card').forEach(el => el.onclick = () => flip(Number(el.dataset.i)));
@@ -189,7 +189,7 @@
         <div class="badge-shelf" style="justify-content:center;margin-top:14px">
           ${placed.map(w => `<div class="badge-item" style="${found.has(w) ? 'text-decoration:line-through;opacity:.5' : ''}">${w}</div>`).join('')}
         </div>
-        <p class="center" style="color:#fff;margin-top:10px">Tap the FIRST letter, then the LAST letter of a word!</p>
+        <p class="game-hint">Tap the FIRST letter, then the LAST letter of a word!</p>
       </div>`);
       wireChrome();
       document.querySelectorAll('.ws-cell').forEach(el => el.onclick = () => pick(Number(el.dataset.r), Number(el.dataset.c)));
@@ -629,7 +629,7 @@
             <button class="btn sun small" id="next-day">${round === ROUNDS ? 'Close the Market 🔔' : 'Next Day →'}</button>
           </div>
         </div>
-        <p class="center" style="color:#fff;opacity:.85;margin-top:10px;font-size:.9rem">💡 Steady stocks (🌾) drift a little; wild ones (🚀) can rocket or crash. Spreading your money across several is how real investors survive a bad day.</p>
+        <p class="game-hint" style="font-size:.9rem">💡 Steady stocks (🌾) drift a little; wild ones (🚀) can rocket or crash. Spreading your money across several is how real investors survive a bad day.</p>
       </div>`);
       wireChrome();
       document.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => {
@@ -900,7 +900,7 @@
           <p class="muted" style="margin-top:8px">Earn coins by answering questions — spend them on style! 😎</p>
         </div>
         <div class="center" style="margin:12px 0">
-          ${Object.keys(SLOT_LABEL).map(s => `<button class="btn small ${s === slot ? 'sun' : 'ghost'}" style="${s !== slot ? 'color:#fff;border-color:rgba(255,255,255,.5);' : ''}margin:3px" data-slot="${s}">${SLOT_LABEL[s]}</button>`).join('')}
+          ${Object.keys(SLOT_LABEL).map(s => `<button class="btn small ${s === slot ? 'sun' : 'ghost on-page'}" style="margin:3px" data-slot="${s}">${SLOT_LABEL[s]}</button>`).join('')}
         </div>
         <div class="card"><div class="avatar-pick">
           ${data.catalog[slot].map(item => {
@@ -915,7 +915,7 @@
           }).join('')}
         </div></div>
         <div class="center"><button class="btn green" id="save-av">Save My Look ✨</button>
-        <button class="btn ghost small" style="color:#fff;border-color:rgba(255,255,255,.5);margin-left:8px" onclick="location.hash='#home'">Back</button></div>
+        <button class="btn ghost small" class="btn ghost small on-page" style="margin-left:8px" onclick="location.hash='#home'">Back</button></div>
       </div>`);
       wireChrome();
       document.querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { slot = b.dataset.slot; Sound.click(); render(); });
@@ -966,8 +966,8 @@
           <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#home'">← Home</button></div>
         </div>
         <div class="center" style="margin-bottom:14px">
-          <button class="btn ${machine === 'vending' ? 'sun' : 'ghost'} small" style="${machine !== 'vending' ? 'color:#fff;border-color:rgba(255,255,255,.5);' : ''}margin:3px" data-machine="vending">🥤 Vending Machine</button>
-          <button class="btn ${machine === 'shack' ? 'sun' : 'ghost'} small" style="${machine !== 'shack' ? 'color:#fff;border-color:rgba(255,255,255,.5);' : ''}margin:3px" data-machine="shack">🍔 Snack Shack</button>
+          <button class="btn ${machine === 'vending' ? 'sun' : 'ghost on-page'} small" style="margin:3px" data-machine="vending">🥤 Vending Machine</button>
+          <button class="btn ${machine === 'shack' ? 'sun' : 'ghost on-page'} small" style="margin:3px" data-machine="shack">🍔 Snack Shack</button>
         </div>
         <div class="vending ${machine === 'shack' ? 'is-shack' : ''}">
           <div class="vending-head">${machine === 'vending' ? '🥤 GALLOP SNACKS' : '🍔 THE SNACK SHACK'}</div>
@@ -990,7 +990,7 @@
           <div class="avatar-big muncher-av" id="muncher-av">${avatarHTML(State.me.kid)}</div>
           <div class="muncher-caption muted">${playful() ? 'Buy a snack and watch me eat it! 😋' : 'Buy a snack to feed your avatar'}</div>
         </div>
-        <p class="center" style="color:#fff;opacity:.9;margin-top:8px">${machine === 'vending' ? 'Quick treats — earn coins by learning, then treat yourself! 🪙' : 'Fancier goodies for big coin-savers. Collect them all! 🏆'}</p>
+        <p class="game-hint" style="margin-top:8px">${machine === 'vending' ? 'Quick treats — earn coins by learning, then treat yourself! 🪙' : 'Fancier goodies for big coin-savers. Collect them all! 🏆'}</p>
       </div>`);
       wireChrome();
       document.querySelectorAll('[data-machine]').forEach(b => b.onclick = () => { machine = b.dataset.machine; Sound.click(); render(); });

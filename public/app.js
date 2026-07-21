@@ -266,11 +266,11 @@ const Music = (() => {
     midnight: { root: 196.00, tempo: 2100, wave: 'sine',     chords: [[0,3,7,10],[-2,3,5,10],[-4,0,3,7],[-5,-2,3,7]], arp: [0,3,7,10,12,10,7,3], mel: [0,3,5,7,10], padGain: .052, arpGain: .036, bassGain: .06, filt: 780, bell: true },
     focus:    { root: 174.61, tempo: 2300, wave: 'triangle', chords: [[0,7,12],[5,12,17],[-3,4,9],[2,9,14]], arp: [0,7,12,7], mel: [0,2,5,7,9], padGain: .055, arpGain: .03, bassGain: .05, filt: 700, bell: false },
     cosmos:   { root: 164.81, tempo: 2200, wave: 'sine',     chords: [[0,5,10,14],[2,7,12,16],[-3,2,7,12],[-5,0,5,10]], arp: [0,5,10,14,17,14,10,5], mel: [0,5,7,10,12], padGain: .05, arpGain: .038, bassGain: .058, filt: 1000, bell: true },
-    // ---- younger learners: bright / bouncy / adventurous ----
-    sunny:     { root: 293.66, tempo: 1500, wave: 'triangle', chords: [[0,4,7,12],[5,9,12,17],[7,11,14,19],[2,5,9,14]], arp: [0,4,7,12,7,4], mel: [0,4,7,9,12], padGain: .045, arpGain: .05, bassGain: .055, filt: 1600, bell: true },
-    adventure: { root: 261.63, tempo: 1400, wave: 'square',   chords: [[0,4,7],[5,9,12],[9,12,16],[7,11,14]], arp: [0,4,7,12,7,4], mel: [0,2,4,7,9], padGain: .03, arpGain: .045, bassGain: .05, filt: 1500, bell: false },
-    bubbles:   { root: 329.63, tempo: 1350, wave: 'sine',     chords: [[0,5,9,12],[-3,2,7,12],[0,4,9,14],[5,9,12,16]], arp: [0,5,9,12,16,12,9,5], mel: [0,5,9,12,14], padGain: .04, arpGain: .05, bassGain: .05, filt: 1900, bell: true },
-    arcade:    { root: 277.18, tempo: 1250, wave: 'square',   chords: [[0,4,7,12],[3,7,10,15],[5,9,12,17],[-2,3,7,10]], arp: [0,4,7,12,16,12,7,4], mel: [0,3,5,7,10], padGain: .028, arpGain: .04, bassGain: .05, filt: 2200, bell: false }
+    // ---- younger learners: bright / bouncy / adventurous (with a gentle drum groove) ----
+    sunny:     { root: 293.66, tempo: 1500, wave: 'triangle', chords: [[0,4,7,12],[5,9,12,17],[7,11,14,19],[2,5,9,14]], arp: [0,4,7,12,7,4], mel: [0,4,7,9,12], padGain: .045, arpGain: .052, bassGain: .06, filt: 1500, bell: true, drums: true },
+    adventure: { root: 261.63, tempo: 1400, wave: 'triangle', chords: [[0,4,7],[5,9,12],[9,12,16],[7,11,14]], arp: [0,4,7,12,7,4], mel: [0,2,4,7,9], padGain: .04, arpGain: .05, bassGain: .06, filt: 1400, bell: true, drums: true },
+    bubbles:   { root: 329.63, tempo: 1350, wave: 'sine',     chords: [[0,5,9,12],[-3,2,7,12],[0,4,9,14],[5,9,12,16]], arp: [0,5,9,12,16,12,9,5], mel: [0,5,9,12,14], padGain: .04, arpGain: .052, bassGain: .055, filt: 1800, bell: true, drums: true },
+    arcade:    { root: 277.18, tempo: 1250, wave: 'triangle', chords: [[0,4,7,12],[3,7,10,15],[5,9,12,17],[-2,3,7,10]], arp: [0,4,7,12,16,12,7,4], mel: [0,3,5,7,10], padGain: .03, arpGain: .05, bassGain: .06, filt: 2000, bell: true, drums: true }
   };
   const PLAYLIST = { chill: ['lofi', 'midnight', 'focus', 'cosmos'], playful: ['sunny', 'adventure', 'bubbles', 'arcade'] };
   const BARS_PER_TRACK = 8;  // rotate to the next track for variety after 8 bars
@@ -285,6 +285,11 @@ const Music = (() => {
     o.connect(f).connect(g).connect(master);
     o.start(t); o.stop(t + dur + 0.05);
   }
+  // Soft, warm kick + hi-hat for a bouncy (not harsh) kid groove.
+  let _noise = null;
+  function noiseBuf() { if (_noise) return _noise; const b = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return (_noise = b); }
+  function kick(t) { try { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(135, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.32, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0006, t + 0.18); o.connect(g).connect(master); o.start(t); o.stop(t + 0.2); } catch (e) {} }
+  function hat(t, gain) { try { const s = ctx.createBufferSource(), g = ctx.createGain(), f = ctx.createBiquadFilter(); s.buffer = noiseBuf(); f.type = 'highpass'; f.frequency.value = 8000; g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0004, t + 0.045); s.connect(f).connect(g).connect(master); s.start(t); s.stop(t + 0.06); } catch (e) {} }
   function semis(root, s) { return root * Math.pow(2, s / 12); }
   function pickTrackForGroup() {
     const list = PLAYLIST[group] || PLAYLIST.chill;
@@ -303,14 +308,23 @@ const Music = (() => {
     // arpeggio across the bar
     const per = beat / M.arp.length * 2;
     M.arp.forEach((s, i) => note(semis(M.root * 2, s + chord[0]), t + i * per, per * 1.3, M.arpGain, 'sine', M.filt + 400));
-    // gentle melody: a couple of pentatonic notes, humanized, not every bar
+    // gentle melody: a couple of pentatonic notes, humanized, not every bar. A soft second
+    // voice a whisker detuned adds warmth (a mini chorus) so it sings instead of beeps.
     if (step % 2 === 0) {
       const mel = M.mel, n1 = mel[Math.floor(Math.random() * mel.length)] + 12, n2 = mel[Math.floor(Math.random() * mel.length)] + 12;
-      note(semis(M.root, n1 + chord[0]), t + beat * 0.5, beat * 0.6, M.arpGain * 1.1, M.wave === 'square' ? 'triangle' : 'sine', M.filt + 800);
+      const mf1 = semis(M.root, n1 + chord[0]);
+      note(mf1, t + beat * 0.5, beat * 0.6, M.arpGain * 1.15, 'triangle', M.filt + 800);
+      note(mf1 * 1.004, t + beat * 0.5, beat * 0.6, M.arpGain * 0.5, 'sine', M.filt + 600);
       if (Math.random() < 0.6) note(semis(M.root, n2 + chord[0]), t + beat * 1.3, beat * 0.6, M.arpGain, 'sine', M.filt + 800);
     }
     // occasional shimmer bell
-    if (M.bell && step % 2 === 1) note(semis(M.root * 4, chord[1]), t + beat, beat * 1.2, 0.028, 'sine', 3200);
+    if (M.bell && step % 2 === 1) note(semis(M.root * 4, chord[1]), t + beat, beat * 1.2, 0.026, 'sine', 3200);
+    // bouncy drum groove for the kids' tracks: kick on the two main beats, hats on the offbeats
+    if (M.drums) {
+      const half = beat;  // one "beat" here is half the bar
+      kick(t); kick(t + half * 0.5);
+      hat(t + half * 0.25, 0.05); hat(t + half * 0.5, 0.07); hat(t + half * 0.75, 0.05); hat(t + half, 0.06); hat(t + half * 1.5, 0.06);
+    }
     step++; barsOnTrack++;
     if (barsOnTrack >= BARS_PER_TRACK) pickTrackForGroup();  // rotate track for variety
     timer = setTimeout(schedule, M.tempo);
@@ -325,7 +339,7 @@ const Music = (() => {
       if (!master) { master = ctx.createGain(); master.gain.value = 0; master.connect(ctx.destination); }
       master.gain.cancelScheduledValues(ctx.currentTime);
       master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
-      master.gain.linearRampToValueAtTime(0.85, ctx.currentTime + 1.5); // gentle fade-in
+      master.gain.linearRampToValueAtTime(0.62, ctx.currentTime + 1.5); // gentle fade-in, sits behind gameplay
       if (!playing) { playing = true; step = 0; pickTrackForGroup(); schedule(); }
     } catch (e) { /* audio unsupported, fine */ }
   }
@@ -354,23 +368,45 @@ const Music = (() => {
 // ======================= voice (read-aloud) =======================
 const Voice = (() => {
   let pref = localStorage.bp_autoread; // '1' on, '0' off, undefined = smart default
-  // Pick the most natural, friendly voice the device has (default robots are boring!)
+  // Pick the most natural-sounding voice the device offers. Modern browsers ship true
+  // neural voices ("Natural"/"Neural"/"Online") that sound far less robotic than the old
+  // built-ins, so we score every available voice and take the best rather than the first.
+  let _voiceCache = {};
   function bestVoice(lang) {
+    if (_voiceCache[lang || 'en']) return _voiceCache[lang || 'en'];
     const voices = speechSynthesis.getVoices();
-    const base = (lang || 'en').split('-')[0];
+    if (!voices.length) return null;
+    const base = (lang || 'en').split('-')[0].toLowerCase();
     const pool = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith(base));
-    const favorites = ['Samantha', 'Google US English', 'Microsoft Aria', 'Microsoft Ava', 'Karen', 'Moira', 'Google UK English Female', 'Monica', 'Paulina', 'Google español'];
-    for (const f of favorites) { const v = pool.find(v => v.name.includes(f)); if (v) return v; }
-    return pool.find(v => /female|natural/i.test(v.name)) || pool[0] || null;
+    if (!pool.length) return null;
+    const score = v => {
+      const n = (v.name || '').toLowerCase(); let s = 0;
+      if (/natural|neural|online/.test(n)) s += 100;              // true neural TTS = most natural
+      if (/enhanced|premium|siri/.test(n)) s += 60;               // enhanced Apple/iOS voices
+      if (/aria|jenny|ava|emma|libby|sonia|samantha|serena|allison|nicky|zoe|joanna|salli/.test(n)) s += 40; // known warm, friendly voices
+      if (/google/.test(n)) s += 25;
+      if (/female/.test(n)) s += 12;
+      if (v.lang && v.lang.toLowerCase() === (lang || '').toLowerCase()) s += 10;  // exact region
+      if (v.localService === false) s += 8;                        // networked voices are usually the neural ones
+      if (/robot|zarvox|albert|bad ?news|bells|trinoids|whisper|cellos|organ|good ?news|jester|superstar|boing|bahh|bubbles|deranged|hysterical|wobble|pipe/.test(n)) s -= 200; // novelty/robotic voices
+      return s;
+    };
+    const best = pool.slice().sort((a, b) => score(b) - score(a))[0] || pool[0];
+    _voiceCache[lang || 'en'] = best;
+    return best;
   }
+  // voices load asynchronously on some browsers; clear the cache when they arrive
+  try { speechSynthesis.addEventListener('voiceschanged', () => { _voiceCache = {}; }); } catch (e) {}
   function speak(text, lang) {
     try {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text.replace(/[🍎⭐🐤🎈🚗🐞🍓🐟🍪🐸\u{1F300}-\u{1FAFF}]/gu, ''));
       // Little kids get a bouncy, upbeat storyteller voice; teens get a calm natural one.
       const young = (() => { try { return State.me && State.me.kid && State.me.kid.grade <= 5; } catch (e) { return false; } })();
-      u.rate = young ? 0.92 : 1.0;
-      u.pitch = young ? 1.25 : 1.0;
+      // Warm and clear, not chipmunky. A gentle lift for littles, natural for older kids.
+      u.rate = young ? 0.95 : 1.0;
+      u.pitch = young ? 1.1 : 1.0;
+      u.volume = 1;
       if (lang) u.lang = lang;
       const v = bestVoice(lang || 'en-US');
       if (v) u.voice = v;
@@ -393,7 +429,7 @@ const Voice = (() => {
       const text = spans.map(s => s.textContent).join(' ');
       const u = new SpeechSynthesisUtterance(text);
       const young = (() => { try { return State.me && State.me.kid && State.me.kid.grade <= 5; } catch (e) { return false; } })();
-      u.rate = young ? 0.85 : 0.95; u.pitch = young ? 1.2 : 1.0;
+      u.rate = young ? 0.9 : 0.97; u.pitch = young ? 1.1 : 1.0; u.volume = 1;
       if (lang) u.lang = lang;
       const v = bestVoice(lang || 'en-US'); if (v) u.voice = v;
       // Map character offsets → word index for highlighting
@@ -481,7 +517,8 @@ async function navigate() {
   try { await fn(...args); } catch (e) {
     if (e.status === 401) { location.hash = State.me.role === 'kid' ? '#kid-login' : '#login'; return; }
     if (e.status === 402) { renderPaywall(); return; }
-    app().innerHTML = `<div class="container"><div class="card center"><h2>Oops! 🙈</h2><p class="muted">${esc(e.message)}</p><button class="btn" onclick="location.hash='#'">Go Home</button></div></div>`;
+    app().innerHTML = topbar(`<div class="container"><div class="card center"><div class="big-emoji">🙈</div><h2>Oops, something hiccuped!</h2><p class="muted">Let's head back and try again.</p><button class="btn green" onclick="location.hash='${State.me.role === 'kid' ? '#home' : '#'}'">🏠 Go Home</button></div></div>`);
+    try { wireChrome(); } catch (_) {}
   }
   window.scrollTo(0, 0);
   requestAnimationFrame(() => {
@@ -505,11 +542,17 @@ function topbar(inner = '') {
   const homeHash = me.role === 'kid' ? '#home' : me.role === 'parent' ? '#parent' : '#';
   let right = '';
   if (me.role === 'parent') right = `${me.parent && me.parent.is_admin ? `<button class="btn ghost small" onclick="location.hash='#admin'">🛡️ Admin</button>` : ''}<button class="btn ghost small" onclick="location.hash='#parent'">Dashboard</button><button class="btn ghost small" id="logout-btn">Log out</button>`;
-  else if (me.role === 'kid') right = `<button class="btn ghost small" onclick="location.hash='#home'">🏠 Home</button><button class="btn ghost small" onclick="location.hash='#kid-login'" title="Switch to another child">👋 Switch</button><button class="btn ghost small" id="logout-btn">Log out</button>`;
+  else if (me.role === 'kid') {
+    // When a child is inside a game, give them a big obvious way back to the Play Zone,
+    // so they are never trapped in a game they don't want to be in.
+    const inGame = /^#\/?game\//.test(location.hash);
+    const exitBtn = inGame ? `<button class="btn coral small" onclick="location.hash='#play'">← Games</button>` : '';
+    right = `${exitBtn}<button class="btn ghost small" onclick="location.hash='#home'">🏠 Home</button><button class="btn ghost small" onclick="location.hash='#kid-login'" title="Switch to another child">👋 Switch</button><button class="btn ghost small kid-logout" id="logout-btn">Log out</button>`;
+  }
   else right = `<button class="btn ghost small" onclick="location.hash='#kid-login'">Child Login</button><button class="btn sun small" onclick="location.hash='#login'">Parent Login</button>`;
   return `
   <div class="topbar">
-    <div class="logo" onclick="location.hash='${homeHash}'"><img src="/logo.svg" alt="Gallop" class="logo-img"> Gallop</div>
+    <div class="logo" onclick="location.hash='${homeHash}'"><img src="/logo-mark.png" alt="Gallop" class="logo-img"> Gallop</div>
     <div class="right">
       ${right}
       <div class="sound-wrap">
@@ -557,6 +600,7 @@ route('landing', async () => {
   if (State.me.role === 'kid') { location.hash = '#home'; return; }
   app().innerHTML = topbar(`
   <div class="hero">
+    <img src="/logo-full.png" alt="Gallop Learning Academy" class="hero-logo">
     <div class="eyebrow">Adaptive K–12 Tutoring · Math · English · Science · Spanish</div>
     <h1>A personal tutor for every child, at every level.</h1>
     <p class="hero-tagline">Every child has a pace. Gallop finds it.</p>
@@ -569,7 +613,7 @@ route('landing', async () => {
       </div>
       <p class="hero-cta-note muted">No credit card to start · Cancel anytime</p>
     </div>
-    <div class="horse-runner"><img src="/logo.svg" alt="" class="horse-runner-img"></div>
+    <div class="horse-runner"><img src="/logo-mark.png" alt="" class="horse-runner-img"></div>
   </div>
   <div class="container">
     <div class="statband reveal">
@@ -1066,7 +1110,7 @@ route('home', async () => {
       const acc = Math.round(lw.correct / lw.answers * 100);
       const div = document.createElement('div');
       div.className = 'celebrate';
-      div.innerHTML = `<img src="/logo-roundel.svg" alt="" style="width:100px;height:100px">
+      div.innerHTML = `<img src="/logo-roundel.png" alt="" style="width:100px;height:100px">
         <h2>${playful() ? 'Look what you did last week!' : 'Last week, logged.'}</h2>
         <div class="summary-stats" style="background:rgba(255,255,255,.12)">
           <div class="sstat" style="color:#fff"><div class="n" style="color:#fff">${lw.answers}</div>questions</div>
@@ -1108,6 +1152,7 @@ route('placement', async (subject) => {
         <div class="big-emoji">🐎</div><h2>Quick hiccup!</h2>
         <p class="muted" style="margin:10px 0 18px">That didn't load. Tap below to continue your placement quiz.</p>
         <button class="btn green" id="retry-p">Continue →</button>
+        <button class="btn ghost small" style="margin-left:8px" onclick="location.hash='#home'">🏠 Home</button>
       </div></div>`);
       wireChrome();
       $('#retry-p').onclick = () => { Sound.click(); step(body); };
@@ -1480,7 +1525,7 @@ route('report', async (kidId) => {
         <h2>${AVATARS[k.avatar] || '🦊'} ${esc(k.name)}'s Report Card</h2>
         <div>
           <button class="btn small no-print" onclick="window.print()">🖨️ Print</button>
-          ${isParent ? `<button class="btn ghost small no-print" style="color:#6C5CE7;border-color:#6C5CE7" onclick="location.hash='#parent'">← Dashboard</button>` : ''}
+          ${isParent ? `<button class="btn ghost small no-print" style="color:#6C5CE7;border-color:#6C5CE7" onclick="location.hash='#parent'">← Dashboard</button>` : `<button class="btn green small no-print" onclick="location.hash='#home'">🏠 Home</button>`}
         </div>
       </div>
       <p class="muted">${r.pace.summer ? `☀️ ${esc(r.pace.note)}` : `${esc(r.pace.label)} · ${Math.round(r.pace.pctThroughYear * 100)}% through the year`} · ${r.weekAnswers} question${r.weekAnswers === 1 ? '' : 's'} this week (goal: ${k.weekly_goal * 10})</p>
@@ -1602,7 +1647,7 @@ route('weekly', async (kidId) => {
       <div class="cert-inner" style="padding:30px 34px 26px;text-align:left">
         <div style="display:flex;align-items:center;gap:14px;justify-content:space-between;flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:12px">
-            <img src="/logo-roundel.svg" alt="" style="width:58px;height:58px">
+            <img src="/logo-roundel.png" alt="" style="width:58px;height:58px">
             <div><div class="cert-academy" style="font-size:.7rem">GALLOP LEARNING ACADEMY</div>
             <h2 style="margin:2px 0 0;font-family:var(--font-display)">${esc(k.name)}'s Week ${stars}</h2></div>
           </div>
@@ -1640,7 +1685,7 @@ route('certificate', async (kidId, certId) => {
   app().innerHTML = topbar(`<div class="container" style="max-width:860px">
     <div class="cert-frame">
       <div class="cert-inner">
-        <img src="/logo-roundel.svg" alt="" class="cert-crest">
+        <img src="/logo-roundel.png" alt="" class="cert-crest">
         <div class="cert-academy">GALLOP LEARNING ACADEMY</div>
         <div class="cert-title">Certificate of Completion</div>
         <div class="cert-rule"></div>
@@ -1666,7 +1711,7 @@ route('certificate', async (kidId, certId) => {
 // ======================= paywall =======================
 function renderPaywall() {
   app().innerHTML = topbar(`<div class="container" style="max-width:600px"><div class="card center">
-    <img src="/logo-roundel.svg" alt="" style="width:84px;height:84px">
+    <img src="/logo-roundel.png" alt="" style="width:84px;height:84px">
     <h2 style="margin-top:10px">Your free trial has ended</h2>
     <p class="muted" style="margin:10px 0 4px"><b>Everything is saved</b>, streaks, skill levels, badges, and certificates are waiting exactly where you left off.</p>
     <p class="muted" style="margin:0 0 16px">Keep all four subjects, the adaptive tutor, the games arcade, buddies, and weekly parent reports, for less than a single week at a tutoring center.</p>
@@ -1845,7 +1890,7 @@ route('parent', async () => {
     Confetti.burst(180); Sound.levelup();
     const div = document.createElement('div');
     div.className = 'celebrate';
-    div.innerHTML = `<img src="/logo-roundel.svg" alt="" style="width:110px;height:110px"><h2>Time to Gallop!</h2>
+    div.innerHTML = `<img src="/logo-roundel.png" alt="" style="width:110px;height:110px"><h2>Time to Gallop!</h2>
       <p style="font-size:1.15rem;max-width:440px">${esc(kidName)} is all set up. The first stop in each subject is a short placement quiz that finds the right starting level for ${esc(kidName)}.</p>
       <button class="btn sun" id="tg-go" style="margin-top:6px">Start Learning as ${esc(kidName)} →</button>
       <button class="btn ghost" id="tg-later" style="margin-top:10px">I'll explore the dashboard first</button>`;

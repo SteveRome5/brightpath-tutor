@@ -546,6 +546,14 @@ body[data-theme="academy"] .mem-card.up span { color: #e6d9a8; }
 body[data-theme="academy"] .mem-card.matched { background: #16362e; }
 body[data-theme="academy"] .mem-card.matched span { color: #7fe0c0; }
 
+/* game hint text — readable on every theme background (blue, green, light, dark) */
+.game-hint { display: block; text-align: center; margin: 12px auto 0; max-width: 580px; background: rgba(17,26,44,.55); color: #fff; border-radius: 12px; padding: 9px 16px; font-weight: 600; line-height: 1.45; font-size: .92rem; }
+body[data-theme="scholar"] .game-hint, body[data-theme="pro"] .game-hint { background: rgba(17,26,44,.8); }
+/* buttons that sit directly on the page background: white on dark/green themes, brand on light ones */
+.btn.on-page { color: #fff; border-color: rgba(255,255,255,.55); }
+body[data-theme="scholar"] .btn.on-page, body[data-theme="pro"] .btn.on-page { color: var(--brand, #1f5e46); border-color: var(--brand, #1f5e46); }
+body[data-theme="scholar"] .muncher-caption { color: #1d2740 !important; }
+
 /* bakery quest */
 .bq-stage { position: relative; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); margin-bottom: 14px; }
 .bq-bubble {
@@ -1274,3 +1282,8 @@ body[data-theme="academy"] .lw-passage { background: #2a2921; border-color: #4a4
 .gscore-chip { background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 18%, transparent), color-mix(in srgb, var(--accent) 18%, transparent)) !important;
   border: 1px solid color-mix(in srgb, var(--brand) 40%, transparent) !important; font-weight: 700; }
 .gscore-chip b { font-family: var(--font-display); font-size: 1.05rem; }
+
+/* new logo placements */
+.hero-logo { display: block; max-width: min(460px, 82%); height: auto; margin: 4px auto 20px; }
+.logo-img { height: 34px; width: auto; }
+.kid-logout { opacity: .6; font-size: .8rem; }
