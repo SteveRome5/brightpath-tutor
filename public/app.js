@@ -619,9 +619,9 @@ route('landing', async () => {
     <div class="statband reveal">
       <div><b>K–12</b><span>Every grade level</span></div>
       <div><b>4</b><span>Core subjects</span></div>
-      <div><b>156</b><span>Skill areas</span></div>
+      <div><b>200+</b><span>Skill areas</span></div>
       <div><b>156</b><span>Guided lessons</span></div>
-      <div><b>10k+</b><span>Adaptive questions</span></div>
+      <div><b>2,700+</b><span>Expert-verified questions</span></div>
     </div>
     <h2 class="section-title reveal">How it works</h2>
     <p class="section-sub">The same three moves a good teacher makes, built into every session.</p>
