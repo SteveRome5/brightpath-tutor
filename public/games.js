@@ -107,16 +107,22 @@
     const cards = pairs.flatMap(([a, b], i) => [{ v: a, p: i }, { v: b, p: i }]).sort(() => Math.random() - .5);
     let flipped = [], matched = new Set(), moves = 0, lock = false;
     const t0 = Date.now();
+    const setLabel = setName === 'spanish' ? '🌎 Spanish' : setName === 'math' ? '🔢 Math Facts' : '📚 Words';
+    const cardEl = i => document.querySelector(`.mem-card[data-i="${i}"]`);
+    function setMoves() { const m = $('#mem-moves'); if (m) m.textContent = moves; }
     function render() {
       app().innerHTML = topbar(`<div class="container" style="max-width:640px">
-        <div class="lesson-top"><b>🃏 Memory Match — ${setName === 'spanish' ? '🌎 Spanish' : setName === 'math' ? '🔢 Math Facts' : '📚 Words'}</b><b>Moves: ${moves}</b></div>
+        <div class="lesson-top"><b>🃏 Memory Match — ${setLabel}</b><b>Moves: <span id="mem-moves">${moves}</span></b></div>
         <div class="mem-grid">
           ${cards.map((c, i) => `
-            <button class="mem-card ${matched.has(c.p) ? 'matched' : flipped.includes(i) ? 'up' : ''}" data-i="${i}">
-              <span>${matched.has(c.p) || flipped.includes(i) ? esc(c.v) : '❓'}</span>
+            <button class="mem-card" data-i="${i}" aria-label="card">
+              <div class="mem-inner">
+                <div class="mem-face mem-front"><span>🐎</span></div>
+                <div class="mem-face mem-back"><span>${esc(c.v)}</span></div>
+              </div>
             </button>`).join('')}
         </div>
-        <p class="game-hint">Match each picture or problem with its pair!</p>
+        <p class="game-hint">Flip two cards — match each picture or problem with its pair!</p>
       </div>`);
       wireChrome();
       document.querySelectorAll('.mem-card').forEach(el => el.onclick = () => flip(Number(el.dataset.i)));
@@ -125,23 +131,29 @@
       if (lock || flipped.includes(i) || matched.has(cards[i].p)) return;
       Sound.click();
       flipped.push(i);
+      const el = cardEl(i); if (el) el.classList.add('is-up');
       if (flipped.length === 2) {
-        moves++;
+        moves++; setMoves();
         const [a, b] = flipped;
         if (cards[a].p === cards[b].p && a !== b) {
-          matched.add(cards[a].p); Sound.correct(); Confetti.burst(30); flipped = [];
+          matched.add(cards[a].p); Sound.correct(); flipped = [];
+          setTimeout(() => { [a, b].forEach(k => { const e = cardEl(k); if (e) e.classList.add('is-matched'); }); Confetti.burst(24); }, 260);
           if (matched.size === 6) {
             const secs = Math.round((Date.now() - t0) / 1000);
             const score = Math.max(10, 200 - moves * 10 - secs);
-            setTimeout(() => finishGame('memory', score, 'All pairs matched! 🧠', `${moves} moves in ${secs} seconds. Fewer moves = bigger score!`), 600);
-            render(); return;
+            setTimeout(() => finishGame('memory', score, 'All pairs matched! 🧠', `${moves} moves in ${secs} seconds. Fewer moves = bigger score!`), 900);
           }
         } else {
           lock = true; Sound.wrong();
-          setTimeout(() => { flipped = []; lock = false; render(); }, 900);
+          setTimeout(() => {
+            [a, b].forEach(k => { const e = cardEl(k); if (e) e.classList.add('is-wrong'); });
+          }, 260);
+          setTimeout(() => {
+            [a, b].forEach(k => { const e = cardEl(k); if (e) e.classList.remove('is-up', 'is-wrong'); });
+            flipped = []; lock = false;
+          }, 950);
         }
       }
-      render();
     }
     render();
   }
@@ -174,24 +186,27 @@
     }
     const AZ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (!grid[r][c]) grid[r][c] = AZ[Math.floor(Math.random() * 26)];
-    let found = new Set(), sel = [], t0 = Date.now();
+    let found = new Set(), sel = [], t0 = Date.now(), justFound = null;
     function cellKey(r, c) { return r + ',' + c; }
     function render() {
+      const justCells = justFound ? wordCells(justFound) : [];
       app().innerHTML = topbar(`<div class="container" style="max-width:640px">
         <div class="lesson-top"><b>🔍 Word Search ${setName === 'spanish' ? '— 🌎 ¡en español!' : ''}</b><b>${found.size}/${placed.length} found</b></div>
         <div class="ws-grid" style="grid-template-columns:repeat(${size},1fr)">
           ${grid.map((row, r) => row.map((ch, c) => {
             const inSel = sel.some(s => s.r === r && s.c === c);
             const inFound = [...found].some(w => wordCells(w).some(x => x.r === r && x.c === c));
-            return `<button class="ws-cell ${inFound ? 'found' : inSel ? 'sel' : ''}" data-r="${r}" data-c="${c}">${ch}</button>`;
+            const isJust = justCells.some(x => x.r === r && x.c === c);
+            return `<button class="ws-cell ${inFound ? 'found' : inSel ? 'sel' : ''}${isJust ? ' just' : ''}" data-r="${r}" data-c="${c}">${ch}</button>`;
           }).join('')).join('')}
         </div>
         <div class="badge-shelf" style="justify-content:center;margin-top:14px">
-          ${placed.map(w => `<div class="badge-item" style="${found.has(w) ? 'text-decoration:line-through;opacity:.5' : ''}">${w}</div>`).join('')}
+          ${placed.map(w => `<div class="badge-item ${found.has(w) ? 'ws-done' : ''}">${found.has(w) ? '✓ ' : ''}${w}</div>`).join('')}
         </div>
         <p class="game-hint">Tap the FIRST letter, then the LAST letter of a word!</p>
       </div>`);
       wireChrome();
+      justFound = null;
       document.querySelectorAll('.ws-cell').forEach(el => el.onclick = () => pick(Number(el.dataset.r), Number(el.dataset.c)));
     }
     const wordPos = {};
@@ -218,7 +233,7 @@
             (cells[0].r === b.r && cells[0].c === b.c && cells[cells.length - 1].r === a.r && cells[cells.length - 1].c === a.c));
         });
         if (hit && !found.has(hit)) {
-          found.add(hit); Sound.correct(); Confetti.burst(40);
+          found.add(hit); justFound = hit; Sound.correct(); Confetti.burst(40);
           if (found.size === placed.length) {
             const secs = Math.round((Date.now() - t0) / 1000);
             setTimeout(() => finishGame('wordsearch', Math.max(20, 300 - secs), 'Every word found! 🔎', `Solved in ${secs} seconds!`), 500);
@@ -240,70 +255,129 @@
     { size: 5, start: [4, 2], goal: [0, 2], walls: ['2,2', '2,1', '2,3'], hint: 'The wall blocks the middle — go around!' },
     { size: 5, start: [2, 0], goal: [2, 4], walls: ['2,2', '1,2', '3,2'], hint: 'Over or under the wall?' }
   ];
+  const CQ_ARROWS = { up: '⬆️', down: '⬇️', left: '⬅️', right: '➡️' };
   function startCode() {
     let levelIdx = 0, program = [], score = 0;
-    function lvl() { return CODE_LEVELS[levelIdx]; }
-    function render(msg, robot) {
+    let raf = null, robot = { r: 0, c: 0 }, anim = null, running = false, crashT = 0, winT = 0, particles = [], msg = null, blinkT = 0;
+    const lvl = () => CODE_LEVELS[levelIdx];
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const glide = to => new Promise(res => { anim = { from: { ...robot }, to, t0: performance.now(), dur: 300, done: res }; });
+    function burst(x, y, col, n) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = 1 + Math.random() * 3.2; particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 1.2, r: 2 + Math.random() * 2.5, life: 34, max: 34, col }); } }
+
+    function starPath(ctx, x, y, r) {
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) { const rad = i % 2 ? r * 0.44 : r; const a = -Math.PI / 2 + i * Math.PI / 5; const px = x + Math.cos(a) * rad, py = y + Math.sin(a) * rad; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+      ctx.closePath();
+    }
+    function drawStar(ctx, x, y, r, ts) {
+      ctx.save(); ctx.shadowColor = 'rgba(201,168,76,.9)'; ctx.shadowBlur = 16 + Math.sin(ts / 250) * 6;
+      const g = ctx.createLinearGradient(x, y - r, x, y + r); g.addColorStop(0, '#f4d876'); g.addColorStop(1, '#C9A84C');
+      starPath(ctx, x, y, r); ctx.fillStyle = g; ctx.fill();
+      ctx.shadowBlur = 0; ctx.strokeStyle = '#a9862f'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+    }
+    function drawRock(ctx, x, y, r) {
+      ctx.save(); ctx.translate(x, y); ctx.fillStyle = '#8b8f98';
+      ctx.beginPath(); ctx.moveTo(-r, r * .3); ctx.quadraticCurveTo(-r * 1.05, -r * .5, -r * .3, -r * .8); ctx.quadraticCurveTo(r * .4, -r * 1.05, r * .95, -r * .3); ctx.quadraticCurveTo(r * 1.05, r * .5, r * .5, r * .55); ctx.quadraticCurveTo(0, r * .7, -r, r * .3); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.beginPath(); ctx.ellipse(-r * .2, -r * .35, r * .35, r * .18, -.5, 0, 6.28); ctx.fill(); ctx.restore();
+    }
+    function drawRobot(ctx, x, y, r, ts) {
+      ctx.save(); ctx.translate(x, y);
+      ctx.fillStyle = 'rgba(0,0,0,.16)'; ctx.beginPath(); ctx.ellipse(0, r * 1.05, r * .85, r * .28, 0, 0, 6.28); ctx.fill();
+      // antenna
+      ctx.strokeStyle = '#C9A84C'; ctx.lineWidth = r * .12; ctx.beginPath(); ctx.moveTo(0, -r * .7); ctx.lineTo(0, -r * 1.15); ctx.stroke();
+      ctx.fillStyle = '#C9A84C'; ctx.beginPath(); ctx.arc(0, -r * 1.2, r * .16 * (1 + Math.sin(ts / 200) * .18), 0, 6.28); ctx.fill();
+      // body
+      const bg = ctx.createLinearGradient(0, -r, 0, r); bg.addColorStop(0, '#237a4b'); bg.addColorStop(1, '#153f28'); ctx.fillStyle = bg;
+      rr(ctx, -r * .8, -r * .7, r * 1.6, r * 1.5, r * .32); ctx.fill();
+      ctx.strokeStyle = '#C9A84C'; ctx.lineWidth = r * .09; ctx.stroke();
+      // face screen
+      ctx.fillStyle = '#0e2c1c'; rr(ctx, -r * .58, -r * .42, r * 1.16, r * .78, r * .2); ctx.fill();
+      // eyes (blink)
+      const blink = (ts - blinkT) % 3200 < 130;
+      ctx.fillStyle = '#7fe3b0';
+      if (blink) { ctx.fillRect(-r * .38, -r * .06, r * .3, r * .05); ctx.fillRect(r * .08, -r * .06, r * .3, r * .05); }
+      else { ctx.beginPath(); ctx.arc(-r * .23, -r * .05, r * .15, 0, 6.28); ctx.arc(r * .23, -r * .05, r * .15, 0, 6.28); ctx.fill(); ctx.fillStyle = '#0e2c1c'; ctx.beginPath(); ctx.arc(-r * .2, -r * .05, r * .06, 0, 6.28); ctx.arc(r * .26, -r * .05, r * .06, 0, 6.28); ctx.fill(); }
+      // smile
+      ctx.strokeStyle = '#7fe3b0'; ctx.lineWidth = r * .06; ctx.beginPath(); ctx.arc(0, r * .12, r * .22, .15, Math.PI - .15); ctx.stroke();
+      // treads
+      ctx.fillStyle = '#111'; rr(ctx, -r * .78, r * .62, r * 1.56, r * .34, r * .14); ctx.fill();
+      ctx.restore();
+    }
+    function rr(ctx, x, y, w, h, rad) { ctx.beginPath(); ctx.moveTo(x + rad, y); ctx.arcTo(x + w, y, x + w, y + h, rad); ctx.arcTo(x + w, y + h, x, y + h, rad); ctx.arcTo(x, y + h, x, y, rad); ctx.arcTo(x, y, x + w, y, rad); ctx.closePath(); }
+
+    function draw(ctx, ts) {
+      const L = lvl(), S = L.size, W = 480, cell = W / S;
+      ctx.clearRect(0, 0, W, W);
+      let sx = 0; if (crashT) { const dt = ts - crashT; if (dt < 420) sx = Math.sin(dt / 20) * (1 - dt / 420) * 8; else crashT = 0; }
+      ctx.save(); ctx.translate(sx, 0);
+      for (let r = 0; r < S; r++) for (let c = 0; c < S; c++) { ctx.fillStyle = (r + c) % 2 ? '#eef6f0' : '#f8f3e7'; ctx.fillRect(c * cell, r * cell, cell, cell); }
+      ctx.strokeStyle = 'rgba(26,92,56,.13)'; ctx.lineWidth = 1;
+      for (let i = 0; i <= S; i++) { ctx.beginPath(); ctx.moveTo(i * cell, 0); ctx.lineTo(i * cell, W); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, i * cell); ctx.lineTo(W, i * cell); ctx.stroke(); }
+      for (const w of L.walls) { const [wr, wc] = w.split(',').map(Number); drawRock(ctx, wc * cell + cell / 2, wr * cell + cell / 2, cell * 0.34); }
+      drawStar(ctx, L.goal[1] * cell + cell / 2, L.goal[0] * cell + cell / 2, cell * 0.28 * (1 + Math.sin(ts / 300) * 0.08), ts);
+      let dr = robot.r, dc = robot.c;
+      if (anim) { const k = Math.min(1, (ts - anim.t0) / anim.dur); const e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; dr = anim.from.r + (anim.to.r - anim.from.r) * e; dc = anim.from.c + (anim.to.c - anim.from.c) * e; if (k >= 1) { robot = anim.to; const d = anim.done; anim = null; if (d) d(); } }
+      drawRobot(ctx, dc * cell + cell / 2, dr * cell + cell / 2 + Math.sin(ts / 180) * 2, cell * 0.32, ts);
+      particles = particles.filter(p => { p.life--; p.x += p.vx; p.y += p.vy; p.vy += 0.16; if (p.life > 0) { ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.28); ctx.fill(); ctx.globalAlpha = 1; return true; } return false; });
+      ctx.restore();
+    }
+
+    function loop() {
+      const cv = $('#cq-canvas'); if (!cv) { cancelAnimationFrame(raf); return; }
+      draw(cv.getContext('2d'), performance.now());
+      raf = requestAnimationFrame(loop);
+    }
+
+    async function execute() {
+      if (running || !program.length) return; running = true; msg = null;
+      document.querySelectorAll('.cq-key,#cq-run,#cq-undo,#cq-clear').forEach(b => b.disabled = true);
+      const L = lvl(), cell = 480 / L.size; robot = { r: L.start[0], c: L.start[1] }; await wait(180);
+      for (const cmd of program) {
+        const [dr, dc] = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] }[cmd];
+        const nr = robot.r + dr, nc = robot.c + dc;
+        if (nr < 0 || nc < 0 || nr >= L.size || nc >= L.size || L.walls.includes(nr + ',' + nc)) {
+          crashT = performance.now(); Sound.wrong();
+          burst(robot.c * cell + cell / 2, robot.r * cell + cell / 2, '#eb5757', 20);
+          await wait(650); msg = { good: false, text: '💥 Crash! Robo bumped into something. Tweak the plan and try again.' }; render(); return;
+        }
+        await glide({ r: nr, c: nc });
+      }
+      if (robot.r === L.goal[0] && robot.c === L.goal[1]) {
+        winT = performance.now(); const bonus = Math.max(15, 70 - program.length * 4); score += bonus;
+        Sound.correct(); Confetti.burst(70); burst(robot.c * cell + cell / 2, robot.r * cell + cell / 2, '#C9A84C', 26);
+        await wait(750); program = [];
+        if (levelIdx === CODE_LEVELS.length - 1) { finishGame('code', score, 'Every level solved! 🤖', `Shorter programs earn bigger bonuses, just like real code. Final score ${score}!`); return; }
+        levelIdx++; msg = { good: true, text: `⭐ Star reached! +${bonus} points. On to level ${levelIdx + 1}!` }; render();
+      } else { Sound.wrong(); msg = { good: false, text: 'Robo stopped short of the star. Add a few more steps!' }; render(); }
+    }
+
+    function render() {
       const L = lvl();
-      const pos = robot || L.start;
-      app().innerHTML = topbar(`<div class="container" style="max-width:640px">
+      app().innerHTML = topbar(`<div class="container" style="max-width:520px">
         <div class="lesson-top"><b>🤖 Code Quest — Level ${levelIdx + 1}/${CODE_LEVELS.length}</b><b>Score: ${score}</b></div>
-        <div class="code-grid" style="grid-template-columns:repeat(${L.size},1fr)">
-          ${Array.from({ length: L.size }, (_, r) => Array.from({ length: L.size }, (_, c) => {
-            const isRobot = pos[0] === r && pos[1] === c;
-            const isGoal = L.goal[0] === r && L.goal[1] === c;
-            const isWall = L.walls.includes(r + ',' + c);
-            return `<div class="code-cell">${isRobot ? '🤖' : isGoal ? '⭐' : isWall ? '🪨' : ''}</div>`;
-          }).join('')).join('')}
+        <div class="cq-stage"><canvas id="cq-canvas" width="480" height="480"></canvas></div>
+        <div class="cq-pad">
+          <span></span><button class="cq-key" data-cmd="up">▲</button><span></span>
+          <button class="cq-key" data-cmd="left">◀</button><button class="cq-key" data-cmd="down">▼</button><button class="cq-key" data-cmd="right">▶</button>
         </div>
-        <div class="center" style="margin-top:12px">
-          <button class="btn small" data-cmd="up">⬆️ Up</button>
-          <button class="btn small" data-cmd="down">⬇️ Down</button>
-          <button class="btn small" data-cmd="left">⬅️ Left</button>
-          <button class="btn small" data-cmd="right">➡️ Right</button>
-        </div>
-        <div class="card" style="margin-top:12px;padding:14px">
-          <b>My Program:</b> <span id="prog">${program.length ? program.map(c => ({ up: '⬆️', down: '⬇️', left: '⬅️', right: '➡️' })[c]).join(' ') : '<span class="muted">tap arrows to build it…</span>'}</span>
-          <div style="margin-top:10px">
-            <button class="btn green small" id="run-btn">▶️ RUN</button>
-            <button class="btn coral small" id="clear-btn">🗑️ Clear</button>
-            <span class="muted" style="margin-left:8px">💡 ${esc(L.hint)}</span>
+        <div class="card cq-prog">
+          <div class="cq-prog-head"><b>🧩 Robo's plan</b><span class="muted">💡 ${esc(L.hint)}</span></div>
+          <div class="cq-steps" id="cq-steps">${program.length ? program.map(c => `<span class="cq-chip">${CQ_ARROWS[c]}</span>`).join('') : '<span class="muted">Tap the arrows to plan Robo\'s path to the star ⭐</span>'}</div>
+          <div class="cq-actions">
+            <button class="btn green" id="cq-run" ${program.length ? '' : 'disabled'}>▶ Run</button>
+            <button class="btn ghost small" id="cq-undo" ${program.length ? '' : 'disabled'}>⤺ Undo</button>
+            <button class="btn coral small" id="cq-clear" ${program.length ? '' : 'disabled'}>Clear</button>
           </div>
-          ${msg ? `<div class="feedback ${msg.good ? 'good' : 'bad'}" style="display:block;margin-top:10px">${esc(msg.text)}</div>` : ''}
+          ${msg ? `<div class="cq-feedback ${msg.good ? 'good' : 'bad'}">${esc(msg.text)}</div>` : ''}
         </div>
       </div>`);
       wireChrome();
-      document.querySelectorAll('[data-cmd]').forEach(b => b.onclick = () => { if (program.length < 20) { program.push(b.dataset.cmd); Sound.click(); render(); } });
-      $('#run-btn').onclick = run;
-      $('#clear-btn').onclick = () => { program = []; Sound.wrong(); render(); };
-    }
-    async function run() {
-      const L = lvl();
-      let [r, c] = L.start;
-      for (const cmd of program) {
-        const [dr, dc] = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] }[cmd];
-        const nr = r + dr, nc = c + dc;
-        if (nr < 0 || nc < 0 || nr >= L.size || nc >= L.size || L.walls.includes(nr + ',' + nc)) {
-          Sound.wrong();
-          render({ good: false, text: 'CRASH! 💥 Robo hit something. Debug your program and try again!' }, [r, c]);
-          return;
-        }
-        r = nr; c = nc;
-        render(null, [r, c]);
-        await new Promise(res => setTimeout(res, 260));
-      }
-      if (r === L.goal[0] && c === L.goal[1]) {
-        const bonus = Math.max(10, 60 - program.length * 5);
-        score += bonus;
-        Sound.correct(); Confetti.burst(60);
-        program = [];
-        if (levelIdx === CODE_LEVELS.length - 1) { finishGame('code', score, 'All levels programmed! 👩‍💻', 'Shorter programs earn bigger bonuses — just like real coding!'); return; }
-        levelIdx++;
-        render({ good: true, text: `⭐ Reached the star! +${bonus} points. Next level!` });
-      } else {
-        Sound.wrong();
-        render({ good: false, text: 'Robo stopped before the star. Add more steps!' }, [r, c]);
-      }
+      robot = { r: L.start[0], c: L.start[1] }; anim = null; running = false; crashT = 0; winT = 0; particles = [];
+      document.querySelectorAll('.cq-key').forEach(b => b.onclick = () => { if (running) return; if (program.length < 24) { program.push(b.dataset.cmd); Sound.click(); render(); } });
+      const run = $('#cq-run'); if (run) run.onclick = execute;
+      const undo = $('#cq-undo'); if (undo) undo.onclick = () => { program.pop(); Sound.click(); render(); };
+      const clr = $('#cq-clear'); if (clr) clr.onclick = () => { program = []; Sound.wrong(); render(); };
+      cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
     }
     render();
   }
@@ -457,40 +531,70 @@
       while (set.size < 4) { filler++; if (!set.has(filler)) set.add(filler); }
       return [...set].sort(() => Math.random() - .5);
     }
+    const RING_C = 2 * Math.PI * 52; // r=52
+    function ringDash(t) { return `${RING_C} ${RING_C}`; }
+    function ringOffset(t) { return RING_C * (1 - t / DURATION); }
     let qn = makeQ();
     function render() {
       if (over) return;
       const ch = choicesFor(qn);
-      const pct = timeLeft / DURATION * 100;
+      const hot = timeLeft <= 10;
       app().innerHTML = topbar(`<div class="container" style="max-width:560px">
-        <div class="lesson-top"><b>⚡ Lightning Round</b><b>Score: ${score}</b></div>
-        <div class="blitz-timer"><div class="blitz-fill ${timeLeft <= 10 ? 'hot' : ''}" style="width:${pct}%"></div></div>
-        <div class="card center" style="padding:26px">
-          ${combo >= 3 ? `<div class="combo-badge">🔥 COMBO ×${combo}</div>` : ''}
-          <div class="blitz-q">${qn.t} = ?</div>
+        <div class="lesson-top"><b>⚡ Lightning Round</b><b>Score: <span id="bz-score">${score}</span></b></div>
+        <div class="bz-ringwrap">
+          <svg class="bz-ring ${hot ? 'hot' : ''}" viewBox="0 0 120 120" width="132" height="132">
+            <circle class="bz-ring-bg" cx="60" cy="60" r="52"></circle>
+            <circle class="bz-ring-fg" cx="60" cy="60" r="52"
+              stroke-dasharray="${ringDash(timeLeft)}" stroke-dashoffset="${ringOffset(timeLeft)}"></circle>
+          </svg>
+          <div class="bz-ring-num"><span id="bz-time">${timeLeft}</span><small>sec</small></div>
+        </div>
+        <div class="card center bz-card" style="padding:26px">
+          <div class="combo-badge ${combo >= 3 ? 'show' : ''}" id="bz-combo">🔥 COMBO ×<span>${combo}</span></div>
+          <div class="blitz-q" id="bz-q">${qn.t} = ?</div>
           <div class="blitz-choices">${ch.map(c => `<button class="btn blitz-btn" data-v="${c}">${c}</button>`).join('')}</div>
-          <p class="muted" style="margin-top:12px">⏱️ ${timeLeft}s — combos of 3+ score DOUBLE points!</p>
+          <p class="muted" style="margin-top:12px">Combos of 3+ score <b>DOUBLE</b> points! 🔥</p>
         </div>
       </div>`);
       wireChrome();
       document.querySelectorAll('.blitz-btn').forEach(b => b.onclick = () => {
+        if (over) return;
         answered++;
-        if (Number(b.dataset.v) === qn.ans) {
+        const right = Number(b.dataset.v) === qn.ans;
+        if (right) {
           correct++; combo++; best = Math.max(best, combo);
-          score += combo >= 3 ? 20 : 10;
-          Sound.correct(); if (combo === 3) Confetti.burst(40);
-        } else { combo = 0; Sound.wrong(); }
-        qn = makeQ(); render();
+          const gain = combo >= 3 ? 20 : 10; score += gain;
+          Sound.correct();
+          b.classList.add('right');
+          floatGain(b, '+' + gain);
+          const card = document.querySelector('.bz-card'); if (card) { card.classList.remove('juice'); void card.offsetWidth; card.classList.add('juice'); }
+          if (combo === 3) Confetti.burst(40);
+          if (combo >= 3 && combo % 5 === 0) Confetti.burst(60);
+        } else {
+          combo = 0; Sound.wrong();
+          b.classList.add('wrong');
+          const card = document.querySelector('.bz-card'); if (card) { card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); }
+        }
+        // brief pause so the tap feedback is visible before the next question
+        setTimeout(() => { if (!over) { qn = makeQ(); render(); } }, right ? 140 : 260);
       });
+    }
+    function floatGain(anchor, text) {
+      const f = document.createElement('div'); f.className = 'bz-float'; f.textContent = text;
+      const wrap = document.querySelector('.bz-card'); if (!wrap) return;
+      wrap.appendChild(f);
+      setTimeout(() => f.remove(), 700);
     }
     timer = setInterval(() => {
       // player navigated away mid-game — stop cleanly
-      if (!document.querySelector('.blitz-timer')) { clearInterval(timer); over = true; return; }
+      if (!document.querySelector('.bz-ring')) { clearInterval(timer); over = true; return; }
       timeLeft--;
-      const fill = document.querySelector('.blitz-fill');
-      if (fill) { fill.style.width = (timeLeft / DURATION * 100) + '%'; if (timeLeft <= 10) fill.classList.add('hot'); }
-      const label = document.querySelector('.card .muted');
-      if (label) label.innerHTML = `⏱️ ${timeLeft}s — combos of 3+ score DOUBLE points!`;
+      const fg = document.querySelector('.bz-ring-fg');
+      if (fg) fg.setAttribute('stroke-dashoffset', ringOffset(timeLeft));
+      const svg = document.querySelector('.bz-ring');
+      if (svg && timeLeft <= 10) svg.classList.add('hot');
+      const num = document.querySelector('#bz-time');
+      if (num) num.textContent = timeLeft;
       if (timeLeft <= 0) {
         clearInterval(timer); over = true;
         finishGame('blitz', score, `${score} points in 60 seconds! ⚡`, `${correct}/${answered} correct · best combo ×${best}. Faster brains next round!`);
