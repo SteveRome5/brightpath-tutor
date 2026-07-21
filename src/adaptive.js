@@ -734,5 +734,6 @@ function setLevel(kidId, subject, level) {
 
 module.exports = {
   getSubjectState, nextActivity, recordAnswer, placementNext, reportCard,
-  gradeName, subjectLabel, setLevel, maxGrade, achievements, careerInsights, BADGES, MASTERED, STRUGGLING
+  gradeName, subjectLabel, setLevel, maxGrade, achievements, careerInsights, BADGES, MASTERED, STRUGGLING,
+  updateStreak
 };

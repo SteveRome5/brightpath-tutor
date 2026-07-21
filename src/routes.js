@@ -267,6 +267,53 @@ router.post('/learn/:kidId/answer', auth.requireKid, auth.requireActiveSub, (req
   res.json({ ...result, kid: publicKid(kid) });
 });
 
+// ---------- advanced exam-prep tracks (AP / Honors / Regents) ----------
+// Separate from the adaptive ladder: track practice never changes a learner's
+// subject level or mastery. It still logs activity (so it counts toward streak,
+// daily quests, XP/coins) under a namespaced skill_id that the adaptive engine
+// ignores.
+const trackRecent = new Map(); // `${kidId}:${trackId}` -> [recent prompts]
+
+router.get('/learn/tracks', (req, res) => res.json({ tracks: content.listTracks() }));
+
+router.get('/learn/:kidId/track/:trackId/next', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const { trackId } = req.params;
+  const key = `${req.kid.id}:${trackId}`;
+  const avoid = new Set(trackRecent.get(key) || []);
+  let qn = null;
+  for (let attempt = 0; attempt < 3 && !qn; attempt++) {
+    try { qn = content.generateTrackQuestion(trackId, avoid); } catch (e) { qn = null; }
+  }
+  if (!qn || !qn.choices) return res.status(404).json({ error: 'That track has no questions yet.' });
+  const recent = trackRecent.get(key) || [];
+  recent.push(qn.prompt); while (recent.length > 12) recent.shift();
+  trackRecent.set(key, recent);
+  const answerIdx = qn.choices.indexOf(qn.answer);
+  res.json({
+    question: {
+      prompt: qn.prompt, choices: qn.choices, voice: qn.voice, hint: qn.hint, explain: qn.explain,
+      passage: qn.passage || null, answerIndex: answerIdx, trackId: qn.trackId, trackName: qn.trackName, exam: qn.exam, subject: qn.subject
+    }
+  });
+});
+
+router.post('/learn/:kidId/track/answer', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const { trackId, correct } = req.body || {};
+  const meta = content.listTracks().find(t => t.id === trackId) || null;
+  if (!meta) return res.status(400).json({ error: 'Unknown track' });
+  const isCorrect = !!correct;
+  // Log under the track's subject so it counts toward streak/quests, but with a
+  // namespaced skill_id ("track:<id>") that is never in any grade's skill list,
+  // so settleLevel / mastery / Gallop Score are untouched.
+  db.prepare('INSERT INTO activity_log (kid_id, subject, skill_id, correct, difficulty, time_ms) VALUES (?,?,?,?,?,?)')
+    .run(req.kid.id, meta.subject, `track:${trackId}`, isCorrect ? 1 : 0, 0.9, Number((req.body || {}).timeMs) || null);
+  const xp = isCorrect ? 15 : 3;
+  db.prepare('UPDATE kids SET xp = xp + ?, coins = coins + ? WHERE id=?').run(xp, isCorrect ? 2 : 0, req.kid.id);
+  try { adaptive.updateStreak(req.kid.id); } catch (e) {}
+  const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id);
+  res.json({ ok: true, correct: isCorrect, xpEarned: xp, coinsEarned: isCorrect ? 2 : 0, kid: publicKid(kid) });
+});
+
 // report card (kid-safe view + parent view share this)
 router.get('/learn/:kidId/achievements', auth.requireKid, (req, res) => {
   res.json(adaptive.achievements(req.kid.id));
