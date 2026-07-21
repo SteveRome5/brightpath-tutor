@@ -227,6 +227,7 @@
     const grid = Array.from({ length: size }, () => Array(size).fill(''));
     const dirs = grade <= 2 ? [[0, 1], [1, 0]] : [[0, 1], [1, 0], [1, 1]];
     const placed = [];
+    const wordPos = {}; // word -> exact cells recorded AT PLACEMENT (never re-searched)
     for (const w of words) {
       for (let tries = 0; tries < 200; tries++) {
         const [dr, dc] = dirs[Math.floor(Math.random() * dirs.length)];
@@ -236,6 +237,7 @@
         for (let i = 0; i < w.length; i++) { const ch = grid[r0 + dr * i][c0 + dc * i]; if (ch && ch !== w[i]) { ok = false; break; } }
         if (!ok) continue;
         for (let i = 0; i < w.length; i++) grid[r0 + dr * i][c0 + dc * i] = w[i];
+        wordPos[w] = Array.from({ length: w.length }, (_, i) => ({ r: r0 + dr * i, c: c0 + dc * i }));
         placed.push(w); break;
       }
     }
@@ -264,19 +266,9 @@
       justFound = null;
       document.querySelectorAll('.ws-cell').forEach(el => el.onclick = () => pick(Number(el.dataset.r), Number(el.dataset.c)));
     }
-    const wordPos = {};
-    function wordCells(w) {
-      if (wordPos[w]) return wordPos[w];
-      for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) for (const [dr, dc] of [[0, 1], [1, 0], [1, 1]]) {
-        let ok = true;
-        for (let i = 0; i < w.length; i++) {
-          const rr = r + dr * i, cc = c + dc * i;
-          if (rr >= size || cc >= size || grid[rr][cc] !== w[i]) { ok = false; break; }
-        }
-        if (ok) { wordPos[w] = Array.from({ length: w.length }, (_, i) => ({ r: r + dr * i, c: c + dc * i })); return wordPos[w]; }
-      }
-      return [];
-    }
+    // Use the exact cells recorded when each word was placed — never re-derive from the
+    // grid, or random filler letters could spell a word elsewhere and mark a correct tap wrong.
+    function wordCells(w) { return wordPos[w] || []; }
     function pick(r, c) {
       Sound.click();
       sel.push({ r, c });
@@ -764,7 +756,7 @@
       shell(`
         ${msg ? `<div class="lt-recap">${msg}</div>` : `<p class="lt-tip">☀️ Hot days bring thirsty crowds · 🌧️ rain empties the street. Read the forecast and plan like an owner!</p>`}
         <div class="lt-row"><span class="lt-lbl">Cups to make <em>(50¢ each)</em></span>
-          <div class="lt-seg" id="lt-cups">${[10, 20, 30, 40].map(n => `<button data-cups="${n}" class="${cups === n ? 'on' : ''}" ${n * CUP_COST > cash ? 'disabled' : ''}>${n}</button>`).join('')}</div></div>
+          <div class="lt-seg" id="lt-cups">${[10, 20, 30, 40].map((n, i) => `<button data-cups="${n}" class="${cups === n ? 'on' : ''}" ${(i > 0 && n * CUP_COST > cash) ? 'disabled' : ''}>${n}</button>`).join('')}</div></div>
         <div class="lt-row"><span class="lt-lbl">Price per cup</span>
           <div class="lt-seg" id="lt-price">${[0.5, 1, 1.5, 2].map(p => `<button data-price="${p}" class="${price === p ? 'on' : ''}">$${p.toFixed(2)}</button>`).join('')}</div></div>
         <button class="btn green lt-open" id="lt-open" ${cups && price ? '' : 'disabled'}>Open the Stand →</button>`);
@@ -967,7 +959,7 @@
     const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
     const pick = a => a[Math.floor(Math.random() * a.length)];
     const shuf = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; } return a; };
-    const money = n => '$' + (Math.round(n * 100) / 100).toFixed(2);
+    const money = n => (n < 0 ? '-$' : '$') + (Math.round(Math.abs(n) * 100) / 100).toFixed(2);
     // Build 4 DISTINCT choice strings. If distractors collide with the answer or
     // each other, fill with genuinely different numeric neighbours — never a
     // whitespace-padded copy of the answer (which looked identical on screen and
@@ -1127,6 +1119,9 @@
         st.price = o.p;
         st.sold = Math.round(st.made * o.mult);
         st.revenue = Math.round(st.sold * o.p * 100) / 100;
+        // The pricing decision earns the 5th star on a perfect run (any price is a valid
+        // business choice, so it always counts while the run is still flawless).
+        if (st.perfect) st.stars = Math.min(5, st.stars + 1);
         Sound.badge(); Confetti.burst(24);
         const soldOut = st.sold >= st.made;
         $('#bq-feed').innerHTML = `<div class="bq-good">At ${money(o.p)} each, you sold <b>${st.sold}</b> of ${st.made} cupcakes${soldOut ? ' — sold out! 🎉' : ' (some went unsold).'}<br>Money brought in: <b>${money(st.revenue)}</b>. Pricing is a real trade-off every business balances.</div><button class="btn green" id="bq-next" style="margin-top:12px">Ring it up →</button>`;

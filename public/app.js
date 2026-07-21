@@ -547,9 +547,12 @@ function topbar(inner = '') {
     // so they are never trapped in a game they don't want to be in.
     const inGame = /^#\/?game\//.test(location.hash);
     const exitBtn = inGame ? `<button class="btn coral small" onclick="location.hash='#play'">← Games</button>` : '';
-    right = `${exitBtn}<button class="btn ghost small" onclick="location.hash='#home'">🏠 Home</button><button class="btn ghost small" onclick="location.hash='#kid-login'" title="Switch to another child">👋 Switch</button><button class="btn ghost small kid-logout" id="logout-btn">Log out</button>`;
+    // If a parent launched this child session, give them a one-tap way back to their
+    // own dashboard instead of forcing a full email+password re-login.
+    const parentBtn = me.parentReturn ? `<button class="btn ghost small" id="exit-kid-btn" title="Back to your parent dashboard">← Parent</button>` : '';
+    right = `${exitBtn}${parentBtn}<button class="btn ghost small" onclick="location.hash='#home'">🏠 Home</button><button class="btn ghost small" onclick="location.hash='#kid-login'" title="Switch to another child">👋 Switch</button><button class="btn ghost small kid-logout" id="logout-btn">Log out</button>`;
   }
-  else right = `<button class="btn ghost small" onclick="location.hash='#kid-login'">Child Login</button><button class="btn sun small" onclick="location.hash='#login'">Parent Login</button>`;
+  else right = `<button class="btn ghost small" onclick="location.hash='#kid-login'">Child Login</button><button class="btn ghost small" onclick="location.hash='#login'">Parent Login</button><button class="btn sun small" onclick="location.hash='#signup'">Start free trial</button>`;
   return `
   <div class="topbar">
     <div class="logo" onclick="location.hash='${homeHash}'"><img src="/logo-mark.png" alt="Gallop" class="logo-img"> Gallop</div>
@@ -588,6 +591,35 @@ function wireChrome() {
   }
   const lb = $('#logout-btn');
   if (lb) lb.onclick = async () => { await api('/auth/logout', { method: 'POST' }); await refreshMe(); location.hash = '#'; };
+  const xk = $('#exit-kid-btn');
+  if (xk) xk.onclick = async () => {
+    try { await api('/auth/exit-kid', { method: 'POST' }); await refreshMe(); location.hash = '#parent'; }
+    catch (e) { location.hash = '#login'; }
+  };
+  // Accessibility: the kid nav tiles are <div>s. Make them real buttons for keyboard
+  // and screen-reader users (focusable + role + label). Enter/Space is handled globally.
+  document.querySelectorAll('.subject-card, .zone-card, .up-next, .avatar-opt').forEach(el => {
+    if (el.getAttribute('role') === 'button') return;
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
+    if (!el.getAttribute('aria-label')) {
+      const label = (el.getAttribute('title') || el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (label) el.setAttribute('aria-label', label.slice(0, 90));
+    }
+  });
+}
+// One global keyboard bridge: Enter/Space activates any role="button" that isn't a
+// native control (covers all the div-based tiles upgraded in wireChrome).
+if (!window._kbButtonsWired) {
+  window._kbButtonsWired = true;
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+    const t = e.target.closest && e.target.closest('[role="button"]');
+    if (!t) return;
+    if (['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName)) return;
+    e.preventDefault();
+    t.click();
+  });
 }
 // Older learners get the chill lo-fi vibe; the littles get a brighter playful loop.
 function currentMusicMood() {
@@ -604,7 +636,7 @@ route('landing', async () => {
     <div class="eyebrow">Adaptive K–12 Tutoring · Math · English · Science · Spanish</div>
     <h1>A personal tutor for every child, at every level.</h1>
     <p class="hero-tagline">Every child has a pace. Gallop finds it.</p>
-    <p>Gallop finds each child's real level in every subject, then adapts each lesson to how they actually learn. The teaching stays grounded in the real world, the progress reports are honest, and the whole program grows up alongside your child. By the high school years it even helps you see where their strengths could lead.</p>
+    <p>Gallop finds each child's real level in every subject, then adapts each lesson to how they actually learn. It's self-paced learning your child does on their own, on any device — no appointments and no live tutor to schedule. The teaching stays grounded in the real world, the progress reports are honest, and the whole program grows up alongside your child. By the high school years it even helps you see where their strengths could lead.</p>
     <div class="hero-cta">
       <button class="btn hero-primary" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start your 7-day free trial</button>
       <div class="hero-cta-row">
@@ -715,6 +747,11 @@ route('landing', async () => {
       </figure>
     </div>
 
+    <div class="founder-note reveal">
+      <div class="founder-emoji">🐴</div>
+      <p>Gallop was built by a family that wanted something better for their own kids — every subject in one place, at each child's real level, without a tutoring-center price tag. It's built and run by real people, not a faceless edtech company, and when you email support a real person answers. We'd love for your family to try it.</p>
+    </div>
+
     <div class="card reveal" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:6px">Simple plans</h2>
       <p class="center muted" style="margin-bottom:20px">Start with a 7-day free trial. No credit card to begin, and you can cancel anytime.</p>
@@ -727,11 +764,11 @@ route('landing', async () => {
         <span>🎁 7 days free, no card to start</span>
         <span>↩️ Cancel anytime in one click</span>
         <span>🔒 Payments secured by Stripe</span>
-        <span>🙈 We never see your card number</span>
+        <span>🚫 No ads, ever · we never sell your data</span>
       </div>
       <div class="compare">
         <div class="compare-head"><span>How Gallop compares</span></div>
-        <table class="compare-table">
+        <div class="compare-scroll"><table class="compare-table">
           <thead><tr><th></th><th class="us">Gallop</th><th>Learning centers<br><span>(Kumon, Sylvan, Mathnasium)</span></th><th>Private tutor</th></tr></thead>
           <tbody>
             <tr><td>Typical cost</td><td class="us"><b>$34–54 / mo</b></td><td>$150–200 / mo <i>per subject</i></td><td>$40–80 / hour</td></tr>
@@ -744,7 +781,7 @@ route('landing', async () => {
             <tr><td>Advanced track for accelerated kids</td><td class="us">✅ AP, Honors & exam prep</td><td>➖ extra program</td><td>➖ varies</td></tr>
             <tr><td>Games, rewards & motivation</td><td class="us">✅ arcade + trophies</td><td>❌</td><td>❌</td></tr>
           </tbody>
-        </table>
+        </table></div>
         <p class="muted center" style="font-size:.8rem;margin-top:10px">Competitor pricing reflects commonly published U.S. rates and varies by location; comparison is for general guidance.</p>
       </div>
     </div>
@@ -754,6 +791,8 @@ route('landing', async () => {
       <details><summary>What does it cost after the trial?</summary><p>Solo is $34 a month for one student, and Family is $54 a month for up to four. Both are billed monthly and include all four subjects, the guided lessons, the adaptive tutor, the games, and the parent reports. Nothing is sold as an add-on.</p></details>
       <details><summary>What ages and subjects does it cover?</summary><p>Every grade from kindergarten through 12th, in Math, English, Science, and Spanish. Each child is placed at their real level in each subject, so a strong reader who finds math harder starts in the right spot for both. High-school math runs all the way through calculus and statistics.</p></details>
       <details><summary>What about kids who are ahead of grade level?</summary><p>They get a separate Advanced Track. Once a student has mastered their grade, they can practice college-level and honors material — AP-style sets in Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English, and Spanish, honors courses, and practice aligned to state exams like the New York Regents for families who need it. It's kept separate from grade-level work, so working ahead never changes a child's placement.</p></details>
+      <details><summary>What if my child doesn't like it?</summary><p>The first 7 days are completely free and need no card, so you can let your child try the real thing before you ever pay. If it isn't a fit, do nothing and the trial simply ends — you're never charged. If you've already subscribed, cancel in one click and you keep access through the time you've paid for.</p></details>
+      <details><summary>Are there real, human tutors?</summary><p>No — and that's the point. Gallop is self-paced adaptive software your child uses on their own, so there's nothing to schedule and no hourly rate. It teaches each concept with a short guided lesson, then adjusts every question to your child, which is how it covers all four subjects for less than a single week at a tutoring center.</p></details>
       <details><summary>Can I cancel anytime?</summary><p>Yes, in one click from your parent dashboard. Cancelling stops any future charges, and your child keeps access through the time you have already paid for.</p></details>
       <details><summary>Is my child safe, and is our data private?</summary><p>Yes. There are no ads and we never sell your data. Children connect only with buddies you approve, and they can send only pre-written cheers, so there is no open chat and no way for strangers to reach them. Payments run through Stripe, so we never see or store your card number.</p></details>
       <details><summary>What devices does it work on?</summary><p>Any device with a web browser: phone, tablet, laptop, or desktop. There is nothing to install, and progress syncs automatically across devices.</p></details>
@@ -779,36 +818,11 @@ function legalPage(title, bodyHTML) {
     </div></div>`);
   wireChrome();
 }
-route('terms', async () => legalPage('Terms of Service', `
-  <h3 style="margin-top:14px">1. The service</h3>
-  <p>Gallop Learning Academy ("Gallop") is an online adaptive learning program for students in grades K–12, covering Math, English, Science, and Spanish. Subscriptions are purchased by a parent or legal guardian ("you"), who creates and manages learner profiles for their children.</p>
-  <h3 style="margin-top:14px">2. Accounts & responsibility</h3>
-  <p>You must be 18 or older to create an account. You are responsible for the accuracy of the information you provide, for keeping your password secure, and for all activity under your account. Learner profiles are for children in your care.</p>
-  <h3 style="margin-top:14px">3. Subscriptions, trials & cancellation</h3>
-  <p>New accounts receive a free trial (currently 7 days) with full access. After the trial, continued access requires a paid subscription (currently Solo $34/month or Family $54/month), billed monthly through Stripe until canceled. You can cancel anytime from the Parent Dashboard's "Manage Billing", cancellation stops future charges and access continues through the period already paid. Prices may change with notice; changes never apply retroactively to a period you've already paid for.</p>
-  <h3 style="margin-top:14px">4. Acceptable use</h3>
-  <p>Don't share accounts beyond your household, attempt to disrupt the service, or use the content for anything other than personal, non-commercial education. The buddies feature connects children only through parent-created invite codes; misuse of it may result in account termination.</p>
-  <h3 style="margin-top:14px">5. Educational content</h3>
-  <p>Gallop is meant to supplement school instruction rather than replace it, and it makes no guarantee of specific academic outcomes. Progress reports, letter grades, and certificates are informal measures generated by our adaptive engine.</p>
-  <h3 style="margin-top:14px">6. Disclaimers & liability</h3>
-  <p>The service is provided "as is." To the maximum extent permitted by law, Lotus Farms LLC's total liability for any claim related to the service is limited to the amount you paid us in the twelve months before the claim arose.</p>
-  <h3 style="margin-top:14px">7. Changes & contact</h3>
-  <p>We may update these terms; material changes will be posted on this page with a new date. Questions: <b>support@learnwithgallop.com</b> or Instagram <b>@learnwithgallop</b>.</p>
-`));
-route('privacy', async () => legalPage('Privacy Policy', `
-  <p><b>The short version:</b> we collect the minimum needed to run the tutor, we never sell data, we never show ads, and children's data exists only inside a parent-controlled account.</p>
-  <h3 style="margin-top:14px">1. What we collect</h3>
-  <p><b>From parents:</b> name, email address, password (stored as a salted hash, we cannot read it), and subscription status. Payments are processed by Stripe; we never see or store card numbers.</p>
-  <p><b>About learners (children):</b> the first name, grade, avatar, and 4-digit PIN a parent enters, plus learning activity generated by use (answers, skill mastery, badges, game scores). We do not collect a child's email, phone number, precise location, photos, or free-form messages, the buddies feature uses only pre-written cheers.</p>
-  <h3 style="margin-top:14px">2. Children's privacy (COPPA)</h3>
-  <p>Gallop is designed for use by children <i>under a parent's account and consent</i>. Children cannot create accounts, cannot make purchases, and cannot communicate in free text with anyone. Learner profiles are created, managed, and deletable only by the parent. Deleting a learner (Parent Dashboard) permanently deletes that child's data; deleting your account deletes everything. Parents may contact us at any time to review or delete their child's information.</p>
-  <h3 style="margin-top:14px">3. How data is used</h3>
-  <p>Solely to operate the service: placing students at the right level, adapting lessons, generating progress reports for parents, and maintaining streaks/rewards. We do not sell or rent personal information, we do not use it for advertising, and we share it only with the processors that run the service (hosting, payments) under their own strict obligations.</p>
-  <h3 style="margin-top:14px">4. Security & retention</h3>
-  <p>All traffic is encrypted (HTTPS). Passwords are hashed with scrypt. Data is retained while your account is active and deleted when you delete a learner or your account.</p>
-  <h3 style="margin-top:14px">5. Contact</h3>
-  <p>Privacy questions or data requests: <b>support@learnwithgallop.com</b>. We're a family business, so a real person answers.</p>
-`));
+// Legal pages have canonical, crawlable static versions at /terms and /privacy.
+// The in-app hash links redirect there so there is a single source of legal truth.
+route('terms', async () => { location.href = '/terms'; });
+route('privacy', async () => { location.href = '/privacy'; });
+
 
 // ======================= demo lesson (no signup!) =======================
 const DEMO_QUESTIONS = [
@@ -851,12 +865,17 @@ route('demo', async () => {
     }
     const qn = DEMO_QUESTIONS[idx];
     let answered = false;
+    // Shuffle so the correct answer isn't always the first choice (looks rigged otherwise).
+    const correctText = qn.choices[qn.answer];
+    const shuffled = qn.choices.slice();
+    for (let z = shuffled.length - 1; z > 0; z--) { const j = Math.floor(Math.random() * (z + 1));[shuffled[z], shuffled[j]] = [shuffled[j], shuffled[z]]; }
+    const ansIdx = shuffled.indexOf(correctText);
     app().innerHTML = topbar(`<div class="container lesson-wrap">
       <div class="lesson-top"><b>${qn.emoji} Sample lesson, see how Gallop teaches</b>${gallopTrack(idx / DEMO_QUESTIONS.length * 100)}<b>${idx + 1}/${DEMO_QUESTIONS.length}</b></div>
       <div class="q-card">
         <span class="q-skill" style="background:${qn.color}">${esc(qn.skill)} · ${esc(qn.grade)}</span>
         <div class="q-prompt">${esc(qn.prompt)}</div>
-        <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
+        <div class="choices">${shuffled.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
         <div class="hint-box" id="hint-box">💡 ${esc(qn.hint)}</div>
         <div class="feedback" id="feedback" aria-live="polite"></div>
         <div class="lesson-actions">
@@ -871,10 +890,10 @@ route('demo', async () => {
     document.querySelectorAll('.choice').forEach(b => b.onclick = () => {
       if (answered) return; answered = true;
       const i = Number(b.dataset.i);
-      const ok = i === qn.answer;
+      const ok = i === ansIdx;
       document.querySelectorAll('.choice').forEach(x => x.disabled = true);
       b.classList.add(ok ? 'correct' : 'wrong');
-      if (!ok) document.querySelectorAll('.choice')[qn.answer].classList.add('answer-reveal');
+      if (!ok) { const _ar = document.querySelectorAll('.choice')[ansIdx]; if (_ar) _ar.classList.add('answer-reveal'); }
       const fb = $('#feedback');
       if (ok) { correct++; Sound.correct(); Confetti.burst(40); fb.className = 'feedback good'; }
       else { Sound.wrong(); fb.className = 'feedback bad'; }
@@ -1388,8 +1407,11 @@ route('lesson', async (subject, mode) => {
           <div class="why-line">🌍 <b>Real world:</b> ${esc(why)}</div>
           <button class="btn sun" style="margin-top:14px">${playful() ? 'Got it! 👍' : 'Understood →'}</button>
         </div>`;
-        pop.querySelector('button').onclick = () => { pop.remove(); Sound.click(); };
-        setTimeout(() => { document.body.appendChild(pop); const b = pop.querySelector('button'); if (b) b.focus(); }, 650);
+        pop.querySelector('button').onclick = () => { pop.remove(); Sound.click(); const nb = $('#next-btn'); if (nb) nb.focus(); };
+        // Show the teaching moment IMMEDIATELY (not on a delay). While this .celebrate
+        // overlay is up, the keydown guard blocks Enter→Next, so a fast tap can't skip
+        // the explanation or drop a ghost overlay onto the next question.
+        document.body.appendChild(pop); const gotIt = pop.querySelector('button'); if (gotIt) gotIt.focus();
         if (Voice.auto) Voice.speak(`The answer is ${qn.choices[qn.answerIndex]}. ${qn.explain || ''}`, 'en-US');
       }
       session.n++; if (correct) session.correct++;
@@ -1404,10 +1426,17 @@ route('lesson', async (subject, mode) => {
         (res.events || []).forEach(ev => session.events.push(ev));
         const celebration = (res.events || []).find(ev => ev.type === 'levelup' || ev.type === 'badge' || ev.type === 'token');
         if (celebration) setTimeout(() => celebrate(celebration), 700);
-      } catch (e) { /* keep playing even if network hiccups */ }
+      } catch (e) {
+        // Trial/subscription lapsed mid-lesson: send them to the paywall instead of
+        // silently celebrating work that was never recorded.
+        if (e.status === 402) { renderPaywall(); return; }
+        /* otherwise keep playing even if the network hiccups */
+      }
       $('#next-btn').style.display = 'inline-flex';
-      $('#next-btn').focus();
       $('#next-btn').onclick = () => { Sound.click(); nextQuestion(); };
+      // Only steal focus to Next when correct; on a wrong answer the teaching overlay
+      // owns focus (its "Got it" button) until the child dismisses it.
+      if (correct) $('#next-btn').focus();
     }
 
     document.querySelectorAll('.choice').forEach(b => b.onclick = () => {
@@ -1416,7 +1445,7 @@ route('lesson', async (subject, mode) => {
       const correct = i === qn.answerIndex;
       document.querySelectorAll('.choice').forEach(x => x.disabled = true);
       b.classList.add(correct ? 'correct' : 'wrong');
-      if (!correct) document.querySelectorAll('.choice')[qn.answerIndex].classList.add('answer-reveal');
+      if (!correct) { const _ar = document.querySelectorAll('.choice')[qn.answerIndex]; if (_ar) _ar.classList.add('answer-reveal'); }
       settle(correct);
     });
 
@@ -1622,17 +1651,18 @@ route('exam', async (trackId) => {
           <p class="explain-text">The answer is <b>${esc(qn.choices[qn.answerIndex])}</b>.<br>${esc(qn.explain || qn.hint || '')}</p>
           <button class="btn sun" style="margin-top:14px">Understood →</button>
         </div>`;
-        pop.querySelector('button').onclick = () => { pop.remove(); Sound.click(); };
-        setTimeout(() => { document.body.appendChild(pop); const b = pop.querySelector('button'); if (b) b.focus(); }, 600);
+        pop.querySelector('button').onclick = () => { pop.remove(); Sound.click(); const nb = $('#next-btn'); if (nb) nb.focus(); };
+        // Show immediately so the keydown guard blocks Enter→Next until it's dismissed.
+        document.body.appendChild(pop); const uB = pop.querySelector('button'); if (uB) uB.focus();
       }
       session.n++; if (correct) { session.correct++; }
       try {
         const res = await api(`/learn/${kidId}/track/answer`, { method: 'POST', body: { trackId, correct, timeMs: Date.now() - session.startedAt } });
         session.xp += res.xpEarned || 0;
-      } catch (e) { /* keep going */ }
+      } catch (e) { if (e.status === 402) { renderPaywall(); return; } /* else keep going */ }
       $('#next-btn').style.display = 'inline-flex';
-      $('#next-btn').focus();
       $('#next-btn').onclick = () => { Sound.click(); nextQuestion(); };
+      if (correct) $('#next-btn').focus();
     }
 
     document.querySelectorAll('.choice').forEach(b => b.onclick = () => {
@@ -1641,7 +1671,7 @@ route('exam', async (trackId) => {
       const correct = i === qn.answerIndex;
       document.querySelectorAll('.choice').forEach(x => x.disabled = true);
       b.classList.add(correct ? 'correct' : 'wrong');
-      if (!correct) document.querySelectorAll('.choice')[qn.answerIndex].classList.add('answer-reveal');
+      if (!correct) { const _ar = document.querySelectorAll('.choice')[qn.answerIndex]; if (_ar) _ar.classList.add('answer-reveal'); }
       settle(correct);
     });
   }
@@ -1933,9 +1963,15 @@ route('certificate', async (kidId, certId) => {
 
 // ======================= paywall =======================
 function renderPaywall() {
+  // Speak to the actual account state — a long-paying parent with a declined card
+  // should not be told they were "on a free trial".
+  const pstat = (State.me && State.me.role === 'parent' && State.me.parent) ? State.me.parent.sub_status : 'trial';
+  const heading = pstat === 'past_due' ? 'There was a problem with your payment'
+    : pstat === 'canceled' ? 'Your subscription is canceled'
+    : 'Your free trial has ended';
   app().innerHTML = topbar(`<div class="container" style="max-width:600px"><div class="card center">
     <img src="/logo-roundel.png" alt="" style="width:84px;height:84px">
-    <h2 style="margin-top:10px">Your free trial has ended</h2>
+    <h2 style="margin-top:10px">${heading}</h2>
     <p class="muted" style="margin:10px 0 4px"><b>Everything is saved</b>, streaks, skill levels, badges, and certificates are waiting exactly where you left off.</p>
     <p class="muted" style="margin:0 0 16px">Keep all four subjects, the adaptive tutor, the games arcade, buddies, and weekly parent reports, for less than a single week at a tutoring center.</p>
     ${State.me.role === 'parent'
@@ -1973,6 +2009,7 @@ route('parent', async () => {
       : `🔒 Subscription ${esc(p.sub_status)}`;
 
   const trialUrgent = p.sub_status === 'trial' && trialDays > 0 && trialDays <= 3;
+  const trialEnded = p.sub_status === 'trial' && trialDays <= 0;
   app().innerHTML = topbar(`<div class="container">
     <div class="dash-welcome" style="margin-bottom:14px"><h1>Welcome, ${esc(p.name)} 👋</h1><p>${subLine} ${me.billingMode === 'demo' ? '· <i>(demo billing, add Stripe keys to charge real cards)</i>' : ''}</p></div>
     ${trialUrgent ? `<div class="trial-banner">
@@ -1980,6 +2017,17 @@ route('parent', async () => {
       <span>All progress, streaks, badges and certificates are saved, subscribing keeps the gallop going without missing a day.</span></div>
       <div style="white-space:nowrap"><button class="btn sun" id="tb-family">Family, $54/mo</button>
       <button class="btn ghost small" style="color:#fff;border-color:rgba(255,255,255,.6);margin-left:8px" id="tb-solo">Solo, $34/mo</button></div>
+    </div>` : ''}
+    ${(trialEnded || p.sub_status === 'canceled') ? `<div class="trial-banner">
+      <div><b>🔒 Your ${trialEnded ? 'free trial has ended' : 'subscription is canceled'}.</b><br>
+      <span>Everything — progress, streaks, badges and certificates — is saved exactly where your child left off. Subscribe to jump right back in.</span></div>
+      <div style="white-space:nowrap"><button class="btn sun" id="tb-family">Family, $54/mo</button>
+      <button class="btn ghost small" style="color:#fff;border-color:rgba(255,255,255,.6);margin-left:8px" id="tb-solo">Solo, $34/mo</button></div>
+    </div>` : ''}
+    ${p.sub_status === 'past_due' ? `<div class="trial-banner">
+      <div><b>💳 Your last payment didn't go through.</b><br>
+      <span>Update your card to keep your subscription active — you won't be charged twice.</span></div>
+      <div style="white-space:nowrap"><button class="btn sun" id="tb-portal">Update payment method</button></div>
     </div>` : ''}
     <div class="dash-grid">
       <div class="card">
@@ -1991,9 +2039,9 @@ route('parent', async () => {
               <div style="flex:1"><b>${esc(k.name)}</b><br><span class="muted" style="font-size:.85rem">Grade ${k.grade === 0 ? 'K' : k.grade} · 🔥${k.streak} streak · ⚡${k.xp} XP · ${esc(k.calendar_mode)}</span></div>
               <button class="btn green small" data-start="${k.id}">▶ Start</button>
               <button class="btn small" data-report="${k.id}">📊 Report</button>
-              <button class="btn small" data-weekly="${k.id}" title="Printable weekly summary">📄</button>
-              <button class="btn small" data-edit="${k.id}" title="Edit learner">✏️</button>
-              <button class="btn coral small" data-del="${k.id}">✕</button>
+              <button class="btn small" data-weekly="${k.id}" title="Printable weekly summary" aria-label="Printable weekly summary for ${esc(k.name)}">📄</button>
+              <button class="btn small" data-edit="${k.id}" title="Edit learner" aria-label="Edit ${esc(k.name)}">✏️</button>
+              <button class="btn coral small" data-del="${k.id}" title="Remove learner" aria-label="Remove ${esc(k.name)}">✕</button>
             </div>
             <div class="kid-edit" id="edit-${k.id}" style="display:none">
               <div class="ke-grid">
@@ -2033,11 +2081,15 @@ route('parent', async () => {
         <div class="card">
           <h3>💳 Subscription</h3>
           <p class="muted" style="margin:8px 0 14px">${subLine}</p>
-          ${p.sub_status !== 'active' ? `
+          ${p.sub_status === 'active' ? `
+            <button class="btn" style="width:100%" id="sub-portal">Manage Billing</button>`
+          : p.sub_status === 'past_due' ? `
+            <p class="muted" style="margin:0 0 12px">Your last payment didn't go through. Update your card to keep your subscription — you won't be charged twice.</p>
+            <button class="btn green" style="width:100%" id="sub-portal">Update payment method</button>`
+          : `
             <button class="btn green" style="width:100%" id="sub-family">Family, $54/mo (up to 4 children)</button>
             <button class="btn" style="width:100%;margin-top:8px" id="sub-solo">Solo, $34/mo (1 child)</button>
-            <p class="muted center" style="margin-top:8px;font-size:.8rem">Billed monthly, renews automatically until canceled. Cancel anytime in one click.</p>` : `
-            <button class="btn" style="width:100%" id="sub-portal">Manage Billing</button>`}
+            <p class="muted center" style="margin-top:8px;font-size:.8rem">Billed monthly, renews automatically until canceled. Cancel anytime in one click.</p>`}
           <p class="muted center" style="margin-top:10px;font-size:.85rem">${me.billingMode === 'stripe' ? 'Payments powered by Stripe' : 'Demo mode: clicking subscribe activates instantly, no card needed. Set STRIPE_SECRET_KEY to enable real payments.'}</p>
         </div>
         <div class="card">
@@ -2186,9 +2238,13 @@ route('parent', async () => {
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
     if (confirm('Remove this learner and all their progress?')) { await api('/kids/' + b.dataset.del, { method: 'DELETE' }); navigate(); }
   });
-  const tbf = $('#tb-family'), tbs = $('#tb-solo');
+  const tbf = $('#tb-family'), tbs = $('#tb-solo'), tbp = $('#tb-portal');
   if (tbf) tbf.onclick = () => checkout('family');
   if (tbs) tbs.onclick = () => checkout('solo');
+  if (tbp) tbp.onclick = async () => {
+    try { const out = await api('/billing/portal', { method: 'POST' }); if (out.url) location.href = out.url; else toast('Billing portal unavailable right now.'); }
+    catch (e) { toast(e.message || 'Could not open billing.'); }
+  };
   const cpg = $('#cp-go');
   if (cpg) cpg.onclick = async () => {
     try {
