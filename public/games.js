@@ -6,6 +6,62 @@
   const kidId = () => State.me.role === 'kid' ? State.me.kid.id : null;
   function needKid() { if (State.me.role !== 'kid') { location.hash = '#kid-login'; return true; } return false; }
 
+  // ============================================================
+  //  16-bit PIXEL ENGINE — shared by every arcade game.
+  //  Games draw into a small low-res buffer; the browser scales it
+  //  up with nearest-neighbour (image-rendering:pixelated) so every
+  //  shape becomes a crisp chunky pixel — classic SNES look.
+  // ============================================================
+  const PX = {
+    // filled pixel block (integer-snapped)
+    r(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); },
+    // a single pixel
+    p(ctx, x, y, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); },
+    // sprite from rows of characters, mapped to colors ('.' or ' ' = transparent)
+    spr(ctx, rows, x, y, map, s) {
+      s = s || 1;
+      for (let j = 0; j < rows.length; j++) { const row = rows[j]; for (let i = 0; i < row.length; i++) { const c = map[row[i]]; if (c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x + i * s), Math.round(y + j * s), s, s); } } }
+    },
+    // horizontally-mirrored sprite (for walking left/right)
+    sprFlip(ctx, rows, x, y, map, s) {
+      s = s || 1; const w = rows[0].length;
+      for (let j = 0; j < rows.length; j++) { const row = rows[j]; for (let i = 0; i < row.length; i++) { const c = map[row[i]]; if (c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x + (w - 1 - i) * s), Math.round(y + j * s), s, s); } } }
+    },
+    // pixel-font text drawn on the canvas
+    text(ctx, str, x, y, c, size, align) { ctx.fillStyle = c; ctx.font = `${size || 8}px "Press Start 2P", monospace`; ctx.textAlign = align || 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(str, Math.round(x), Math.round(y)); },
+    // classic beveled panel (dark border, light inner highlight)
+    panel(ctx, x, y, w, h, fill, dark, light) {
+      PX.r(ctx, x, y, w, h, fill);
+      PX.r(ctx, x, y, w, 1, light); PX.r(ctx, x, y, 1, h, light);
+      PX.r(ctx, x, y + h - 1, w, 1, dark); PX.r(ctx, x + w - 1, y, 1, h, dark);
+    },
+    // 2px ordered-dither band between two colors (adds retro shading)
+    dither(ctx, x, y, w, h, c) { ctx.fillStyle = c; for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { if (((i + j) & 1) === 0) ctx.fillRect(Math.round(x + i), Math.round(y + j), 1, 1); } }
+  };
+  // A shared retro palette (NES/SNES-flavoured).
+  const PAL = {
+    sky1: '#5c94fc', sky2: '#8fb8ff', skyHeat1: '#f8a03c', skyHeat2: '#ffce6b', skyGrey1: '#9aa6b4', skyGrey2: '#c2cbd6', skyDusk: '#3a2a5c',
+    sun: '#fce000', sunCore: '#fff6b0', cloud: '#ffffff', cloudSh: '#c8d4e4',
+    grass1: '#3ca03c', grass2: '#2c7c2c', dirt: '#c08444', walk: '#b8b8c0', walkSh: '#9090a0',
+    wood: '#a4531c', woodDk: '#7a3a10', woodLt: '#c87a34', red: '#d82828', white: '#fcfcfc', ink: '#181828',
+    skin: '#fcac6c', skin2: '#e08a4c', hair: '#5a3010', gold: '#fcd000', goldDk: '#c89000', green: '#20a050', greenDk: '#106030'
+  };
+  function pixelCtx(cv) { const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.webkitImageSmoothingEnabled = false; return g; }
+  // Shared 8x20 pixel character. y = feet baseline. opts.hat: 'chef'. walk animates.
+  function pixPerson(ctx, x, y, shirt, walk, ts, opts) {
+    opts = opts || {}; const step = walk ? (Math.floor(ts / 130) % 2) : 0;
+    PX.r(ctx, x - 3, y - 4, 2, 4, PAL.ink); PX.r(ctx, x + 1, y - 4, 2, 4, PAL.ink);
+    if (walk && step) { PX.r(ctx, x - 4, y - 2, 1, 2, PAL.ink); PX.r(ctx, x + 3, y - 4, 1, 2, PAL.ink); }
+    PX.r(ctx, x - 4, y - 12, 8, 8, shirt);
+    PX.r(ctx, x - 5, y - 11, 1, 5, shirt); PX.r(ctx, x + 4, y - 11, 1, 5, shirt);
+    PX.r(ctx, x - 3, y - 19, 6, 7, PAL.skin);
+    if (!opts.hat) { PX.r(ctx, x - 3, y - 20, 6, 2, PAL.hair); PX.r(ctx, x - 4, y - 19, 1, 2, PAL.hair); PX.r(ctx, x + 3, y - 19, 1, 2, PAL.hair); }
+    PX.p(ctx, x - 2, y - 16, PAL.ink); PX.p(ctx, x + 1, y - 16, PAL.ink);
+    if (opts.hat === 'chef') { PX.r(ctx, x - 4, y - 21, 8, 2, PAL.white); PX.r(ctx, x - 3, y - 23, 6, 2, PAL.white); }
+  }
+  // Chunky 6x7 pixel star.
+  function pixStar(ctx, x, y, col) { PX.r(ctx, x + 2, y, 2, 7, col); PX.r(ctx, x, y + 2, 6, 2, col); PX.p(ctx, x + 1, y + 1, col); PX.p(ctx, x + 4, y + 1, col); PX.p(ctx, x + 1, y + 5, col); PX.p(ctx, x + 4, y + 5, col); }
+
   // Spend a token, run the game; friendly paywall if broke
   async function gated(game, start) {
     try {
@@ -53,7 +109,6 @@
       { id: 'memory', emoji: '🃏', name: 'Memory Match', desc: 'Flip cards, match pairs — Spanish words, math facts & more!' },
       { id: 'wordsearch', emoji: '🔍', name: 'Word Search', desc: 'Hunt hidden words in the letter jungle' },
       { id: 'code', emoji: '🤖', name: 'Code Quest', desc: 'Program Robo the robot to reach the star' },
-      { id: 'room', emoji: '🏠', name: 'Room Designer', desc: 'Decorate rooms & crack area puzzles' },
       { id: 'art', emoji: '🎨', name: 'Art Studio', desc: 'Draw with step-by-step guides — so cute!' }
     ];
     if ((k.grade || 0) >= 4) games.unshift({ id: 'market', emoji: '📈', name: 'Market Mogul', desc: 'Read the news, manage risk, grow $1,000 on the Gallop Stock Exchange' });
@@ -89,7 +144,7 @@
   // ======================= GAME DISPATCH =======================
   route('game', async (which) => {
     if (needKid()) return;
-    const starters = { bakery: startBakery, memory: startMemory, wordsearch: startWordSearch, code: startCode, room: startRoom, art: startArt, lemonade: startLemonade, market: startMarket, blitz: startBlitz };
+    const starters = { bakery: startBakery, memory: startMemory, wordsearch: startWordSearch, code: startCode, art: startArt, lemonade: startLemonade, market: startMarket, blitz: startBlitz };
     const fn = starters[which];
     if (!fn) { location.hash = '#play'; return; }
     await gated(which, fn);
@@ -264,74 +319,60 @@
     const glide = to => new Promise(res => { anim = { from: { ...robot }, to, t0: performance.now(), dur: 300, done: res }; });
     function burst(x, y, col, n) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = 1 + Math.random() * 3.2; particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 1.2, r: 2 + Math.random() * 2.5, life: 34, max: 34, col }); } }
 
-    function starPath(ctx, x, y, r) {
-      ctx.beginPath();
-      for (let i = 0; i < 10; i++) { const rad = i % 2 ? r * 0.44 : r; const a = -Math.PI / 2 + i * Math.PI / 5; const px = x + Math.cos(a) * rad, py = y + Math.sin(a) * rad; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
-      ctx.closePath();
-    }
+    // 16-bit pixel sprites
     function drawStar(ctx, x, y, r, ts) {
-      ctx.save(); ctx.shadowColor = 'rgba(201,168,76,.9)'; ctx.shadowBlur = 16 + Math.sin(ts / 250) * 6;
-      const g = ctx.createLinearGradient(x, y - r, x, y + r); g.addColorStop(0, '#f4d876'); g.addColorStop(1, '#C9A84C');
-      starPath(ctx, x, y, r); ctx.fillStyle = g; ctx.fill();
-      ctx.shadowBlur = 0; ctx.strokeStyle = '#a9862f'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+      x = Math.round(x); y = Math.round(y); const s = Math.max(3, Math.round(r * 0.7)); const c = PAL.gold;
+      PX.r(ctx, x - 1, y - s, 2, s * 2, c); PX.r(ctx, x - s, y - 1, s * 2, 2, c);
+      const d = Math.round(s * 0.6); PX.r(ctx, x - d, y - d, 2, 2, c); PX.r(ctx, x + d - 1, y - d, 2, 2, c); PX.r(ctx, x - d, y + d - 1, 2, 2, c); PX.r(ctx, x + d - 1, y + d - 1, 2, 2, c);
+      PX.r(ctx, x - 1, y - 1, 2, 2, '#fff2a8');
     }
     function drawRock(ctx, x, y, r) {
-      ctx.save(); ctx.translate(x, y); ctx.fillStyle = '#8b8f98';
-      ctx.beginPath(); ctx.moveTo(-r, r * .3); ctx.quadraticCurveTo(-r * 1.05, -r * .5, -r * .3, -r * .8); ctx.quadraticCurveTo(r * .4, -r * 1.05, r * .95, -r * .3); ctx.quadraticCurveTo(r * 1.05, r * .5, r * .5, r * .55); ctx.quadraticCurveTo(0, r * .7, -r, r * .3); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.beginPath(); ctx.ellipse(-r * .2, -r * .35, r * .35, r * .18, -.5, 0, 6.28); ctx.fill(); ctx.restore();
+      x = Math.round(x); y = Math.round(y); const s = Math.round(r);
+      PX.r(ctx, x - s, y - s / 2, s * 2, s, '#8b8f98'); PX.r(ctx, x - s + 2, y - s, s * 2 - 4, s / 2 + 1, '#8b8f98');
+      PX.r(ctx, x - s, y - s / 2, s * 2, 1, '#a8adb6'); PX.r(ctx, x - s + 2, y - s / 2 + 1, s / 2, 1, 'rgba(255,255,255,.3)');
+      PX.r(ctx, x - s, y + s / 2 - 1, s * 2, 1, '#6a6e76');
     }
     function drawRobot(ctx, x, y, r, ts) {
-      ctx.save(); ctx.translate(x, y);
-      ctx.fillStyle = 'rgba(0,0,0,.16)'; ctx.beginPath(); ctx.ellipse(0, r * 1.05, r * .85, r * .28, 0, 0, 6.28); ctx.fill();
-      // antenna
-      ctx.strokeStyle = '#C9A84C'; ctx.lineWidth = r * .12; ctx.beginPath(); ctx.moveTo(0, -r * .7); ctx.lineTo(0, -r * 1.15); ctx.stroke();
-      ctx.fillStyle = '#C9A84C'; ctx.beginPath(); ctx.arc(0, -r * 1.2, r * .16 * (1 + Math.sin(ts / 200) * .18), 0, 6.28); ctx.fill();
-      // body
-      const bg = ctx.createLinearGradient(0, -r, 0, r); bg.addColorStop(0, '#237a4b'); bg.addColorStop(1, '#153f28'); ctx.fillStyle = bg;
-      rr(ctx, -r * .8, -r * .7, r * 1.6, r * 1.5, r * .32); ctx.fill();
-      ctx.strokeStyle = '#C9A84C'; ctx.lineWidth = r * .09; ctx.stroke();
-      // face screen
-      ctx.fillStyle = '#0e2c1c'; rr(ctx, -r * .58, -r * .42, r * 1.16, r * .78, r * .2); ctx.fill();
-      // eyes (blink)
-      const blink = (ts - blinkT) % 3200 < 130;
-      ctx.fillStyle = '#7fe3b0';
-      if (blink) { ctx.fillRect(-r * .38, -r * .06, r * .3, r * .05); ctx.fillRect(r * .08, -r * .06, r * .3, r * .05); }
-      else { ctx.beginPath(); ctx.arc(-r * .23, -r * .05, r * .15, 0, 6.28); ctx.arc(r * .23, -r * .05, r * .15, 0, 6.28); ctx.fill(); ctx.fillStyle = '#0e2c1c'; ctx.beginPath(); ctx.arc(-r * .2, -r * .05, r * .06, 0, 6.28); ctx.arc(r * .26, -r * .05, r * .06, 0, 6.28); ctx.fill(); }
-      // smile
-      ctx.strokeStyle = '#7fe3b0'; ctx.lineWidth = r * .06; ctx.beginPath(); ctx.arc(0, r * .12, r * .22, .15, Math.PI - .15); ctx.stroke();
-      // treads
-      ctx.fillStyle = '#111'; rr(ctx, -r * .78, r * .62, r * 1.56, r * .34, r * .14); ctx.fill();
-      ctx.restore();
+      x = Math.round(x); y = Math.round(y);
+      const bw = Math.round(r * 1.7), bh = Math.round(r * 1.6), hw = bw >> 1, hh = bh >> 1;
+      PX.r(ctx, x - hw, y + hh, bw, 2, 'rgba(0,0,0,.2)');
+      PX.r(ctx, x - 1, y - hh - 4, 2, 4, PAL.gold); PX.r(ctx, x - 2, y - hh - 6, 4, 3, PAL.gold);
+      PX.r(ctx, x - hw, y - hh, bw, bh, '#1f7a48');
+      PX.r(ctx, x - hw, y - hh, bw, 1, '#2ea060'); PX.r(ctx, x - hw, y + hh - 1, bw, 1, '#124a2c');
+      PX.r(ctx, x - hw, y - hh, 1, bh, '#124a2c'); PX.r(ctx, x + hw - 1, y - hh, 1, bh, '#124a2c');
+      PX.r(ctx, x - hw + 3, y - hh + 3, bw - 6, Math.round(bh * 0.5), '#0e2c1c');
+      const blink = (ts % 3200) < 140;
+      if (blink) { PX.r(ctx, x - 5, y - 2, 3, 1, '#7fe3b0'); PX.r(ctx, x + 2, y - 2, 3, 1, '#7fe3b0'); }
+      else { PX.r(ctx, x - 6, y - 4, 3, 3, '#7fe3b0'); PX.r(ctx, x + 3, y - 4, 3, 3, '#7fe3b0'); PX.p(ctx, x - 5, y - 3, '#0e2c1c'); PX.p(ctx, x + 4, y - 3, '#0e2c1c'); }
+      PX.r(ctx, x - 3, y + 2, 6, 1, '#7fe3b0'); PX.p(ctx, x - 4, y + 1, '#7fe3b0'); PX.p(ctx, x + 3, y + 1, '#7fe3b0');
+      PX.r(ctx, x - hw, y + hh, bw, 3, PAL.ink); PX.r(ctx, x - hw, y + hh, 2, 3, '#333'); PX.r(ctx, x + hw - 2, y + hh, 2, 3, '#333');
     }
-    function rr(ctx, x, y, w, h, rad) { ctx.beginPath(); ctx.moveTo(x + rad, y); ctx.arcTo(x + w, y, x + w, y + h, rad); ctx.arcTo(x + w, y + h, x, y + h, rad); ctx.arcTo(x, y + h, x, y, rad); ctx.arcTo(x, y, x + w, y, rad); ctx.closePath(); }
 
     function draw(ctx, ts) {
-      const L = lvl(), S = L.size, W = 480, cell = W / S;
+      const L = lvl(), S = L.size, W = 160, cell = W / S;
       ctx.clearRect(0, 0, W, W);
-      let sx = 0; if (crashT) { const dt = ts - crashT; if (dt < 420) sx = Math.sin(dt / 20) * (1 - dt / 420) * 8; else crashT = 0; }
+      let sx = 0; if (crashT) { const dt = ts - crashT; if (dt < 420) sx = Math.round(Math.sin(dt / 20) * (1 - dt / 420) * 4); else crashT = 0; }
       ctx.save(); ctx.translate(sx, 0);
-      for (let r = 0; r < S; r++) for (let c = 0; c < S; c++) { ctx.fillStyle = (r + c) % 2 ? '#eef6f0' : '#f8f3e7'; ctx.fillRect(c * cell, r * cell, cell, cell); }
-      ctx.strokeStyle = 'rgba(26,92,56,.13)'; ctx.lineWidth = 1;
-      for (let i = 0; i <= S; i++) { ctx.beginPath(); ctx.moveTo(i * cell, 0); ctx.lineTo(i * cell, W); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, i * cell); ctx.lineTo(W, i * cell); ctx.stroke(); }
-      for (const w of L.walls) { const [wr, wc] = w.split(',').map(Number); drawRock(ctx, wc * cell + cell / 2, wr * cell + cell / 2, cell * 0.34); }
-      drawStar(ctx, L.goal[1] * cell + cell / 2, L.goal[0] * cell + cell / 2, cell * 0.28 * (1 + Math.sin(ts / 300) * 0.08), ts);
+      for (let r = 0; r < S; r++) for (let c = 0; c < S; c++) PX.r(ctx, c * cell, r * cell, cell + 1, cell + 1, (r + c) % 2 ? '#bfe8c8' : '#e8f4d8');
+      for (const w of L.walls) { const [wr, wc] = w.split(',').map(Number); drawRock(ctx, wc * cell + cell / 2, wr * cell + cell / 2, cell * 0.3); }
+      drawStar(ctx, L.goal[1] * cell + cell / 2, L.goal[0] * cell + cell / 2, cell * 0.3 * (1 + Math.sin(ts / 300) * 0.08), ts);
       let dr = robot.r, dc = robot.c;
       if (anim) { const k = Math.min(1, (ts - anim.t0) / anim.dur); const e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; dr = anim.from.r + (anim.to.r - anim.from.r) * e; dc = anim.from.c + (anim.to.c - anim.from.c) * e; if (k >= 1) { robot = anim.to; const d = anim.done; anim = null; if (d) d(); } }
-      drawRobot(ctx, dc * cell + cell / 2, dr * cell + cell / 2 + Math.sin(ts / 180) * 2, cell * 0.32, ts);
-      particles = particles.filter(p => { p.life--; p.x += p.vx; p.y += p.vy; p.vy += 0.16; if (p.life > 0) { ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.28); ctx.fill(); ctx.globalAlpha = 1; return true; } return false; });
+      drawRobot(ctx, dc * cell + cell / 2, dr * cell + cell / 2 + Math.sin(ts / 180) * 1, cell * 0.3, ts);
+      particles = particles.filter(p => { p.life--; p.x += p.vx; p.y += p.vy; p.vy += 0.16; if (p.life > 0) { ctx.globalAlpha = Math.max(0, p.life / p.max); PX.r(ctx, p.x, p.y, 2, 2, p.col); ctx.globalAlpha = 1; return true; } return false; });
       ctx.restore();
     }
 
     function loop() {
       const cv = $('#cq-canvas'); if (!cv) { cancelAnimationFrame(raf); return; }
-      draw(cv.getContext('2d'), performance.now());
+      draw(pixelCtx(cv), performance.now());
       raf = requestAnimationFrame(loop);
     }
 
     async function execute() {
       if (running || !program.length) return; running = true; msg = null;
       document.querySelectorAll('.cq-key,#cq-run,#cq-undo,#cq-clear').forEach(b => b.disabled = true);
-      const L = lvl(), cell = 480 / L.size; robot = { r: L.start[0], c: L.start[1] }; await wait(180);
+      const L = lvl(), cell = 160 / L.size; robot = { r: L.start[0], c: L.start[1] }; await wait(180);
       for (const cmd of program) {
         const [dr, dc] = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] }[cmd];
         const nr = robot.r + dr, nc = robot.c + dc;
@@ -355,7 +396,7 @@
       const L = lvl();
       app().innerHTML = topbar(`<div class="container" style="max-width:520px">
         <div class="lesson-top"><b>🤖 Code Quest — Level ${levelIdx + 1}/${CODE_LEVELS.length}</b><b>Score: ${score}</b></div>
-        <div class="cq-stage"><canvas id="cq-canvas" width="480" height="480"></canvas></div>
+        <div class="cq-stage px-stage"><canvas id="cq-canvas" width="160" height="160"></canvas></div>
         <div class="cq-pad">
           <span></span><button class="cq-key" data-cmd="up">▲</button><span></span>
           <button class="cq-key" data-cmd="left">◀</button><button class="cq-key" data-cmd="down">▼</button><button class="cq-key" data-cmd="right">▶</button>
@@ -434,8 +475,9 @@
     { name: 'Magic Flower', emoji: '🌸', steps: ['Small circle in the center', '5 big petals around it', 'Long stem going down', 'Two leaves on the stem', 'Add a ladybug friend!'] }
   ];
   function startArt() {
-    let guide = null, color = '#6C5CE7', size = 6, drawing = false, last = null;
-    const COLORS = ['#6C5CE7', '#00B894', '#0984E3', '#E17055', '#FDCB6E', '#FF7675', '#2d3436', '#fd79a8', '#ffffff'];
+    let guide = null, color = '#e43b44', size = 2, drawing = false, last = null;
+    // Retro 16-bit paint palette
+    const COLORS = ['#e43b44', '#f77622', '#feae34', '#63c74d', '#0095e9', '#124e89', '#b55088', '#3a2e4d', '#ffffff', '#181818'];
     function render() {
       app().innerHTML = topbar(`<div class="container" style="max-width:760px">
         <div class="lesson-top"><b>🎨 Art Studio</b>${guide ? `<b>${guide.emoji} ${guide.name}</b>` : ''}</div>
@@ -446,10 +488,10 @@
           </div></div>` : ''}
         ${guide ? `<div class="card" style="padding:12px;margin-bottom:10px"><b>Steps:</b> ${guide.steps ? guide.steps.map((s, i) => `<span class="pill strength" style="margin:2px">${i + 1}. ${esc(s)}</span>`).join(' ') : 'Draw anything you dream up!'}</div>` : ''}
         ${guide ? `
-        <canvas id="art-canvas" width="700" height="440"></canvas>
+        <canvas id="art-canvas" class="px-stage" width="176" height="112"></canvas>
         <div class="center" style="margin-top:10px">
           ${COLORS.map(c => `<button class="paint ${color === c ? 'sel' : ''}" style="background:${c}" data-c="${c}"></button>`).join('')}
-          <button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38" id="size-btn">✏️ ${size < 8 ? 'Thin' : size < 14 ? 'Medium' : 'THICK'}</button>
+          <button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38" id="size-btn">✏️ ${size <= 1 ? 'Fine' : size <= 2 ? 'Medium' : 'Chunky'}</button>
           <button class="btn coral small" id="clear-art">🗑️</button>
           <button class="btn green small" id="save-art">💾 Save My Art</button>
         </div>` : ''}
@@ -463,6 +505,7 @@
       const canvas = $('#art-canvas');
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       const pos = e => {
@@ -482,11 +525,14 @@
       canvas.addEventListener('touchstart', start, { passive: false }); canvas.addEventListener('touchmove', move, { passive: false });
       addEventListener('mouseup', () => drawing = false); addEventListener('touchend', () => drawing = false);
       document.querySelectorAll('.paint').forEach(b => b.onclick = () => { color = b.dataset.c; Sound.click(); document.querySelectorAll('.paint').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); });
-      $('#size-btn').onclick = function () { size = size < 8 ? 12 : size < 14 ? 20 : 6; this.textContent = '✏️ ' + (size < 8 ? 'Thin' : size < 14 ? 'Medium' : 'THICK'); };
+      $('#size-btn').onclick = function () { size = size <= 1 ? 2 : size <= 2 ? 4 : 1; this.textContent = '✏️ ' + (size <= 1 ? 'Fine' : size <= 2 ? 'Medium' : 'Chunky'); };
       $('#clear-art').onclick = () => { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); Sound.wrong(); };
       $('#save-art').onclick = () => {
+        // upscale the low-res pixel art 5x with nearest-neighbour for a crisp export
+        const big = document.createElement('canvas'); big.width = canvas.width * 5; big.height = canvas.height * 5;
+        const bx = big.getContext('2d'); bx.imageSmoothingEnabled = false; bx.drawImage(canvas, 0, 0, big.width, big.height);
         const a = document.createElement('a');
-        a.download = 'my-gallop-art.png'; a.href = canvas.toDataURL('image/png'); a.click();
+        a.download = 'my-gallop-art.png'; a.href = big.toDataURL('image/png'); a.click();
         finishGame('art', 100, 'Masterpiece saved! 🖼️', 'Your art downloaded to this device — show your family!');
       };
     }
@@ -603,60 +649,187 @@
     render();
   }
 
-  // ======================= LEMONADE TYCOON =======================
-  // Entrepreneurship for every age: cost, price, demand, PROFIT.
+  // ======================= LEMONADE TYCOON (canvas) =======================
+  // Entrepreneurship for every age: cost, price, demand, PROFIT — rendered as a
+  // living illustrated storefront (weather, customers, coins) instead of a form.
   function startLemonade() {
     const DAYS = 5, CUP_COST = 0.5;
     const WEATHER = [
-      { label: 'Sunny ☀️', base: 28 }, { label: 'HEAT WAVE 🥵', base: 44 },
-      { label: 'Cloudy ⛅', base: 16 }, { label: 'Rainy 🌧️', base: 7 }
+      { id: 'heat', label: 'Heat Wave', icon: '🔥', base: 44, sky: ['#ffd36b', '#ff9e5e'], hot: true },
+      { id: 'sunny', label: 'Sunny', icon: '☀️', base: 28, sky: ['#8fd0ff', '#d9f2ff'], sun: true },
+      { id: 'cloudy', label: 'Cloudy', icon: '⛅', base: 16, sky: ['#b7c4cf', '#dfe7ec'], cloud: true },
+      { id: 'rainy', label: 'Rainy', icon: '🌧️', base: 7, sky: ['#7d8a99', '#aab6c2'], rain: true, cloud: true }
     ];
-    let day = 1, cash = 10, totalProfit = 0, wx = WEATHER[Math.floor(Math.random() * WEATHER.length)];
-    let cups = null, price = null;
-    const $$ = n => '$' + n.toFixed(2);
-    function plan(msg) {
-      app().innerHTML = topbar(`<div class="container" style="max-width:640px">
-        <div class="lesson-top"><b>🍋 Lemonade Tycoon — Day ${day}/${DAYS}</b><b>💵 ${$$(cash)}</b></div>
-        ${msg ? `<div class="news-flash">${msg}</div>` : ''}
-        <div class="card" style="padding:18px">
-          <h3 style="margin-bottom:4px">Today's forecast: ${wx.label}</h3>
-          <p class="muted" style="margin-bottom:14px">Hot days = thirsty customers. Rainy days = empty streets. Plan like a real business owner!</p>
-          <b>1) How many cups will you make? (each costs 50¢ in lemons & sugar)</b>
-          <div style="margin:8px 0 14px">${[10, 20, 30, 40].map(n => `<button class="btn small ${cups === n ? 'sun' : 'ghost'}" style="margin:3px;${cups !== n ? 'color:#1A5C38;border-color:#1A5C38' : ''}" data-cups="${n}" ${n * CUP_COST > cash ? 'disabled' : ''}>${n} cups (${$$(n * CUP_COST)})</button>`).join('')}</div>
-          <b>2) What price per cup?</b>
-          <div style="margin:8px 0 14px">${[0.5, 1, 1.5, 2].map(p => `<button class="btn small ${price === p ? 'sun' : 'ghost'}" style="margin:3px;${price !== p ? 'color:#1A5C38;border-color:#1A5C38' : ''}" data-price="${p}">${$$(p)}</button>`).join('')}</div>
-          <button class="btn green" id="open-btn" ${cups && price ? '' : 'disabled'}>Open the Stand! 🏁</button>
-        </div>
+    const $$ = n => (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
+    let day = 1, cash = 10, totalProfit = 0;
+    let wx = WEATHER[Math.floor(Math.random() * WEATHER.length)];
+    let cups = null, price = null, phase = 'plan';
+    // live scene state
+    let raf = null, custs = [], coins = [], drops = [], soldCount = 0, cupsLeft = 0, sellEndCb = null;
+
+    // ---------- 16-bit pixel scene (256x160 buffer, nearest-neighbour scaled) ----------
+    const W = 256, H = 160, GY = 128; // ground line
+    function pcircle(ctx, cx, cy, r, col) { ctx.fillStyle = col; for (let y = -r; y <= r; y++) { const dx = Math.floor(Math.sqrt(Math.max(0, r * r - y * y))); ctx.fillRect(Math.round(cx - dx), Math.round(cy + y), dx * 2 + 1, 1); } }
+    function pperson(ctx, x, y, shirt, walk, ts, keeper) {
+      const step = walk ? (Math.floor(ts / 130) % 2) : 0;
+      PX.r(ctx, x - 3, y - 4, 2, 4, PAL.ink); PX.r(ctx, x + 1, y - 4, 2, 4, PAL.ink);
+      if (walk && step) { PX.r(ctx, x - 4, y - 2, 1, 2, PAL.ink); PX.r(ctx, x + 3, y - 4, 1, 2, PAL.ink); }
+      PX.r(ctx, x - 4, y - 12, 8, 8, shirt);
+      PX.r(ctx, x - 5, y - 11, 1, 5, shirt); PX.r(ctx, x + 4, y - 11, 1, 5, shirt);
+      PX.r(ctx, x - 3, y - 19, 6, 7, PAL.skin);
+      if (!keeper) { PX.r(ctx, x - 3, y - 20, 6, 2, PAL.hair); PX.r(ctx, x - 4, y - 19, 1, 2, PAL.hair); PX.r(ctx, x + 3, y - 19, 1, 2, PAL.hair); }
+      PX.p(ctx, x - 2, y - 16, PAL.ink); PX.p(ctx, x + 1, y - 16, PAL.ink);
+      if (keeper) { PX.r(ctx, x - 4, y - 21, 8, 2, PAL.white); PX.r(ctx, x - 3, y - 23, 6, 2, PAL.white); } // chef cap
+    }
+    function pcloud(ctx, x, y) { const c = wx.rain ? PAL.cloudSh : PAL.cloud; PX.r(ctx, x, y, 20, 6, c); PX.r(ctx, x + 4, y - 4, 12, 5, c); PX.r(ctx, x - 3, y + 2, 26, 4, c); }
+    function sky(ctx, ts) {
+      let a, b; if (wx.id === 'heat') { a = PAL.skyHeat1; b = PAL.skyHeat2; } else if (wx.id === 'sunny') { a = PAL.sky1; b = PAL.sky2; } else { a = PAL.skyGrey1; b = PAL.skyGrey2; }
+      const band = GY - 40;
+      PX.r(ctx, 0, 0, W, band * 0.5, a); PX.dither(ctx, 0, band * 0.5 - 6, W, 12, b); PX.r(ctx, 0, band * 0.5 + 6, W, band * 0.5, b);
+      if (wx.sun || wx.hot) {
+        pcircle(ctx, 42, 30, wx.hot ? 12 : 10, PAL.sun); pcircle(ctx, 40, 28, wx.hot ? 6 : 5, PAL.sunCore);
+        for (let i = 0; i < 8; i++) { const a2 = i * Math.PI / 4 + ts / 3000; PX.r(ctx, 42 + Math.cos(a2) * 17 - 1, 30 + Math.sin(a2) * 17 - 1, 2, 2, PAL.sun); }
+      }
+      if (wx.cloud) { pcloud(ctx, 150 + (Math.sin(ts / 4000) * 6 | 0), 22); pcloud(ctx, 206 + (Math.cos(ts / 4500) * 6 | 0), 40); }
+    }
+    function ground(ctx) {
+      for (let x = 0; x < W; x += 8) for (let y = GY - 40; y < GY; y += 8) PX.r(ctx, x, y, 8, 8, ((x + y) & 8) ? PAL.grass1 : PAL.grass2);
+      for (const hx of [16, 208]) { PX.r(ctx, hx, GY - 48, 22, 16, '#d8c090'); PX.r(ctx, hx - 2, GY - 52, 26, 5, PAL.red); PX.r(ctx, hx + 4, GY - 44, 5, 5, '#6a4a2a'); }
+      PX.r(ctx, 0, GY, W, H - GY, PAL.walk);
+      PX.r(ctx, 0, GY, W, 1, PAL.walkSh);
+      for (let x = 0; x < W; x += 24) PX.r(ctx, x, GY, 1, H - GY, PAL.walkSh);
+    }
+    function stand(ctx, ts) {
+      const cx = 90, cy = 100, cw = 108, ch = 40;
+      pperson(ctx, cx + 26, cy + 8, PAL.green, false, ts, true);
+      // awning
+      const ax = cx - 8, aw = cw + 16, seg = 8, sw = aw / seg;
+      PX.r(ctx, ax, cy - 22, aw, 8, PAL.red);
+      for (let i = 0; i < seg; i++) { PX.r(ctx, ax + i * sw, cy - 14, sw, 6, i % 2 ? PAL.white : PAL.red); PX.r(ctx, ax + i * sw + 1, cy - 8, sw - 2, 2, i % 2 ? PAL.white : PAL.red); }
+      // counter
+      PX.r(ctx, cx, cy, cw, ch, PAL.wood);
+      for (let i = 1; i < 6; i++) PX.r(ctx, cx + Math.round(i * cw / 6), cy + 4, 1, ch - 4, PAL.woodDk);
+      PX.r(ctx, cx - 4, cy - 4, cw + 8, 5, PAL.woodLt);
+      PX.r(ctx, cx, cy + ch - 2, cw, 2, PAL.woodDk);
+      // sign
+      PX.panel(ctx, cx + 14, cy + 8, cw - 28, 15, PAL.white, PAL.woodDk, '#ffffff');
+      PX.text(ctx, 'LEMONADE', cx + cw / 2, cy + 19, PAL.greenDk, 6, 'center');
+      // pitcher + cups
+      PX.r(ctx, cx + cw - 20, cy - 14, 14, 16, '#dff0ff'); PX.r(ctx, cx + cw - 18, cy - 10, 10, 10, PAL.gold); PX.r(ctx, cx + cw - 6, cy - 12, 3, 6, '#dff0ff');
+      for (let i = 0; i < 3; i++) PX.r(ctx, cx + 6 + i * 2, cy - 9 - i * 2, 8, 11, '#f0ece0');
+      // price tag
+      PX.panel(ctx, cx + cw - 1, cy + 4, 22, 13, PAL.gold, PAL.goldDk, '#fff2a8');
+      PX.text(ctx, price ? '$' + price.toFixed(2).replace('.00', '') : '?', cx + cw + 10, cy + 14, PAL.ink, 6, 'center');
+    }
+    function pcoin(ctx, c) { const w = Math.max(2, Math.round(Math.abs(Math.cos(c.t)) * 6)); PX.r(ctx, c.x - w / 2, c.y - 4, w, 8, PAL.gold); PX.r(ctx, c.x - w / 2, c.y - 4, w, 1, PAL.goldDk); PX.r(ctx, c.x - w / 2, c.y + 3, w, 1, PAL.goldDk); }
+    function hud(ctx) {
+      const sh = (s, x, y, col, sz, al) => { PX.text(ctx, s, x + 1, y + 1, 'rgba(0,0,0,.45)', sz, al); PX.text(ctx, s, x, y, col, sz, al); };
+      sh('DAY ' + day + '/' + DAYS, 6, 13, PAL.white, 7, 'left');
+      sh(wx.label.toUpperCase(), W / 2, 12, PAL.white, 6, 'center');
+      PX.r(ctx, W - 18, 5, 12, 9, '#bfe0ff'); PX.r(ctx, W - 18, 9, 12, 5, PAL.gold);
+      sh('$' + cash.toFixed(2), W - 22, 13, PAL.white, 7, 'right');
+    }
+    function scene(ctx, ts) {
+      ctx.clearRect(0, 0, W, H);
+      sky(ctx, ts); ground(ctx);
+      if (wx.rain) drops.forEach(d => { PX.r(ctx, d.x, d.y, 1, 4, '#bcd8ff'); d.y += d.v; if (d.y > H) { d.y = -4; d.x = Math.random() * W | 0; } });
+      custs.forEach(c => pperson(ctx, c.x, 138, c.col, c.walk, ts, false));
+      stand(ctx, ts);
+      coins.forEach(c => pcoin(ctx, c));
+      hud(ctx);
+    }
+    function loop(now) {
+      const cv = $('#lt-canvas'); if (!cv) { cancelAnimationFrame(raf); return; }
+      const ts = now || 0;
+      coins = coins.filter(c => { c.t += 0.3; c.p += 0.05; const jx = W - 12, jy = 11; c.x = c.sx + (jx - c.sx) * c.p; c.y = c.sy + (jy - c.sy) * c.p - Math.sin(c.p * Math.PI) * 34; return c.p < 1; });
+      scene(pixelCtx(cv), ts);
+      raf = requestAnimationFrame(loop);
+    }
+
+    // ---------- UI ----------
+    function shell(inner) {
+      app().innerHTML = topbar(`<div class="container" style="max-width:560px">
+        <div class="lesson-top"><b>🍋 Lemonade Tycoon</b><b>Day ${day}/${DAYS} · 💵 ${$$(cash)}</b></div>
+        <div class="lt-stage px-stage"><canvas id="lt-canvas" width="256" height="160"></canvas></div>
+        <div class="card lt-panel">${inner}</div>
       </div>`);
       wireChrome();
-      document.querySelectorAll('[data-cups]').forEach(b => b.onclick = () => { cups = Number(b.dataset.cups); Sound.click(); plan(msg); });
-      document.querySelectorAll('[data-price]').forEach(b => b.onclick = () => { price = Number(b.dataset.price); Sound.click(); plan(msg); });
-      const ob = $('#open-btn'); if (ob) ob.onclick = sell;
+      cancelAnimationFrame(raf);
+      if (wx.rain && !drops.length) for (let i = 0; i < 60; i++) drops.push({ x: Math.random() * W, y: Math.random() * H, v: 3 + Math.random() * 2 });
+      if (!wx.rain) drops = [];
+      raf = requestAnimationFrame(loop);
     }
-    function sell() {
+    function renderPlan(msg) {
+      custs = []; coins = [];
+      shell(`
+        ${msg ? `<div class="lt-recap">${msg}</div>` : `<p class="lt-tip">☀️ Hot days bring thirsty crowds · 🌧️ rain empties the street. Read the forecast and plan like an owner!</p>`}
+        <div class="lt-row"><span class="lt-lbl">Cups to make <em>(50¢ each)</em></span>
+          <div class="lt-seg" id="lt-cups">${[10, 20, 30, 40].map(n => `<button data-cups="${n}" class="${cups === n ? 'on' : ''}" ${n * CUP_COST > cash ? 'disabled' : ''}>${n}</button>`).join('')}</div></div>
+        <div class="lt-row"><span class="lt-lbl">Price per cup</span>
+          <div class="lt-seg" id="lt-price">${[0.5, 1, 1.5, 2].map(p => `<button data-price="${p}" class="${price === p ? 'on' : ''}">$${p.toFixed(2)}</button>`).join('')}</div></div>
+        <button class="btn green lt-open" id="lt-open" ${cups && price ? '' : 'disabled'}>Open the Stand →</button>`);
+      document.querySelectorAll('[data-cups]').forEach(b => b.onclick = () => { cups = Number(b.dataset.cups); Sound.click(); renderPlan(msg); });
+      document.querySelectorAll('[data-price]').forEach(b => b.onclick = () => { price = Number(b.dataset.price); Sound.click(); renderPlan(msg); });
+      const ob = $('#lt-open'); if (ob) ob.onclick = runDay;
+    }
+    function runDay() {
       const priceFactor = { 0.5: 1.45, 1: 1.1, 1.5: 0.8, 2: 0.5 }[price];
       const demand = Math.max(0, Math.round(wx.base * priceFactor * (0.85 + Math.random() * 0.3)));
       const sold = Math.min(cups, demand);
       const cost = cups * CUP_COST, revenue = sold * price, profit = revenue - cost;
+      phase = 'sell'; soldCount = 0; cupsLeft = cups; custs = []; coins = [];
+      shell(`<p class="lt-tip lt-selling">🔔 Open for business… serving customers!</p>
+        <div class="lt-live"><span id="lt-sold">0</span> sold · <span id="lt-left">${cups}</span> cups left</div>`);
+      // animate `sold` customers arriving over ~3.6s
+      let served = 0;
+      const total = Math.max(sold, 1);
+      const iv = setInterval(() => {
+        if (!$('#lt-canvas')) { clearInterval(iv); return; }
+        if (served >= sold) {
+          clearInterval(iv);
+          setTimeout(() => finishDay(cost, revenue, profit, sold, demand), 700);
+          return;
+        }
+        served++;
+        // spawn a customer that walks in, pays, leaves
+        const col = ['#e8524e', '#4c86d6', '#8e5cf7', '#e59b3b', '#3aa76d'][served % 5];
+        const c = { x: 272, col, walk: true, paid: false };
+        custs.push(c);
+        const walkIn = setInterval(() => {
+          c.x -= 4;
+          if (c.x <= 176) {
+            c.x = 176; c.walk = false; clearInterval(walkIn);
+            if (!c.paid) {
+              c.paid = true; soldCount++; cupsLeft = Math.max(0, cupsLeft - 1);
+              const so = $('#lt-sold'), le = $('#lt-left'); if (so) so.textContent = soldCount; if (le) le.textContent = cupsLeft;
+              coins.push({ sx: 176, sy: 118, x: 176, y: 118, p: 0, t: 0 });
+              Sound.badge();
+              setTimeout(() => { c.walk = true; const out = setInterval(() => { c.x += 4; if (c.x > W + 16) { clearInterval(out); custs = custs.filter(z => z !== c); } }, 40); }, 300);
+            }
+          }
+        }, 40);
+      }, Math.min(520, 3600 / total));
+    }
+    function finishDay(cost, revenue, profit, sold, demand) {
       cash += profit; totalProfit += profit;
       if (profit > 0) { Sound.correct(); Confetti.burst(60); } else Sound.wrong();
       const wasted = cups - sold, missed = demand - sold;
-      const lesson = profit <= 0 ? 'You spent more than you earned — that\'s a LOSS. Real businesses fail when costs beat revenue. Adjust and try again!'
-        : missed > 0 ? `${missed} thirsty customers walked away — you could have made MORE cups (or charged more)!`
-        : wasted > 3 ? `${wasted} cups went to waste. Making too much costs money — matching supply to demand is the secret!`
-        : 'Nearly perfect planning — supply met demand. That\'s how pros run a business!';
-      const recap = `<b>Day ${day} results:</b> made ${cups} cups (cost ${$$(cost)}), sold ${sold} at ${$$(price)} → revenue ${$$(revenue)}. <b>Profit: ${$$(profit)}</b> 💡 Revenue − Cost = Profit. ${lesson}`;
-      day++;
-      cups = null; price = null; wx = WEATHER[Math.floor(Math.random() * WEATHER.length)];
+      const lesson = profit <= 0 ? 'You spent more than you earned — a LOSS. When costs beat revenue, a business shrinks. Adjust and try again!'
+        : missed > 0 ? `${missed} thirsty customers walked away — make MORE cups (or the demand supports a higher price)!`
+        : wasted > 3 ? `${wasted} cups went to waste. Overmaking burns cash — match supply to demand.`
+        : 'Supply met demand almost perfectly — that\'s pro-level planning!';
+      const recap = `<b>Day ${day}:</b> ${cups} cups cost ${$$(cost)}, sold ${sold} at $${price.toFixed(2)} = revenue ${$$(revenue)}. <b class="${profit >= 0 ? 'lt-pos' : 'lt-neg'}">Profit ${$$(profit)}</b><br><span class="lt-eq">Revenue − Cost = Profit</span> · ${lesson}`;
+      day++; cups = null; price = null; wx = WEATHER[Math.floor(Math.random() * WEATHER.length)]; phase = 'plan';
       if (day > DAYS) {
+        cancelAnimationFrame(raf);
         const score = Math.max(10, Math.round(totalProfit * 10) + 50);
-        finishGame('lemonade', score, totalProfit > 0 ? `You banked ${$$(totalProfit)} profit! 🍋` : 'Every entrepreneur has tough weeks!',
-          `Total profit over ${DAYS} days: ${$$(totalProfit)}. Real founders do exactly this: watch costs, read demand, set smart prices.`);
+        finishGame('lemonade', score, totalProfit > 0 ? `You banked ${$$(totalProfit)} profit! 🍋` : 'Every founder has tough weeks!',
+          `Total profit over ${DAYS} days: ${$$(totalProfit)}. Real founders do exactly this — watch costs, read demand, price smart.`);
         return;
       }
-      plan(recap);
+      renderPlan(recap);
     }
-    plan();
+    renderPlan();
   }
 
   // ======================= MARKET MOGUL =======================
@@ -686,30 +859,35 @@
     }
     function netWorth() { return cash + STOCKS.reduce((t, s) => t + owned[s.id] * s.price, 0); }
 
-    // Live multi-line price chart — kids SEE the climbs and crashes.
-    function chart(animate) {
+    // 16-bit trading-terminal price chart, drawn on a low-res pixel canvas.
+    function chart() { return `<div class="mm-chart px-stage"><canvas id="mm-canvas" width="240" height="118"></canvas></div>`; }
+    function drawMMChart() {
+      const cv = $('#mm-canvas'); if (!cv) return;
+      const ctx = pixelCtx(cv);
+      const W = 240, H = 118, mL = 4, mR = 6, mT = 11, mB = 11;
       const days = STOCKS[0].hist.length;
       const all = STOCKS.flatMap(s => s.hist);
       let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * 0.14 || 4; lo = Math.max(0, lo - pad); hi = hi + pad;
-      const W = 320, H = 150, mL = 6, mR = 8, mT = 10, mB = 8;
       const X = i => mL + (days <= 1 ? 0 : i / (days - 1) * (W - mL - mR));
       const Y = v => mT + (1 - (v - lo) / ((hi - lo) || 1)) * (H - mT - mB);
-      const grid = [0, 0.5, 1].map(f => { const y = mT + f * (H - mT - mB); return `<line x1="${mL}" y1="${y.toFixed(1)}" x2="${W - mR}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.13)" stroke-width="1"/>`; }).join('');
-      const labels = `<text x="${mL}" y="${(mT + 8).toFixed(1)}" fill="rgba(255,255,255,.55)" font-size="9">${$$(hi)}</text><text x="${mL}" y="${(H - mB).toFixed(1)}" fill="rgba(255,255,255,.55)" font-size="9">${$$(lo)}</text>`;
-      const lines = STOCKS.map(s => {
-        const pts = s.hist.map((p, i) => `${X(i).toFixed(1)},${Y(p).toFixed(1)}`).join(' ');
-        const lx = X(days - 1), ly = Y(s.hist[days - 1]);
-        return `<polyline class="mm-line${animate ? ' mm-anim' : ''}" points="${pts}" fill="none" stroke="${s.color}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
-          <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.6" fill="${s.color}"/>`;
-      }).join('');
-      return `<div class="mm-chart"><svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${grid}${labels}${lines}</svg></div>`;
+      PX.r(ctx, 0, 0, W, H, '#0e2c1c');
+      PX.r(ctx, 0, 0, W, 1, '#2ea060'); PX.r(ctx, 0, H - 1, W, 1, '#124a2c');
+      for (const f of [0, 0.5, 1]) { const y = Math.round(mT + f * (H - mT - mB)); for (let x = mL; x < W - mR; x += 4) PX.r(ctx, x, y, 2, 1, 'rgba(120,200,150,.16)'); }
+      STOCKS.forEach(s => {
+        ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.beginPath();
+        s.hist.forEach((p, i) => { const x = X(i), y = Y(p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+        ctx.stroke();
+        const lx = X(days - 1), ly = Y(s.hist[days - 1]); PX.r(ctx, lx - 2, ly - 2, 5, 5, s.color); PX.r(ctx, lx - 1, ly - 1, 3, 3, '#fff');
+      });
+      PX.text(ctx, $$(hi), mL + 1, mT - 2, 'rgba(200,230,210,.75)', 6, 'left');
+      PX.text(ctx, $$(lo), mL + 1, H - 3, 'rgba(200,230,210,.75)', 6, 'left');
     }
 
     function render(flash, animate) {
       const nw = netWorth(), gain = nw - START;
       app().innerHTML = topbar(`<div class="container" style="max-width:680px">
         <div class="lesson-top"><b>📈 Market Mogul — Day ${round}/${ROUNDS}</b><b class="${gain >= 0 ? 'up' : 'down'}">${$$(nw)} ${gain >= 0 ? '▲' : '▼'} ${$$(Math.abs(gain))}</b></div>
-        ${chart(animate)}
+        ${chart()}
         <div class="mm-legend">${STOCKS.map(s => `<span><i style="background:${s.color}"></i>${s.emoji} ${$$(s.price)}</span>`).join('')}</div>
         ${flash ? `<div class="news-flash mm-surprise">${flash}</div>` : ''}
         <div class="news-flash">📰 <b>MARKET NEWS:</b> ${headline.text}<br><span style="font-weight:500;font-size:.9rem">Think ahead: what might this do to the price tomorrow?</span></div>
@@ -736,6 +914,7 @@
         <p class="game-hint" style="font-size:.9rem">💡 Steady stocks (🌾) drift a little; wild ones (🚀) can rocket or crash. Spreading your money across several is how real investors survive a bad day.</p>
       </div>`);
       wireChrome();
+      drawMMChart();
       document.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => {
         const s = STOCKS.find(x => x.id === b.dataset.buy);
         if (cash >= s.price) { cash -= s.price; owned[s.id]++; Sound.click(); render(flash, false); }
@@ -789,8 +968,30 @@
     const pick = a => a[Math.floor(Math.random() * a.length)];
     const shuf = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; } return a; };
     const money = n => '$' + (Math.round(n * 100) / 100).toFixed(2);
-    // 4 unique choice strings, padded if a distractor collides
-    const mc = (ans, distractors) => { const set = new Set([ans]); for (const d of distractors) { if (set.size >= 4) break; if (d != null && String(d) !== ans) set.add(String(d)); } let k = 1; while (set.size < 4) { set.add(ans + ' '.repeat(k)); k++; } return shuf([...set]); };
+    // Build 4 DISTINCT choice strings. If distractors collide with the answer or
+    // each other, fill with genuinely different numeric neighbours — never a
+    // whitespace-padded copy of the answer (which looked identical on screen and
+    // got marked wrong when tapped).
+    const mc = (ans, distractors) => {
+      ans = String(ans);
+      const set = new Set([ans]);
+      const out = [ans];
+      const add = s => { if (s == null) return; s = String(s); if (!set.has(s)) { set.add(s); out.push(s); } };
+      for (const d of distractors) { if (out.length >= 4) break; add(d); }
+      if (out.length < 4) {
+        const isMoney = ans.trim().charAt(0) === '$';
+        const m = /-?\d+(?:\.\d+)?/.exec(ans);
+        if (m) {
+          const base = parseFloat(m[0]);
+          const dec = isMoney ? 2 : (m[0].indexOf('.') >= 0 ? m[0].split('.')[1].length : 0);
+          const fmt = v => isMoney ? '$' + v.toFixed(2) : (dec ? v.toFixed(dec) : String(Math.round(v)));
+          const steps = isMoney ? [1, -1, 0.5, -0.5, 2, -2, 1.5, 3, 5, -1.5, 0.25] : [1, -1, 2, -2, 3, -3, 4, 5, -4, 10, 6];
+          for (const s of steps) { if (out.length >= 4) break; const v = base + s; if (v >= 0 && Math.abs(v - base) > 1e-9) add(fmt(v)); }
+        }
+      }
+      let k = 2; while (out.length < 4) { add(String(k)); k++; }
+      return shuf(out.slice(0, 4));
+    };
 
     const st = { seed: 50, cost: 0, revenue: 0, made: 0, sold: 0, price: 0, stars: 0, idx: 0, perfect: true };
 
@@ -830,43 +1031,45 @@
     // Scene 5 — profit (subtraction / margin)
 
     // ---------- Hand-drawn SVG bakery ----------
-    function cupcake(x, y, s) {
-      return `<g transform="translate(${x},${y}) scale(${s})">
-        <path d="M-15 2 L15 2 L11 26 L-11 26 Z" fill="#e7c9a0"/>
-        <path d="M-15 2 L15 2 L14 8 L-14 8 Z" fill="#d3a878"/>
-        <path d="M-17 3 q3 -15 8 -15 q3 -8 9 -3 q7 -2 8 8 q6 3 1 10 Z" fill="#f7a8c4"/>
-        <path d="M-11 0 q2 -9 6 -9 q4 -6 8 0 q5 3 2 9 Z" fill="#ffc2da"/>
-        <circle cx="1" cy="-9" r="3.5" fill="#e2445c"/><circle cx="0" cy="-10" r="1.2" fill="#fff" opacity=".7"/>
-      </g>`;
+    // ---------- Canvas bakery scene ----------
+    // ---------- 16-bit pixel bakery scene ----------
+    let bqRaf = null, bqPuffs = [], bqShirt = '#4c86d6';
+    const BQW = 256, BQH = 134;
+    const BQ_COLS = ['#f7a8c4', '#a9e0c0', '#ffd98a', '#c3b0f0', '#8fd4ef'];
+    function pcupcake(ctx, x, y, fc) {
+      PX.r(ctx, x - 5, y, 10, 8, '#e0a060'); PX.r(ctx, x - 4, y + 8, 8, 1, '#b87840');
+      PX.r(ctx, x - 3, y + 1, 1, 7, '#c88848'); PX.r(ctx, x + 1, y + 1, 1, 7, '#c88848');
+      PX.r(ctx, x - 6, y - 5, 12, 6, fc); PX.r(ctx, x - 4, y - 8, 8, 4, fc); PX.r(ctx, x - 2, y - 10, 4, 3, fc);
+      PX.r(ctx, x - 4, y - 4, 3, 2, 'rgba(255,255,255,.45)');
+      PX.r(ctx, x - 1, y - 12, 3, 3, PAL.red); PX.p(ctx, x - 1, y - 12, '#ff9aac');
     }
-    function stage(caption, customer, mood) {
-      const shown = Math.min(6, Math.max(0, st.made && st.idx > 0 ? 6 : Math.round((st.idx) / 5 * 6)));
-      let cakes = ''; for (let i = 0; i < 6; i++) cakes += cupcake(70 + i * 62, 176, i < Math.max(1, shown) ? 1 : 0.001);
-      const starRow = '★★★★★'.split('').map((s, i) => `<tspan fill="${i < st.stars ? '#ffd23f' : 'rgba(255,255,255,.35)'}">★</tspan>`).join('');
-      return `<div class="bq-stage">
-        <svg viewBox="0 0 480 260" width="100%" style="display:block">
-          <defs>
-            <linearGradient id="bqsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe8d6"/><stop offset="1" stop-color="#ffd0b0"/></linearGradient>
-            <linearGradient id="bqwood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9764a"/><stop offset="1" stop-color="#9c5f38"/></linearGradient>
-          </defs>
-          <rect x="0" y="0" width="480" height="260" fill="url(#bqsky)"/>
-          <rect x="0" y="0" width="480" height="16" fill="#ef8fb3"/>
-          ${Array.from({ length: 12 }).map((_, i) => `<rect x="${i * 42}" y="0" width="21" height="16" fill="${i % 2 ? '#ef8fb3' : '#f8bcd4'}"/>`).join('')}
-          <rect x="150" y="34" width="180" height="46" rx="10" fill="#7a4a2b"/>
-          <text x="240" y="55" text-anchor="middle" font-family="Georgia,serif" font-size="15" fill="#ffe8d6" font-weight="700">GALLOP</text>
-          <text x="240" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="12" fill="#ffd0b0">· BAKERY ·</text>
-          <text x="404" y="44" font-size="17">${starRow ? '' : ''}</text>
-          <text x="360" y="44" font-size="15" font-family="Fredoka,sans-serif">${starRow}</text>
-          <rect x="20" y="150" width="440" height="14" rx="4" fill="#caa06f"/>
-          <rect x="20" y="164" width="440" height="70" fill="url(#bqwood)"/>
-          <rect x="20" y="150" width="440" height="84" fill="none"/>
-          <rect x="30" y="158" width="420" height="42" rx="8" fill="#fff" opacity=".16"/>
-          ${cakes}
-          <g transform="translate(392,150)"><rect x="0" y="-4" width="70" height="34" rx="6" fill="#3d7a5a"/><text x="35" y="18" text-anchor="middle" font-size="15" fill="#fff" font-family="Fredoka,sans-serif" font-weight="700">${money(st.seed - st.cost + st.revenue)}</text></g>
-          <text x="70" y="140" font-size="46">${customer || '🧑'}</text>
-        </svg>
-        <div class="bq-bubble">${esc(caption)}</div>
-      </div>`;
+    function drawBakery(ctx, ts) {
+      const W = BQW, H = BQH; ctx.clearRect(0, 0, W, H);
+      PX.r(ctx, 0, 0, W, H, '#ffe6c8'); PX.dither(ctx, 0, 42, W, 12, '#ffcfa0');
+      for (let i = 0; i < W / 12 + 1; i++) { PX.r(ctx, i * 12, 0, 12, 4, '#ef8fb3'); PX.r(ctx, i * 12 + 3, 4, 6, 3, '#ef8fb3'); }
+      PX.r(ctx, 22, 46, 72, 3, PAL.woodDk); PX.r(ctx, 162, 46, 72, 3, PAL.woodDk);
+      for (let i = 0; i < 4; i++) { pcupcake(ctx, 34 + i * 18, 40, BQ_COLS[i % 5]); pcupcake(ctx, 174 + i * 18, 40, BQ_COLS[(i + 2) % 5]); }
+      PX.panel(ctx, 96, 12, 64, 22, PAL.woodDk, '#4a2c0c', PAL.wood);
+      PX.text(ctx, 'GALLOP', 128, 24, '#ffe8d6', 8, 'center'); PX.text(ctx, 'BAKERY', 128, 31, '#ffcfa8', 5, 'center');
+      for (let i = 0; i < 5; i++) pixStar(ctx, 210 + i * 9, 16, i < st.stars ? PAL.gold : 'rgba(150,110,70,.4)');
+      pixPerson(ctx, 58, 96, PAL.green, false, ts, { hat: 'chef' });
+      PX.r(ctx, 8, 96, W - 16, 38, PAL.wood);
+      PX.r(ctx, 4, 92, W - 8, 5, PAL.woodLt);
+      for (let i = 1; i < 8; i++) PX.r(ctx, 8 + Math.round(i * (W - 16) / 8), 100, 1, 34, PAL.woodDk);
+      PX.r(ctx, 8, 132, W - 16, 2, PAL.woodDk);
+      const shown = Math.max(1, Math.min(6, st.made ? 6 : Math.round(st.idx / 5 * 6) + 1));
+      for (let i = 0; i < shown; i++) pcupcake(ctx, 96 + i * 26, 104, BQ_COLS[i % 5]);
+      if (bqPuffs.length < 6 && Math.random() < 0.08) bqPuffs.push({ x: 92 + (Math.random() * 150 | 0), y: 98, a: 5, r: 1 });
+      bqPuffs = bqPuffs.filter(p => { p.y -= 0.4; p.a -= 0.05; p.r += 0.05; if (p.a > 0) { const s = Math.max(1, p.r | 0) + 1; PX.r(ctx, p.x, p.y, s, s, `rgba(255,255,255,${Math.min(0.5, p.a / 10)})`); return true; } return false; });
+      PX.panel(ctx, W - 60, 60, 52, 14, PAL.green, PAL.greenDk, '#4cd080');
+      PX.text(ctx, money(st.seed - st.cost + st.revenue), W - 34, 70, PAL.white, 6, 'center');
+      pixPerson(ctx, 22, 130, bqShirt, false, ts);
+    }
+    function bqLoop(now) { const cv = $('#bq-canvas'); if (!cv) { cancelAnimationFrame(bqRaf); return; } drawBakery(pixelCtx(cv), now || 0); bqRaf = requestAnimationFrame(bqLoop); }
+    function startBakeryScene() { cancelAnimationFrame(bqRaf); bqRaf = requestAnimationFrame(bqLoop); }
+    function stage(caption, customer) {
+      bqShirt = ['#e8524e', '#4c86d6', '#8e5cf7', '#e59b3b', '#3aa76d'][(caption || '').length % 5];
+      return `<div class="bq-stage px-stage"><canvas id="bq-canvas" width="256" height="134"></canvas><div class="bq-bubble">${esc(caption)}</div></div>`;
     }
 
     // ---------- Skill scene ----------
@@ -884,6 +1087,7 @@
         </div>
       </div>`);
       wireChrome();
+      startBakeryScene();
       document.querySelectorAll('#bq-choices .choice').forEach(b => b.onclick = () => {
         const correct = b.dataset.c === sc.ans;
         document.querySelectorAll('#bq-choices .choice').forEach(x => x.disabled = true);
@@ -915,6 +1119,7 @@
         </div>
       </div>`);
       wireChrome();
+      startBakeryScene();
       document.querySelectorAll('#bq-prices .choice').forEach(b => b.onclick = () => {
         const o = priceOpts[Number(b.dataset.i)];
         document.querySelectorAll('#bq-prices .choice').forEach(x => x.disabled = true);
@@ -940,7 +1145,7 @@
         cap: `A neighbor wants ${q} cupcakes to take home.`,
         q: `${q} cupcakes at ${money(st.price)} each is ${money(due)}. They hand you a ${money(bill)} bill. How much change do you give back?`,
         ans: money(change),
-        dis: [money(bill - Math.round(st.price * q * 100) / 100 + st.price), money(due), money(bill - st.price)],
+        dis: [money(due), money(bill), money(Math.round((change + st.price) * 100) / 100)],
         skill: 'subtraction with money', why: 'Making change fast and correct is real work at every register, and it keeps customers trusting you.'
       };
       renderSkill(sc, customer);
@@ -975,7 +1180,7 @@
             cap: 'The shop is closing. Time to count the day.',
             q: `You brought in ${money(st.revenue)} and your ingredients cost ${money(st.cost)}. What was your profit today?`,
             ans: money(profit),
-            dis: [money(st.revenue + st.cost), money(st.revenue), money(profit + st.cost)],
+            dis: [money(Math.round((st.revenue + st.cost) * 100) / 100), money(st.revenue), money(st.cost)],
             skill: 'subtraction', why: 'Profit = money in minus money out. It\'s the number that tells you if a business actually works.'
           }, '🧑‍🍳');
         }

@@ -414,10 +414,10 @@ const Voice = (() => {
     } catch (e) { /* voice unsupported, fine */ }
   }
   function currentAuto() {
-    if (pref === '1') return true;
-    if (pref === '0') return false;
-    // Smart default: little kids (K–2) get questions read aloud automatically.
-    try { const k = State.me && State.me.kid; return !!(k && k.grade <= 2); } catch (e) { return false; }
+    // Opt-in only. Browser text-to-speech quality varies wildly by device (some
+    // default voices sound robotic), so we never auto-play speech — a learner or
+    // parent turns on read-aloud when they want it, and the 🔊 buttons always work.
+    return pref === '1';
   }
   // Read-along storytime: narrate a passage while highlighting each word as it's
   // spoken. Perfect for the littles learning to read. Falls back to plain speak
@@ -671,10 +671,19 @@ route('landing', async () => {
       </div>
     </div>
 
+    <h2 class="section-title reveal">A home for accelerated learners</h2>
+    <p class="section-sub">The kids who race ahead don't hit a ceiling here. Gallop has a separate Advanced Track that goes past grade level into college-level and honors work — real challenge, on demand, all year long.</p>
+    <div class="feature-grid">
+      <div class="feature reveal"><div class="fnum">ADVANCED PLACEMENT</div><h3>College-level AP practice</h3><p>Exam-style sets for AP Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English Language, English Literature, and Spanish.</p></div>
+      <div class="feature reveal"><div class="fnum">HONORS &amp; BEYOND</div><h3>Push past the standard track</h3><p>Honors-level Precalculus, Spanish, and more for students who have already mastered their grade and want to keep climbing.</p></div>
+      <div class="feature reveal"><div class="fnum">EXAM READY</div><h3>Aligned to the real tests</h3><p>Practice matched to the exams that count, including New York State Regents in math, science, and English for families who need it.</p></div>
+    </div>
+    <p class="section-sub reveal" style="margin-top:6px">The Advanced Track is its own space, so working ahead never disturbs a child's grade-level placement or Gallop Score. And the core high-school math ladder now runs pre-algebra, algebra, geometry, trigonometry, pre-calculus, calculus, and statistics.</p>
+
     <h2 class="section-title reveal">The curriculum</h2>
     <p class="section-sub">Every idea is taught through something real: money, sports, cooking, travel, and the technology kids already use.</p>
     <div class="subject-strip">
-      <div class="sub reveal" style="background:var(--math)"><h4>Mathematics</h4><p>Counting all the way to pre-calculus. Lemonade-stand arithmetic, sale-rack percentages, and the functions behind a roller coaster.</p></div>
+      <div class="sub reveal" style="background:var(--math)"><h4>Mathematics</h4><p>Counting all the way through calculus and statistics, with an advanced track for accelerated students. Lemonade-stand arithmetic, sale-rack percentages, and the functions behind a roller coaster.</p></div>
       <div class="sub reveal" style="background:var(--english)"><h4>English</h4><p>Phonics through rhetoric and college-level analysis. Reading that builds thinkers and grammar that builds writers.</p></div>
       <div class="sub reveal" style="background:var(--science)"><h4>Science</h4><p>The five senses through chemistry and physics. Why a mirror fogs, why a soda can sweats, and how a vaccine trains the body.</p></div>
       <div class="sub reveal" style="background:var(--spanish)"><h4>Spanish</h4><p>First greetings toward real fluency. Order in a Madrid café by month two, because conversation comes before conjugation.</p></div>
@@ -683,7 +692,7 @@ route('landing', async () => {
     <div class="feature-grid">
       <div class="feature reveal"><h3>An experience that grows up</h3><p>A first grader gets big friendly type and read-along storytime, where the words light up as they are read out loud. A teenager gets 15-minute focus sessions and quiet background music in a clean study space. It is the same engine underneath, dressed for a different age.</p></div>
       <div class="feature reveal"><h3>A trophy case worth chasing</h3><p>There are 33 badges to collect across six categories, a rank ladder that climbs from Foal to Thoroughbred, and progress bars that always show the next goal. Certificates mark each grade level a child finishes.</p></div>
-      <div class="feature reveal"><h3>Motivation that makes sense</h3><p>Daily quests, streaks, an eight-game arcade, and a coin-powered Snack Shack where a child's avatar actually eats the treats they buy. There are 48 characters to unlock, from astronauts to unicorns. Play is the reward and learning is what earns it.</p></div>
+      <div class="feature reveal"><h3>Motivation that makes sense</h3><p>Daily quests, streaks, a built-in learning arcade, and a coin-powered Snack Shack where a child's avatar actually eats the treats they buy. There are 48 characters to unlock, from astronauts to unicorns. Play is the reward and learning is what earns it.</p></div>
       <div class="feature reveal"><h3>Sound that was actually made for it</h3><p>Eight original soundtracks are built in, a calmer set for teenagers and brighter tunes for the younger kids, with a single tap to turn it all off. None of it is stock audio.</p></div>
       <div class="feature reveal"><h3>Safe by design</h3><p>Children can only connect with buddies a parent approves. They send pre-written cheers, race each other's high scores, and team up on weekly goals where both kids win. There is no open chat and no way for strangers to reach them.</p></div>
       <div class="feature reveal"><h3>Proof for the fridge</h3><p>Printable certificates, a one-page weekly summary, a two-week activity chart, per-skill progress bars, a spreadsheet export, and the strengths and career insights. You will always know how it is going.</p></div>
@@ -732,6 +741,7 @@ route('landing', async () => {
             <tr><td>Learn anytime, any device</td><td class="us">✅ 24/7</td><td>❌ scheduled visits</td><td>❌ booked sessions</td></tr>
             <tr><td>Progress reports & certificates</td><td class="us">✅ automatic</td><td>➖ periodic</td><td>➖ varies</td></tr>
             <tr><td>Strengths & career insights</td><td class="us">✅ built in</td><td>❌</td><td>❌</td></tr>
+            <tr><td>Advanced track for accelerated kids</td><td class="us">✅ AP, Honors & exam prep</td><td>➖ extra program</td><td>➖ varies</td></tr>
             <tr><td>Games, rewards & motivation</td><td class="us">✅ arcade + trophies</td><td>❌</td><td>❌</td></tr>
           </tbody>
         </table>
@@ -742,7 +752,8 @@ route('landing', async () => {
       <h2 class="center" style="margin-bottom:18px">Questions parents ask</h2>
       <details><summary>Do I need a credit card to start?</summary><p>No. Your first 7 days are free, and you can set up your children and use everything without entering any payment details. We only ask for a card if you choose to continue after the trial.</p></details>
       <details><summary>What does it cost after the trial?</summary><p>Solo is $34 a month for one student, and Family is $54 a month for up to four. Both are billed monthly and include all four subjects, the guided lessons, the adaptive tutor, the games, and the parent reports. Nothing is sold as an add-on.</p></details>
-      <details><summary>What ages and subjects does it cover?</summary><p>Every grade from kindergarten through 12th, in Math, English, Science, and Spanish. Each child is placed at their real level in each subject, so a strong reader who finds math harder starts in the right spot for both.</p></details>
+      <details><summary>What ages and subjects does it cover?</summary><p>Every grade from kindergarten through 12th, in Math, English, Science, and Spanish. Each child is placed at their real level in each subject, so a strong reader who finds math harder starts in the right spot for both. High-school math runs all the way through calculus and statistics.</p></details>
+      <details><summary>What about kids who are ahead of grade level?</summary><p>They get a separate Advanced Track. Once a student has mastered their grade, they can practice college-level and honors material — AP-style sets in Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English, and Spanish, honors courses, and practice aligned to state exams like the New York Regents for families who need it. It's kept separate from grade-level work, so working ahead never changes a child's placement.</p></details>
       <details><summary>Can I cancel anytime?</summary><p>Yes, in one click from your parent dashboard. Cancelling stops any future charges, and your child keeps access through the time you have already paid for.</p></details>
       <details><summary>Is my child safe, and is our data private?</summary><p>Yes. There are no ads and we never sell your data. Children connect only with buddies you approve, and they can send only pre-written cheers, so there is no open chat and no way for strangers to reach them. Payments run through Stripe, so we never see or store your card number.</p></details>
       <details><summary>What devices does it work on?</summary><p>Any device with a web browser: phone, tablet, laptop, or desktop. There is nothing to install, and progress syncs automatically across devices.</p></details>
@@ -764,7 +775,7 @@ function legalPage(title, bodyHTML) {
       <h2>${title}</h2>
       <p class="muted" style="margin:6px 0 18px">Last updated: July 19, 2026 · Gallop Learning Academy is operated by Lotus Farms LLC.</p>
       ${bodyHTML}
-      <p style="margin-top:22px"><button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38" onclick="location.hash='#'">← Back to home</button></p>
+      <p style="margin-top:22px"><button class="btn ghost small" style="color:var(--brand);border-color:var(--brand)" onclick="location.hash='#'">← Back to home</button></p>
     </div></div>`);
   wireChrome();
 }
@@ -833,7 +844,7 @@ route('demo', async () => {
         <button class="btn green" onclick="location.hash='#signup'">Start 7-Day Free Trial →</button>
         <button class="btn sun" style="margin-left:8px" onclick="window.__subscribeIntent=1;location.hash='#signup'">Subscribe now →</button>
         <p class="muted" style="margin-top:10px;font-size:.82rem">Free for 7 days, or subscribe today and skip the wait. Either way you can cancel anytime.</p>
-        <button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38;margin-top:8px" onclick="location.hash='#'">Back</button>
+        <button class="btn ghost small" style="color:var(--brand);border-color:var(--brand);margin-top:8px" onclick="location.hash='#'">Back</button>
       </div></div>`);
       wireChrome();
       return;
@@ -1066,6 +1077,7 @@ route('home', async () => {
       <div class="zone-card" onclick="location.hash='#snacks'"><span class="zemoji">🍿</span><b>${playful() ? 'Snack Shack' : 'Snack Shack'}</b><span class="muted">${playful() ? 'Spend coins on treats from the vending machine!' : 'Trade coins for snacks & treats'}</span></div>
       <div class="zone-card" onclick="location.hash='#trophies'"><span class="zemoji">🏆</span><b>Trophy Case</b><span class="muted">${playful() ? 'Your badges, trophies & next goals!' : 'Badges, certificates & milestones'}</span></div>
       <div class="zone-card" onclick="location.hash='#buddies'"><span class="zemoji">💌</span><b>Buddies</b><span class="muted">${playful() ? 'Cheer on your friends!' : 'See your crew’s streaks and send props'}</span></div>
+      ${k.grade >= 8 ? `<div class="zone-card exam-zone" onclick="location.hash='#exam'"><span class="zemoji">🎓</span><b>Advanced Track</b><span class="muted">Ahead of your grade? AP, Honors & college-level practice</span></div>` : ''}
     </div>
   </div>`);
   wireChrome();
@@ -1182,7 +1194,7 @@ route('placement', async (subject) => {
     const pread = $('.passage-read'), pwords = $('.passage-words');
     if (pread && pwords) pread.onclick = () => { Sound.click(); Voice.readAlong(pwords, vlang); };
     // Auto: read the STORY aloud for passages (delight for the littles), else the question
-    if (qn.passage && pwords && (Voice.auto || (State.me.kid && State.me.kid.grade <= 2))) Voice.readAlong(pwords, vlang);
+    if (qn.passage && pwords && Voice.auto) Voice.readAlong(pwords, vlang);
     else if (Voice.auto) Voice.speak(qn.voice || qn.prompt, vlang);
     document.querySelectorAll('.choice').forEach(b => b.onclick = () => {
       const i = Number(b.dataset.i);
@@ -1197,7 +1209,7 @@ route('placement', async (subject) => {
       <h2>Level found: ${esc(data.levelName)}!</h2>
       <p class="muted" style="margin:10px 0 20px">We watched how you answered and picked the spot that fits you best in ${esc(subject)}. Not too easy, not too hard, just right. You'll move up as soon as you show you're ready.</p>
       <button class="btn green" onclick="location.hash='#lesson/${subject}'">Start Learning →</button>
-      <button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38;margin-left:8px" onclick="location.hash='#home'">Back Home</button>
+      <button class="btn ghost small" style="color:var(--brand);border-color:var(--brand);margin-left:8px" onclick="location.hash='#home'">Back Home</button>
     </div></div>`);
     wireChrome();
   }
@@ -1301,7 +1313,7 @@ route('lesson', async (subject, mode) => {
     const pread = $('.passage-read'), pwords = $('.passage-words');
     if (pread && pwords) pread.onclick = () => { Sound.click(); Voice.readAlong(pwords, vlang); };
     // Auto: read the STORY aloud for passages (delight for the littles), else the question
-    if (qn.passage && pwords && (Voice.auto || (State.me.kid && State.me.kid.grade <= 2))) Voice.readAlong(pwords, vlang);
+    if (qn.passage && pwords && Voice.auto) Voice.readAlong(pwords, vlang);
     else if (Voice.auto) Voice.speak(qn.voice || qn.prompt, vlang);
     $('#hint-btn').onclick = () => { $('#hint-box').classList.add('show'); Sound.click(); };
     $('#tt-btn').onclick = async () => {
@@ -1447,6 +1459,188 @@ route('lesson', async (subject, mode) => {
   await nextQuestion();
 });
 
+// ======================= exam prep (AP / Honors / Regents) =======================
+// A separate advanced track. Practice never changes a learner's grade level or
+// mastery — it's exam drilling with explanations. Reuses the lesson q-card look.
+const EXAM_ORDER = ['AP', 'Honors', 'Regents'];
+const EXAM_BLURB = {
+  Regents: 'State exam practice (New York Regents)',
+  AP: 'College-level AP practice',
+  Honors: 'Honors-level challenge'
+};
+route('exam', async (trackId) => {
+  if (State.me.role !== 'kid') { location.hash = '#kid-login'; return; }
+  const kidId = State.me.kid.id;
+  let tracks = [];
+  try { tracks = (await api('/learn/tracks')).tracks || []; } catch (e) { tracks = []; }
+
+  if (!trackId) {
+    if (!tracks.length) {
+      app().innerHTML = topbar(`<div class="container" style="max-width:640px"><div class="card center">
+        <div class="big-emoji">🎓</div><h2>The Advanced Track is warming up</h2>
+        <p class="muted" style="margin:10px 0 18px">AP, Honors & college-level practice sets are being added. Check back soon!</p>
+        <button class="btn green" onclick="location.hash='#home'">← Back home</button>
+      </div></div>`);
+      wireChrome(); return;
+    }
+    const groups = {};
+    for (const t of tracks) { (groups[t.exam] = groups[t.exam] || []).push(t); }
+    const sections = EXAM_ORDER.filter(e => groups[e]).map(exam => `
+      <div class="exam-section">
+        <div class="exam-sec-head"><span class="exam-badge exam-${exam.toLowerCase()}">${exam}</span><span class="muted">${EXAM_BLURB[exam] || ''}</span></div>
+        <div class="exam-grid">
+          ${groups[exam].map(t => {
+            const c = (SUBJECT_STYLE[t.subject] || {}).color || '#1A5C38';
+            return `<button class="exam-card" data-track="${t.id}" style="--tc:${c}">
+              <span class="exam-emoji">${t.emoji || '🎓'}</span>
+              <b>${esc(t.name)}</b>
+              <span class="exam-count">${t.count} questions</span>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>`).join('');
+    app().innerHTML = topbar(`<div class="container" style="max-width:820px">
+      <div class="exam-hero">
+        <img src="/logo-full-dark.png" alt="Gallop Learning Academy" class="exam-hero-logo">
+        <div><h1 style="margin:0">Advanced Track</h1>
+        <p class="muted" style="margin:4px 0 0">For students working ahead — college-level AP, Honors, and exam practice. Working here won't change your grade level; it's pure challenge.</p></div>
+      </div>
+      ${sections}
+      <div style="margin-top:18px"><button class="btn ghost small on-page" onclick="location.hash='#home'">← Back home</button></div>
+    </div>`);
+    wireChrome();
+    document.querySelectorAll('.exam-card').forEach(b => b.onclick = () => { Sound.click(); location.hash = '#exam/' + b.dataset.track; });
+    return;
+  }
+
+  // ----- practice a specific track -----
+  const track = tracks.find(t => t.id === trackId);
+  if (!track) { location.hash = '#exam'; return; }
+  const style = SUBJECT_STYLE[track.subject] || { color: '#1A5C38', emoji: '🎓' };
+  const SESSION_LEN = 12;
+  const session = { n: 0, correct: 0, xp: 0, startedAt: Date.now() };
+  const vlang = track.subject === 'spanish' ? 'es-ES' : 'en-US';
+
+  async function nextQuestion() {
+    if (session.n >= SESSION_LEN) return summary();
+    let data = null;
+    for (let attempt = 0; attempt < 3 && !data; attempt++) {
+      try { data = await api(`/learn/${kidId}/track/${trackId}/next`); }
+      catch (e) { if (e.status === 402) return renderPaywall && renderPaywall(); data = null; await new Promise(r => setTimeout(r, 500)); }
+    }
+    if (!data || !data.question) {
+      app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
+        <div class="big-emoji">🎓</div><h2>Quick breather</h2>
+        <p class="muted" style="margin:10px 0 18px">That question didn't load. Your progress is saved.</p>
+        <button class="btn green" id="retry-q">Keep Going →</button>
+        <button class="btn ghost small on-page" style="margin-left:8px" onclick="location.hash='#exam'">Pick another exam</button>
+      </div></div>`);
+      wireChrome(); $('#retry-q').onclick = () => { Sound.click(); nextQuestion(); }; return;
+    }
+    render(data.question);
+  }
+
+  function render(qn) {
+    let answered = false;
+    app().innerHTML = topbar(`<div class="container lesson-wrap">
+      <div class="lesson-top">
+        <b>${track.emoji || '🎓'} ${esc(track.name)}</b>
+        ${gallopTrack(session.n / SESSION_LEN * 100)}
+        <b>${session.n}/${SESSION_LEN}</b>
+      </div>
+      <div class="q-card">
+        <span class="q-skill" style="background:${style.color}">${esc(track.exam)} · exam practice</span>
+        <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
+        ${qn.passage ? passageHTML(qn.passage, false) : ''}
+        <div class="q-prompt">${esc(qn.prompt)}</div>
+        <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
+        <div class="hint-box" id="hint-box">💡 ${esc(qn.hint || 'Work it through step by step.')}</div>
+        <div class="feedback" id="feedback" aria-live="polite"></div>
+        <div class="lesson-actions">
+          <button class="btn sun small" id="hint-btn">💡 Hint</button>
+          <button class="btn green" id="next-btn" style="display:none">Next →</button>
+          <button class="btn ghost small" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:auto" onclick="location.hash='#exam'">Exit</button>
+        </div>
+      </div>
+    </div>`);
+    wireChrome();
+    $('#say-btn').onclick = () => Voice.speak(qn.voice || qn.prompt, vlang);
+    const pread = $('.passage-read'), pwords = $('.passage-words');
+    if (pread && pwords) pread.onclick = () => { Sound.click(); Voice.readAlong(pwords, vlang); };
+    $('#hint-btn').onclick = () => { $('#hint-box').classList.add('show'); Sound.click(); };
+    document.onkeydown = e => {
+      if (document.querySelector('.celebrate')) return;
+      if (e.key >= '1' && e.key <= '4') { const c = document.querySelectorAll('.choice')[Number(e.key) - 1]; if (c && !c.disabled) c.click(); }
+      else if (e.key === 'Enter') { const nb = $('#next-btn'); if (nb && nb.style.display !== 'none') nb.click(); }
+      else if (e.key.toLowerCase() === 'h') { const hb = $('#hint-btn'); if (hb) hb.click(); }
+    };
+
+    async function settle(correct) {
+      const fb = $('#feedback');
+      if (correct) {
+        Sound.correct(); Confetti.burst(36);
+        fb.className = 'feedback good';
+        fb.innerHTML = `<b>Correct! 🎯</b> ${esc(qn.explain || '')}`;
+      } else {
+        Sound.wrong();
+        fb.className = 'feedback bad';
+        fb.innerHTML = `<b>Not quite.</b><br>${esc(qn.explain || '')}`;
+        const pop = document.createElement('div');
+        pop.className = 'celebrate';
+        pop.innerHTML = `<div class="explain-pop">
+          <div class="big-emoji">${track.emoji || '🎓'}</div>
+          <h2>Here's the idea</h2>
+          <p class="explain-text">The answer is <b>${esc(qn.choices[qn.answerIndex])}</b>.<br>${esc(qn.explain || qn.hint || '')}</p>
+          <button class="btn sun" style="margin-top:14px">Understood →</button>
+        </div>`;
+        pop.querySelector('button').onclick = () => { pop.remove(); Sound.click(); };
+        setTimeout(() => { document.body.appendChild(pop); const b = pop.querySelector('button'); if (b) b.focus(); }, 600);
+      }
+      session.n++; if (correct) { session.correct++; }
+      try {
+        const res = await api(`/learn/${kidId}/track/answer`, { method: 'POST', body: { trackId, correct, timeMs: Date.now() - session.startedAt } });
+        session.xp += res.xpEarned || 0;
+      } catch (e) { /* keep going */ }
+      $('#next-btn').style.display = 'inline-flex';
+      $('#next-btn').focus();
+      $('#next-btn').onclick = () => { Sound.click(); nextQuestion(); };
+    }
+
+    document.querySelectorAll('.choice').forEach(b => b.onclick = () => {
+      if (answered) return; answered = true;
+      const i = Number(b.dataset.i);
+      const correct = i === qn.answerIndex;
+      document.querySelectorAll('.choice').forEach(x => x.disabled = true);
+      b.classList.add(correct ? 'correct' : 'wrong');
+      if (!correct) document.querySelectorAll('.choice')[qn.answerIndex].classList.add('answer-reveal');
+      settle(correct);
+    });
+  }
+
+  function summary() {
+    const pct = Math.round(session.correct / SESSION_LEN * 100);
+    const mins = Math.max(1, Math.round((Date.now() - session.startedAt) / 60000));
+    const emoji = pct >= 80 ? '🌟' : pct >= 60 ? '💪' : '📚';
+    const msg = pct >= 80 ? `Exam-ready work on ${track.name}!` : pct >= 60 ? `Solid ${track.name} practice — keep sharpening.` : `Every rep counts. ${track.name} is tough — you're building it.`;
+    Confetti.burst(pct >= 80 ? 200 : 90); if (pct >= 60) Sound.levelup();
+    app().innerHTML = topbar(`<div class="container lesson-wrap"><div class="card center">
+      <div class="big-emoji">${emoji}</div>
+      <h2>${esc(msg)}</h2>
+      <div class="summary-stats">
+        <div class="sstat"><div class="n">${session.correct}/${SESSION_LEN}</div>correct</div>
+        <div class="sstat"><div class="n">+${session.xp}</div>XP earned</div>
+        <div class="sstat"><div class="n">${mins}</div>min${mins > 1 ? 's' : ''}</div>
+      </div>
+      <button class="btn green" onclick="location.hash='#exam/${trackId}';location.reload()">Practice again 🔁</button>
+      <button class="btn" style="margin-left:8px" onclick="location.hash='#exam'">Other exams →</button>
+      <button class="btn ghost small on-page" style="margin-left:8px" onclick="location.hash='#home'">Home</button>
+    </div></div>`);
+    wireChrome();
+  }
+
+  await nextQuestion();
+});
+
 // ======================= report card =======================
 // Per-subject pace status, makes the adaptive guardrails visible to parents.
 function statusBadge(status) {
@@ -1525,7 +1719,7 @@ route('report', async (kidId) => {
         <h2>${AVATARS[k.avatar] || '🦊'} ${esc(k.name)}'s Report Card</h2>
         <div>
           <button class="btn small no-print" onclick="window.print()">🖨️ Print</button>
-          ${isParent ? `<button class="btn ghost small no-print" style="color:#1A5C38;border-color:#1A5C38" onclick="location.hash='#parent'">← Dashboard</button>` : `<button class="btn green small no-print" onclick="location.hash='#home'">🏠 Home</button>`}
+          ${isParent ? `<button class="btn ghost small no-print" style="color:var(--brand);border-color:var(--brand)" onclick="location.hash='#parent'">← Dashboard</button>` : `<button class="btn green small no-print" onclick="location.hash='#home'">🏠 Home</button>`}
         </div>
       </div>
       <p class="muted">${r.pace.summer ? `☀️ ${esc(r.pace.note)}` : `${esc(r.pace.label)} · ${Math.round(r.pace.pctThroughYear * 100)}% through the year`} · ${r.weekAnswers} question${r.weekAnswers === 1 ? '' : 's'} this week (goal: ${k.weekly_goal * 10})</p>
@@ -1669,7 +1863,7 @@ route('weekly', async (kidId) => {
     </div>
     <div class="center no-print" style="margin-top:16px">
       <button class="btn" onclick="window.print()">🖨️ Print for the Fridge</button>
-      <button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38;margin-left:8px" onclick="location.hash='#${State.me.role === 'parent' ? 'parent' : 'home'}'">← Back</button>
+      <button class="btn ghost small" style="color:var(--brand);border-color:var(--brand);margin-left:8px" onclick="location.hash='#${State.me.role === 'parent' ? 'parent' : 'home'}'">← Back</button>
     </div>
   </div>`);
   wireChrome();
@@ -1702,7 +1896,7 @@ route('certificate', async (kidId, certId) => {
     </div>
     <div class="center no-print" style="margin-top:18px">
       <button class="btn" onclick="window.print()">🖨️ Print Certificate</button>
-      <button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38;margin-left:8px" onclick="location.hash='#report/${kidId}'">← Back to Report</button>
+      <button class="btn ghost small" style="color:var(--brand);border-color:var(--brand);margin-left:8px" onclick="location.hash='#report/${kidId}'">← Back to Report</button>
     </div>
   </div>`);
   wireChrome();
@@ -2043,7 +2237,7 @@ route('admin', async () => {
       </div>
       <div>
         <div class="card">
-          <h3>🧾 Recent families <a class="btn ghost small" style="float:right;color:#1A5C38;border-color:#1A5C38" href="/api/admin/export.csv" download>⬇️ CSV</a></h3>
+          <h3>🧾 Recent families <a class="btn ghost small" style="float:right;color:var(--brand);border-color:var(--brand)" href="/api/admin/export.csv" download>⬇️ CSV</a></h3>
           <div style="margin-top:10px;overflow-x:auto">
             ${d.recent.map(p => `
               <div class="kid-row" style="flex-wrap:wrap">
