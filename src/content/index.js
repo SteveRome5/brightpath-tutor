@@ -3,8 +3,26 @@ const math = require('./math');
 const english = require('./english');
 const science = require('./science');
 const spanish = require('./spanish');
+const { extraSkills } = require('./extra');
+const advanced = require('./advanced');
 
 const SUBJECTS = { math, english, science, spanish };
+
+// Merge the extra standard skills into each subject's skill list once, at load.
+// These thicken the normal K-12 ladder and are treated exactly like base skills
+// (placement, mastery, score). Advanced/exam-prep skills are intentionally NOT
+// merged here — they live in ./advanced.js and never touch the adaptive engine.
+for (const [subj, s] of Object.entries(SUBJECTS)) {
+  const extra = (extraSkills && extraSkills[subj]) || [];
+  if (extra.length) {
+    // If an extra (verified, bank-backed) skill shares an id with a base skill,
+    // the verified one wins — drop the base duplicate, then append the extras.
+    // Prevents the same skill id appearing twice and a base gen() shadowing the
+    // fact-checked bank via getSkill()'s first-match .find().
+    const extraIds = new Set(extra.map(k => k.id));
+    s.skills = s.skills.filter(k => !extraIds.has(k.id)).concat(extra);
+  }
+}
 
 function subjectMeta() {
   return Object.values(SUBJECTS).map(s => ({
@@ -44,4 +62,9 @@ function generateQuestion(subject, skillId, difficulty = 0.4, avoid = null) {
   return { subject, skillId, skillName: skill.name, grade: skill.grade, difficulty, ...question };
 }
 
-module.exports = { SUBJECTS, subjectMeta, getSkill, skillsForSubject, generateQuestion };
+// Advanced exam-prep track passthrough (separate from the adaptive engine).
+function listTracks() { return advanced.listTracks(); }
+function getTrack(id) { return advanced.getTrack(id); }
+function generateTrackQuestion(trackId, avoid = null) { return advanced.generateTrackQuestion(trackId, avoid); }
+
+module.exports = { SUBJECTS, subjectMeta, getSkill, skillsForSubject, generateQuestion, listTracks, getTrack, generateTrackQuestion };
