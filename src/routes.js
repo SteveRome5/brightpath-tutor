@@ -65,13 +65,28 @@ router.post('/auth/signup', loginLimiter, (req, res) => {
   }
 });
 
-// Parent jumps straight into their kid's session (no re-login, no PIN dance)
+// Parent jumps straight into their kid's session (no re-login, no PIN dance).
+// We stash the parent's own session token in bp_parent_return so the kid view can
+// offer a one-tap "Exit to parent" instead of forcing a full re-login.
 router.post('/auth/enter-kid', auth.requireParent, (req, res) => {
   const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number((req.body || {}).kidId), req.parent.id);
   if (!kid) return res.status(404).json({ error: 'Learner not found.' });
+  const parentToken = req.cookies.bp_session;
+  if (parentToken) res.cookie('bp_parent_return', parentToken, COOKIE_OPTS);
   const token = auth.createSession('kid', kid.id);
   res.cookie('bp_session', token, COOKIE_OPTS);
   res.json({ ok: true, kid: publicKid(kid) });
+});
+
+// Return from a parent-launched kid session back to the parent dashboard.
+router.post('/auth/exit-kid', (req, res) => {
+  const parentToken = req.cookies.bp_parent_return;
+  const s = parentToken ? auth.getSession(parentToken) : null;
+  if (!s || s.kind !== 'parent') return res.status(400).json({ error: 'No parent session to return to.' });
+  // Retire the kid session cookie, restore the parent session, clear the stash.
+  res.cookie('bp_session', parentToken, COOKIE_OPTS);
+  res.clearCookie('bp_parent_return');
+  res.json({ ok: true });
 });
 
 router.post('/auth/login', loginLimiter, (req, res) => {
@@ -94,6 +109,7 @@ router.post('/auth/change-password', loginLimiter, auth.requireParent, (req, res
 router.post('/auth/logout', (req, res) => {
   auth.destroySession(req.cookies.bp_session);
   res.clearCookie('bp_session');
+  res.clearCookie('bp_parent_return');
   res.json({ ok: true });
 });
 
@@ -131,7 +147,11 @@ router.get('/auth/me', (req, res) => {
   }
   const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(s.ref_id);
   if (!kid) return res.json({ role: 'guest' });
-  res.json({ role: 'kid', kid: publicKid(kid) });
+  // If this kid session was launched by a parent (bp_parent_return holds a live
+  // parent session), tell the client so it can show an "Exit to parent" control.
+  let parentReturn = false;
+  try { const pr = auth.getSession(req.cookies.bp_parent_return); parentReturn = !!(pr && pr.kind === 'parent'); } catch (e) {}
+  res.json({ role: 'kid', kid: publicKid(kid), parentReturn });
 });
 
 function publicKid(k) {
@@ -162,9 +182,12 @@ router.patch('/kids/:kidId', auth.requireParent, (req, res) => {
   const { name, grade, pin, avatar, calendar_mode, weekly_goal } = req.body || {};
   if (pin != null && pin !== '' && !/^\d{4}$/.test(String(pin))) return res.status(400).json({ error: 'PIN must be 4 digits.' });
   const gradeVal = grade != null && Number.isFinite(Number(grade)) ? Math.max(0, Math.min(12, Math.round(Number(grade)))) : null;
+  // Validate avatar against the allow-list and bound the weekly goal (matches POST /kids).
+  const avatarVal = AVATARS.includes(avatar) ? avatar : null;
+  const goalVal = weekly_goal != null && Number.isFinite(Number(weekly_goal)) ? Math.max(10, Math.min(500, Math.round(Number(weekly_goal)))) : null;
   db.prepare(`UPDATE kids SET name=COALESCE(?,name), grade=COALESCE(?,grade), pin=COALESCE(?,pin),
               avatar=COALESCE(?,avatar), calendar_mode=COALESCE(?,calendar_mode), weekly_goal=COALESCE(?,weekly_goal) WHERE id=?`)
-    .run(name ? String(name).trim().slice(0, 40) : null, gradeVal, pin ? auth.hashPin(String(pin)) : null, avatar || null, calendar_mode || null, weekly_goal != null ? Number(weekly_goal) : null, kid.id);
+    .run(name ? String(name).trim().slice(0, 40) : null, gradeVal, pin ? auth.hashPin(String(pin)) : null, avatarVal, calendar_mode || null, goalVal, kid.id);
   res.json({ ok: true });
 });
 
@@ -262,7 +285,11 @@ router.post('/learn/:kidId/answer', auth.requireKid, auth.requireActiveSub, (req
   const { subject, skillId, correct, timeMs, difficulty } = req.body || {};
   if (!content.SUBJECTS[subject] || !content.getSkill(subject, skillId))
     return res.status(400).json({ error: 'Bad subject/skill' });
-  const result = adaptive.recordAnswer(req.kid.id, subject, skillId, !!correct, Number(timeMs) || null, Number(difficulty) || 0.5);
+  // Never trust client-supplied difficulty/time — clamp to sane bounds so a crafted
+  // request can't corrupt mastery, mint fake certificates, or inflate XP.
+  let diff = Number(difficulty); diff = Number.isFinite(diff) ? Math.max(0, Math.min(1, diff)) : 0.5;
+  const tRaw = Number(timeMs); const tMs = Number.isFinite(tRaw) && tRaw > 0 ? Math.min(tRaw, 600000) : null;
+  const result = adaptive.recordAnswer(req.kid.id, subject, skillId, !!correct, tMs, diff);
   const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id);
   res.json({ ...result, kid: publicKid(kid) });
 });
@@ -341,7 +368,7 @@ router.get('/learn/:kidId/quests', auth.requireKid, (req, res) => {
   res.json(questStatus(req.kid.id));
 });
 
-router.post('/learn/:kidId/quests/claim', auth.requireKid, (req, res) => {
+router.post('/learn/:kidId/quests/claim', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const st = questStatus(req.kid.id);
   if (!st.allDone) return res.status(400).json({ error: 'Quests not finished yet — keep going!' });
   if (st.claimed) return res.json({ ok: true, alreadyClaimed: true });
@@ -352,7 +379,7 @@ router.post('/learn/:kidId/quests/claim', auth.requireKid, (req, res) => {
 });
 
 // Retake a placement assessment (fresh start for that subject's level)
-router.post('/learn/:kidId/placement/:subject/retake', auth.requireKid, (req, res) => {
+router.post('/learn/:kidId/placement/:subject/retake', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { subject } = req.params;
   if (!content.SUBJECTS[subject]) return res.status(404).json({ error: 'Unknown subject' });
   db.prepare('UPDATE subject_state SET placed=0 WHERE kid_id=? AND subject=?').run(req.kid.id, subject);
@@ -361,7 +388,7 @@ router.post('/learn/:kidId/placement/:subject/retake', auth.requireKid, (req, re
 });
 
 // Kid taps "Too tricky?" — gallop back one level (or "Ready for more" — up one)
-router.post('/learn/:kidId/level-shift/:subject', auth.requireKid, (req, res) => {
+router.post('/learn/:kidId/level-shift/:subject', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { subject } = req.params;
   if (!content.SUBJECTS[subject]) return res.status(404).json({ error: 'Unknown subject' });
   const delta = Number((req.body || {}).delta) < 0 ? -1 : 1;
@@ -432,7 +459,13 @@ router.get('/admin/export.csv', auth.requireAdmin, (req, res) => {
       (SELECT COUNT(*) FROM kids k WHERE k.parent_id=p.id) AS kids,
       (SELECT COUNT(*) FROM activity_log a JOIN kids k2 ON a.kid_id=k2.id WHERE k2.parent_id=p.id) AS totalAnswers
     FROM parents p WHERE NOT ${TEST_SQL} ORDER BY p.created_at DESC`).all();
-  const csvCell = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+  // Quote every cell AND neutralize spreadsheet formula injection: a value beginning
+  // with = + - @ (or tab/CR) is prefixed with ' so Excel/Sheets treats it as text.
+  const csvCell = v => {
+    let s = String(v == null ? '' : v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return `"${s.replace(/"/g, '""')}"`;
+  };
   const csv = ['name,email,status,plan,joined,trial_ends,kids,total_answers',
     ...rows.map(r => [r.name, r.email, r.sub_status, r.sub_plan, r.created_at, r.trial_ends, r.kids, r.totalAnswers].map(csvCell).join(','))].join('\n');
   res.setHeader('Content-Type', 'text/csv');

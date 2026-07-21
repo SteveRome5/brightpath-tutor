@@ -359,7 +359,10 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
     if (lvl < maxGrade(subject) && allPracticed && allMastered && totalAtLevel >= Math.max(12, levelSkills.length * 3) && upAcc != null && upAcc >= 0.85) {
       db.prepare('UPDATE subject_state SET level=?, last_change_aid=? WHERE kid_id=? AND subject=?').run(lvl + 1, latestAid, kidId, subject);
       const title = `${subjectLabel(subject)}, ${gradeName(lvl)} Complete!`;
-      db.prepare('INSERT INTO certificates (kid_id, subject, title, level) VALUES (?,?,?,?)').run(kidId, subject, title, lvl);
+      // Don't mint a duplicate certificate if this level was already completed before
+      // (e.g. promote → demote → re-promote); one certificate per level per learner.
+      const hasCert = db.prepare('SELECT 1 FROM certificates WHERE kid_id=? AND subject=? AND level=?').get(kidId, subject, lvl);
+      if (!hasCert) db.prepare('INSERT INTO certificates (kid_id, subject, title, level) VALUES (?,?,?,?)').run(kidId, subject, title, lvl);
       events.push({ type: 'levelup', subject, newLevel: lvl + 1, certificate: title });
     } else if (lvl > 0) {
       // DEMOTE (support): sustained low accuracy at the level since the last change.
@@ -518,7 +521,7 @@ function subjectLabel(s) {
 // supportive label instead of an F, because at that point the right response is
 // more teaching, not a failing mark.
 function letterGrade(acc) {
-  if (acc == null) return ', ';
+  if (acc == null) return '—';
   const p = acc * 100;
   if (p >= 97) return 'A+'; if (p >= 93) return 'A'; if (p >= 90) return 'A-';
   if (p >= 87) return 'B+'; if (p >= 83) return 'B'; if (p >= 80) return 'B-';
