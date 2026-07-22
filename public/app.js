@@ -413,8 +413,17 @@ const Voice = (() => {
       if (/aria|jenny|ava|emma|libby|sonia|samantha|serena|allison|nicky|zoe|joanna|salli/.test(n)) s += 40; // known warm, friendly voices
       if (/google/.test(n)) s += 25;
       if (/female/.test(n)) s += 12;
-      if (v.lang && v.lang.toLowerCase() === (lang || '').toLowerCase()) s += 10;  // exact region
-      if (v.localService === false) s += 8;                        // networked voices are usually the neural ones
+      // Accent: strongly prefer American English and steer AWAY from British/Australian/
+      // Indian/South-African voices when the app asked for en-US (parents flagged a
+      // British-sounding narrator). Region match matters more than a nice voice name.
+      if (v.lang) {
+        const vl = v.lang.toLowerCase(), want = (lang || '').toLowerCase();
+        if (vl === want) s += 70;                                  // exact (en-US) wins big
+        else if (want.startsWith('en') && /en[-_](gb|au|in|za|ie|nz)/.test(vl)) s -= 90; // wrong English accent
+        else if (want.startsWith('en') && vl.startsWith('en')) s += 8;
+      }
+      if (/\b(uk|british|daniel|arthur|kate|serena|oliver|george|rishi|malcolm|karen|catherine|matilda|lee)\b/.test(n) && (lang || '').toLowerCase().startsWith('en-us')) s -= 60; // named UK/AU voices
+      if (v.localService === false) s += 30;                       // networked = the consistent neural voices
       if (/robot|zarvox|albert|bad ?news|bells|trinoids|whisper|cellos|organ|good ?news|jester|superstar|boing|bahh|bubbles|deranged|hysterical|wobble|pipe/.test(n)) s -= 200; // novelty/robotic voices
       return s;
     };
@@ -441,10 +450,12 @@ const Voice = (() => {
     } catch (e) { /* voice unsupported, fine */ }
   }
   function currentAuto() {
-    // Opt-in only. Browser text-to-speech quality varies wildly by device (some
-    // default voices sound robotic), so we never auto-play speech — a learner or
-    // parent turns on read-aloud when they want it, and the 🔊 buttons always work.
-    return pref === '1';
+    // Kindergarten pre-readers can't start on their own, so read-aloud defaults ON for
+    // them (a 5-year-old shouldn't need a parent to press play). Everyone else stays
+    // opt-in, since TTS quality varies by device and parents rely on no surprise audio.
+    if (pref === '1') return true;
+    if (pref === '0') return false;
+    try { return !!(State.me && State.me.kid && (State.me.kid.grade || 0) <= 0); } catch (e) { return false; }
   }
   // Read-along storytime: narrate a passage while highlighting each word as it's
   // spoken. Perfect for the littles learning to read. Falls back to plain speak
@@ -1409,7 +1420,7 @@ route('lesson', async (subject, mode) => {
       <div class="lesson-top">
         <b>${focus ? '🎯 Focus Session: ' + esc(SUBJECT_STYLE[subject] === style ? subject.charAt(0).toUpperCase() + subject.slice(1) : subject) : style.emoji + ' ' + style.cheer}</b>
         ${focus ? '' : gallopTrack(session.n / SESSION_LEN * 100)}
-        <b>${focus ? `⏱ <span id="focus-left">${fmtLeft(session.endAt - Date.now())}</span> · ${session.n} answered` : session.n + '/' + SESSION_LEN}</b>
+        <b>${focus ? `⏱ <span id="focus-left">${fmtLeft(session.endAt - Date.now())}</span> · ${session.n} answered` : `Question ${Math.min(session.n + 1, SESSION_LEN)} of ${SESSION_LEN}`}</b>
       </div>
       <div class="q-card">
         <span class="q-skill" style="background:${style.color}">${esc(qn.skillName)} · ${esc(modeLabel)}</span>
@@ -1465,7 +1476,7 @@ route('lesson', async (subject, mode) => {
       else if (e.key.toLowerCase() === 'h') { const hb = $('#hint-btn'); if (hb) hb.click(); }
     };
 
-    async function settle(correct) {
+    async function settle(correct, chosen) {
       const fb = $('#feedback');
       const why = whyLine(subject, qn.skillName);
       if (correct) {
@@ -1477,15 +1488,20 @@ route('lesson', async (subject, mode) => {
       } else {
         Sound.wrong();
         const enc = (playful() ? ENCOURAGE : ENCOURAGE_TEEN)[Math.floor(Math.random() * (playful() ? ENCOURAGE : ENCOURAGE_TEEN).length)];
+        // Misconception-specific feedback: if the exact wrong answer they chose maps to a
+        // known mistake, lead with the message that names THAT mistake — far more useful
+        // than one generic explanation for every distractor.
+        const diag = (qn.whyWrong && chosen != null && qn.whyWrong[String(chosen)]) || '';
+        const teach = diag || qn.explain || qn.hint || '';
         fb.className = 'feedback bad';
-        fb.innerHTML = `<b>${enc}</b><br>${esc(qn.explain || "")}`;
+        fb.innerHTML = `<b>${enc}</b><br>${esc(teach)}`;
         // Big teaching moment: pop the explanation up LARGE, and make sure they saw it.
         const pop = document.createElement('div');
         pop.className = 'celebrate';
         pop.innerHTML = `<div class="explain-pop">
           <div class="big-emoji">${style.emoji}</div>
-          <h2>${playful() ? 'Let\'s learn it! 💡' : 'Here\'s the idea'}</h2>
-          <p class="explain-text">The answer is <b>${esc(qn.choices[qn.answerIndex])}</b>.<br>${esc(qn.explain || qn.hint || '')}</p>
+          <h2>${diag ? (playful() ? 'Let\'s look at that! 🔍' : 'Here\'s what happened') : (playful() ? 'Let\'s learn it! 💡' : 'Here\'s the idea')}</h2>
+          <p class="explain-text">${diag ? esc(diag) + '<br>' : ''}The answer is <b>${esc(qn.choices[qn.answerIndex])}</b>.${diag ? '' : '<br>' + esc(qn.explain || qn.hint || '')}</p>
           <div class="why-line">🌍 <b>Real world:</b> ${esc(why)}</div>
           <button class="btn sun" style="margin-top:14px">${playful() ? 'Got it! 👍' : 'Understood →'}</button>
         </div>`;
@@ -1494,7 +1510,7 @@ route('lesson', async (subject, mode) => {
         // overlay is up, the keydown guard blocks Enter→Next, so a fast tap can't skip
         // the explanation or drop a ghost overlay onto the next question.
         document.body.appendChild(pop); const gotIt = pop.querySelector('button'); if (gotIt) gotIt.focus();
-        if (Voice.auto) Voice.speak(`The answer is ${qn.choices[qn.answerIndex]}. ${qn.explain || ''}`, 'en-US');
+        if (Voice.auto) Voice.speak(`${diag || ('The answer is ' + qn.choices[qn.answerIndex] + '. ' + (qn.explain || ''))}`, 'en-US');
       }
       session.n++; if (correct) session.correct++;
       try {
@@ -1530,7 +1546,7 @@ route('lesson', async (subject, mode) => {
       document.querySelectorAll('.choice').forEach(x => x.disabled = true);
       b.classList.add(correct ? 'correct' : 'wrong');
       if (!correct) { const _ar = document.querySelectorAll('.choice')[qn.answerIndex]; if (_ar) _ar.classList.add('answer-reveal'); }
-      settle(correct);
+      settle(correct, qn.choices[i]);
     });
 
     const tgo = $('#typed-go');
