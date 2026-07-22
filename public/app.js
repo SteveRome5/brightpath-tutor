@@ -527,6 +527,7 @@ const State = { me: { role: 'guest' }, lesson: null };
 async function refreshMe() { State.me = await api('/auth/me'); }
 
 const routes = {};
+let _navRetry = null; // {key, n} — transient-failure retry state for the router
 function route(name, fn) { routes[name] = fn; }
 async function navigate() {
   const hash = location.hash.replace(/^#\/?/, '') || 'landing';
@@ -539,11 +540,25 @@ async function navigate() {
   const MUSIC_ZONES = ['play', 'avatar', 'snacks', 'trophies', 'buddies', 'game'];
   if (Music.on && MUSIC_ZONES.includes(name)) Music.start(currentMusicMood()); else Music.stop();
   const fn = routes[name] || routes.landing;
-  try { await fn(...args); } catch (e) {
+  try { await fn(...args); _navRetry = null; } catch (e) {
     if (e.status === 401) { location.hash = State.me.role === 'kid' ? '#kid-login' : '#login'; return; }
     if (e.status === 402) { renderPaywall(); return; }
-    app().innerHTML = topbar(`<div class="container"><div class="card center"><div class="big-emoji">🙈</div><h2>Oops, something hiccuped!</h2><p class="muted">Let's head back and try again.</p><button class="btn green" onclick="location.hash='${State.me.role === 'kid' ? '#home' : '#'}'">🏠 Go Home</button></div></div>`);
+    // Transient failures — the server restarting during a deploy, or a dropped
+    // connection — throw a 5xx or a network error (no status). Auto-retry a few
+    // times with backoff, then leave a manual "Try Again". A momentary blip should
+    // never look like a crash, and should heal itself the moment the server is back.
+    const transient = !e.status || e.status >= 500;
+    const key = location.hash;
+    if (!_navRetry || _navRetry.key !== key) _navRetry = { key, n: 0 };
+    const goHome = State.me.role === 'kid' ? '#home' : '#';
+    const retryNow = () => { _navRetry.n++; navigate(); };
+    const emoji = transient ? '🐎' : '🙈';
+    const title = transient ? 'Reconnecting…' : 'Oops, something hiccuped!';
+    const msg = transient ? 'One moment — getting you back on track.' : "Let's try that again.";
+    app().innerHTML = topbar(`<div class="container"><div class="card center"><div class="big-emoji">${emoji}</div><h2>${title}</h2><p class="muted">${msg}</p><div style="margin-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn green" id="nav-retry">↻ Try Again</button><button class="btn ghost" onclick="location.hash='${goHome}'">🏠 Go Home</button></div></div></div>`);
     try { wireChrome(); } catch (_) {}
+    const rb = document.getElementById('nav-retry'); if (rb) rb.onclick = () => { try { Sound.click(); } catch (_) {} retryNow(); };
+    if (transient && _navRetry.n < 3) setTimeout(retryNow, [1500, 3000, 5000][_navRetry.n] || 5000);
   }
   window.scrollTo(0, 0);
   requestAnimationFrame(() => {
