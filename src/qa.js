@@ -23,11 +23,15 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 
 // ---- low-level seed helpers -------------------------------------------------
 function ensureParent(email, name, { sub_status = 'active', sub_plan = 'family', trialDays = 7 } = {}) {
-  let p = db.prepare('SELECT * FROM parents WHERE email=?').get(email);
-  if (!p) { auth.createParent(email, name, 'qa-Passw0rd!'); p = db.prepare('SELECT * FROM parents WHERE email=?').get(email); }
-  const trial_ends = isoDaysAgo(-trialDays); // future
+  const existing = db.prepare('SELECT id FROM parents WHERE email=?').get(email);
+  // IMPORTANT: if the account already exists, leave its billing state ALONE. Opening a
+  // persona must never reset the sub_status/trial that a QA billing control just set —
+  // otherwise expired/past-due states silently revert to active on account entry.
+  if (existing) return existing.id;
+  auth.createParent(email, name, 'qa-Passw0rd!');
+  const p = db.prepare('SELECT id FROM parents WHERE email=?').get(email);
   db.prepare('UPDATE parents SET name=?, sub_status=?, sub_plan=?, trial_ends=? WHERE id=?')
-    .run(name, sub_status, sub_plan, trial_ends, p.id);
+    .run(name, sub_status, sub_plan, isoDaysAgo(-trialDays), p.id);
   return p.id;
 }
 function ensureKid(parentId, name, grade, avatar) {
@@ -101,9 +105,9 @@ const PERSONAS = {
     kind: 'parent', label: 'New Parent (fresh signup)',
     desc: 'Trial available, onboarding NOT done, no children, no payment method. Tests signup → add child → pick grade → goals → first session, and whether Gallop’s value is clear.',
     seed() {
+      // Create once, then leave it alone — don't wipe kids a tester added, don't reset
+      // billing. Use the launchpad "Reset" to get a clean fresh-parent baseline.
       const pid = ensureParent('qa+new-parent@gallop.test', 'Alex Rivera', { sub_status: 'trial', trialDays: 7 });
-      // ensure truly fresh: remove any kids
-      db.prepare('DELETE FROM kids WHERE parent_id=?').run(pid);
       return { kind: 'parent', id: pid };
     }
   },

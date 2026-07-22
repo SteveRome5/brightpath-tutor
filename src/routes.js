@@ -301,6 +301,7 @@ router.get('/learn/:kidId/next/:subject', auth.requireKid, auth.requireActiveSub
     mode: activity.mode, level: activity.level, skill: activity.skill,
     question: {
       prompt: qn.prompt, choices: qn.choices, voice: qn.voice, hint: qn.hint, explain: qn.explain,
+      whyWrong: qn.whyWrong || null,
       passage: qn.passage || null,
       answerIndex: answerIdx, skillId: qn.skillId, skillName: qn.skillName, difficulty: qn.difficulty
     }
