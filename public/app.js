@@ -1455,6 +1455,8 @@ route('lesson', async (subject, mode) => {
     const qn = data.question;
     const modeLabel = { boost: '💪 Power-Up (extra practice!)', learn: '🌱 New Challenge', review: '✨ Quick Review', retention: '🧠 Memory Check (keeping it sharp!)' }[data.mode] || '';
     const qStart = Date.now();
+    // Per-question idempotency key so a double-tap / retry can't double-record this answer.
+    const answerNonce = Math.random().toString(36).slice(2) + '-' + qStart.toString(36);
     let answered = false;
     // Typed-answer mode: ~30% of numeric math questions (grade 2+) ask the kid
     // to TYPE the answer, recall beats recognition for real mastery.
@@ -1563,7 +1565,7 @@ route('lesson', async (subject, mode) => {
       try {
         const res = await api(`/learn/${kidId}/answer`, {
           method: 'POST',
-          body: { subject, skillId: qn.skillId, correct, timeMs: Date.now() - qStart, difficulty: qn.difficulty }
+          body: { subject, skillId: qn.skillId, correct, timeMs: Date.now() - qStart, difficulty: qn.difficulty, nonce: answerNonce }
         });
         session.xp += res.xpGained || 0;
         $('#mastery-pct').textContent = Math.round(res.mastery * 100) + '%';
