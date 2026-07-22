@@ -638,7 +638,7 @@ function topbar(inner = '') {
     const parentBtn = me.parentReturn ? `<button class="btn ghost small" id="exit-kid-btn" title="Back to your parent dashboard">← Parent</button>` : '';
     right = `${exitBtn}${parentBtn}<button class="btn ghost small" onclick="location.hash='#home'">🏠 Home</button><button class="btn ghost small" onclick="location.hash='#kid-login'" title="Switch to another child">👋 Switch</button><button class="btn ghost small kid-logout" id="logout-btn">Log out</button>`;
   }
-  else right = `<button class="btn ghost small" onclick="location.hash='#kid-login'">Child Login</button><button class="btn ghost small" onclick="location.hash='#login'">Parent Login</button><button class="btn sun small" onclick="location.hash='#signup'">Start free trial</button>`;
+  else right = `<button class="btn ghost small" onclick="location.hash='#kid-login'">Child Login</button><button class="btn ghost small" onclick="location.hash='#login'">Parent Login</button><button class="btn sun small" onclick="window.__subscribeIntent=1;location.hash='#signup'">Sign up now</button>`;
   return `
   <div class="topbar">
     <div class="logo" onclick="location.hash='${homeHash}'"><img src="/logo-mark.png" alt="Gallop" class="logo-img"> Gallop</div>
@@ -728,12 +728,13 @@ route('landing', async () => {
     <p class="hero-tagline">Every child has a pace. Gallop finds it.</p>
     <p>Self-paced lessons in Math, English, Science &amp; Spanish that find your child's real level and adapt to every answer — on any device, no scheduling.</p>
     <div class="hero-cta">
-      <button class="btn hero-primary" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start your 7-day free trial</button>
+      <button class="btn hero-primary" onclick="${State.me.role === 'parent' ? "location.hash='#parent'" : "window.__subscribeIntent=1;location.hash='#signup'"}">Sign up now</button>
+      <button class="btn hero-trial" onclick="window.__subscribeIntent=0;location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">or start a 7-day free trial</button>
       <div class="hero-cta-row">
         <button class="btn ghost" onclick="location.hash='#demo'">Try a sample lesson</button>
         <button class="btn ghost" onclick="location.hash='#kid-login'">Student sign-in</button>
       </div>
-      <p class="hero-cta-note muted">No credit card to start · Cancel anytime</p>
+      <p class="hero-cta-note muted">Subscribe today, or try free for 7 days · Cancel anytime</p>
     </div>
     <div class="hero-journey"><img src="/journey-green.png" alt="" class="journey-img"></div>
   </div>
@@ -1026,15 +1027,17 @@ route('demo', async () => {
 
 // ======================= parent signup/login =======================
 route('signup', async () => {
+  const subscribing = !!window.__subscribeIntent;
   app().innerHTML = topbar(`<div class="container" style="max-width:460px">
     <div class="card">
       <h2>Create your family account 👨‍👩‍👧</h2>
+      ${subscribing ? `<p class="muted" style="margin:2px 0 12px">Quick account first, then choose your plan and you're all set — no trial, straight to full access.</p>` : ''}
       <label>Your name</label><input id="f-name" placeholder="e.g. Steve">
       <label>Email</label><input id="f-email" type="email" placeholder="you@example.com">
       <label>Password (8+ characters)</label><input id="f-pass" type="password">
       <div class="error-msg" id="f-err"></div>
-      <button class="btn green" style="margin-top:18px;width:100%" id="f-go">Start Free Trial →</button>
-      <p class="muted center" style="margin-top:10px;font-size:.85rem">7 days free · No credit card required · Cancel anytime</p>
+      <button class="btn green" style="margin-top:18px;width:100%" id="f-go">${subscribing ? 'Continue to plans →' : 'Start Free Trial →'}</button>
+      <p class="muted center" style="margin-top:10px;font-size:.85rem">${subscribing ? 'Subscribe today · Cancel anytime, one click' : '7 days free · No credit card required · Cancel anytime'}</p>
       <p class="muted center" style="margin-top:10px">Already have an account? <a href="#login">Log in</a></p>
       <p class="muted center" style="margin-top:8px;font-size:.8rem">By signing up you agree to our <a href="/terms" target="_blank" rel="noopener">Terms</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</p>
     </div></div>`);
@@ -1043,11 +1046,44 @@ route('signup', async () => {
     try {
       await api('/auth/signup', { method: 'POST', body: { name: $('#f-name').value, email: $('#f-email').value, password: $('#f-pass').value } });
       await refreshMe(); Sound.levelup(); State.onboard = true;
-      // Came from "Subscribe now"? Take them straight to plan choice instead of the trial.
-      if (window.__subscribeIntent) { window.__subscribeIntent = 0; location.hash = '#parent'; setTimeout(() => { const b = $('#sub-family') || $('#tb-family'); if (b) { b.scrollIntoView({ behavior: 'smooth', block: 'center' }); b.classList.add('pulse'); } }, 400); }
+      // Came from "Sign up now"? Go straight to plan choice → checkout, skipping the trial.
+      if (window.__subscribeIntent) { window.__subscribeIntent = 0; location.hash = '#subscribe'; }
       else location.hash = '#parent';
     } catch (e) { showError('#f-err', e.message); }
   };
+});
+
+// ======================= choose a plan & subscribe (skip-the-trial path) =======================
+route('subscribe', async () => {
+  await refreshMe();
+  if (State.me.role !== 'parent') { location.hash = '#login'; return; }
+  const p = State.me.parent;
+  if (p && p.sub_status === 'active') { location.hash = '#parent'; return; } // already subscribed
+  app().innerHTML = topbar(`<div class="container" style="max-width:560px">
+    <div class="card center">
+      <img src="/logo-roundel.png" alt="" style="width:76px;height:76px">
+      <h2 style="margin-top:8px">Choose your plan</h2>
+      <p class="muted" style="margin:8px auto 20px;max-width:30rem">Full access to all four subjects, the adaptive tutor, the games arcade, and weekly parent reports. Cancel anytime in one click.</p>
+      <div class="plan-grid">
+        <div class="plan-card featured">
+          <div class="plan-badge">Most popular</div>
+          <h3>Family</h3><div class="plan-price">$54<span>/mo</span></div>
+          <p class="muted">Up to 4 children</p>
+          <button class="btn green" style="width:100%;margin-top:10px" id="sub-family">Subscribe →</button>
+        </div>
+        <div class="plan-card">
+          <h3>Solo</h3><div class="plan-price">$34<span>/mo</span></div>
+          <p class="muted">1 child</p>
+          <button class="btn" style="width:100%;margin-top:10px" id="sub-solo">Subscribe →</button>
+        </div>
+      </div>
+      <p class="muted center" style="margin-top:16px;font-size:.85rem">🔒 Secure checkout · Billed monthly, renews until you cancel</p>
+      <p class="muted center" style="margin-top:8px;font-size:.85rem">Want to try before you buy? <a href="#parent">Start with a free trial instead</a></p>
+    </div></div>`);
+  wireChrome();
+  const fam = $('#sub-family'), solo = $('#sub-solo');
+  if (fam) fam.onclick = () => checkout('family');
+  if (solo) solo.onclick = () => checkout('solo');
 });
 
 route('login', async () => {
@@ -2010,7 +2046,7 @@ function renderCareer(c, k) {
     <div class="path-card">
       <div class="path-emoji">${p.emoji}</div>
       <div class="path-body">
-        <div class="path-top"><b>${esc(p.title)}</b><span class="path-match" title="How well this fits ${esc(k.name)}'s current strengths">${Math.round(p.match * 100)}% match</span></div>
+        <div class="path-top"><b>${esc(p.title)}</b><span class="path-match" title="A rough sense of fit from ${esc(k.name)}'s current strengths — a direction to explore, not a prediction">${p.match >= 0.7 ? 'Strong fit' : p.match >= 0.5 ? 'Good fit' : 'Worth exploring'}</span></div>
         <p class="path-why">${esc(p.why)}</p>
         ${c.band === 'pathways' ? `<p class="path-hs">🎓 <b>High-school focus:</b> ${esc(p.hs)}</p>` : ''}
       </div>
