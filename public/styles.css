@@ -1440,6 +1440,11 @@ body[data-theme="junior"] .lp-body { font-size: 1.24rem; }
 .lw-pickbtn:hover { border-color: var(--sub); }
 .lw-pickbtn.good { border-color: #14a37f; background: #e2f8f1; color: #0c6b53; }
 .lw-pickbtn.bad { border-color: var(--danger); background: #fdecec; }
+.lw-pickfb { margin-top: 12px; padding: 11px 14px; border-radius: 12px; font-weight: 600; font-size: .98rem; line-height: 1.5; }
+.lw-pickfb.good { background: #e2f8f1; color: #0c6b53; }
+.lw-pickfb.bad { background: #fdf3d7; color: #7a5b00; }
+body[data-theme="academy"] .lw-pickfb.good { background: #16362e; color: #7fe0c0; }
+body[data-theme="academy"] .lw-pickfb.bad { background: #3a3222; color: #e6c877; }
 .lw-sort { width: 100%; }
 .lw-pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 44px; margin-bottom: 14px; }
 .lw-chip { font-size: 1rem; font-weight: 700; padding: 9px 15px; border-radius: 999px; border: 2px solid var(--field-border); background: var(--card-bg); cursor: pointer; transition: all .12s; }

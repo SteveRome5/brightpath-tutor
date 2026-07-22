@@ -179,14 +179,30 @@
     },
     tapPick(spec) {
       const opts = spec.options || [];
+      const correct = opts.find(o => o.correct);
       return {
-        html: `<div class="lw-pick">${opts.map((o, i) => `<button class="lw-pickbtn" data-i="${i}">${esc(o.label)}</button>`).join('')}<p class="lw-tiphint">${esc(spec.prompt || 'Tap the best answer.')}</p></div>`,
+        html: `<div class="lw-pick">${opts.map((o, i) => `<button class="lw-pickbtn" data-i="${i}">${esc(o.label)}</button>`).join('')}<p class="lw-tiphint">${esc(spec.prompt || 'Tap the best answer.')}</p><p class="lw-pickfb" id="lw-pickfb" style="display:none" aria-live="polite"></p></div>`,
         wire(box, onDone) {
           let done = false;
+          const fb = box.querySelector('#lw-pickfb');
+          const say = (msg) => { try { if (typeof Voice !== 'undefined' && Voice.auto) Voice.speak(msg); } catch (e) {} };
           box.querySelectorAll('.lw-pickbtn').forEach((b, i) => b.onclick = () => {
             if (done) return;
-            if (opts[i].correct) { done = true; b.classList.add('good'); Sound.correct(); Confetti.burst(24); onDone(true); }
-            else { b.classList.add('bad'); Sound.wrong(); b.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }], { duration: 260 }); }
+            if (opts[i].correct) {
+              done = true; b.classList.add('good'); Sound.correct(); Confetti.burst(24);
+              if (fb) { fb.style.display = 'block'; fb.className = 'lw-pickfb good'; fb.textContent = opts[i].why || spec.explain || 'That’s right!'; }
+              onDone(true);
+            } else {
+              // Tester finding #4: a guided-practice miss must TEACH, not just block. Show why this
+              // choice is wrong (authored `why` when present) and name the right answer to try.
+              b.classList.add('bad'); Sound.wrong();
+              b.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }], { duration: 260 });
+              const msg = opts[i].why
+                || (spec.explain ? spec.explain
+                : (correct ? `Not quite — the answer is “${correct.label}.” Tap it to keep going.` : 'Not quite — try another answer.'));
+              if (fb) { fb.style.display = 'block'; fb.className = 'lw-pickfb bad'; fb.textContent = msg; }
+              say(msg);
+            }
           });
         }
       };

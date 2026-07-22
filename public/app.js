@@ -212,7 +212,17 @@ WHY_TOPICS.math.push(
     teen: ['Algebra is the language of coding, engineering, and problem-solving itself.', 'Every app, spreadsheet, and simulation is algebra under the hood.'] },
   { match: /probab|odds|chance|statist/i,
     young: ['Knowing the chances helps you make smart choices in games! 🎲'],
-    teen: ['Probability is how doctors weigh risks and investors weigh bets, a core adult skill.'] }
+    teen: ['Probability is how doctors weigh risks and investors weigh bets, a core adult skill.'] },
+  // Skill-specific matches for concepts the generic bank used to mislabel (tester finding #3):
+  { match: /negative|integer|opposite|below zero|signed number/i,
+    young: ['Temperatures below zero and steps below ground use negative numbers! 🌡️'],
+    teen: ['Negative numbers track things like temperature below zero, elevation below sea level, and money owed.'] },
+  { match: /logarithm|\blog\b|exponent|exponential|power/i,
+    young: ['Exponents show how things grow really, really fast! 📈'],
+    teen: ['Logarithmic scales appear in earthquake magnitudes (Richter), sound (decibels), and pH.'] },
+  { match: /decimal|round|place value|estimat/i,
+    young: ['Money uses decimals — dollars and cents! 💵'],
+    teen: ['Decimals and rounding show up in prices, measurements, and lab data.'] }
 );
 WHY_TOPICS.spanish.push(
   { match: /greeting|hola|phrase|conversa/i,
@@ -234,13 +244,13 @@ function rankFor(xp) {
 }
 
 function whyLine(subject, skillName) {
+  // Only show a "real world" connection when it's genuinely tied to THIS skill. A generic
+  // per-subject line ("bakers measure every morning" on a negative-temperature question)
+  // reads as filler and undercuts trust — better to say nothing than something unrelated.
   const topics = WHY_TOPICS[subject] || [];
   const hit = skillName ? topics.find(t => t.match.test(skillName)) : null;
   if (hit) { const list = playful() ? hit.young : (hit.teen.length ? hit.teen : hit.young); return list[Math.floor(Math.random() * list.length)]; }
-  const bank = WHY[subject];
-  if (!bank) return '';
-  const list = playful() ? bank.young : bank.teen;
-  return list[Math.floor(Math.random() * list.length)];
+  return ''; // no skill-specific match → omit rather than show an unrelated connection
 }
 
 // ---- age-adaptive themes: the app grows up with the student ----
@@ -423,6 +433,15 @@ const Voice = (() => {
         else if (want.startsWith('en') && vl.startsWith('en')) s += 8;
       }
       if (/\b(uk|british|daniel|arthur|kate|serena|oliver|george|rishi|malcolm|karen|catherine|matilda|lee)\b/.test(n) && (lang || '').toLowerCase().startsWith('en-us')) s -= 60; // named UK/AU voices
+      // Spanish lessons deserve a real native voice, not an English voice reading Spanish.
+      // Reward known-good Spanish voices and neural Spanish, and gently favor the mainstream
+      // Latin-American / Castilian accents US learners hear in class.
+      if ((lang || '').toLowerCase().startsWith('es')) {
+        const vlx = (v.lang || '').toLowerCase();
+        if (/spanish|espa|mónica|monica|paulina|jorge|juan|diego|sabina|helena|dalia|elena|laura|lucia|lucía|penelope|penélope|miguel|carlos|marisol|angelica|angélica/.test(n)) s += 45;
+        if (/es[-_](es|mx|us|419|la|co|ar)/.test(vlx)) s += 22;    // native Spanish accents
+        if (/google.*(español|espanol)|español|espanol/.test(n)) s += 30;
+      }
       if (v.localService === false) s += 30;                       // networked = the consistent neural voices
       if (/robot|zarvox|albert|bad ?news|bells|trinoids|whisper|cellos|organ|good ?news|jester|superstar|boing|bahh|bubbles|deranged|hysterical|wobble|pipe/.test(n)) s -= 200; // novelty/robotic voices
       return s;
@@ -555,7 +574,7 @@ async function navigate() {
   const fn = routes[name] || routes.landing;
   try { await fn(...args); _navRetry = null; } catch (e) {
     if (e.status === 401) { location.hash = State.me.role === 'kid' ? '#kid-login' : '#login'; return; }
-    if (e.status === 402) { renderPaywall(); return; }
+    if (e.status === 402) { renderPaywall(e.data && e.data.reason); return; }
     // Transient failures — the server restarting during a deploy, or a dropped
     // connection — throw a 5xx or a network error (no status). Auto-retry a few
     // times with backoff, then leave a manual "Try Again". A momentary blip should
@@ -1139,10 +1158,12 @@ route('home', async () => {
       const s = data.subjects.find(x => x.subject === rec.subject); if (!s) return '';
       const title = rec.type === 'place' ? (playful() ? `Find your ${s.label} level!` : `Take your ${s.label} placement`)
         : rec.type === 'boost' ? (playful() ? `${s.label} needs a power-up 💪` : `${s.label}: your biggest gains are here`)
+        : rec.type === 'review' ? (playful() ? `Keep ${s.label} sharp 🧠` : `${s.label}: time for a quick review`)
         : rec.type === 'more' ? (playful() ? `Keep the ${s.label} roll going 🔥` : `${s.label}: keep the momentum`)
         : (playful() ? `Fresh ${s.label} adventure awaits ✨` : `${s.label}: nothing logged today`);
       const sub = rec.type === 'place' ? (playful() ? 'A quick quiz finds your perfect starting spot.' : 'Short adaptive assessment, a few minutes.')
         : rec.type === 'boost' ? (playful() ? 'A few wins here and your skill power jumps!' : 'Targeted reps where mastery is lowest.')
+        : rec.type === 'review' ? (playful() ? 'A little review so it really sticks!' : 'A spaced-review check so mastery lasts.')
         : (playful() ? 'Your tutor picked this just for you.' : 'Recommended by your progress data.');
       return `<div class="up-next" data-upnext="${rec.subject}" data-place="${rec.type === 'place' ? 1 : 0}">
         <div class="un-emoji">${s.emoji}</div>
@@ -1265,7 +1286,7 @@ route('placement', async (subject) => {
       current = data;
       render(data);
     } catch (e) {
-      if (e.status === 402) { renderPaywall(); return; }
+      if (e.status === 402) { renderPaywall(e.data && e.data.reason); return; }
       app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="card center">
         <div class="big-emoji">🐎</div><h2>Quick hiccup!</h2>
         <p class="muted" style="margin:10px 0 18px">That didn't load. Tap below to continue your placement quiz.</p>
@@ -1349,7 +1370,7 @@ route('lesson', async (subject, mode) => {
   const focus = mode === 'focus';
   const FOCUS_MIN = 15;
   const SESSION_LEN = focus ? 9999 : 10;
-  const session = { n: 0, correct: 0, xp: 0, startedAt: Date.now(), events: [], endAt: focus ? Date.now() + FOCUS_MIN * 60000 : null };
+  const session = { n: 0, correct: 0, xp: 0, startedAt: Date.now(), events: [], endAt: focus ? Date.now() + FOCUS_MIN * 60000 : null, focusSkill: null };
   let focusTimer = null;
   const fmtLeft = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
   if (focus) {
@@ -1367,15 +1388,23 @@ route('lesson', async (subject, mode) => {
     if (focus && Date.now() >= session.endAt) return summary();
     if (session.n >= SESSION_LEN) return summary();
     try {
-      const data = await api(`/learn/${kidId}/next/${subject}`);
+      // Keep the mission on one skill: once anchored, ask the server for that same skill
+      // until it's mastered (then it hands us a new skill and we re-anchor below).
+      const q = session.focusSkill ? `?focus=${encodeURIComponent(session.focusSkill)}` : '';
+      const data = await api(`/learn/${kidId}/next/${subject}${q}`);
+      // Anchor to the served skill (a labeled retention "Memory Check" never re-anchors,
+      // so a spaced-review question doesn't derail the mission's focus).
+      if (data && data.skill && data.skill.id && data.mode !== 'retention') session.focusSkill = data.skill.id;
       render(data);
     } catch (e) {
-      if (e.status === 402) { renderPaywall(); return; }
+      if (e.status === 402) { renderPaywall(e.data && e.data.reason); return; }
       if (e.status === 401) { toast('Please log back in to keep going!'); location.hash = '#kid-login'; return; }
       // Never leave a kid stuck: one auto-retry, then a friendly tap-to-retry card.
       try {
         await new Promise(r => setTimeout(r, 800));
-        const data = await api(`/learn/${kidId}/next/${subject}`);
+        const q = session.focusSkill ? `?focus=${encodeURIComponent(session.focusSkill)}` : '';
+        const data = await api(`/learn/${kidId}/next/${subject}${q}`);
+        if (data && data.skill && data.skill.id && data.mode !== 'retention') session.focusSkill = data.skill.id;
         render(data);
       } catch (e2) {
         if (e2.status === 401) { toast('Please log back in to keep going!'); location.hash = '#kid-login'; return; }
@@ -1501,7 +1530,7 @@ route('lesson', async (subject, mode) => {
         Sound.correct(); Confetti.burst(40);
         const praise = (playful() ? PRAISE : PRAISE_TEEN)[Math.floor(Math.random() * (playful() ? PRAISE : PRAISE_TEEN).length)];
         fb.className = 'feedback good';
-        fb.innerHTML = `<b>${praise}</b> ${esc(qn.explain || "")}<div class="why-line">🌍 <b>Real world:</b> ${esc(why)}</div>`;
+        fb.innerHTML = `<b>${praise}</b> ${esc(qn.explain || "")}${why ? `<div class="why-line">🌍 <b>Real world:</b> ${esc(why)}</div>` : ''}`;
         if (Voice.auto && playful()) Voice.speak(praise.replace(/[^\w\s'!¡.,á-úÁ-Ú-]/g, ''));
       } else {
         Sound.wrong();
@@ -1520,7 +1549,7 @@ route('lesson', async (subject, mode) => {
           <div class="big-emoji">${style.emoji}</div>
           <h2>${diag ? (playful() ? 'Let\'s look at that! 🔍' : 'Here\'s what happened') : (playful() ? 'Let\'s learn it! 💡' : 'Here\'s the idea')}</h2>
           <p class="explain-text">${diag ? esc(diag) + '<br>' : ''}The answer is <b>${esc(qn.choices[qn.answerIndex])}</b>.${diag ? '' : '<br>' + esc(qn.explain || qn.hint || '')}</p>
-          <div class="why-line">🌍 <b>Real world:</b> ${esc(why)}</div>
+          ${why ? `<div class="why-line">🌍 <b>Real world:</b> ${esc(why)}</div>` : ''}
           <button class="btn sun" style="margin-top:14px">${playful() ? 'Got it! 👍' : 'Understood →'}</button>
         </div>`;
         pop.querySelector('button').onclick = () => { pop.remove(); Sound.click(); const nb = $('#next-btn'); if (nb) nb.focus(); };
@@ -1545,7 +1574,7 @@ route('lesson', async (subject, mode) => {
       } catch (e) {
         // Trial/subscription lapsed mid-lesson: send them to the paywall instead of
         // silently celebrating work that was never recorded.
-        if (e.status === 402) { renderPaywall(); return; }
+        if (e.status === 402) { renderPaywall(e.data && e.data.reason); return; }
         // Session expired mid-lesson: back to kid login (retrying forever is a dead end).
         if (e.status === 401) { toast('Please log back in to keep your progress!'); location.hash = '#kid-login'; return; }
         /* otherwise keep playing even if the network hiccups */
@@ -1705,7 +1734,7 @@ route('exam', async (trackId) => {
     let data = null;
     for (let attempt = 0; attempt < 3 && !data; attempt++) {
       try { data = await api(`/learn/${kidId}/track/${trackId}/next`); }
-      catch (e) { if (e.status === 402) return renderPaywall && renderPaywall(); data = null; await new Promise(r => setTimeout(r, 500)); }
+      catch (e) { if (e.status === 402) return renderPaywall && renderPaywall(e.data && e.data.reason); data = null; await new Promise(r => setTimeout(r, 500)); }
     }
     if (!data || !data.question) {
       app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
@@ -1782,7 +1811,7 @@ route('exam', async (trackId) => {
         session.qStart = Date.now();
         session.xp += res.xpEarned || 0;
       } catch (e) {
-        if (e.status === 402) { renderPaywall(); return; }
+        if (e.status === 402) { renderPaywall(e.data && e.data.reason); return; }
         if (e.status === 401) { toast('Please log back in to keep your progress!'); location.hash = '#kid-login'; return; }
         /* else keep going */
       }
@@ -2112,15 +2141,19 @@ route('certificate', async (kidId, certId) => {
 });
 
 // ======================= paywall =======================
-function renderPaywall() {
+function renderPaywall(reason) {
   // A wrong-answer teaching overlay must never sit on top of the paywall.
   document.querySelectorAll('.celebrate').forEach(el => el.remove());
   // Speak to the actual account state — a long-paying parent with a declined card
-  // should not be told they were "on a free trial".
-  const pstat = (State.me && State.me.role === 'parent' && State.me.parent) ? State.me.parent.sub_status : 'trial';
-  const heading = pstat === 'past_due' ? 'There was a problem with your payment'
-    : pstat === 'canceled' ? 'Your subscription is canceled'
-    : 'Your free trial has ended';
+  // should not be told they were "on a free trial". The reason comes from the backend
+  // 402 (single source of truth), so the child paywall matches the parent dashboard.
+  // Fall back to the parent's own sub_status when a reason wasn't passed.
+  const pstat = (State.me && State.me.role === 'parent' && State.me.parent) ? State.me.parent.sub_status : null;
+  const r = reason || (pstat === 'past_due' ? 'past_due' : pstat === 'canceled' ? 'canceled' : 'trial_expired');
+  const heading = r === 'past_due' ? 'There was a problem with the payment'
+    : r === 'canceled' ? 'This subscription is canceled'
+    : r === 'no_subscription' ? 'A subscription is needed'
+    : 'The free trial has ended';
   app().innerHTML = topbar(`<div class="container" style="max-width:600px"><div class="card center">
     <img src="/logo-roundel.png" alt="" style="width:84px;height:84px">
     <h2 style="margin-top:10px">${heading}</h2>
@@ -2509,13 +2542,25 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
         if (!nw) return;
         nw.addEventListener('statechange', () => {
           if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-            const t = document.createElement('div');
-            t.className = 'gallop-toast show';
-            t.style.cursor = 'pointer';
-            t.textContent = '✨ A new version is ready — tap to refresh';
-            t.onclick = () => location.reload();
-            document.querySelectorAll('.gallop-toast').forEach(x => x.remove());
-            document.body.appendChild(t);
+            const showToast = () => {
+              const t = document.createElement('div');
+              t.className = 'gallop-toast show';
+              t.style.cursor = 'pointer';
+              t.textContent = '✨ A new version is ready — tap to refresh';
+              t.onclick = () => location.reload();
+              document.querySelectorAll('.gallop-toast').forEach(x => x.remove());
+              document.body.appendChild(t);
+            };
+            // Don't interrupt a child mid-lesson (tester finding #8). If they're inside a
+            // lesson, teaching flow, placement, exam, or game, wait until they navigate out
+            // before offering the refresh, so progress is never disrupted.
+            const inActivity = () => /^#\/?(lesson|teach|placement|exam|play|game)/.test(location.hash || '');
+            if (inActivity()) {
+              const onLeave = () => { if (!inActivity()) { window.removeEventListener('hashchange', onLeave); showToast(); } };
+              window.addEventListener('hashchange', onLeave);
+            } else {
+              showToast();
+            }
           }
         });
       });
