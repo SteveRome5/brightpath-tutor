@@ -253,13 +253,20 @@ router.post('/play/:kidId/spend-token', auth.requireKid, auth.requireActiveSub, 
   db.prepare('UPDATE kids SET play_tokens = play_tokens - 1 WHERE id=?').run(req.kid.id);
   const k = `${req.kid.id}:${game}`;
   _openPlays.set(k, Math.min(3, (_openPlays.get(k) || 0) + 1));
-  res.json({ ok: true, tokensLeft: (kid.play_tokens || 0) - 1 });
+  const best = db.prepare('SELECT MAX(score) AS s FROM game_scores WHERE kid_id=? AND game=?').get(req.kid.id, game);
+  res.json({ ok: true, tokensLeft: (kid.play_tokens || 0) - 1, best: best.s || 0 });
 });
 
 router.post('/play/:kidId/score', auth.requireKid, (req, res) => {
   const { game, score } = req.body || {};
   if (!GAMES.includes(String(game))) return res.status(400).json({ error: 'Unknown game' });
   const s = Math.max(0, Math.min(100000, Number(score) || 0));
+  // Personal-best chase: capture the previous best BEFORE inserting this run, so the
+  // finish screen can celebrate a new record and always show the score to beat.
+  const prevRow = db.prepare('SELECT MAX(score) AS s, COUNT(*) AS n FROM game_scores WHERE kid_id=? AND game=?').get(req.kid.id, game);
+  const prevBest = prevRow.s || 0;
+  const hadPlays = (prevRow.n || 0) > 0;
+  const isRecord = hadPlays && s > prevBest;
   db.prepare('INSERT INTO game_scores (kid_id, game, score) VALUES (?,?,?)').run(req.kid.id, game, s);
   // Small coin reward for finishing a game — but only if a token was spent to start it.
   // (In-memory: after a server restart the first finish just misses its 2 coins; harmless.)
@@ -282,7 +289,7 @@ router.post('/play/:kidId/score', auth.requireKid, (req, res) => {
     }
   }
   db.prepare('UPDATE kids SET coins = coins + ? WHERE id=?').run(coins, req.kid.id);
-  res.json({ ok: true, coinsEarned: coins, challengesWon: beaten });
+  res.json({ ok: true, coinsEarned: coins, challengesWon: beaten, best: Math.max(prevBest, s), prevBest, isRecord, firstPlay: !hadPlays });
 });
 
 // ---------- buddy challenges (safe, async, no chat) ----------
