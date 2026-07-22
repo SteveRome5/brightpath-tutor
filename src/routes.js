@@ -181,7 +181,7 @@ router.get('/auth/me', (req, res) => {
 
 function publicKid(k) {
   let cfg = null; try { cfg = k.avatar_config ? JSON.parse(k.avatar_config) : null; } catch (e) {}
-  return { id: k.id, name: k.name, avatar: k.avatar, avatar_config: cfg, grade: k.grade, xp: k.xp, coins: k.coins, streak: k.streak, play_tokens: k.play_tokens || 0, calendar_mode: k.calendar_mode, weekly_goal: k.weekly_goal };
+  return { id: k.id, name: k.name, avatar: k.avatar, avatar_config: cfg, avatar_img: k.avatar_img || null, grade: k.grade, xp: k.xp, coins: k.coins, streak: k.streak, play_tokens: k.play_tokens || 0, calendar_mode: k.calendar_mode, weekly_goal: k.weekly_goal };
 }
 
 // ---------- kid management (parent) ----------

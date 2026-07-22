@@ -210,7 +210,9 @@ for (const stmt of [
   "ALTER TABLE parents ADD COLUMN email_opt_out INTEGER DEFAULT 0",
   "ALTER TABLE parents ADD COLUMN unsub_token TEXT",
   // Lapsed-practice nudges: remember the last time we nudged so one lapse = one email
-  "ALTER TABLE kids ADD COLUMN last_nudge_at TEXT"
+  "ALTER TABLE kids ADD COLUMN last_nudge_at TEXT",
+  // Custom uploaded avatar photo (data URL) for older kids — null = use the built-in avatar
+  "ALTER TABLE kids ADD COLUMN avatar_img TEXT"
 ]) {
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }
