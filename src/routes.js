@@ -65,8 +65,11 @@ router.use((req, res, next) => {
 // Health check for uptime monitoring / load balancers: cheap, unauthenticated, and pings
 // the DB so a wedged database surfaces as unhealthy rather than a silent 200.
 router.get('/health', (req, res) => {
-  try { db.prepare('SELECT 1').get(); return res.json({ ok: true, ts: new Date().toISOString() }); }
-  catch (e) { return res.status(503).json({ ok: false, error: 'db' }); }
+  try {
+    db.prepare('SELECT 1').get();
+    const lb = typeof db.latestBackup === 'function' ? db.latestBackup() : null;
+    return res.json({ ok: true, ts: new Date().toISOString(), lastBackup: lb ? lb.file : null });
+  } catch (e) { return res.status(503).json({ ok: false, error: 'db' }); }
 });
 
 // Idempotency for answer submission: a double-tap or a network retry must not record the

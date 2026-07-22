@@ -238,4 +238,36 @@ for (const stmt of [
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }
 
+// ---------- automated backups ----------
+// Periodic hot backup of the SQLite database using better-sqlite3's online backup (safe
+// while the app is running). Writes timestamped copies into DATA_DIR/backups and keeps the
+// most recent KEEP. Because DATA_DIR is the Render persistent disk, these survive deploys.
+// (For off-site durability, sync this folder to object storage — see EMAIL_SETUP/ops notes.)
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
+const BACKUP_KEEP = 10;
+function backup() {
+  try {
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const dest = path.join(BACKUP_DIR, `gallop-${stamp}.db`);
+    return db.backup(dest).then(() => {
+      try {
+        const files = fs.readdirSync(BACKUP_DIR).filter(f => /^gallop-.*\.db$/.test(f)).sort();
+        while (files.length > BACKUP_KEEP) { const old = files.shift(); try { fs.unlinkSync(path.join(BACKUP_DIR, old)); } catch (e) {} }
+      } catch (e) {}
+      return dest;
+    }).catch(err => { console.error('[backup] failed:', err.message); return null; });
+  } catch (e) { console.error('[backup] error:', e.message); return Promise.resolve(null); }
+}
+function latestBackup() {
+  try {
+    const files = fs.readdirSync(BACKUP_DIR).filter(f => /^gallop-.*\.db$/.test(f)).sort();
+    if (!files.length) return null;
+    const f = files[files.length - 1];
+    return { file: f, path: path.join(BACKUP_DIR, f), size: fs.statSync(path.join(BACKUP_DIR, f)).size };
+  } catch (e) { return null; }
+}
+
+db.backupNow = backup;
+db.latestBackup = latestBackup;
 module.exports = db;

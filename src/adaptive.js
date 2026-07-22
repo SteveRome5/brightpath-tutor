@@ -707,14 +707,22 @@ function reportCard(kidId) {
     // Status uses the child's RECENT overall experience in the subject (last ~15
     // answers), stable, and honest to what they've actually been feeling lately.
     const recentRows = db.prepare('SELECT correct FROM activity_log WHERE kid_id=? AND subject=? ORDER BY id DESC LIMIT 15').all(kidId, sub);
-    const recentAcc = recentRows.length >= 8 ? recentRows.filter(r => r.correct).length / recentRows.length : null;
+    const MIN_SAMPLE = 8;                        // fewer than this = not enough to judge
+    const recentAcc = recentRows.length >= MIN_SAMPLE ? recentRows.filter(r => r.correct).length / recentRows.length : null;
+    // Explicit, honest status rules (never a definitive label on a tiny sample):
+    //   building        — subject not started / not placed yet
+    //   insufficient    — placed but under the minimum sample, so we DON'T claim a verdict
+    //   excelling       — recent accuracy ≥ 85% (or fully mastered with no focus gaps)
+    //   on-track        — recent accuracy 60–85% (the healthy challenging-but-doable zone)
+    //   developing      — recent accuracy 50–60% (progressing, a notch below on-track)
+    //   needs-support   — recent accuracy < 50% (we ease difficulty + add practice)
     let status = 'building';
-    if (state.placed && (agg.n || 0) >= 8) {
-      // ~65–80% is the healthy "challenging but doable" zone, that's on-track, not
-      // a worry. Support flags genuine struggle; excelling = cruising, raise the bar.
-      if (recentAcc != null && recentAcc < 0.5) status = 'needs-support';
-      else if ((recentAcc != null && recentAcc >= 0.85) || (avg != null && avg >= MASTERED && !focus.length)) status = 'excelling';
-      else if (recentAcc != null) status = 'on-track';
+    if (state.placed) {
+      if ((agg.n || 0) < MIN_SAMPLE || recentAcc == null) status = 'insufficient';
+      else if (recentAcc >= 0.85 || (avg != null && avg >= MASTERED && !focus.length)) status = 'excelling';
+      else if (recentAcc >= 0.6) status = 'on-track';
+      else if (recentAcc >= 0.5) status = 'developing';
+      else status = 'needs-support';
     }
     // Gallop Score, this subject's headline progress number (200–1200).
     const masteryMap = Object.fromEntries(rows.map(r => [r.skill_id, r.mastery]));
@@ -725,7 +733,7 @@ function reportCard(kidId) {
       placed: !!state.placed, avgMastery: avg, letter: letterGrade(agg.n ? (agg.c / agg.n) : null),
       gallopScore, gradeEquiv,
       questionsAnswered: agg.n || 0, accuracy: agg.n ? (agg.c / agg.n) : null,
-      status, recentAccuracy: recentAcc,
+      status, recentAccuracy: recentAcc, recentSample: recentRows.length, enrolledGrade: kid.grade || 0,
       placementNote: placementRationale(sub, state, kid),
       placementMissed: (() => { try { return state.placement_missed ? JSON.parse(state.placement_missed) : []; } catch (e) { return []; } })(),
       strengths: strengths.map(r => nameOf(r.skill_id)),
