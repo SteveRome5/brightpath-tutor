@@ -777,6 +777,7 @@ body[data-theme="academy"] .exam-count { color: #b9c9bf; }
 .lt-jar { position: absolute; top: 10px; right: 10px; background: rgba(26,92,56,.92); color: #fff; font-weight: 800; font-size: .82rem; padding: 5px 12px; border-radius: 999px; box-shadow: 0 2px 8px -3px rgba(0,0,0,.3); font-variant-numeric: tabular-nums; }
 .lt-panel { padding: 16px 16px 18px; }
 .lt-tip { margin: 0 0 12px; color: var(--chrome-sub); font-size: .9rem; line-height: 1.5; }
+.lt-event { background: linear-gradient(90deg, #fff4d6, #ffe9b8); border: 1.5px solid #e6c260; border-radius: 12px; padding: 10px 13px; font-size: .9rem; font-weight: 600; color: #6b4e12; margin-bottom: 12px; line-height: 1.4; }
 .lt-selling { color: #1A5C38; font-weight: 700; }
 .lt-recap { background: var(--soft-bg); border-radius: 12px; padding: 11px 14px; font-size: .88rem; line-height: 1.5; margin-bottom: 14px; }
 .lt-eq { font-style: italic; color: var(--chrome-sub); }

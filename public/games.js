@@ -299,17 +299,41 @@
   }
 
   // ======================= CODE QUEST =======================
-  const CODE_LEVELS = [
-    { size: 4, start: [3, 0], goal: [3, 3], walls: [], hint: 'Just march right!' },
-    { size: 4, start: [3, 0], goal: [0, 3], walls: [], hint: 'Rights and ups!' },
-    { size: 4, start: [3, 0], goal: [0, 3], walls: ['2,1', '1,2'], hint: 'Dodge the rocks!' },
-    { size: 5, start: [4, 0], goal: [0, 4], walls: ['3,1', '2,2', '1,3'], hint: 'Zig-zag like stairs!' },
-    { size: 5, start: [4, 2], goal: [0, 2], walls: ['2,2', '2,1', '2,3'], hint: 'The wall blocks the middle — go around!' },
-    { size: 5, start: [2, 0], goal: [2, 4], walls: ['2,2', '1,2', '3,2'], hint: 'Over or under the wall?' }
-  ];
+  // A POOL of solvable puzzles grouped by tier. Each play draws a fresh set (2 easy,
+  // 2 medium, 2 hard) in a random order within tier, so Code Quest is different every
+  // time instead of the same six levels. Every level here has a verified clear path.
+  const CODE_POOL = {
+    easy: [
+      { size: 4, start: [3, 0], goal: [3, 3], walls: [], hint: 'Just march right!' },
+      { size: 4, start: [3, 0], goal: [0, 3], walls: [], hint: 'Rights and ups!' },
+      { size: 4, start: [0, 0], goal: [3, 3], walls: [], hint: 'Down and to the right!' },
+      { size: 4, start: [3, 0], goal: [0, 3], walls: ['2,1', '1,2'], hint: 'Dodge the rocks!' },
+      { size: 4, start: [3, 3], goal: [0, 0], walls: ['1,1'], hint: 'Head up and left!' },
+      { size: 4, start: [0, 3], goal: [3, 0], walls: ['1,1'], hint: 'Down and to the left!' }
+    ],
+    medium: [
+      { size: 5, start: [4, 0], goal: [0, 4], walls: ['3,1', '2,2', '1,3'], hint: 'Zig-zag like stairs!' },
+      { size: 5, start: [4, 2], goal: [0, 2], walls: ['2,2', '2,1', '2,3'], hint: 'The wall blocks the middle — go around!' },
+      { size: 5, start: [2, 0], goal: [2, 4], walls: ['2,2', '1,2', '3,2'], hint: 'Over or under the wall?' },
+      { size: 5, start: [4, 0], goal: [0, 0], walls: ['3,1', '1,1'], hint: 'Climb the left edge!' },
+      { size: 5, start: [0, 0], goal: [4, 4], walls: ['1,1', '2,2', '3,3'], hint: 'Step around the diagonal!' },
+      { size: 5, start: [4, 4], goal: [0, 0], walls: ['3,2', '2,3'], hint: 'Up and left, dodge the rocks!' }
+    ],
+    hard: [
+      { size: 6, start: [5, 0], goal: [0, 5], walls: ['4,1', '3,2', '2,3', '1,4'], hint: 'Long staircase — take your time!' },
+      { size: 6, start: [0, 0], goal: [5, 5], walls: ['1,1', '2,2', '3,3', '4,4'], hint: 'Weave past the diagonal!' },
+      { size: 6, start: [5, 2], goal: [0, 3], walls: ['3,2', '3,3', '2,2'], hint: 'Around the wall, then up!' },
+      { size: 6, start: [5, 0], goal: [0, 0], walls: ['4,1', '2,1'], hint: 'Straight up the left wall!' }
+    ]
+  };
+  const _cqShuf = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; } return a; };
+  function pickCodeLevels() {
+    return [..._cqShuf(CODE_POOL.easy).slice(0, 2), ..._cqShuf(CODE_POOL.medium).slice(0, 2), ..._cqShuf(CODE_POOL.hard).slice(0, 2)];
+  }
   const CQ_ARROWS = { up: '⬆️', down: '⬇️', left: '⬅️', right: '➡️' };
   function startCode() {
     let levelIdx = 0, program = [], score = 0;
+    const CODE_LEVELS = pickCodeLevels();
     let raf = null, robot = { r: 0, c: 0 }, anim = null, running = false, crashT = 0, winT = 0, particles = [], msg = null, blinkT = 0;
     const lvl = () => CODE_LEVELS[levelIdx];
     const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -614,9 +638,23 @@
       { id: 'cloudy', label: 'Cloudy', icon: '⛅', base: 16, sky: ['#b7c4cf', '#dfe7ec'], cloud: true },
       { id: 'rainy', label: 'Rainy', icon: '🌧️', base: 7, sky: ['#7d8a99', '#aab6c2'], rain: true, cloud: true }
     ];
+    // A random "town event" each day changes demand (and sometimes cost), so no two
+    // days — or two playthroughs — read the same. Kids learn to adapt their plan.
+    const EVENTS = [
+      { id: 'none', mult: 1, cost: 0, note: '' },
+      { id: 'parade', mult: 1.7, cost: 0, note: '🎉 A parade is rolling through — big thirsty crowds today!' },
+      { id: 'trip', mult: 1.4, cost: 0, note: '🚌 A school field trip stopped nearby — extra customers!' },
+      { id: 'game', mult: 1.5, cost: 0, note: '⚽ The park has a big game today — expect a rush!' },
+      { id: 'road', mult: 0.55, cost: 0, note: '🚧 Road work out front — fewer people are passing by.' },
+      { id: 'rival', mult: 0.7, cost: 0, note: '🍹 A rival stand opened down the block — some customers wander off.' },
+      { id: 'sugar', mult: 1, cost: 0.3, note: '🍬 Sugar prices spiked — each cup costs more to make today.' },
+      { id: 'star', mult: 1.9, cost: 0, note: '⭐ A local star posted your stand online — huge crowd incoming!' }
+    ];
+    const pickEvent = () => Math.random() < 0.4 ? EVENTS[0] : EVENTS[1 + Math.floor(Math.random() * (EVENTS.length - 1))];
     const $$ = n => (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
     let day = 1, cash = 10, totalProfit = 0;
     let wx = WEATHER[Math.floor(Math.random() * WEATHER.length)];
+    let ev = pickEvent();
     let cups = null, price = null, phase = 'plan';
     // live scene state
     let raf = null, custs = [], coins = [], drops = [], soldCount = 0, cupsLeft = 0, sellEndCb = null;
@@ -717,8 +755,9 @@
       custs = []; coins = [];
       shell(`
         ${msg ? `<div class="lt-recap">${msg}</div>` : `<p class="lt-tip">☀️ Hot days bring thirsty crowds · 🌧️ rain empties the street. Read the forecast and plan like an owner!</p>`}
-        <div class="lt-row"><span class="lt-lbl">Cups to make <em>(50¢ each)</em></span>
-          <div class="lt-seg" id="lt-cups">${[10, 20, 30, 40].map((n, i) => `<button data-cups="${n}" class="${cups === n ? 'on' : ''}" ${(i > 0 && n * CUP_COST > cash) ? 'disabled' : ''}>${n}</button>`).join('')}</div></div>
+        ${ev.note ? `<div class="lt-event">${ev.note}</div>` : ''}
+        <div class="lt-row"><span class="lt-lbl">Cups to make <em>(${((CUP_COST + ev.cost) * 100).toFixed(0)}¢ each)</em></span>
+          <div class="lt-seg" id="lt-cups">${[10, 20, 30, 40].map((n, i) => `<button data-cups="${n}" class="${cups === n ? 'on' : ''}" ${(i > 0 && n * (CUP_COST + ev.cost) > cash) ? 'disabled' : ''}>${n}</button>`).join('')}</div></div>
         <div class="lt-row"><span class="lt-lbl">Price per cup</span>
           <div class="lt-seg" id="lt-price">${[0.5, 1, 1.5, 2].map(p => `<button data-price="${p}" class="${price === p ? 'on' : ''}">$${p.toFixed(2)}</button>`).join('')}</div></div>
         <button class="btn green lt-open" id="lt-open" ${cups && price ? '' : 'disabled'}>Open the Stand →</button>`);
@@ -728,9 +767,9 @@
     }
     function runDay() {
       const priceFactor = { 0.5: 1.45, 1: 1.1, 1.5: 0.8, 2: 0.5 }[price];
-      const demand = Math.max(0, Math.round(wx.base * priceFactor * (0.85 + Math.random() * 0.3)));
+      const demand = Math.max(0, Math.round(wx.base * ev.mult * priceFactor * (0.85 + Math.random() * 0.3)));
       const sold = Math.min(cups, demand);
-      const cost = cups * CUP_COST, revenue = sold * price, profit = revenue - cost;
+      const cost = cups * (CUP_COST + ev.cost), revenue = sold * price, profit = revenue - cost;
       phase = 'sell'; soldCount = 0; cupsLeft = cups; custs = []; coins = [];
       shell(`<p class="lt-tip lt-selling">🔔 Open for business… serving customers!</p>
         <div class="lt-live"><span id="lt-sold">0</span> sold · <span id="lt-left">${cups}</span> cups left</div>`);
@@ -773,7 +812,7 @@
         : wasted > 3 ? `${wasted} cups went to waste. Overmaking burns cash — match supply to demand.`
         : 'Supply met demand almost perfectly — that\'s pro-level planning!';
       const recap = `<b>Day ${day}:</b> ${cups} cups cost ${$$(cost)}, sold ${sold} at $${price.toFixed(2)} = revenue ${$$(revenue)}. <b class="${profit >= 0 ? 'lt-pos' : 'lt-neg'}">Profit ${$$(profit)}</b><br><span class="lt-eq">Revenue − Cost = Profit</span> · ${lesson}`;
-      day++; cups = null; price = null; wx = WEATHER[Math.floor(Math.random() * WEATHER.length)]; phase = 'plan';
+      day++; cups = null; price = null; wx = WEATHER[Math.floor(Math.random() * WEATHER.length)]; ev = pickEvent(); phase = 'plan';
       if (day > DAYS) {
         cancelAnimationFrame(raf);
         const score = Math.max(10, Math.round(totalProfit * 10) + 50);
@@ -963,10 +1002,22 @@
 
     const customers = ['🧑', '👩', '👨', '🧑‍🦱', '👵', '🧒', '👧', '🧑‍🦰'];
 
+    // A random occasion (same math, different story) so the order isn't the same
+    // every play — one day it's a wedding, the next a soccer team or a festival.
+    const OCCASIONS = [
+      { who: 'A birthday party', place: 'a birthday party', for: 'the big day' },
+      { who: 'A school', place: 'a school fair', for: 'the fair' },
+      { who: 'A soccer team', place: 'a soccer tournament', for: 'the tournament' },
+      { who: 'A wedding planner', place: 'a wedding', for: 'the reception' },
+      { who: 'The town festival', place: 'the town festival', for: 'the festival' },
+      { who: 'A food truck', place: 'a food truck', for: 'their big weekend' }
+    ];
+    const occ = pick(OCCASIONS);
+
     // Scene 1 — batch it (counting / multiplication / division)
     const s1 = band === 0
-      ? { cap: `A birthday party just called — they need cupcakes for the big day!`, q: `The party wants ${trays} bags with ${per} cupcakes in each bag. How many cupcakes is that in all?`, ans: String(order), dis: [order - per, order + per, per + trays], skill: 'multiplication', why: 'Bakers group things in trays and bags every day, that\'s what times tables are for.' }
-      : { cap: `📋 A school just ordered ${order} cupcakes for a fair!`, q: `Your trays hold ${per} cupcakes each. How many full trays do you need to bake ${order}?`, ans: String(order / per), dis: [order / per + 1, order / per - 1, Math.round(order / (per / 2))], skill: 'division', why: 'Every kitchen batches food into trays, division tells you how many batches to make.' };
+      ? { cap: `${occ.who} just called — they need cupcakes for ${occ.for}!`, q: `They want ${trays} bags with ${per} cupcakes in each bag. How many cupcakes is that in all?`, ans: String(order), dis: [order - per, order + per, per + trays], skill: 'multiplication', why: 'Bakers group things in trays and bags every day, that\'s what times tables are for.' }
+      : { cap: `📋 ${occ.who} just ordered ${order} cupcakes for ${occ.for}!`, q: `Your trays hold ${per} cupcakes each. How many full trays do you need to bake ${order}?`, ans: String(order / per), dis: [order / per + 1, order / per - 1, Math.round(order / (per / 2))], skill: 'division', why: 'Every kitchen batches food into trays, division tells you how many batches to make.' };
 
     // Scene 2 — scale the recipe (addition / ratios / fractions)
     const s2 = band === 0
