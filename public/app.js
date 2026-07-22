@@ -1,6 +1,31 @@
 /* Gallop Learning Academy SPA, vanilla JS, zero build step */
 'use strict';
 
+// Storage shim: when the browser blocks localStorage (Safari "Block all cookies",
+// managed school devices, some private modes) the bare accessor THROWS at load time
+// and the whole app would white-screen. Shadow it with an in-memory stand-in so the
+// app runs normally — settings just don't persist across reloads in that mode.
+(() => {
+  try { window.localStorage.getItem('__probe__'); } catch (e) {
+    const mem = {};
+    const shim = {
+      getItem(k) { return Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null; },
+      setItem(k, v) { mem[k] = String(v); },
+      removeItem(k) { delete mem[k]; },
+      clear() { for (const k of Object.keys(mem)) delete mem[k]; },
+      get length() { return Object.keys(mem).length; },
+      key(i) { return Object.keys(mem)[i] ?? null; }
+    };
+    // Bracket-style access (localStorage['bp_x'] = '1') must work too:
+    const proxied = new Proxy(shim, {
+      get(t, p) { if (p in t) return t[p]; return Object.prototype.hasOwnProperty.call(mem, p) ? mem[p] : undefined; },
+      set(t, p, v) { mem[p] = String(v); return true; },
+      deleteProperty(t, p) { delete mem[p]; return true; }
+    });
+    try { Object.defineProperty(window, 'localStorage', { value: proxied, configurable: true }); } catch (e2) { /* very old engines: fall through */ }
+  }
+})();
+
 // ======================= tiny helpers =======================
 const $ = sel => document.querySelector(sel);
 const app = () => $('#app');
@@ -598,6 +623,10 @@ function wireChrome() {
   };
   // Accessibility: the kid nav tiles are <div>s. Make them real buttons for keyboard
   // and screen-reader users (focusable + role + label). Enter/Space is handled globally.
+  upgradeTiles();
+}
+// Callable separately after any DYNAMIC tile injection (e.g. kid-login avatar list).
+function upgradeTiles() {
   document.querySelectorAll('.subject-card, .zone-card, .up-next, .avatar-opt').forEach(el => {
     if (el.getAttribute('role') === 'button') return;
     el.setAttribute('role', 'button');
@@ -636,7 +665,7 @@ route('landing', async () => {
     <div class="eyebrow">Adaptive K–12 Tutoring · Math · English · Science · Spanish</div>
     <h1>A personal tutor for every child, at every level.</h1>
     <p class="hero-tagline">Every child has a pace. Gallop finds it.</p>
-    <p>Gallop finds each child's real level in every subject, then adapts each lesson to how they actually learn. It's self-paced learning your child does on their own, on any device — no appointments and no live tutor to schedule. The teaching stays grounded in the real world, the progress reports are honest, and the whole program grows up alongside your child. By the high school years it even helps you see where their strengths could lead.</p>
+    <p>Self-paced lessons in Math, English, Science &amp; Spanish that find your child's real level and adapt to every answer — on any device, no scheduling.</p>
     <div class="hero-cta">
       <button class="btn hero-primary" onclick="location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">Start your 7-day free trial</button>
       <div class="hero-cta-row">
@@ -653,7 +682,7 @@ route('landing', async () => {
       <div><b>4</b><span>Core subjects</span></div>
       <div><b>200+</b><span>Skill areas</span></div>
       <div><b>156</b><span>Guided lessons</span></div>
-      <div><b>2,700+</b><span>Expert-verified questions</span></div>
+      <div><b>3,400+</b><span>Expert-verified questions</span></div>
     </div>
     <h2 class="section-title reveal">How it works</h2>
     <p class="section-sub">The same three moves a good teacher makes, built into every session.</p>
@@ -708,7 +737,7 @@ route('landing', async () => {
     <div class="feature-grid">
       <div class="feature reveal"><div class="fnum">ADVANCED PLACEMENT</div><h3>College-level AP practice</h3><p>Exam-style sets for AP Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English Language, English Literature, and Spanish.</p></div>
       <div class="feature reveal"><div class="fnum">HONORS &amp; BEYOND</div><h3>Push past the standard track</h3><p>Honors-level Precalculus, Spanish, and more for students who have already mastered their grade and want to keep climbing.</p></div>
-      <div class="feature reveal"><div class="fnum">EXAM READY</div><h3>Aligned to the real tests</h3><p>Practice matched to the exams that count, including New York State Regents in math, science, and English for families who need it.</p></div>
+      <div class="feature reveal"><div class="fnum">EXAM READY</div><h3>Aligned to the real tests</h3><p>Practice matched to the tests that count — AP-style sets, honors work, and state test prep in math, science, and English built on rigorous state standards.</p></div>
     </div>
     <p class="section-sub reveal" style="margin-top:6px">The Advanced Track is its own space, so working ahead never disturbs a child's grade-level placement or Gallop Score. And the core high-school math ladder now runs pre-algebra, algebra, geometry, trigonometry, pre-calculus, calculus, and statistics.</p>
 
@@ -730,6 +759,21 @@ route('landing', async () => {
       <div class="feature reveal"><h3>Proof for the fridge</h3><p>Printable certificates, a one-page weekly summary, a two-week activity chart, per-skill progress bars, a spreadsheet export, and the strengths and career insights. You will always know how it is going.</p></div>
     </div>
 
+    <div class="arcade-band reveal">
+      <div class="ab-head">
+        <span class="ab-kicker">ONLY ON GALLOP</span>
+        <h2>The arcade where practice pays</h2>
+        <p>Every 5 correct answers earns a play token — and the games aren't a break from learning, they're learning in disguise. Retro 16-bit games our team built from scratch, teaching skills most kids never get in school.</p>
+      </div>
+      <div class="ab-grid">
+        <div class="ab-card"><span class="ab-emoji">📈</span><b>Market Mogul</b><p>Grow $1,000 on the Gallop Stock Exchange — read the news, weigh risk, learn how investing actually works.</p><span class="ab-tag">real-world money</span></div>
+        <div class="ab-card"><span class="ab-emoji">🍋</span><b>Lemonade Tycoon</b><p>Buy smart, price right, watch the weather. Revenue, cost, and profit — a first business before age 10.</p><span class="ab-tag">entrepreneurship</span></div>
+        <div class="ab-card"><span class="ab-emoji">🧁</span><b>Bakery Quest</b><p>Run a bakery for a day: batches, pricing, making change. Math with money on the line.</p><span class="ab-tag">business math</span></div>
+        <div class="ab-card"><span class="ab-emoji">🤖</span><b>Code Quest</b><p>Program a robot step by step to reach the star — first coding logic, no typing needed.</p><span class="ab-tag">coding</span></div>
+      </div>
+      <p class="ab-more">+ Lightning Round, Word Search, Memory Match & Art Studio — eight games, all earned by learning.</p>
+    </div>
+
     <h2 class="section-title reveal">Why families choose Gallop</h2>
     <p class="section-sub">Gallop is newly launched, so we would rather show you what it does than put words in a parent's mouth. Here is what you get from day one.</p>
     <div class="quote-grid">
@@ -748,7 +792,7 @@ route('landing', async () => {
     </div>
 
     <div class="founder-note reveal">
-      <div class="founder-emoji">🐴</div>
+      <div class="founder-emoji"><img src="/logo-mark.png" alt="" class="founder-horse"></div>
       <p>Gallop was built by a family that wanted something better for their own kids — every subject in one place, at each child's real level, without a tutoring-center price tag. It's built and run by real people, not a faceless edtech company, and when you email support a real person answers. We'd love for your family to try it.</p>
     </div>
 
@@ -767,7 +811,7 @@ route('landing', async () => {
         <span>🚫 No ads, ever · we never sell your data</span>
       </div>
       <div class="compare">
-        <div class="compare-head"><span>How Gallop compares</span></div>
+        <div class="compare-head"><span>How Gallop compares to in-person options</span></div>
         <div class="compare-scroll"><table class="compare-table">
           <thead><tr><th></th><th class="us">Gallop</th><th>Learning centers<br><span>(Kumon, Sylvan, Mathnasium)</span></th><th>Private tutor</th></tr></thead>
           <tbody>
@@ -782,7 +826,7 @@ route('landing', async () => {
             <tr><td>Games, rewards & motivation</td><td class="us">✅ arcade + trophies</td><td>❌</td><td>❌</td></tr>
           </tbody>
         </table></div>
-        <p class="muted center" style="font-size:.8rem;margin-top:10px">Competitor pricing reflects commonly published U.S. rates and varies by location; comparison is for general guidance.</p>
+        <p class="muted center" style="font-size:.8rem;margin-top:10px">Learning centers and private tutors meet in person — a different kind of help. This table shows the cost and coverage families weigh when choosing. Pricing reflects commonly published U.S. rates and varies by location.</p>
       </div>
     </div>
     <div class="card reveal faq" style="margin-top:40px">
@@ -790,7 +834,7 @@ route('landing', async () => {
       <details><summary>Do I need a credit card to start?</summary><p>No. Your first 7 days are free, and you can set up your children and use everything without entering any payment details. We only ask for a card if you choose to continue after the trial.</p></details>
       <details><summary>What does it cost after the trial?</summary><p>Solo is $34 a month for one student, and Family is $54 a month for up to four. Both are billed monthly and include all four subjects, the guided lessons, the adaptive tutor, the games, and the parent reports. Nothing is sold as an add-on.</p></details>
       <details><summary>What ages and subjects does it cover?</summary><p>Every grade from kindergarten through 12th, in Math, English, Science, and Spanish. Each child is placed at their real level in each subject, so a strong reader who finds math harder starts in the right spot for both. High-school math runs all the way through calculus and statistics.</p></details>
-      <details><summary>What about kids who are ahead of grade level?</summary><p>They get a separate Advanced Track. Once a student has mastered their grade, they can practice college-level and honors material — AP-style sets in Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English, and Spanish, honors courses, and practice aligned to state exams like the New York Regents for families who need it. It's kept separate from grade-level work, so working ahead never changes a child's placement.</p></details>
+      <details><summary>What about kids who are ahead of grade level?</summary><p>They get a separate Advanced Track. Once a student has mastered their grade, they can practice college-level and honors material — AP-style sets in Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English, and Spanish, honors courses, and state test prep built on rigorous state standards (great preparation whatever state you're in). It's kept separate from grade-level work, so working ahead never changes a child's placement.</p></details>
       <details><summary>What if my child doesn't like it?</summary><p>The first 7 days are completely free and need no card, so you can let your child try the real thing before you ever pay. If it isn't a fit, do nothing and the trial simply ends — you're never charged. If you've already subscribed, cancel in one click and you keep access through the time you've paid for.</p></details>
       <details><summary>Are there real, human tutors?</summary><p>No — and that's the point. Gallop is self-paced adaptive software your child uses on their own, so there's nothing to schedule and no hourly rate. It teaches each concept with a short guided lesson, then adjusts every question to your child, which is how it covers all four subjects for less than a single week at a tutoring center.</p></details>
       <details><summary>Can I cancel anytime?</summary><p>Yes, in one click from your parent dashboard. Cancelling stops any future charges, and your child keeps access through the time you have already paid for.</p></details>
@@ -800,11 +844,25 @@ route('landing', async () => {
       <details><summary>How do I get help?</summary><p>Email <a href="mailto:support@learnwithgallop.com">support@learnwithgallop.com</a> or message <a href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">@learnwithgallop</a> on Instagram, and a real person will get back to you.</p></details>
     </div>
   </div>
+  <div class="nl-band">
+    <b>📬 Learning tips & Gallop news</b>
+    <p class="muted" style="margin:4px 0 10px">One short, useful email now and then. No spam, unsubscribe anytime.</p>
+    <form class="nl-form" id="nl-form"><input type="email" id="nl-email" placeholder="you@example.com" required aria-label="Email address"><button class="btn green" type="submit">Sign me up</button></form>
+    <p id="nl-done" style="display:none;font-weight:700;color:var(--brand);margin-top:8px">🎉 You're on the list!</p>
+  </div>
   <div class="site-footer">© ${new Date().getFullYear()} Gallop Learning Academy · Adaptive tutoring for grades K–12<br>
     <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow along on Instagram at @learnwithgallop</a><br>
     <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
   </div>`);
   wireChrome();
+  const nlF = $('#nl-form');
+  if (nlF) nlF.onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api('/newsletter', { method: 'POST', body: { email: $('#nl-email').value } });
+      nlF.style.display = 'none'; $('#nl-done').style.display = 'block';
+    } catch (err) { toast(err.message || 'Hmm, that didn\'t go through — try again?'); }
+  };
 });
 
 // ======================= legal =======================
@@ -820,8 +878,8 @@ function legalPage(title, bodyHTML) {
 }
 // Legal pages have canonical, crawlable static versions at /terms and /privacy.
 // The in-app hash links redirect there so there is a single source of legal truth.
-route('terms', async () => { location.href = '/terms'; });
-route('privacy', async () => { location.href = '/privacy'; });
+route('terms', async () => { location.replace('/terms'); });
+route('privacy', async () => { location.replace('/privacy'); });
 
 
 // ======================= demo lesson (no signup!) =======================
@@ -979,6 +1037,7 @@ route('kid-login', async () => {
       if (!kids.length) return showError('#k-err', 'No learners yet, ask your parent to add you!');
       $('#k-kids').innerHTML = '<h3>Who are you?</h3><div class="avatar-pick" style="margin-top:10px">' +
         kids.map(k => `<div class="avatar-opt" data-id="${k.id}" title="${esc(k.name)}">${AVATARS[k.avatar] || '🦊'}<div style="font-size:.8rem;font-weight:700">${esc(k.name)}</div></div>`).join('') + '</div>';
+      upgradeTiles();
       document.querySelectorAll('.avatar-opt').forEach(el => el.onclick = () => {
         document.querySelectorAll('.avatar-opt').forEach(x => x.classList.remove('sel'));
         el.classList.add('sel'); chosenKid = el.dataset.id; pin = '';
@@ -1266,12 +1325,14 @@ route('lesson', async (subject, mode) => {
       render(data);
     } catch (e) {
       if (e.status === 402) { renderPaywall(); return; }
+      if (e.status === 401) { toast('Please log back in to keep going!'); location.hash = '#kid-login'; return; }
       // Never leave a kid stuck: one auto-retry, then a friendly tap-to-retry card.
       try {
         await new Promise(r => setTimeout(r, 800));
         const data = await api(`/learn/${kidId}/next/${subject}`);
         render(data);
       } catch (e2) {
+        if (e2.status === 401) { toast('Please log back in to keep going!'); location.hash = '#kid-login'; return; }
         app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="card center">
           <div class="big-emoji">🐎</div><h2>Whoa, quick water break!</h2>
           <p class="muted" style="margin:10px 0 18px">The next question didn't load. Your progress is saved, tap below to keep going.</p>
@@ -1285,13 +1346,17 @@ route('lesson', async (subject, mode) => {
   }
 
   // Strong nudge: when a brand-new skill has a lesson the kid hasn't done yet,
-  // lead with the lesson (Step 1) before the practice (Step 2). Skippable.
+  // lead with the lesson (Step 1) before the practice (Step 2). Skippable — and
+  // capped at 2 interruptions per session so a run of new skills doesn't turn
+  // into lesson-gate → one question → lesson-gate again. After the cap, new
+  // skills show only the small "watch the lesson" banner on the question card.
   const gatedSkills = new Set();
+  let gatesShown = 0;
   function lessonDoneFor(teach) { try { return teach && localStorage['bp_lesson_' + teach.id] === '1'; } catch (e) { return false; } }
   function render(data) {
     const sid = data.skill && data.skill.id;
     const teach = (window.BP.lessonForSkill && sid) ? window.BP.lessonForSkill(subject, sid) : null;
-    if (teach && !lessonDoneFor(teach) && data.mode === 'learn' && !gatedSkills.has(sid)) return lessonIntro(data, teach);
+    if (teach && !lessonDoneFor(teach) && data.mode === 'learn' && !gatedSkills.has(sid) && gatesShown < 2) { gatesShown++; return lessonIntro(data, teach); }
     renderQuestion(data);
   }
   function lessonIntro(data, teach) {
@@ -1430,6 +1495,8 @@ route('lesson', async (subject, mode) => {
         // Trial/subscription lapsed mid-lesson: send them to the paywall instead of
         // silently celebrating work that was never recorded.
         if (e.status === 402) { renderPaywall(); return; }
+        // Session expired mid-lesson: back to kid login (retrying forever is a dead end).
+        if (e.status === 401) { toast('Please log back in to keep your progress!'); location.hash = '#kid-login'; return; }
         /* otherwise keep playing even if the network hiccups */
       }
       $('#next-btn').style.display = 'inline-flex';
@@ -1522,12 +1589,15 @@ route('lesson', async (subject, mode) => {
 // mastery — it's exam drilling with explanations. Reuses the lesson q-card look.
 const EXAM_ORDER = ['AP', 'Honors', 'Regents'];
 const EXAM_BLURB = {
-  Regents: 'State exam practice (New York Regents)',
+  Regents: 'State test prep',
   AP: 'College-level AP practice',
   Honors: 'Honors-level challenge'
 };
 route('exam', async (trackId) => {
   if (State.me.role !== 'kid') { location.hash = '#kid-login'; return; }
+  // Advanced Track is for grade 8+ (same gate as the home tile) — a younger kid
+  // deep-linking here goes home instead of into AP calculus.
+  if ((State.me.kid.grade || 0) < 8) { location.hash = '#home'; return; }
   const kidId = State.me.kid.id;
   let tracks = [];
   try { tracks = (await api('/learn/tracks')).tracks || []; } catch (e) { tracks = []; }
@@ -1545,7 +1615,7 @@ route('exam', async (trackId) => {
     for (const t of tracks) { (groups[t.exam] = groups[t.exam] || []).push(t); }
     const sections = EXAM_ORDER.filter(e => groups[e]).map(exam => `
       <div class="exam-section">
-        <div class="exam-sec-head"><span class="exam-badge exam-${exam.toLowerCase()}">${exam}</span><span class="muted">${EXAM_BLURB[exam] || ''}</span></div>
+        <div class="exam-sec-head"><span class="exam-badge exam-${exam.toLowerCase()}">${exam === 'Regents' ? 'State Prep' : exam}</span><span class="muted">${EXAM_BLURB[exam] || ''}</span></div>
         <div class="exam-grid">
           ${groups[exam].map(t => {
             const c = (SUBJECT_STYLE[t.subject] || {}).color || '#1A5C38';
@@ -1576,7 +1646,7 @@ route('exam', async (trackId) => {
   if (!track) { location.hash = '#exam'; return; }
   const style = SUBJECT_STYLE[track.subject] || { color: '#1A5C38', emoji: '🎓' };
   const SESSION_LEN = 12;
-  const session = { n: 0, correct: 0, xp: 0, startedAt: Date.now() };
+  const session = { n: 0, correct: 0, xp: 0, startedAt: Date.now(), qStart: Date.now() };
   const vlang = track.subject === 'spanish' ? 'es-ES' : 'en-US';
 
   async function nextQuestion() {
@@ -1657,9 +1727,14 @@ route('exam', async (trackId) => {
       }
       session.n++; if (correct) { session.correct++; }
       try {
-        const res = await api(`/learn/${kidId}/track/answer`, { method: 'POST', body: { trackId, correct, timeMs: Date.now() - session.startedAt } });
+        const res = await api(`/learn/${kidId}/track/answer`, { method: 'POST', body: { trackId, correct, timeMs: Date.now() - (session.qStart || session.startedAt) } });
+        session.qStart = Date.now();
         session.xp += res.xpEarned || 0;
-      } catch (e) { if (e.status === 402) { renderPaywall(); return; } /* else keep going */ }
+      } catch (e) {
+        if (e.status === 402) { renderPaywall(); return; }
+        if (e.status === 401) { toast('Please log back in to keep your progress!'); location.hash = '#kid-login'; return; }
+        /* else keep going */
+      }
       $('#next-btn').style.display = 'inline-flex';
       $('#next-btn').onclick = () => { Sound.click(); nextQuestion(); };
       if (correct) $('#next-btn').focus();
@@ -1934,7 +2009,7 @@ route('certificate', async (kidId, certId) => {
   const c = (r.certificates || []).find(x => String(x.id) === String(certId));
   if (!c) { location.hash = '#report/' + kidId; return; }
   const achievement = c.title.replace(' Complete!', '');
-  const date = new Date(c.issued_at + 'Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const date = new Date(String(c.issued_at || '').replace(' ', 'T') + 'Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   app().innerHTML = topbar(`<div class="container" style="max-width:860px">
     <div class="cert-frame">
       <div class="cert-inner">
@@ -1963,6 +2038,8 @@ route('certificate', async (kidId, certId) => {
 
 // ======================= paywall =======================
 function renderPaywall() {
+  // A wrong-answer teaching overlay must never sit on top of the paywall.
+  document.querySelectorAll('.celebrate').forEach(el => el.remove());
   // Speak to the actual account state — a long-paying parent with a declined card
   // should not be told they were "on a free trial".
   const pstat = (State.me && State.me.role === 'parent' && State.me.parent) ? State.me.parent.sub_status : 'trial';
@@ -1998,10 +2075,11 @@ async function checkout(plan) {
 // ======================= parent dashboard =======================
 route('parent', async () => {
   await refreshMe();
+  if (State.me.role === 'kid') { location.hash = '#home'; return; }
   if (State.me.role !== 'parent') { location.hash = '#login'; return; }
   const me = State.me;
   const p = me.parent;
-  const trialDays = Math.max(0, Math.round((new Date(p.trial_ends + 'Z') - Date.now()) / 86400000));
+  const trialDays = Math.max(0, Math.round((new Date(String(p.trial_ends || '').replace(' ', 'T') + 'Z') - Date.now()) / 86400000));
   const subLine = p.sub_status === 'active'
     ? `✅ ${esc((me.plans[p.sub_plan] || {}).name || 'Subscribed')} plan active`
     : p.sub_status === 'trial'
@@ -2284,6 +2362,7 @@ route('parent', async () => {
 // ======================= admin (owner) =======================
 route('admin', async () => {
   await refreshMe();
+  if (State.me.role === 'kid') { location.hash = '#home'; return; }
   if (State.me.role !== 'parent' || !State.me.parent.is_admin) { location.hash = '#parent'; return; }
   const d = await api('/admin/overview');
   const t = d.totals;

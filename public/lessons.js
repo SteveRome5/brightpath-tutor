@@ -216,13 +216,18 @@
     if (!lesson) { location.hash = '#home'; return; }
     const style = SUB[lesson.subject];
     const grade = (State.me.kid && State.me.kid.grade) || 0;
-    const auto = grade <= 5; // younger kids get it read aloud automatically
+    // Read-aloud is strictly OPT-IN (the 🔊 toggle) — even for the littles. Auto-playing
+    // synthesized speech broke the "never auto-plays audio" promise parents rely on.
+    const auto = grade <= 5 && Voice.auto;
     let i = 0;
 
     function narrate(step) {
       try {
-        const text = step.say || stripEmoji([step.title, step.body, step.takeaway].filter(Boolean).join('. '));
-        if (text) Voice.speak(text, lesson.subject === 'spanish' ? 'es-ES' : 'en-US');
+        // Read EXACTLY what's on screen (never a separate script — kids follow along
+        // word-for-word), and always in English: Spanish lessons are written in English
+        // with Spanish vocabulary, and an es-ES voice mangles the English around it.
+        const text = stripEmoji([step.title, step.body, step.takeaway].filter(Boolean).join('. '));
+        if (text) Voice.speak(text, 'en-US');
       } catch (e) {}
     }
 
@@ -9332,13 +9337,13 @@
         "subject": "science",
         "grade": 2,
         "title": "Habitats: Every Animal Has a Home",
-        "subtitle": "Why a cactus loves the desert and a frog needs water.",
+        "subtitle": "Every animal has a home that fits just right.",
         "steps": [
           {
             "kind": "hook",
-            "title": "The wrong house",
-            "body": "Imagine planting a cactus in a rainforest, soaking wet all day. It would rot. Now imagine a frog in a dry desert. It would dry out. Every living thing has a home that fits it just right.",
-            "say": "A cactus would rot in a wet rainforest, and a frog would dry out in a dry desert. Every living thing has a home that fits it."
+            "title": "Every animal has a home",
+            "body": "A fish lives in water. A bird builds a nest in a tree. A polar bear lives where it snows. Every animal has a special home with the food, water, and weather it needs. That special home is called a HABITAT.",
+            "say": "A fish lives in water. A bird builds a nest in a tree. A polar bear lives where it snows. Every animal has a special home called a habitat."
           },
           {
             "kind": "concept",
@@ -13713,7 +13718,27 @@
   window.GALLOP_LESSONS = L;
   BP.lessonsFor = (subject) => L[subject] || [];
   BP.lessonById = (id) => Object.values(L).flat().find(l => l.id === id);
-  BP.lessonForSkill = (subject, skillId) => (L[subject] || []).find(l => l.skillId === skillId);
+  // Bank-backed skills without a lesson of their own borrow the sibling lesson that
+  // teaches the same concept, so the lesson-before-practice flow covers them too.
+  const LESSON_ALIAS = {
+    'm.3.multimeadow': 'm.3.mult', 'm.4.fracpizza': 'm.4.equivfrac', 'm.5.decimoney': 'm.5.decops',
+    'm.6.ratesreal': 'm.6.ratio', 'm.7.datadetect': 'm.7.prob', 'm.8.funcstories': 'm.8.slope',
+    'm.8.prealgebra': 'm.7.equation', 'm.10.trig': 'm.10.triangles', 'm.11.explog': 'm.11.exponential',
+    'm.11.statistics': 'm.7.prob', 'm.11.precalc': 'm.11.functions', 'm.12.calculus': 'm.12.limits',
+    'e.1.rhyme': 'e.k.rhyme', 'e.3.storydet': 'e.3.reading', 'e.5.figlang': 'e.4.figurative',
+    'e.7.argument': 'e.7.evidence', 'e.8.themevoice': 'e.8.voice', 'e.11.litanalysis': 'e.11.analysis',
+    's.1.weather': 's.k.weather', 's.4.ecosystems': 's.5.ecosystems', 's.7.matter': 's.7.chemistry',
+    's.8.space': 's.4.space', 's.9.genetics': 's.9.biology', 's.11.physics': 's.11.physics2',
+    'sp.1.colors': 'sp.0.colors', 'sp.3.family': 'sp.1.family', 'sp.5.verbs': 'sp.5.eri',
+    'sp.6.routine': 'sp.5.daily', 'sp.8.culture': 'sp.8.travel', 'sp.10.subjunctive': 'sp.9.subjunctive'
+  };
+  BP.lessonForSkill = (subject, skillId) => {
+    const list = L[subject] || [];
+    const direct = list.find(l => l.skillId === skillId);
+    if (direct) return direct;
+    const alias = LESSON_ALIAS[skillId];
+    return alias ? list.find(l => l.skillId === alias) : undefined;
+  };
   const doneKey = id => 'bp_lesson_' + id;
   BP.lessonDone = id => { try { return localStorage[doneKey(id)] === '1'; } catch (e) { return false; } };
 
@@ -13747,9 +13772,31 @@
         <button class="learn-tab ${!only ? 'active' : ''}" onclick="location.hash='#learn'">All subjects</button>
         ${['math', 'english', 'science', 'spanish'].map(s => `<button class="learn-tab ${only === s ? 'active' : ''}" style="--sub:${SUB[s].color}" onclick="location.hash='#learn/${s}'">${SUB[s].emoji} ${SUB[s].name}</button>`).join('')}
       </div>
+      <input id="learn-search" class="learn-search" type="search" placeholder="🔍 Search lessons… (fractions, verbs, planets)" aria-label="Search lessons">
       ${subjects.map(section).join('')}
+      <p id="learn-none" class="muted center" style="display:none;margin-top:18px">No lessons match that — try a shorter word like "add" or "read".</p>
     </div>`);
     wireChrome();
     document.querySelectorAll('.learn-card').forEach(c => c.onclick = () => { Sound.click(); location.hash = '#teach/' + c.dataset.id; });
+    // Live search: filter lesson cards by title/subtitle/grade so a parent can jump
+    // straight to "story problems" or "subtraction" without scrolling four subjects.
+    const sIn = $('#learn-search');
+    if (sIn) sIn.oninput = () => {
+      const t = sIn.value.trim().toLowerCase();
+      let shown = 0;
+      document.querySelectorAll('.learn-card').forEach(c => {
+        const hit = !t || c.textContent.toLowerCase().includes(t);
+        c.style.display = hit ? '' : 'none';
+        if (hit) shown++;
+      });
+      document.querySelectorAll('.learn-subhead, .learn-grid').forEach(el => {
+        if (el.classList.contains('learn-grid')) {
+          const any = [...el.querySelectorAll('.learn-card')].some(c => c.style.display !== 'none');
+          el.style.display = any ? '' : 'none';
+          if (el.previousElementSibling && el.previousElementSibling.classList.contains('learn-subhead')) el.previousElementSibling.style.display = any ? '' : 'none';
+        }
+      });
+      const none = $('#learn-none'); if (none) none.style.display = shown ? 'none' : 'block';
+    };
   });
 })();

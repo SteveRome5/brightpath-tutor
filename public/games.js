@@ -80,13 +80,17 @@
   }
 
   async function finishGame(game, score, title, lines) {
-    let r = { coinsEarned: 2, challengesWon: [] };
-    try { r = await api(`/play/${kidId()}/score`, { method: 'POST', body: { game, score } }); } catch (e) {}
+    // Show exactly what the server granted — never claim coins that weren't awarded
+    // (e.g. the score POST failed offline, or no token play was open).
+    let r = null;
+    try { r = await api(`/play/${kidId()}/score`, { method: 'POST', body: { game, score } }); } catch (e) { r = null; }
+    const coinsEarned = r ? (r.coinsEarned || 0) : 0;
     Confetti.burst(150); Sound.levelup();
-    const wins = (r.challengesWon || []).map(w => `<p style="font-weight:700;margin-top:8px">⚡ You beat ${esc(w.fromName)}'s challenge of ${w.scoreToBeat}! +5 🪙</p>`).join('');
+    const wins = ((r && r.challengesWon) || []).map(w => `<p style="font-weight:700;margin-top:8px">⚡ You beat ${esc(w.fromName)}'s challenge of ${w.scoreToBeat}! +5 🪙</p>`).join('');
     app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
       <div class="big-emoji">🏆</div><h2>${esc(title)}</h2>
-      <div class="summary-stats"><div class="sstat"><div class="n">${score}</div>score</div><div class="sstat"><div class="n">+${r.coinsEarned || 2}</div>🪙 coins</div></div>
+      <div class="summary-stats"><div class="sstat"><div class="n">${score}</div>score</div>${coinsEarned ? `<div class="sstat"><div class="n">+${coinsEarned}</div>🪙 coins</div>` : ''}</div>
+      ${r ? '' : '<p class="muted" style="font-size:.85rem">Score will sync when you\'re back online.</p>'}
       ${wins}
       <p class="muted">${esc(lines || '')}</p>
       <div style="margin-top:14px">
@@ -147,6 +151,7 @@
     const starters = { bakery: startBakery, memory: startMemory, wordsearch: startWordSearch, code: startCode, art: startArt, lemonade: startLemonade, market: startMarket, blitz: startBlitz };
     const fn = starters[which];
     if (!fn) { location.hash = '#play'; return; }
+    if (which === 'market' && ((State.me.kid && State.me.kid.grade) || 0) < 4) { toast('Market Mogul unlocks in 4th grade! 📈'); location.hash = '#play'; return; }
     await gated(which, fn);
   });
 
@@ -416,49 +421,6 @@
   }
 
   // ======================= ROOM DESIGNER =======================
-  const FURNITURE = ['🛏️', '🛋️', '🪑', '🪴', '📚', '🖼️', '🧸', '💡', '🎸', '🏀', '🖥️', '🐠'];
-  const ROOM_CHALLENGES = [
-    { text: 'Free build! Design your dream room. 🏠', check: null },
-    { text: 'Challenge: place EXACTLY 12 items (a dozen decorations!)', check: g => g.filter(Boolean).length === 12 },
-    { text: 'Challenge: fill a 3×3 SQUARE of items somewhere (area = 9!)', check: (g, W) => { for (let r = 0; r + 2 < 6; r++) for (let c = 0; c + 2 < W; c++) { let all = true; for (let dr = 0; dr < 3; dr++) for (let dc = 0; dc < 3; dc++) if (!g[(r + dr) * W + (c + dc)]) all = false; if (all) return true; } return false; } },
-    { text: 'Challenge: decorate the whole BORDER (perimeter power!)', check: (g, W) => { for (let c = 0; c < W; c++) if (!g[c] || !g[5 * W + c]) return false; for (let r = 0; r < 6; r++) if (!g[r * W] || !g[r * W + W - 1]) return false; return true; } }
-  ];
-  function startRoom() {
-    const W = 8, H = 6;
-    let grid = Array(W * H).fill(null), brush = FURNITURE[0], challengeIdx = 0, done = new Set([0]);
-    function render() {
-      const ch = ROOM_CHALLENGES[challengeIdx];
-      const count = grid.filter(Boolean).length;
-      app().innerHTML = topbar(`<div class="container" style="max-width:680px">
-        <div class="lesson-top"><b>🏠 Room Designer</b><b>${count} items placed</b></div>
-        <div class="card" style="padding:14px;margin-bottom:10px">
-          <b>${esc(ch.text)}</b>
-          ${ch.check ? `<button class="btn sun small" style="margin-left:10px" id="check-btn">Check! ✓</button>` : ''}
-          <div style="margin-top:8px">${ROOM_CHALLENGES.map((c, i) => `<button class="btn ghost small" style="color:#1A5C38;border-color:${i === challengeIdx ? '#1A5C38' : '#ddd'};margin-right:6px" data-ch="${i}">${done.has(i) ? '✅' : ''} ${i === 0 ? 'Free' : 'Level ' + i}</button>`).join('')}</div>
-        </div>
-        <div class="room-grid">
-          ${grid.map((item, i) => `<button class="room-cell" data-i="${i}">${item || ''}</button>`).join('')}
-        </div>
-        <div class="center" style="margin-top:12px">
-          ${FURNITURE.map(f => `<button class="furn ${brush === f ? 'sel' : ''}" data-f="${f}">${f}</button>`).join('')}
-          <button class="furn ${brush === null ? 'sel' : ''}" data-f="">🧹</button>
-        </div>
-        <div class="center" style="margin-top:12px"><button class="btn green" id="done-btn">Finish & Save Room 🏁</button></div>
-      </div>`);
-      wireChrome();
-      document.querySelectorAll('.room-cell').forEach(el => el.onclick = () => { grid[Number(el.dataset.i)] = brush || null; Sound.click(); render(); });
-      document.querySelectorAll('.furn').forEach(el => el.onclick = () => { brush = el.dataset.f || null; Sound.click(); render(); });
-      document.querySelectorAll('[data-ch]').forEach(el => el.onclick = () => { challengeIdx = Number(el.dataset.ch); render(); });
-      const cb = $('#check-btn');
-      if (cb) cb.onclick = () => {
-        if (ch.check(grid, W)) { done.add(challengeIdx); Sound.correct(); Confetti.burst(80); render(); }
-        else { Sound.wrong(); cb.textContent = 'Not yet — keep designing!'; setTimeout(render, 1200); }
-      };
-      $('#done-btn').onclick = () => finishGame('room', done.size * 50 + Math.min(count, 20), 'Interior design genius! 🛋️', `You completed ${done.size - 1} challenge${done.size === 2 ? '' : 's'} and placed ${count} items.`);
-    }
-    render();
-  }
-
   // ======================= ART STUDIO =======================
   const ART_GUIDES = [
     { name: 'Cute Cat', emoji: '🐱', steps: ['Draw a big circle for the head', 'Add two triangle ears on top', 'Two big round eyes + tiny nose', 'Whiskers — 3 on each side!', 'Draw a smile & color it in!'] },
@@ -553,7 +515,7 @@
       }
       const a = 4 + Math.floor(Math.random() * 13), b = 4 + Math.floor(Math.random() * 12);
       if (r < 0.35) return { t: `${a} × ${b}`, ans: a * b };
-      if (r < 0.6) return { t: `${a}² `, ans: a * a };
+      if (r < 0.6) return { t: `${a}²`, ans: a * a };
       if (r < 0.8) return { t: `${a * b} ÷ ${b}`, ans: a };
       const pct = [10, 20, 25, 50][Math.floor(Math.random() * 4)];
       return { t: `${pct}% of ${a * 20}`, ans: a * 20 * pct / 100 };
@@ -1003,7 +965,7 @@
 
     // Scene 1 — batch it (counting / multiplication / division)
     const s1 = band === 0
-      ? { cap: `A birthday party orders ${order} cupcakes! You already made ${order - R(2, 4)}. Wait, let's keep it simple:`, q: `The party wants ${trays} bags with ${per} cupcakes in each bag. How many cupcakes is that in all?`, ans: String(order), dis: [order - per, order + per, per + trays], skill: 'multiplication', why: 'Bakers group things in trays and bags every day, that\'s what times tables are for.' }
+      ? { cap: `A birthday party just called — they need cupcakes for the big day!`, q: `The party wants ${trays} bags with ${per} cupcakes in each bag. How many cupcakes is that in all?`, ans: String(order), dis: [order - per, order + per, per + trays], skill: 'multiplication', why: 'Bakers group things in trays and bags every day, that\'s what times tables are for.' }
       : { cap: `📋 A school just ordered ${order} cupcakes for a fair!`, q: `Your trays hold ${per} cupcakes each. How many full trays do you need to bake ${order}?`, ans: String(order / per), dis: [order / per + 1, order / per - 1, Math.round(order / (per / 2))], skill: 'division', why: 'Every kitchen batches food into trays, division tells you how many batches to make.' };
 
     // Scene 2 — scale the recipe (addition / ratios / fractions)
