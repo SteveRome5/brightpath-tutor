@@ -652,8 +652,11 @@ body[data-theme="scholar"] .muncher-caption { color: #1d2740 !important; }
 .bq-bad { background: #fdf0e8; border-left: 4px solid #d97b4f; color: #9a4a24; border-radius: 10px; padding: 12px 14px; font-weight: 600; line-height: 1.5; }
 
 /* market mogul — live chart */
-.mm-chart { background: #0e2c1c; border-radius: 6px; padding: 6px; box-shadow: var(--shadow); border: 3px solid #181828; }
+.mm-chart { background: #0e2c1c; border-radius: 6px; padding: 6px; box-shadow: var(--shadow); border: 3px solid #181828; position: relative; }
 .mm-chart canvas { display: block; width: 100%; height: auto; }
+.mm-ax { position: absolute; left: 12px; font-size: .74rem; font-weight: 700; font-variant-numeric: tabular-nums; color: rgba(214,238,224,.92); text-shadow: 0 1px 3px rgba(0,0,0,.7); pointer-events: none; letter-spacing: .01em; }
+.mm-axhi { top: 11px; }
+.mm-axlo { bottom: 11px; }
 .mm-line.mm-anim { stroke-dasharray: 1600; animation: mm-draw .55s ease-out; }
 @keyframes mm-draw { from { stroke-dashoffset: 1600; } to { stroke-dashoffset: 0; } }
 .mm-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; margin: 8px 0 4px; color: #fff; font-weight: 600; font-size: .9rem; }

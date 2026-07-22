@@ -886,7 +886,7 @@
     function netWorth() { return cash + STOCKS.reduce((t, s) => t + owned[s.id] * s.price, 0); }
 
     // 16-bit trading-terminal price chart, drawn on a low-res pixel canvas.
-    function chart() { return `<div class="mm-chart px-stage"><canvas id="mm-canvas" width="240" height="118"></canvas></div>`; }
+    function chart() { return `<div class="mm-chart px-stage"><canvas id="mm-canvas" width="240" height="118"></canvas><span class="mm-ax mm-axhi" id="mm-hi"></span><span class="mm-ax mm-axlo" id="mm-lo"></span></div>`; }
     function drawMMChart() {
       const cv = $('#mm-canvas'); if (!cv) return;
       const ctx = pixelCtx(cv);
@@ -905,8 +905,11 @@
         ctx.stroke();
         const lx = X(days - 1), ly = Y(s.hist[days - 1]); PX.r(ctx, lx - 2, ly - 2, 5, 5, s.color); PX.r(ctx, lx - 1, ly - 1, 3, 3, '#fff');
       });
-      PX.text(ctx, $$(hi), mL + 1, mT - 2, 'rgba(200,230,210,.75)', 6, 'left');
-      PX.text(ctx, $$(lo), mL + 1, H - 3, 'rgba(200,230,210,.75)', 6, 'left');
+      // Axis price labels render as crisp HTML overlaid on the chart corners — pixel
+      // font baked into the up-scaled low-res canvas blurred badly at this zoom.
+      const hiEl = $('#mm-hi'), loEl = $('#mm-lo');
+      if (hiEl) hiEl.textContent = $$(hi);
+      if (loEl) loEl.textContent = $$(lo);
     }
 
     function render(flash, animate) {
