@@ -1,16 +1,14 @@
 /* Gallop Learning Academy — lesson patch layer.
-   Adds teaching beats to lessons whose practice questions needed a step the base
-   lesson didn't cover, and injects dedicated lessons for advanced skills that were
-   borrowing a simpler lesson (found by the lesson<->question audit). Loaded AFTER
-   lessons.js; augments window.GALLOP_LESSONS in place. Idempotent. Auto-generated —
-   do not hand-edit; regenerate from the authored fixes. */
+   Adds teaching beats to lessons whose questions needed a step the base lesson
+   lacked, and injects dedicated lessons for advanced skills that borrowed a
+   simpler lesson (from the lesson<->question audit). Loaded AFTER lessons.js;
+   augments window.GALLOP_LESSONS in place. Idempotent. Auto-generated. */
 'use strict';
 (() => {
   const L = window.GALLOP_LESSONS;
   if (!L) return;
   const bySkill = {};
   for (const subj of Object.keys(L)) for (const les of (L[subj] || [])) if (les && les.skillId) bySkill[les.skillId] = les;
-
   const PATCH = {
   "m.3.frac": [
     {
@@ -676,6 +674,31 @@
           }
         ]
       }
+    }
+  ],
+  "e.11.analysis": [
+    {
+      "kind": "concept",
+      "title": "Beyond contrast: the analyst's toolkit",
+      "body": "Juxtaposition is one tool; strong analysis also names IRONY, an UNRELIABLE NARRATOR, and MOTIF. A narrator \"recalling events from his youth, sure of his own innocence\" may be unreliable — the text hints we should doubt him.",
+      "say": "Beyond contrast, strong analysis names irony, an unreliable narrator, and motif. A narrator sure of his own innocence may be unreliable."
+    },
+    {
+      "kind": "concept",
+      "title": "Irony and understatement",
+      "body": "SITUATIONAL irony is an outcome opposite to what is expected; VERBAL irony says the opposite of what is meant; UNDERSTATEMENT deliberately downplays (\"a war memoir's calm, understated tone makes the horror land harder\"). The gap between surface and meaning is where the analysis lives.",
+      "say": "Situational irony is an unexpected outcome, verbal irony says the opposite of what is meant, and understatement downplays on purpose. The gap between surface and meaning is where analysis lives."
+    },
+    {
+      "kind": "example",
+      "title": "Reading a motif",
+      "body": "A repeated image is rarely an accident.",
+      "reveal": [
+        "A novel that describes its protagonist again and again with imagery of ice, glass, and winter is building a MOTIF.",
+        "The motif characterizes him as cold or emotionally closed — without the narrator ever saying so.",
+        "Trace the repeated image, then ask what it argues about the character or theme."
+      ],
+      "say": "Repeated imagery of ice and glass around a character is a motif that shows he is cold or closed off, without stating it. Trace the repeated image and ask what it argues."
     }
   ],
   "e.11.satvocab": [
@@ -1678,6 +1701,31 @@
       }
     }
   ],
+  "e.7.clauses": [
+    {
+      "kind": "concept",
+      "title": "Independent vs. dependent clauses",
+      "body": "A CLAUSE has a subject and a verb. An INDEPENDENT clause can stand alone as a sentence (\"the bus was late\"). A DEPENDENT clause cannot (\"because the bus was late\") — it needs to attach to an independent clause.",
+      "say": "A clause has a subject and a verb. An independent clause can stand alone. A dependent clause cannot, it needs to attach to an independent one."
+    },
+    {
+      "kind": "concept",
+      "title": "Simple, compound, complex",
+      "body": "A COMPLEX sentence joins one independent clause with at least one dependent clause: \"The book that I borrowed was overdue\" — \"that I borrowed\" is the dependent (relative) clause. A COMPOUND sentence joins two independent clauses, often with a semicolon or a comma + and/but/so.",
+      "say": "A complex sentence joins an independent clause with a dependent clause. A compound sentence joins two independent clauses with a semicolon or a comma and a joining word."
+    },
+    {
+      "kind": "example",
+      "title": "Fixing run-ons with a semicolon",
+      "body": "Two complete thoughts jammed together are a run-on. Fix them cleanly.",
+      "reveal": [
+        "Run-on: \"The bus was late I missed first period.\"",
+        "Both halves are independent clauses, so join them with a semicolon: \"The bus was late; I missed first period.\"",
+        "Or make one dependent: \"Because the bus was late, I missed first period.\""
+      ],
+      "say": "The bus was late, I missed first period is a run-on. Join the two independent clauses with a semicolon, or make one dependent with because."
+    }
+  ],
   "e.7.evidence": [
     {
       "kind": "concept",
@@ -1793,6 +1841,43 @@
         "Ad hominem: 'You can't trust her science project, she's bad at soccer.' Soccer skill has nothing to do with the science, so this attacks the person, not the idea.",
         "Faulty causation: 'A class pet will make the cafeteria food taste better.' A pet might lift moods or attendance, but it cannot change how food tastes, so that link is the weak one."
       ]
+    }
+  ],
+  "e.8.reading": [
+    {
+      "kind": "concept",
+      "title": "Tone, mood, and setting",
+      "body": "Beyond spotting a slanted headline, close reading means feeling how a passage works. TONE is the author's attitude; MOOD is the feeling you get. SETTING (time and place) often builds the mood — a storm-lashed dock feels tense before anything happens.",
+      "say": "Close reading means feeling how a passage works. Tone is the author's attitude, mood is the feeling you get, and the setting often builds the mood."
+    },
+    {
+      "kind": "concept",
+      "title": "Inference: what it suggests",
+      "body": "Texts rarely state everything. To INFER, combine a clue in the passage with what you already know. If a character \"kept checking the door and couldn't finish her sentence,\" the passage SUGGESTS she is anxious — even though the word \"anxious\" never appears.",
+      "analogy": "Inference is reading the tracks in the snow, not seeing the animal.",
+      "say": "To infer, combine a clue in the passage with what you already know. Checking the door and trailing off suggests a character is anxious, even if the word never appears."
+    },
+    {
+      "kind": "try",
+      "title": "Your turn: the insight",
+      "body": "A young entrepreneur reinvests her first profits instead of spending them. What does this suggest?",
+      "say": "A young entrepreneur reinvests her first profits instead of spending them. What does this suggest?",
+      "widget": {
+        "w": "tapPick",
+        "prompt": "What business insight does that show?",
+        "options": [
+          {
+            "label": "She thinks long-term — growing the business over quick rewards.",
+            "correct": true
+          },
+          {
+            "label": "She dislikes money."
+          },
+          {
+            "label": "She is out of ideas."
+          }
+        ]
+      }
     }
   ],
   "e.8.voice": [
@@ -4620,8 +4705,76 @@
     }
   ]
 };
-
   const NEW_LESSONS = [
+  {
+    "id": "lxe11litanalysis",
+    "skillId": "e.11.litanalysis",
+    "subject": "english",
+    "grade": 11,
+    "title": "Literary Analysis",
+    "subtitle": "Mood, irony, figurative language, and characterization through imagery.",
+    "steps": [
+      {
+        "kind": "hook",
+        "title": "More than it says",
+        "body": "\"Sunlight lay gold across the porch where the swing sat empty.\" Nothing dramatic happens — yet it feels lonely. Close literary analysis is the skill of reading what a passage suggests, not just what it states.",
+        "say": "A calm line about an empty porch swing can feel lonely. Literary analysis is reading what a passage suggests, not just what it states."
+      },
+      {
+        "kind": "concept",
+        "title": "Mood and imagery",
+        "body": "IMAGERY is sensory detail (sight, sound, touch). Writers use it to build MOOD and to reveal character indirectly — describing someone \"like a leaf in a current\" suggests they feel powerless without saying so. Ask: what does this image make me feel or infer?",
+        "say": "Imagery is sensory detail. Writers use it to build mood and to reveal character indirectly. Ask what an image makes you feel or infer."
+      },
+      {
+        "kind": "concept",
+        "title": "The three ironies",
+        "body": "VERBAL irony: saying the opposite of what is meant (sarcasm). SITUATIONAL irony: an outcome opposite to what is expected (a marriage counselor whose own marriage fails). DRAMATIC irony: the reader knows something a character does not.",
+        "analogy": "Verbal is what you say, situational is what happens, dramatic is what the audience alone knows.",
+        "say": "Verbal irony is saying the opposite of what is meant. Situational irony is an outcome opposite to what is expected. Dramatic irony is when the reader knows what a character does not."
+      },
+      {
+        "kind": "example",
+        "title": "Reading closely",
+        "body": "Name the device at work.",
+        "reveal": [
+          "\"The marriage counselor, famous for saving troubled couples, was quietly finalizing her own divorce.\" → SITUATIONAL irony (opposite of expected).",
+          "A protagonist described again and again with cold, stone, and shadow imagery → characterization: the writer hints the character is hardened or unfeeling.",
+          "A cheerful nursery rhyme that, read closely, hints at dread → the contrast between surface and meaning creates irony and unease."
+        ],
+        "say": "A counselor finalizing her own divorce is situational irony. Repeated cold, stone imagery hints a character is hardened. A cheerful rhyme hinting at dread uses contrast to create unease."
+      },
+      {
+        "kind": "try",
+        "title": "Your turn: name the irony",
+        "body": "A fire station burns down. What kind of irony is that?",
+        "say": "A fire station burns down. What kind of irony is that?",
+        "widget": {
+          "w": "tapPick",
+          "prompt": "The outcome is the opposite of what you'd expect.",
+          "options": [
+            {
+              "label": "Situational irony",
+              "correct": true
+            },
+            {
+              "label": "Verbal irony"
+            },
+            {
+              "label": "Dramatic irony"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "recap",
+        "title": "Remember this",
+        "emoji": "🔎",
+        "takeaway": "Read for what the text suggests: imagery builds mood and reveals character, and the three ironies — verbal, situational, dramatic — turn on the gap between what seems and what is.",
+        "say": "Read for what the text suggests. Imagery builds mood and reveals character, and the three ironies turn on the gap between what seems and what is."
+      }
+    ]
+  },
   {
     "id": "lx.e3storydet",
     "skillId": "e.3.storydet",
@@ -4925,104 +5078,61 @@
     ]
   },
   {
-    "id": "lx.e7argument",
+    "id": "lxe7argument",
     "skillId": "e.7.argument",
     "subject": "english",
     "grade": 7,
     "title": "Building an Argument",
-    "subtitle": "Claims, evidence, and sources you can trust",
+    "subtitle": "Fact vs. opinion, claims, evidence, and the counterclaim.",
     "steps": [
       {
         "kind": "hook",
-        "title": "Prove it",
-        "body": "Imagine you tell a friend that later school start times would help students. They fold their arms and say, \"Prove it.\" To win them over, you need a clear point, solid facts, and sources they can trust.",
-        "say": "Imagine you tell a friend that later school start times would help students. They fold their arms and say, prove it. To win them over, you need a clear point, solid facts, and sources they can trust."
+        "title": "Who should you believe?",
+        "body": "You want an honest answer about whether a new phone is worth it. A friend says \"it's the best ever!\" A review lists its battery life and price. One is a feeling; one you can check. A strong argument is built from the kind you can check.",
+        "say": "You want to know if a phone is worth it. A friend says it is the best ever. A review lists the battery life and price. One is a feeling, one you can check."
       },
       {
         "kind": "concept",
-        "title": "The claim is your main point",
-        "body": "A claim is the main position or point a writer is trying to prove. Everything else in the argument exists to support that one big idea.",
-        "say": "A claim is the main position or point a writer is trying to prove. Everything else in the argument exists to support that one big idea.",
-        "analogy": "The claim is like the roof of a house, and the evidence is the walls holding it up."
-      },
-      {
-        "kind": "show",
         "title": "Fact vs. opinion",
-        "body": "A fact can be checked and proven true or false with evidence, like a measurement or reliable research. An opinion states a personal judgment, using words like beautiful, best, or should, that cannot be measured.",
-        "say": "A fact can be checked and proven true or false with evidence, like a measurement or reliable research. An opinion states a personal judgment, using words like beautiful, best, or should, that cannot be measured.",
-        "widget": {
-          "w": "sideBySide",
-          "cards": [
-            {
-              "emoji": "📏",
-              "title": "Fact",
-              "body": "A blue whale can weigh more than 150 tons. You could check it with a scale."
-            },
-            {
-              "emoji": "💭",
-              "title": "Opinion",
-              "body": "The blue whale is the most amazing animal. That is a personal feeling."
-            }
-          ]
-        }
+        "body": "A FACT can be proven or measured — you can look it up or test it (\"the store opens at 9\"). An OPINION is a belief or feeling that can't be proven (\"the store is the best\"). Words like best, should, beautiful, or worst usually signal an opinion.",
+        "analogy": "A fact is something you can put on a measuring tape. An opinion is how you feel about it.",
+        "say": "A fact can be proven or measured. An opinion is a belief or feeling. Words like best, should, or beautiful signal an opinion."
       },
       {
         "kind": "concept",
-        "title": "Inform vs. persuade",
-        "body": "Informative writing explains a topic and gives facts neutrally, without pushing a side. Persuasive writing tries to change what you think, feel, or do, often urging you to take an action.",
-        "say": "Informative writing explains a topic and gives facts neutrally, without pushing a side. Persuasive writing tries to change what you think, feel, or do, often urging you to take an action.",
-        "widget": {
-          "w": "sideBySide",
-          "cards": [
-            {
-              "emoji": "📋",
-              "title": "Informative",
-              "body": "The recycling center is open Monday to Friday and accepts glass, paper, and plastic."
-            },
-            {
-              "emoji": "📣",
-              "title": "Persuasive",
-              "body": "Vote for Coach Lee, the only choice who cares about our team!"
-            }
-          ]
-        }
+        "title": "Claim, evidence, reasoning",
+        "body": "An argument makes a CLAIM (what you want to prove), backs it with EVIDENCE (facts, data, examples), and adds REASONING that explains how the evidence supports the claim. Evidence without reasoning is just a pile of facts.",
+        "say": "An argument makes a claim, backs it with evidence, and adds reasoning that explains how the evidence supports the claim."
       },
       {
         "kind": "example",
-        "title": "Match evidence to the claim",
-        "body": "Strong evidence is relevant, meaning it matches exactly what the claim is about. A fair writer also raises a counterargument, an opposing concern, and then answers it to sound more convincing.",
-        "say": "Strong evidence is relevant, meaning it matches exactly what the claim is about. A fair writer also raises a counterargument, an opposing concern, and then answers it to sound more convincing.",
+        "title": "The counterclaim",
+        "body": "Good writers also answer the other side.",
         "reveal": [
-          "Claim: Skateboarding builds balance.",
-          "Weak evidence: Skateboarding has been popular since the 1970s. True, but it says nothing about balance.",
-          "Strong evidence: A study found skateboarders scored higher on balance tests than non-skaters. This matches the claim exactly.",
-          "Counterargument move: A writer might say, some worry practice will run late, then answer, however, practice can shift 30 minutes later too. Naming the opposing concern before answering it makes the argument stronger."
-        ]
-      },
-      {
-        "kind": "concept",
-        "title": "Judge your sources",
-        "body": "Check a source for bias by asking who benefits: a company's own ad for its product has a financial reason to praise it. Check for reliability by asking about expertise and purpose: experts with no product to sell, like climate scientists on a NASA website, are more trustworthy than anonymous comments or memes.",
-        "say": "Check a source for bias by asking who benefits: a company's own ad for its product has a financial reason to praise it. Check for reliability by asking about expertise and purpose: experts with no product to sell, like climate scientists on a NASA website, are more trustworthy than anonymous comments or memes."
+          "A COUNTERCLAIM is the opposing view: \"Some readers may worry that later school start times cost money.\"",
+          "Naming it and then answering it is called addressing a counterclaim — it makes YOUR argument stronger, not weaker.",
+          "Signal phrases: \"some may argue,\" \"critics say,\" \"although,\" \"on the other hand.\""
+        ],
+        "say": "A counterclaim is the opposing view. Naming it and answering it makes your own argument stronger. Look for phrases like some may argue or although."
       },
       {
         "kind": "try",
-        "title": "Your turn: spot the bias",
-        "body": "You want an honest answer about whether a new phone is worth buying. Ask who benefits if you believe the source. Which one is MOST likely to be biased?",
-        "say": "You want an honest answer about whether a new phone is worth buying. Ask who benefits if you believe the source. Which one is most likely to be biased?",
+        "title": "Your turn: spot the fact",
+        "body": "Which statement is a FACT that could be checked?",
+        "say": "Which statement is a fact that could be checked?",
         "widget": {
           "w": "tapPick",
-          "prompt": "Which source is MOST likely to be biased?",
+          "prompt": "A fact can be measured or verified.",
           "options": [
             {
-              "label": "The phone company's own advertisement for the phone",
+              "label": "The recycling center is open Monday to Friday.",
               "correct": true
             },
             {
-              "label": "A tech reporter comparing several competing phones"
+              "label": "Recycling is the most important thing anyone can do."
             },
             {
-              "label": "A review site that tests and compares many brands"
+              "label": "Everyone should recycle more."
             }
           ]
         }
@@ -5030,94 +5140,68 @@
       {
         "kind": "recap",
         "title": "Remember this",
-        "body": "State a clear claim, support it with relevant facts, fairly answer counterarguments, and lean on sources that are unbiased and reliable.",
-        "say": "State a clear claim, support it with relevant facts, fairly answer counterarguments, and lean on sources that are unbiased and reliable.",
-        "takeaway": "A strong argument is a clear claim backed by relevant evidence from trustworthy sources.",
-        "emoji": "🎯"
+        "emoji": "⚖️",
+        "takeaway": "A fact can be checked; an opinion is a belief. Build an argument from a claim, evidence, and reasoning — and strengthen it by answering the counterclaim.",
+        "say": "A fact can be checked; an opinion is a belief. Build an argument from a claim, evidence, and reasoning, and answer the counterclaim."
       }
     ]
   },
   {
-    "id": "lx.e7clauses",
-    "skillId": "e.7.clauses",
+    "id": "lxe8themevoice",
+    "skillId": "e.8.themevoice",
     "subject": "english",
-    "grade": 7,
-    "title": "Clauses & Sentence Craft",
-    "subtitle": "Build sentences that stand strong and flow",
+    "grade": 8,
+    "title": "Theme, Tone & Voice",
+    "subtitle": "How word choice sets the mood and reveals the message.",
     "steps": [
       {
         "kind": "hook",
-        "title": "One idea, or leaning on another?",
-        "body": "Read these two: \"The roads were icy.\" and \"Because the roads were icy.\" The first one stands on its own. The second one leaves you waiting for more. That tiny word \"because\" changed everything.",
-        "say": "Read these two out loud. The roads were icy. And, because the roads were icy. The first one is finished. The second one leaves you hanging, waiting for the rest. One small word changed everything, and this lesson is all about that power."
+        "title": "Same event, different feeling",
+        "body": "\"Rain hammered the tin roof; thunder cracked.\" vs. \"Soft rain tapped the window as the fire glowed.\" Same weather — but one feels tense and one feels calm. The difference is the WORDS the writer chose.",
+        "say": "Rain can be written to feel tense or calm. Same weather, different words. The word choice makes the difference."
       },
       {
         "kind": "concept",
-        "title": "Independent vs. dependent clauses",
-        "body": "A clause has a subject and a verb. An independent clause is a complete thought that can stand alone as a sentence. A dependent clause has a subject and verb too, but it cannot stand alone because a word like because, since, after, when, or although makes it lean on more.",
-        "say": "Every clause has a subject and a verb. An independent clause is a complete thought that could be its own sentence. A dependent clause also has a subject and a verb, but it starts with a word like because, since, after, when, or although, so it cannot stand alone. It leans on the rest of the sentence.",
-        "analogy": "An independent clause stands on its own two feet. A dependent clause is like someone leaning on a friend, it needs support to stay up.",
-        "widget": {
-          "w": "sideBySide",
-          "cards": [
-            {
-              "emoji": "🧍",
-              "title": "Independent",
-              "body": "We kept working. A full, finished thought that can be its own sentence."
-            },
-            {
-              "emoji": "🤝",
-              "title": "Dependent",
-              "body": "Although it was late. Has a subject and verb but cannot stand alone."
-            }
-          ]
-        }
+        "title": "Tone and mood",
+        "body": "TONE is the author's attitude toward the subject (playful, serious, bitter). MOOD is the feeling the reader gets (peaceful, uneasy, hopeful). Both come from DICTION — the specific words chosen. \"Hammered\" and \"cracked\" build tension; \"soft\" and \"glowed\" build peace.",
+        "analogy": "Word choice is the lighting in a film — the same room feels cozy or creepy depending on it.",
+        "say": "Tone is the author's attitude. Mood is the feeling the reader gets. Both come from the specific words the writer chooses."
       },
       {
         "kind": "concept",
-        "title": "Subordinating conjunctions build complex sentences",
-        "body": "Words like because, since, after, when, and although are subordinating conjunctions. Put one in front of a clause and it turns dependent. A COMPLEX sentence joins one independent clause with one dependent clause, like \"Although it was late, we kept working.\"",
-        "say": "Words like because, since, after, when, and although are called subordinating conjunctions. Add one to the front of a clause and it becomes dependent. When you join a dependent clause to an independent clause, you have made a complex sentence. For example, although it was late, we kept working.",
-        "analogy": "A subordinating conjunction is like a hitch that hooks a small trailer onto a car so they travel as one."
-      },
-      {
-        "kind": "show",
-        "title": "Relative clauses describe a noun",
-        "body": "A relative clause is a dependent clause that starts with that, which, or who and adds information about a noun. In \"The book that I borrowed was overdue,\" the clause \"that I borrowed\" tells which book, so it cannot stand alone.",
-        "say": "One special kind of dependent clause is a relative clause. It starts with that, which, or who, and it describes a noun. In the sentence, the book that I borrowed was overdue, the part that I borrowed tells us which book. It describes the noun and cannot stand on its own."
+        "title": "Theme: the message",
+        "body": "THEME is the insight about life a text explores — not the topic, but what it says about the topic. A story about a lost game might have the theme \"effort matters more than winning.\" Theme is stated as a full idea, not one word.",
+        "say": "Theme is the insight about life a text explores. Not the topic, but what it says about the topic, written as a full idea."
       },
       {
         "kind": "example",
-        "title": "Fixing run-ons and fragments",
-        "body": "Two complete thoughts jammed together make a run-on, and a lone dependent clause makes a fragment. You can join, split, or complete them a few clean ways.",
-        "say": "Two complete thoughts jammed together make a run-on. A lone dependent clause with no main thought makes a fragment. Here are the clean ways to fix them.",
+        "title": "Reading the word choice",
+        "body": "Find the mood each line builds.",
         "reveal": [
-          "Run-on: The bus was late I missed first period.",
-          "Fix with a comma plus a FANBOYS word (for, and, nor, but, or, yet, so): The bus was late, so I missed first period.",
-          "Fix with a semicolon between two complete thoughts, no joining word after it: The test was hard; everyone passed anyway.",
-          "Fragment: Because the tide was rising fast. It is only a dependent clause, the main thought is missing.",
-          "Fix the fragment by adding the main thought: Because the tide was rising fast, we left the beach.",
-          "Wordy to tight: 'Due to the fact that it was raining' shrinks to 'Because it was raining.'"
-        ]
+          "\"The meadow drowsed under a warm, unhurried sun.\" Words: drowsed, warm, unhurried → a PEACEFUL mood.",
+          "\"Malik had the open shot, the whole gym waiting, his hands shaking.\" Words: waiting, shaking → a TENSE mood.",
+          "To find tone or mood, underline the loaded words and ask what feeling they share."
+        ],
+        "say": "Drowsed, warm, and unhurried build a peaceful mood. Waiting and shaking build a tense mood. Underline the loaded words and ask what feeling they share."
       },
       {
         "kind": "try",
-        "title": "Your turn: spot the complex sentence",
-        "body": "One of these joins a dependent clause to an independent clause. Tap it.",
-        "say": "One of these choices joins a dependent clause to an independent clause, making a complex sentence. Tap the one you think is correct.",
+        "title": "Your turn: the peaceful line",
+        "body": "Which uses word choice that creates the most PEACEFUL mood?",
+        "say": "Which line creates the most peaceful mood?",
         "widget": {
           "w": "tapPick",
-          "prompt": "Which is a COMPLEX sentence (one dependent + one independent clause)?",
+          "prompt": "Look for calm, gentle words.",
           "options": [
             {
-              "label": "When the movie ended, everyone clapped.",
+              "label": "The lake lay still and silver in the quiet dawn.",
               "correct": true
             },
             {
-              "label": "The movie ended, and everyone clapped."
+              "label": "Horns blared as the crowd shoved toward the gate."
             },
             {
-              "label": "The movie ended; everyone clapped."
+              "label": "The alarm shrieked through the smoky hall."
             }
           ]
         }
@@ -5125,10 +5209,9 @@
       {
         "kind": "recap",
         "title": "Remember this",
-        "body": "An independent clause stands alone; a dependent clause leans on a word like because, since, after, when, or although. Complex sentences pair the two, relative clauses describe nouns, and you fix run-ons with a comma plus FANBOYS or a semicolon.",
-        "say": "An independent clause stands alone. A dependent clause leans on a word like because, since, after, when, or although. A complex sentence pairs a dependent clause with an independent one. Relative clauses describe nouns, and you fix run-ons with a comma plus a FANBOYS word or a semicolon.",
-        "takeaway": "Independent stands alone; dependent leans on a subordinating word. Join them into complex sentences, and fix run-ons with a comma plus FANBOYS or a semicolon.",
-        "emoji": "🔗"
+        "emoji": "🎭",
+        "takeaway": "Tone is the author's attitude; mood is the reader's feeling — both come from word choice. Theme is the full-sentence message about life the text explores.",
+        "say": "Tone is the author's attitude; mood is the reader's feeling, both from word choice. Theme is the message about life the text explores."
       }
     ]
   },
@@ -8231,20 +8314,12 @@
     ]
   }
 ];
-
   let patched = 0, added = 0;
-  // Inject dedicated lessons first (so an aliased skill gains its own direct lesson).
   for (const les of NEW_LESSONS) {
-    const list = L[les.subject];
-    if (!list) continue;
-    if (list.some(l => l && l.skillId === les.skillId)) continue; // a real lesson already exists — don't duplicate
-    list.push(les);
-    bySkill[les.skillId] = les;
-    added++;
+    const list = L[les.subject]; if (!list) continue;
+    if (list.some(l => l && l.skillId === les.skillId)) continue;
+    list.push(les); bySkill[les.skillId] = les; added++;
   }
-  // Insert extra beats before each lesson's closing recap. If a skill has no direct
-  // lesson of its own (it borrows one via alias), extend the lesson it actually uses
-  // so the beat still reaches the learner.
   const subjOf = sid => sid.startsWith('sp.') ? 'spanish' : sid[0] === 'm' ? 'math' : sid[0] === 'e' ? 'english' : 'science';
   for (const sid of Object.keys(PATCH)) {
     let les = bySkill[sid];
@@ -8252,11 +8327,10 @@
     const steps = PATCH[sid];
     if (!les || !Array.isArray(les.steps) || !steps || !steps.length) continue;
     const marker = steps[0].title;
-    if (marker && les.steps.some(s => s && s.title === marker)) continue; // already applied
+    if (marker && les.steps.some(s => s && s.title === marker)) continue;
     let idx = les.steps.length;
     for (let i = les.steps.length - 1; i >= 0; i--) { if (les.steps[i] && les.steps[i].kind === 'recap') { idx = i; break; } }
-    les.steps.splice(idx, 0, ...steps);
-    patched++;
+    les.steps.splice(idx, 0, ...steps); patched++;
   }
   try { window.GALLOP_PATCHED = patched; window.GALLOP_NEWLESSONS = added; } catch (e) {}
 })();
