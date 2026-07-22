@@ -70,6 +70,10 @@ const mailer = require('./src/mailer');
 if (mailer.configured()) {
   setInterval(() => mailer.nudgeSweep(), 60 * 60 * 1000).unref?.();
   setTimeout(() => mailer.nudgeSweep(), 90 * 1000).unref?.();
+  // Weekly parent report — autonomous. Runs every 6h; the email_log 7-day de-dup means each
+  // parent gets at most one digest per week no matter how often the timer fires or restarts.
+  setInterval(() => mailer.weeklyReportSweep(), 6 * 60 * 60 * 1000).unref?.();
+  setTimeout(() => mailer.weeklyReportSweep(), 120 * 1000).unref?.();
 }
 
 app.listen(PORT, () => {
