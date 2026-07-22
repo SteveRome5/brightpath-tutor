@@ -4,6 +4,7 @@ const english = require('./english');
 const science = require('./science');
 const spanish = require('./spanish');
 const { extraSkills } = require('./extra');
+const { expansionSkills } = require('./expansion');
 const advanced = require('./advanced');
 
 const SUBJECTS = { math, english, science, spanish };
@@ -21,6 +22,15 @@ for (const [subj, s] of Object.entries(SUBJECTS)) {
     // fact-checked bank via getSkill()'s first-match .find().
     const extraIds = new Set(extra.map(k => k.id));
     s.skills = s.skills.filter(k => !extraIds.has(k.id)).concat(extra);
+  }
+}
+// Then merge the expansion skills the same way (expansion id wins over base/extra), so the
+// richer 16-item versions of any shared skill replace thinner ones and new skills are added.
+for (const [subj, s] of Object.entries(SUBJECTS)) {
+  const exp = (expansionSkills && expansionSkills[subj]) || [];
+  if (exp.length) {
+    const expIds = new Set(exp.map(k => k.id));
+    s.skills = s.skills.filter(k => !expIds.has(k.id)).concat(exp);
   }
 }
 

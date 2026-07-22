@@ -1,0 +1,44 @@
+// Expansion skills — bolster the K-12 ladder with additional grade-aligned, fact-checked
+// skills (Science, Spanish, and upper English breadth). Bank-based, merged into
+// skillsForSubject() by index.js. Same pattern as extra.js. Banks live in ./expansion_banks.js.
+const { pick, textChoices, q } = require('./helpers');
+
+let BANKS = {};
+try { BANKS = require('./expansion_banks'); } catch (e) { BANKS = {}; }
+
+const _hasEmoji = s => /\p{Extended_Pictographic}/u.test(String(s));
+function _balanceAnswer(a, w) {
+  if (_hasEmoji(a) && !w.some(_hasEmoji)) return String(a).replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/\s{2,}/g, ' ').trim();
+  return a;
+}
+// Strip a give-away emoji from translation-style prompts ("'gato' means…").
+const _XLATE = /\bmeans\b|\bin english\b|\btranslat|significa/i;
+function _deGiveaway(p) {
+  if (!_XLATE.test(String(p))) return p;
+  return String(p).replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/\s{2,}/g, ' ').replace(/\s+([?!.,…])/g, '$1').trim();
+}
+function fromBank(bank) {
+  return function () {
+    const item = pick(bank);
+    const a = _balanceAnswer(item.a, item.w);
+    return q({
+      prompt: _deGiveaway(item.p),
+      choices: textChoices(a, item.w),
+      answer: a,
+      hint: item.h || '',
+      explain: item.e || '',
+      voice: item.v || _deGiveaway(item.p)
+    });
+  };
+}
+
+const META = [{"id":"s.k.plants","subject":"science","grade":0,"name":"Plants & What They Need"},{"id":"s.k.skyday","subject":"science","grade":0,"name":"Day & Night Sky"},{"id":"s.1.lightsound","subject":"science","grade":1,"name":"Light & Sound"},{"id":"s.1.livingnon","subject":"science","grade":1,"name":"Living & Nonliving"},{"id":"s.2.matter","subject":"science","grade":2,"name":"Solids, Liquids & Gases"},{"id":"s.2.lifecycle","subject":"science","grade":2,"name":"Plant & Animal Life Cycles"},{"id":"s.3.magnets","subject":"science","grade":3,"name":"Magnets & Forces"},{"id":"s.3.lifecycles","subject":"science","grade":3,"name":"Life Cycles & Traits"},{"id":"s.4.energy","subject":"science","grade":4,"name":"Energy & Motion"},{"id":"s.4.rocks","subject":"science","grade":4,"name":"Rocks, Soil & Fossils"},{"id":"s.5.matter","subject":"science","grade":5,"name":"Matter & Mixtures"},{"id":"s.5.earthwater","subject":"science","grade":5,"name":"Earth's Water & Weather"},{"id":"s.6.weather","subject":"science","grade":6,"name":"Weather & Climate"},{"id":"s.6.energymachines","subject":"science","grade":6,"name":"Energy & Simple Machines"},{"id":"s.7.bodysystems","subject":"science","grade":7,"name":"Human Body Systems"},{"id":"s.7.ecology","subject":"science","grade":7,"name":"Ecology & Food Webs"},{"id":"s.8.reactions","subject":"science","grade":8,"name":"Chemical Reactions"},{"id":"s.8.waves","subject":"science","grade":8,"name":"Waves, Light & Sound"},{"id":"sp.k.saludos","subject":"spanish","grade":0,"name":"Saludos y Cortesía"},{"id":"sp.k.colores","subject":"spanish","grade":0,"name":"Los Colores"},{"id":"sp.4.comida","subject":"spanish","grade":4,"name":"La Comida"},{"id":"sp.4.numeros","subject":"spanish","grade":4,"name":"Números 1–100"},{"id":"sp.5.gustar","subject":"spanish","grade":5,"name":"Gustar & Preferences"},{"id":"sp.5.tiempo","subject":"spanish","grade":5,"name":"El Tiempo y las Estaciones"},{"id":"sp.7.objetos","subject":"spanish","grade":7,"name":"Object Pronouns"},{"id":"sp.7.comparativos","subject":"spanish","grade":7,"name":"Comparatives & Superlatives"},{"id":"e.4.context","subject":"english","grade":4,"name":"Context Clues & Word Parts"},{"id":"e.4.mainidea","subject":"english","grade":4,"name":"Main Idea & Text Structure"},{"id":"e.6.authorpov","subject":"english","grade":6,"name":"Author's Purpose & Point of View"},{"id":"e.6.evidence","subject":"english","grade":6,"name":"Citing Text Evidence"},{"id":"e.9.roots","subject":"english","grade":9,"name":"Greek & Latin Roots"},{"id":"e.9.claims","subject":"english","grade":9,"name":"Analyzing Argument & Claims"},{"id":"e.11.themesym","subject":"english","grade":11,"name":"Theme & Symbolism"},{"id":"e.12.syntax","subject":"english","grade":12,"name":"Syntax & Rhetorical Style"}];
+
+const bySubject = { math: [], english: [], science: [], spanish: [] };
+for (const m of META) {
+  const bank = BANKS[m.id];
+  if (!bank || !bank.length) continue;
+  bySubject[m.subject].push({ id: m.id, name: m.name, grade: m.grade, gen: fromBank(bank) });
+}
+
+module.exports = { expansionSkills: bySubject };
