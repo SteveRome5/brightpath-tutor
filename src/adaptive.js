@@ -271,13 +271,13 @@ function nextActivity(kidId, subject) {
 // sinceAid (optional): only count answers logged AFTER this activity id, so the demote
 // path can look strictly at work done since the last level change (no stale pre-change
 // answers), which is what prevents a demotion from immediately cascading another grade down.
-function recentLevelAccuracy(kidId, subject, grade, limit = 12, sinceAid = 0) {
+function recentLevelAccuracy(kidId, subject, grade, limit = 12, sinceAid = 0, minRows = 4) {
   const ids = content.skillsForSubject(subject).filter(s => s.grade === grade).map(s => s.id);
   if (!ids.length) return null;
   const placeholders = ids.map(() => '?').join(',');
   const rows = db.prepare(`SELECT correct FROM activity_log WHERE kid_id=? AND subject=? AND skill_id IN (${placeholders}) AND id > ?
     ORDER BY id DESC LIMIT ?`).all(kidId, subject, ...ids, sinceAid, limit);
-  if (rows.length < 4) return null;
+  if (rows.length < minRows) return null;
   return rows.filter(r => r.correct).length / rows.length;
 }
 
@@ -290,7 +290,10 @@ function weightedLowest(list) {
 // ---------- recording answers & progression ----------
 function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
   const st = getSkillState(kidId, subject, skillId);
-  const d0 = (difficulty == null ? 0.5 : difficulty);
+  // Defense in depth: clamp difficulty here too (routes clamp already, but any future
+  // caller must not be able to move mastery the wrong way with an out-of-range value).
+  let d0 = Number(difficulty);
+  d0 = Number.isFinite(d0) ? Math.max(0, Math.min(1, d0)) : 0.5;
   let m = st.mastery;
   if (correct) {
     m = m + 0.16 * (1 - m) * (0.7 + d0 * 0.6);
@@ -305,10 +308,10 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
               win_streak=?, last_seen=datetime('now') WHERE kid_id=? AND subject=? AND skill_id=?`)
     .run(m, correct ? 1 : 0, correct ? st.win_streak + 1 : 0, kidId, subject, skillId);
   db.prepare('INSERT INTO activity_log (kid_id, subject, skill_id, correct, difficulty, time_ms) VALUES (?,?,?,?,?,?)')
-    .run(kidId, subject, skillId, correct ? 1 : 0, difficulty || 0.5, timeMs || null);
+    .run(kidId, subject, skillId, correct ? 1 : 0, d0, timeMs || null);
 
-  // XP & coins
-  const xp = correct ? Math.round(10 + (difficulty || 0.5) * 10) : 2;
+  // XP & coins (d0, not `difficulty || 0.5` — a legitimate difficulty of 0 is not "missing")
+  const xp = correct ? Math.round(10 + d0 * 10) : 2;
   db.prepare('UPDATE kids SET xp = xp + ?, coins = coins + ? WHERE id=?').run(xp, correct ? 1 : 0, kidId);
   updateStreak(kidId);
 
@@ -353,23 +356,48 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
     // from blocking forever while still demanding real proficiency.
     const allMastered = levelSkills.length > 0 && levelSkills.every(s => {
       const ss = db.prepare('SELECT attempts, mastery FROM skill_state WHERE kid_id=? AND subject=? AND skill_id=?').get(kidId, subject, s.id);
-      return ss && (ss.mastery >= MASTERED || (ss.attempts >= 8 && ss.mastery >= 0.7));
+      // Relief valve for one stubborn skill: needs real volume AND near-mastery. (0.75
+      // — the EWMA equilibrium of a ~75%-accurate kid sits below this, so grinding
+      // attempts alone can never sneak a not-yet-ready kid through.)
+      return ss && (ss.mastery >= MASTERED || (ss.attempts >= 10 && ss.mastery >= 0.75));
     });
-    const upAcc = recentLevelAccuracy(kidId, subject, lvl, 15);
-    if (lvl < maxGrade(subject) && allPracticed && allMastered && totalAtLevel >= Math.max(12, levelSkills.length * 3) && upAcc != null && upAcc >= 0.85) {
+    // Promotion accuracy is measured ONLY on work since the last level change, over a
+    // real body of evidence (≥15 answers) — a lucky 13/15 stretch inside old history
+    // can't fire the gate anymore.
+    const upAcc = recentLevelAccuracy(kidId, subject, lvl, 20, state.last_change_aid || 0, 15);
+    const gatesPass = allPracticed && allMastered && totalAtLevel >= Math.max(12, levelSkills.length * 3) && upAcc != null && upAcc >= 0.85;
+    if (lvl < maxGrade(subject) && gatesPass) {
       db.prepare('UPDATE subject_state SET level=?, last_change_aid=? WHERE kid_id=? AND subject=?').run(lvl + 1, latestAid, kidId, subject);
       const title = `${subjectLabel(subject)}, ${gradeName(lvl)} Complete!`;
       // Don't mint a duplicate certificate if this level was already completed before
       // (e.g. promote → demote → re-promote); one certificate per level per learner.
       const hasCert = db.prepare('SELECT 1 FROM certificates WHERE kid_id=? AND subject=? AND level=?').get(kidId, subject, lvl);
       if (!hasCert) db.prepare('INSERT INTO certificates (kid_id, subject, title, level) VALUES (?,?,?,?)').run(kidId, subject, title, lvl);
-      events.push({ type: 'levelup', subject, newLevel: lvl + 1, certificate: title });
+      // Only attach the certificate to the celebration when one was actually minted.
+      events.push({ type: 'levelup', subject, newLevel: lvl + 1, certificate: hasCert ? null : title });
+    } else if (lvl === maxGrade(subject) && gatesPass) {
+      // TOP OF THE MOUNTAIN: a kid who masters the final grade of a subject earns that
+      // grade's certificate too — the finish line must be celebrateable, not a dead end.
+      const title = `${subjectLabel(subject)}, ${gradeName(lvl)} Complete!`;
+      const hasCert = db.prepare('SELECT 1 FROM certificates WHERE kid_id=? AND subject=? AND level=?').get(kidId, subject, lvl);
+      if (!hasCert) {
+        db.prepare('INSERT INTO certificates (kid_id, subject, title, level) VALUES (?,?,?,?)').run(kidId, subject, title, lvl);
+        events.push({ type: 'levelup', subject, newLevel: lvl, certificate: title });
+      }
     } else if (lvl > 0) {
       // DEMOTE (support): sustained low accuracy at the level since the last change.
       // Only looks at answers SINCE the change (id > last_change_aid), so a fresh
       // promotion/demotion gets a fair trial on new work and we never cascade multiple
       // grades down in a row on stale pre-change answers.
-      const downAcc = recentLevelAccuracy(kidId, subject, lvl, 8, state.last_change_aid || 0);
+      let downAcc = recentLevelAccuracy(kidId, subject, lvl, 8, state.last_change_aid || 0);
+      if (downAcc == null) {
+        // A struggling kid is mostly served BELOW-level review, so at-level rows can be
+        // too sparse to ever trigger support. Fall back to overall recent accuracy
+        // (any skill) since the last change, over a solid sample.
+        const rows = db.prepare('SELECT correct FROM activity_log WHERE kid_id=? AND subject=? AND id > ? ORDER BY id DESC LIMIT 12')
+          .all(kidId, subject, state.last_change_aid || 0);
+        if (rows.length >= 10) downAcc = rows.filter(r => r.correct).length / rows.length;
+      }
       if (downAcc != null && downAcc <= 0.35) {
         db.prepare('UPDATE subject_state SET level=?, last_change_aid=? WHERE kid_id=? AND subject=?').run(lvl - 1, latestAid, kidId, subject);
         events.push({ type: 'support', subject, newLevel: lvl - 1 });
@@ -384,8 +412,16 @@ function updateStreak(kidId) {
   const kid = db.prepare('SELECT streak, last_active_day FROM kids WHERE id=?').get(kidId);
   const today = new Date().toISOString().slice(0, 10);
   if (kid.last_active_day === today) return;
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  const streak = kid.last_active_day === yesterday ? kid.streak + 1 : 1;
+  // Streak days are UTC dates but our families live in local time: a kid practicing
+  // Mon 9am and Tue 6pm Pacific spans Mon→Wed in UTC and would unfairly lose the
+  // streak. Allow a gap of up to 2 UTC dates to count as consecutive — kind to
+  // timezones (and one honest late-night slip), still a streak worth protecting.
+  let gap = Infinity;
+  if (kid.last_active_day) {
+    const prev = Date.parse(kid.last_active_day + 'T00:00:00Z');
+    if (Number.isFinite(prev)) gap = Math.round((Date.parse(today + 'T00:00:00Z') - prev) / 86400000);
+  }
+  const streak = gap >= 1 && gap <= 2 ? kid.streak + 1 : 1;
   db.prepare('UPDATE kids SET streak=?, last_active_day=? WHERE id=?').run(streak, today, kidId);
 }
 
@@ -731,7 +767,10 @@ function pace(kid) {
 function setLevel(kidId, subject, level) {
   getSubjectState(kidId, subject); // ensure row
   const lv = Math.max(0, Math.min(maxGrade(subject), Number(level)));
-  db.prepare('UPDATE subject_state SET level=?, placed=1 WHERE kid_id=? AND subject=?').run(lv, kidId, subject);
+  // Reset the hysteresis anchor: a manual level move starts a fresh trial at the new
+  // level instead of judging it against stale pre-move history.
+  const latestAid = db.prepare('SELECT MAX(id) AS m FROM activity_log WHERE kid_id=? AND subject=?').get(kidId, subject).m || 0;
+  db.prepare('UPDATE subject_state SET level=?, placed=1, last_change_aid=? WHERE kid_id=? AND subject=?').run(lv, latestAid, kidId, subject);
   return lv;
 }
 

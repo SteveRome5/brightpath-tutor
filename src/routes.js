@@ -7,6 +7,7 @@ const content = require('./content');
 const billing = require('./stripe');
 const play = require('./play');
 const gscore = require('./score');
+const mailer = require('./mailer');
 
 const router = express.Router();
 router.use(play.router);
@@ -23,7 +24,10 @@ const _rl = new Map();
 setInterval(() => { const now = Date.now(); for (const [k, v] of _rl) if (v.reset < now) _rl.delete(k); }, 60000).unref?.();
 function rateLimit({ windowMs = 15 * 60000, max = 20, key = 'rl' } = {}) {
   return (req, res, next) => {
-    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || req.socket?.remoteAddress || 'unknown';
+    // Use Express's req.ip (respects trust proxy, resolves the rightmost TRUSTED hop).
+    // Never read X-Forwarded-For directly — the leftmost value is client-controlled, so
+    // an attacker could rotate it per request and bypass the limiter entirely.
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const id = `${key}:${ip}`;
     const now = Date.now();
     let e = _rl.get(id);
@@ -38,17 +42,30 @@ function rateLimit({ windowMs = 15 * 60000, max = 20, key = 'rl' } = {}) {
 }
 const loginLimiter = rateLimit({ windowMs: 15 * 60000, max: 20, key: 'login' });
 const pinLimiter = rateLimit({ windowMs: 15 * 60000, max: 15, key: 'pin' });
+// Answers: generous for real kids (nobody answers faster than ~2s/question) but stops
+// scripted XP/certificate farming cold.
+const answerLimiter = rateLimit({ windowMs: 60000, max: 40, key: 'answer' });
+
+// Subject must be validated with an OWN-property check: '__proto__'/'constructor' are
+// truthy on plain objects and would crash downstream (.skills of undefined → 500).
+const validSubject = s => typeof s === 'string' && Object.prototype.hasOwnProperty.call(content.SUBJECTS, s);
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 // ---------- parent auth ----------
 router.post('/auth/signup', loginLimiter, (req, res) => {
   const { email, name, password } = req.body || {};
   if (!email || !name || !password || password.length < 8)
     return res.status(400).json({ error: 'Need email, name, and a password of 8+ characters.' });
+  if (!EMAIL_RE.test(String(email).trim()))
+    return res.status(400).json({ error: 'That email address doesn\'t look right — double-check it?' });
   try {
     const id = auth.createParent(email, name, password);
     auth.syncAdminFlag(db.prepare('SELECT * FROM parents WHERE id=?').get(id));
     const token = auth.createSession('parent', id);
     res.cookie('bp_session', token, COOKIE_OPTS);
+    // Fire-and-forget welcome email (never blocks or fails the signup itself)
+    mailer.sendWelcomeTrial(db.prepare('SELECT * FROM parents WHERE id=?').get(id));
     res.json({ ok: true });
   } catch (e) {
     if (String(e).includes('UNIQUE')) {
@@ -83,7 +100,15 @@ router.post('/auth/exit-kid', (req, res) => {
   const parentToken = req.cookies.bp_parent_return;
   const s = parentToken ? auth.getSession(parentToken) : null;
   if (!s || s.kind !== 'parent') return res.status(400).json({ error: 'No parent session to return to.' });
-  // Retire the kid session cookie, restore the parent session, clear the stash.
+  // Bind the stash to THIS kid's actual parent: a stray/foreign parent token in the
+  // stash cookie must never be honored for a kid it doesn't own.
+  const kidSess = auth.getSession(req.cookies.bp_session);
+  if (kidSess && kidSess.kind === 'kid') {
+    const kid = db.prepare('SELECT parent_id FROM kids WHERE id=?').get(kidSess.ref_id);
+    if (!kid || kid.parent_id !== s.ref_id) return res.status(403).json({ error: 'That parent session does not match this learner.' });
+    // Retire the kid session server-side so the old token can't be replayed.
+    auth.destroySession(req.cookies.bp_session);
+  }
   res.cookie('bp_session', parentToken, COOKIE_OPTS);
   res.clearCookie('bp_parent_return');
   res.json({ ok: true });
@@ -205,7 +230,9 @@ router.get('/learn/:kidId/overview', auth.requireKid, auth.requireActiveSub, (re
     const meta = content.SUBJECTS[sub];
     const m = db.prepare('SELECT AVG(mastery) AS m FROM skill_state WHERE kid_id=? AND subject=? AND attempts>0').get(req.kid.id, sub);
     const today = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND subject=? AND date(ts)=date('now')").get(req.kid.id, sub);
-    const srows = db.prepare('SELECT skill_id, mastery FROM skill_state WHERE kid_id=? AND subject=?').all(req.kid.id, sub);
+    // attempts>0: score only skills the child has actually worked on, so the overview
+    // number matches the report card instead of crediting untouched seeded skills.
+    const srows = db.prepare('SELECT skill_id, mastery FROM skill_state WHERE kid_id=? AND subject=? AND attempts>0').all(req.kid.id, sub);
     const gallopScore = srows.length ? gscore.subjectScore(sub, Object.fromEntries(srows.map(r => [r.skill_id, r.mastery])), st.placed ? st.level : undefined) : null;
     return { subject: sub, label: meta.label, emoji: meta.emoji, color: meta.color, level: st.level, levelName: adaptive.gradeName(Math.round(st.level)), placed: !!st.placed, avgMastery: m.m, answersToday: today.n || 0, gallopScore };
   });
@@ -233,7 +260,7 @@ router.get('/learn/:kidId/overview', auth.requireKid, auth.requireActiveSub, (re
 // placement quiz
 router.post('/learn/:kidId/placement/:subject', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { subject } = req.params;
-  if (!content.SUBJECTS[subject]) return res.status(404).json({ error: 'Unknown subject' });
+  if (!validSubject(subject)) return res.status(404).json({ error: 'Unknown subject' });
   const key = `${req.kid.id}:${subject}`;
   const { answerIndex, questionAnswerIndex, probeGrade, reset } = req.body || {};
   if (reset) placements.delete(key);
@@ -259,7 +286,7 @@ router.post('/learn/:kidId/placement/:subject', auth.requireKid, auth.requireAct
 // next activity in a subject
 router.get('/learn/:kidId/next/:subject', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { subject } = req.params;
-  if (!content.SUBJECTS[subject]) return res.status(404).json({ error: 'Unknown subject' });
+  if (!validSubject(subject)) return res.status(404).json({ error: 'Unknown subject' });
   let activity = null;
   // A single flaky generator must never freeze a kid's session — retry, then fail soft.
   // A truthy activity whose question failed to generate (question:null) still counts as a
@@ -281,9 +308,9 @@ router.get('/learn/:kidId/next/:subject', auth.requireKid, auth.requireActiveSub
 });
 
 // submit an answer
-router.post('/learn/:kidId/answer', auth.requireKid, auth.requireActiveSub, (req, res) => {
+router.post('/learn/:kidId/answer', answerLimiter, auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { subject, skillId, correct, timeMs, difficulty } = req.body || {};
-  if (!content.SUBJECTS[subject] || !content.getSkill(subject, skillId))
+  if (!validSubject(subject) || !content.getSkill(subject, skillId))
     return res.status(400).json({ error: 'Bad subject/skill' });
   // Never trust client-supplied difficulty/time — clamp to sane bounds so a crafted
   // request can't corrupt mastery, mint fake certificates, or inflate XP.
@@ -324,7 +351,7 @@ router.get('/learn/:kidId/track/:trackId/next', auth.requireKid, auth.requireAct
   });
 });
 
-router.post('/learn/:kidId/track/answer', auth.requireKid, auth.requireActiveSub, (req, res) => {
+router.post('/learn/:kidId/track/answer', answerLimiter, auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { trackId, correct } = req.body || {};
   const meta = content.listTracks().find(t => t.id === trackId) || null;
   if (!meta) return res.status(400).json({ error: 'Unknown track' });
@@ -381,7 +408,7 @@ router.post('/learn/:kidId/quests/claim', auth.requireKid, auth.requireActiveSub
 // Retake a placement assessment (fresh start for that subject's level)
 router.post('/learn/:kidId/placement/:subject/retake', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { subject } = req.params;
-  if (!content.SUBJECTS[subject]) return res.status(404).json({ error: 'Unknown subject' });
+  if (!validSubject(subject)) return res.status(404).json({ error: 'Unknown subject' });
   db.prepare('UPDATE subject_state SET placed=0 WHERE kid_id=? AND subject=?').run(req.kid.id, subject);
   placements.delete(`${req.kid.id}:${subject}`);
   res.json({ ok: true });
@@ -390,7 +417,7 @@ router.post('/learn/:kidId/placement/:subject/retake', auth.requireKid, auth.req
 // Kid taps "Too tricky?" — gallop back one level (or "Ready for more" — up one)
 router.post('/learn/:kidId/level-shift/:subject', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { subject } = req.params;
-  if (!content.SUBJECTS[subject]) return res.status(404).json({ error: 'Unknown subject' });
+  if (!validSubject(subject)) return res.status(404).json({ error: 'Unknown subject' });
   const delta = Number((req.body || {}).delta) < 0 ? -1 : 1;
   const state = adaptive.getSubjectState(req.kid.id, subject);
   const newLevel = adaptive.setLevel(req.kid.id, subject, Math.round(state.level) + delta);
@@ -414,7 +441,7 @@ router.post('/kids/:kidId/level', auth.requireParent, (req, res) => {
   const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
   if (!kid) return res.status(404).json({ error: 'Learner not found.' });
   const { subject, level } = req.body || {};
-  if (!content.SUBJECTS[subject] || level == null || !Number.isFinite(Number(level))) return res.status(400).json({ error: 'Need a subject and a valid level.' });
+  if (!validSubject(subject) || level == null || !Number.isFinite(Number(level))) return res.status(400).json({ error: 'Need a subject and a valid level.' });
   const newLevel = adaptive.setLevel(kid.id, subject, Number(level));
   res.json({ ok: true, level: newLevel, levelName: adaptive.gradeName(newLevel) });
 });
@@ -499,5 +526,44 @@ router.post('/billing/portal', auth.requireParent, async (req, res) => {
     res.json(await billing.createPortal(req.parent, origin));
   } catch (e) { res.status(500).json({ error: 'Billing error: ' + e.message }); }
 });
+
+// ---------- email: newsletter capture, unsubscribe, admin export ----------
+const newsletterLimiter = rateLimit({ windowMs: 15 * 60000, max: 10, key: 'newsletter' });
+router.post('/newsletter', newsletterLimiter, (req, res) => {
+  const email = String((req.body || {}).email || '').toLowerCase().trim();
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'That email doesn\'t look right — double-check it?' });
+  try { db.prepare('INSERT OR IGNORE INTO newsletter_subs (email, source) VALUES (?, ?)').run(email, 'landing'); } catch (e) {}
+  res.json({ ok: true });
+});
+
+// One-click unsubscribe from lifecycle/tips emails (link in every non-receipt email).
+router.get('/email/unsubscribe', (req, res) => {
+  const t = String(req.query.t || '');
+  const row = t ? db.prepare('SELECT id FROM parents WHERE unsub_token=?').get(t) : null;
+  if (row) db.prepare('UPDATE parents SET email_opt_out=1 WHERE id=?').run(row.id);
+  res.type('html').send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:Georgia,serif;background:#f6f4ee;color:#16213a;text-align:center;padding:60px 20px">
+    <h2 style="color:#1A5C38">${row ? 'You\'re unsubscribed' : 'Link not recognized'}</h2>
+    <p>${row ? 'We\'ll stop sending progress reminders and tips to this address. Billing and account emails still arrive when needed.' : 'This unsubscribe link looks expired or incomplete — email support@learnwithgallop.com and we\'ll sort it instantly.'}</p>
+    <p><a href="/" style="color:#1A5C38">← Back to Gallop</a></p></body>`);
+});
+
+// Admin: the full mailing list (customers + newsletter signups) as CSV for campaigns.
+router.get('/admin/newsletter.csv', auth.requireAdmin, (req, res) => {
+  const csvCell = v => { let s = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return `"${s.replace(/"/g, '""')}"`; };
+  const parents = db.prepare("SELECT email, name, sub_status, created_at FROM parents WHERE COALESCE(email_opt_out,0)=0").all();
+  const subs = db.prepare('SELECT email, created_at FROM newsletter_subs').all();
+  const seen = new Set(parents.map(p => p.email.toLowerCase()));
+  const rows = [
+    'email,name,type,status,joined',
+    ...parents.map(p => [p.email, p.name, 'customer', p.sub_status, p.created_at].map(csvCell).join(',')),
+    ...subs.filter(s => !seen.has(s.email.toLowerCase())).map(s => [s.email, '', 'newsletter', '', s.created_at].map(csvCell).join(','))
+  ];
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="gallop-mailing-list.csv"');
+  res.send(rows.join('\n'));
+});
+
+// Unknown /api/* paths must return JSON 404, not the SPA's index.html.
+router.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
 module.exports = router;

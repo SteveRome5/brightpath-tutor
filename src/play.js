@@ -87,7 +87,7 @@ const CHEER_LIST = [
   { id: 'rocket', text: 'To the moon! 🚀' }, { id: 'clap', text: 'Amazing streak! 👏' },
   { id: 'race', text: 'On to the next badge! ⚡' }, { id: 'hi', text: 'Hi from your buddy! 👋' }
 ];
-const GAMES = ['bakery', 'memory', 'wordsearch', 'code', 'room', 'art', 'lemonade', 'market', 'blitz'];
+const GAMES = ['bakery', 'memory', 'wordsearch', 'code', 'art', 'lemonade', 'market', 'blitz'];
 const GAME_NAMES = { bakery: 'Bakery Quest', memory: 'Memory Match', wordsearch: 'Word Search', code: 'Code Quest', room: 'Room Designer', art: 'Art Studio', lemonade: 'Lemonade Tycoon', market: 'Market Mogul', blitz: 'Lightning Round' };
 
 // Seasonal items appear only in their season (scarcity keeps the shop fresh);
@@ -173,7 +173,7 @@ router.get('/play/:kidId/avatar', auth.requireKid, (req, res) => {
   res.json({ catalog: catalogFor(new Set(owned)), owned, config: safeJson(req.kid.avatar_config) || {}, coins: req.kid.coins });
 });
 
-router.post('/play/:kidId/avatar/buy', auth.requireKid, (req, res) => {
+router.post('/play/:kidId/avatar/buy', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { slot, itemId } = req.body || {};
   const item = itemFor(slot, itemId);
   if (!item) return res.status(400).json({ error: 'Unknown item' });
@@ -217,7 +217,7 @@ router.get('/play/:kidId/snacks', auth.requireKid, (req, res) => {
   res.json({ machines: SNACKS, owned, coins: kid.coins, totalSnacks: totals });
 });
 
-router.post('/play/:kidId/snacks/buy', auth.requireKid, (req, res) => {
+router.post('/play/:kidId/snacks/buy', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { machine, snackId } = req.body || {};
   const snack = snackFor(machine, snackId);
   if (!snack) return res.status(400).json({ error: 'Unknown snack' });
@@ -241,12 +241,18 @@ router.get('/play/:kidId/status', auth.requireKid, (req, res) => {
   res.json({ kid: kidPublic(kid), best, correctSinceToken: kid.correct_since_token || 0 });
 });
 
-router.post('/play/:kidId/spend-token', auth.requireKid, (req, res) => {
+// A finish-coin credit exists only for games that were actually STARTED with a token —
+// stops scripted /score spam from minting coins without playing.
+const _openPlays = new Map(); // `${kidId}:${game}` -> count of un-scored token spends
+
+router.post('/play/:kidId/spend-token', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const game = String((req.body || {}).game || '');
   if (!GAMES.includes(game)) return res.status(400).json({ error: 'Unknown game' });
   const kid = db.prepare('SELECT play_tokens FROM kids WHERE id=?').get(req.kid.id);
   if ((kid.play_tokens || 0) < 1) return res.status(402).json({ error: 'no_tokens', message: 'Answer 5 questions correctly in any subject to earn a play token! 🎟️' });
   db.prepare('UPDATE kids SET play_tokens = play_tokens - 1 WHERE id=?').run(req.kid.id);
+  const k = `${req.kid.id}:${game}`;
+  _openPlays.set(k, Math.min(3, (_openPlays.get(k) || 0) + 1));
   res.json({ ok: true, tokensLeft: (kid.play_tokens || 0) - 1 });
 });
 
@@ -255,8 +261,15 @@ router.post('/play/:kidId/score', auth.requireKid, (req, res) => {
   if (!GAMES.includes(String(game))) return res.status(400).json({ error: 'Unknown game' });
   const s = Math.max(0, Math.min(100000, Number(score) || 0));
   db.prepare('INSERT INTO game_scores (kid_id, game, score) VALUES (?,?,?)').run(req.kid.id, game, s);
-  // small coin reward for finishing a game (not enough to beat lessons!)
-  let coins = 2;
+  // Small coin reward for finishing a game — but only if a token was spent to start it.
+  // (In-memory: after a server restart the first finish just misses its 2 coins; harmless.)
+  const pk = `${req.kid.id}:${game}`;
+  const openCount = _openPlays.get(pk) || 0;
+  let coins = 0;
+  if (openCount > 0) {
+    _openPlays.set(pk, openCount - 1);
+    coins = 2;
+  }
   // Did this score beat an open buddy challenge?
   const beaten = [];
   const open = db.prepare(`SELECT * FROM challenges WHERE to_kid=? AND game=? AND status='open' AND created_at > datetime('now','-7 days')`).all(req.kid.id, game);
@@ -273,7 +286,7 @@ router.post('/play/:kidId/score', auth.requireKid, (req, res) => {
 });
 
 // ---------- buddy challenges (safe, async, no chat) ----------
-router.post('/buddies/:kidId/challenge', auth.requireKid, (req, res) => {
+router.post('/buddies/:kidId/challenge', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { toKid, game } = req.body || {};
   if (!GAMES.includes(String(game))) return res.status(400).json({ error: 'Unknown game' });
   const [a, b] = [Math.min(req.kid.id, Number(toKid)), Math.max(req.kid.id, Number(toKid))];
@@ -322,7 +335,7 @@ function teamProgress(kidId, buddyId) {
   return { combined: row.n || 0, goal: TEAM_GOAL, reward: TEAM_REWARD, done: (row.n || 0) >= TEAM_GOAL, claimed: !!claimed };
 }
 
-router.post('/buddies/:kidId/team-claim', auth.requireKid, (req, res) => {
+router.post('/buddies/:kidId/team-claim', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const buddyId = Number((req.body || {}).buddyId);
   const [a, b] = [Math.min(req.kid.id, buddyId), Math.max(req.kid.id, buddyId)];
   if (!db.prepare('SELECT 1 FROM buddies WHERE kid_a=? AND kid_b=?').get(a, b)) return res.status(403).json({ error: 'Not buddies' });
@@ -355,7 +368,7 @@ router.get('/buddies/:kidId', auth.requireKid, (req, res) => {
   res.json({ buddies, cheers: CHEER_LIST, inbox, unseen: inbox.filter(c => !c.seen).length, challenges: { incoming, outgoing }, games: GAME_NAMES });
 });
 
-router.post('/buddies/:kidId/cheer', auth.requireKid, (req, res) => {
+router.post('/buddies/:kidId/cheer', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { toKid, cheerId } = req.body || {};
   if (!CHEER_LIST.find(c => c.id === cheerId)) return res.status(400).json({ error: 'Unknown cheer' });
   const [a, b] = [Math.min(req.kid.id, Number(toKid)), Math.max(req.kid.id, Number(toKid))];

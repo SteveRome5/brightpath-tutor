@@ -95,8 +95,16 @@ function webhookHandler(req, res) {
     if (row) db.prepare('UPDATE parents SET sub_status=?, sub_plan=COALESCE(?, sub_plan) WHERE id=?').run(status, plan || null, row.id);
   };
   switch (event.type) {
-    case 'checkout.session.completed':
-      setStatus(data.customer, 'active', data.metadata && data.metadata.plan); break;
+    case 'checkout.session.completed': {
+      setStatus(data.customer, 'active', data.metadata && data.metadata.plan);
+      // Welcome-to-paid email (fire-and-forget; never fails the webhook)
+      try {
+        const mailer = require('./mailer');
+        const row = db.prepare('SELECT * FROM parents WHERE stripe_customer_id=?').get(data.customer);
+        if (row) mailer.sendWelcomePaid(row, (PLANS[(data.metadata && data.metadata.plan) || row.sub_plan] || {}).name);
+      } catch (e) { /* ignore */ }
+      break;
+    }
     case 'invoice.payment_failed':
       setStatus(data.customer, 'past_due'); break;
     case 'customer.subscription.deleted':

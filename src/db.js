@@ -174,6 +174,27 @@ CREATE TABLE IF NOT EXISTS score_snapshots (
 );
 
 CREATE INDEX IF NOT EXISTS idx_challenges_open ON challenges(to_kid, game, status);
+CREATE INDEX IF NOT EXISTS idx_game_scores_kid ON game_scores(kid_id, game);
+CREATE INDEX IF NOT EXISTS idx_cheers_to ON cheers(to_kid, seen);
+
+-- Marketing/newsletter list: landing-page signups who aren't (yet) customers.
+CREATE TABLE IF NOT EXISTS newsletter_subs (
+  email TEXT PRIMARY KEY,
+  source TEXT DEFAULT 'landing',
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Every email the app sends (or queues while no provider is configured):
+-- an auditable outbox that doubles as the send log for nudge de-duplication.
+CREATE TABLE IF NOT EXISTS email_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  to_email TEXT NOT NULL,
+  kind TEXT NOT NULL,                        -- welcome_trial | welcome_paid | nudge | ...
+  subject TEXT NOT NULL,
+  status TEXT DEFAULT 'queued',              -- queued | sent | failed
+  detail TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
 `);
 
 // Column migrations for existing databases (safe to re-run)
@@ -184,7 +205,12 @@ for (const stmt of [
   "ALTER TABLE parents ADD COLUMN is_admin INTEGER DEFAULT 0",
   "ALTER TABLE subject_state ADD COLUMN last_change_aid INTEGER DEFAULT 0",
   // COPPA: timestamp a parent affirmed consent to collect this child's info (set at learner creation)
-  "ALTER TABLE kids ADD COLUMN consent_at TEXT"
+  "ALTER TABLE kids ADD COLUMN consent_at TEXT",
+  // Email preferences + one-click unsubscribe token (lazily generated) for parents
+  "ALTER TABLE parents ADD COLUMN email_opt_out INTEGER DEFAULT 0",
+  "ALTER TABLE parents ADD COLUMN unsub_token TEXT",
+  // Lapsed-practice nudges: remember the last time we nudged so one lapse = one email
+  "ALTER TABLE kids ADD COLUMN last_nudge_at TEXT"
 ]) {
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }
