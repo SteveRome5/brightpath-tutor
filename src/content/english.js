@@ -550,7 +550,7 @@ const skills = [
       { p: '"I can ___ the ocean from here!" Which is correct?', a: 'see', w: ['sea', 'cee', 'si'], h: 'The sea is what you see!', e: 'See = with your eyes. Sea = the ocean.' },
       { p: '"___ backpacks are on the bus." Which is correct?', a: 'Their', w: ["They're", 'There', 'Theyre'], h: 'It shows the backpacks belong to them.', e: 'Their = ownership. There = a place. They\'re = they are.' },
       { p: '"The ___ baked fresh bread." Which is correct?', a: 'baker', w: ['bakker', 'backer', 'bakir'], h: 'The person who bakes!', e: 'Baker = bread maker. (A backer supports a project!)' },
-      { p: '"Let\'s meet at the park over ___." Which is correct?', a: 'there', w: ['their', "they're", 'thier'], h: 'It names a PLACE.', e: 'There = place. Their = ownership.' },
+      { p: '"Let\'s meet at the park over ___." Which is correct?', a: 'there', w: ['their', "they're", "there's"], h: 'It names a PLACE.', e: 'There = place. Their = ownership.' },
       { p: '"I ___ a letter to grandma." Which is correct?', a: 'wrote', w: ['rote', 'root', 'wroute'], h: 'Past tense of write, with a silent w!', e: 'Wrote = past of write.' },
       { p: '"The ___ blew my hat off!" Which is correct?', a: 'wind', w: ['wined', 'whined', 'winned'], h: 'The weather kind!', e: 'Wind = moving air. Whined = complained!' },
       { p: '"Would you like a ___ of cake?" Which is correct?', a: 'piece', w: ['peace', 'peice', 'pees'], h: 'Remember: "a PIEce of PIE".', e: 'Piece = a slice. Peace = calm and quiet. 🍰' }
