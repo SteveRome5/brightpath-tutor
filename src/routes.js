@@ -46,6 +46,42 @@ const pinLimiter = rateLimit({ windowMs: 15 * 60000, max: 15, key: 'pin' });
 // scripted XP/certificate farming cold.
 const answerLimiter = rateLimit({ windowMs: 60000, max: 40, key: 'answer' });
 
+// CSRF defense (dependency-free): reject state-changing requests whose browser Origin
+// doesn't match our host. Combined with SameSite=Lax cookies, this blocks a malicious
+// site from POSTing to our API with the user's cookie. Server-to-server callers send no
+// Origin and pass (the Stripe webhook is mounted before this router in server.js anyway).
+const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+router.use((req, res, next) => {
+  if (!MUTATING.has(req.method)) return next();
+  const origin = req.headers.origin;
+  if (origin && origin !== 'null') {
+    let ok = false;
+    try { ok = new URL(origin).host === req.headers.host; } catch (e) { ok = false; }
+    if (!ok) return res.status(403).json({ error: 'Cross-origin request blocked' });
+  }
+  next();
+});
+
+// Health check for uptime monitoring / load balancers: cheap, unauthenticated, and pings
+// the DB so a wedged database surfaces as unhealthy rather than a silent 200.
+router.get('/health', (req, res) => {
+  try { db.prepare('SELECT 1').get(); return res.json({ ok: true, ts: new Date().toISOString() }); }
+  catch (e) { return res.status(503).json({ ok: false, error: 'db' }); }
+});
+
+// Idempotency for answer submission: a double-tap or a network retry must not record the
+// same answer twice (which would double-move mastery / double-mint XP). The client sends a
+// per-question nonce; we remember recently-seen (kid, nonce) pairs and no-op on repeats.
+const _seenAnswers = new Map(); // `${kidId}:${nonce}` -> expiry
+setInterval(() => { const now = Date.now(); for (const [k, v] of _seenAnswers) if (v < now) _seenAnswers.delete(k); }, 60000).unref?.();
+function answerAlreadySeen(kidId, nonce) {
+  if (!nonce) return false;
+  const id = `${kidId}:${nonce}`;
+  if (_seenAnswers.has(id)) return true;
+  _seenAnswers.set(id, Date.now() + 5 * 60000); // 5-minute window
+  return false;
+}
+
 // Subject must be validated with an OWN-property check: '__proto__'/'constructor' are
 // truthy on plain objects and would crash downstream (.skills of undefined → 500).
 const validSubject = s => typeof s === 'string' && Object.prototype.hasOwnProperty.call(content.SUBJECTS, s);
@@ -344,9 +380,17 @@ router.get('/learn/:kidId/next/:subject', auth.requireKid, auth.requireActiveSub
 
 // submit an answer
 router.post('/learn/:kidId/answer', answerLimiter, auth.requireKid, auth.requireActiveSub, (req, res) => {
-  const { subject, skillId, correct, timeMs, difficulty } = req.body || {};
+  const { subject, skillId, correct, timeMs, difficulty, nonce } = req.body || {};
   if (!validSubject(subject) || !content.getSkill(subject, skillId))
     return res.status(400).json({ error: 'Bad subject/skill' });
+  // Idempotency: if this exact answer submission was already recorded (double-tap / retry),
+  // don't record it again — just return the current state so the UI stays consistent.
+  const nonceStr = typeof nonce === 'string' ? nonce.slice(0, 80) : '';
+  if (answerAlreadySeen(req.kid.id, nonceStr)) {
+    const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id);
+    const ss = db.prepare('SELECT mastery FROM skill_state WHERE kid_id=? AND subject=? AND skill_id=?').get(req.kid.id, subject, skillId);
+    return res.json({ duplicate: true, mastery: ss ? ss.mastery : 0.3, xpGained: 0, events: [], kid: publicKid(kid) });
+  }
   // Never trust client-supplied difficulty/time — clamp to sane bounds so a crafted
   // request can't corrupt mastery, mint fake certificates, or inflate XP.
   let diff = Number(difficulty); diff = Number.isFinite(diff) ? Math.max(0, Math.min(1, diff)) : 0.5;

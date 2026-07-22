@@ -95,6 +95,13 @@ function webhookHandler(req, res) {
   } catch (err) {
     return res.status(400).send(`Webhook error: ${err.message}`);
   }
+  // Idempotency: Stripe may deliver the same event more than once (and out of order). Record
+  // each event id first; if we've already processed it, acknowledge and stop so a re-delivery
+  // never flips a subscription twice or re-sends the welcome email.
+  try {
+    const ins = db.prepare('INSERT OR IGNORE INTO webhook_events (event_id, type) VALUES (?,?)').run(event.id, event.type);
+    if (ins.changes === 0) return res.json({ received: true, duplicate: true });
+  } catch (e) { /* if the dedup store is unavailable, fall through and process (best effort) */ }
   const data = event.data && event.data.object;
   const setStatus = (customerId, status, plan) => {
     const row = db.prepare('SELECT id FROM parents WHERE stripe_customer_id=?').get(customerId);

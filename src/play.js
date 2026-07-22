@@ -6,6 +6,24 @@ const auth = require('./auth');
 
 const router = express.Router();
 
+// Dependency-free rate limiter (mirrors the one in routes.js). Buddy invite CODES are only
+// 6 hex chars, so /buddies/accept is a code-guessing target — cap attempts per IP so nobody
+// can brute-force their way into a stranger's child's buddy graph.
+const _rl = new Map();
+setInterval(() => { const now = Date.now(); for (const [k, v] of _rl) if (v.reset < now) _rl.delete(k); }, 60000).unref?.();
+function rateLimit({ windowMs = 15 * 60000, max = 20, key = 'rl' } = {}) {
+  return (req, res, next) => {
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    const id = `${key}:${ip}`, now = Date.now();
+    let e = _rl.get(id);
+    if (!e || e.reset < now) { e = { count: 0, reset: now + windowMs }; _rl.set(id, e); }
+    e.count++;
+    if (e.count > max) { res.setHeader('Retry-After', Math.ceil((e.reset - now) / 1000)); return res.status(429).json({ error: 'Too many attempts. Please wait a few minutes and try again.' }); }
+    next();
+  };
+}
+const buddyLimiter = rateLimit({ windowMs: 15 * 60000, max: 20, key: 'buddy' });
+
 // ---------- avatar catalog (server is source of truth for prices) ----------
 const AVATAR_CATALOG = {
   base: [
@@ -329,7 +347,7 @@ router.post('/buddies/:kidId/challenge', auth.requireKid, auth.requireActiveSub,
 
 // ---------- buddies (parent-gated invites, kid-safe cheers) ----------
 // Parent creates an invite code for one of their kids
-router.post('/buddies/invite', auth.requireParent, (req, res) => {
+router.post('/buddies/invite', buddyLimiter, auth.requireParent, (req, res) => {
   const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number((req.body || {}).kidId), req.parent.id);
   if (!kid) return res.status(404).json({ error: 'Learner not found' });
   const code = crypto.randomBytes(3).toString('hex').toUpperCase();
@@ -338,7 +356,7 @@ router.post('/buddies/invite', auth.requireParent, (req, res) => {
 });
 
 // The other parent redeems the code for one of THEIR kids
-router.post('/buddies/accept', auth.requireParent, (req, res) => {
+router.post('/buddies/accept', buddyLimiter, auth.requireParent, (req, res) => {
   const { code, kidId } = req.body || {};
   const invite = db.prepare("SELECT * FROM buddy_invites WHERE code=? AND created_at > datetime('now','-14 days')").get(String(code || '').trim().toUpperCase());
   if (!invite) return res.status(404).json({ error: 'Invite code not found (codes last 14 days).' });

@@ -14,7 +14,13 @@ const db = require('./db');
 const auth = require('./auth');
 
 const QA_KEY = process.env.QA_KEY || '';
-const enabled = () => process.env.QA_MODE === '1' && QA_KEY.length >= 6;
+// Fail closed in production: even if QA_MODE + QA_KEY are somehow set on the production
+// service, the passwordless persona launchpad must NOT mount there. It requires a
+// deliberate, separate ALLOW_QA_IN_PROD=1 opt-in — which production never sets — so a
+// single stray env var can never turn the whole account-takeover surface on in prod.
+const enabled = () => process.env.QA_MODE === '1'
+  && QA_KEY.length >= 6
+  && (process.env.NODE_ENV !== 'production' || process.env.ALLOW_QA_IN_PROD === '1');
 
 const COOKIE_OPTS = { httpOnly: true, sameSite: 'lax', maxAge: 90 * 86400000, secure: process.env.NODE_ENV === 'production' };
 const SUBJECTS = ['math', 'english', 'science', 'spanish'];

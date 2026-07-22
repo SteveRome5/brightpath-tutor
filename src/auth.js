@@ -112,7 +112,18 @@ function requireKid(req, res, next) {
   const s = getSession(req.cookies.bp_session);
   if (s && s.kind === 'kid') {
     req.kid = db.prepare('SELECT * FROM kids WHERE id=?').get(s.ref_id);
-    if (req.kid) return next();
+    if (req.kid) {
+      // Defense in depth: the URL :kidId is decorative for a kid session (handlers use
+      // req.kid.id). But if the path carries a REAL, different learner id, reject it — so a
+      // future handler that reads req.params.kidId can never become a cross-family leak.
+      // We only guard against a valid numeric mismatch; the client legitimately omits the id
+      // for "own" views (e.g. #report → /learn/undefined/report), which must still work.
+      const pathKid = Number(req.params.kidId);
+      if (Number.isFinite(pathKid) && pathKid !== req.kid.id) {
+        return res.status(403).json({ error: 'Not your learner' });
+      }
+      return next();
+    }
   }
   // Parents may act on behalf of their kids (e.g., preview mode)
   if (s && s.kind === 'parent') {

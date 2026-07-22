@@ -195,6 +195,14 @@ CREATE TABLE IF NOT EXISTS email_log (
   detail TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
+
+-- Stripe webhook idempotency: remember every processed event id so a duplicate or
+-- out-of-order re-delivery is a no-op (no double subscription flip, no double email).
+CREATE TABLE IF NOT EXISTS webhook_events (
+  event_id TEXT PRIMARY KEY,
+  type TEXT,
+  processed_at TEXT DEFAULT (datetime('now'))
+);
 `);
 
 // Column migrations for existing databases (safe to re-run)
