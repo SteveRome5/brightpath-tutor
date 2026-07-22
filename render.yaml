@@ -6,7 +6,7 @@ services:
     plan: starter            # $7/mo — needed for the persistent disk (database)
     buildCommand: npm install
     startCommand: node server.js
-    healthCheckPath: /api/learn/subjects
+    healthCheckPath: /api/health
     disk:
       name: brightpath-data
       mountPath: /data

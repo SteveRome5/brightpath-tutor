@@ -76,6 +76,14 @@ if (mailer.configured()) {
   setTimeout(() => mailer.weeklyReportSweep(), 120 * 1000).unref?.();
 }
 
+// Automated database backups — every 6 hours, plus one shortly after boot. Timestamped
+// snapshots land on the persistent disk (DATA_DIR/backups) and survive redeploys.
+const db = require('./src/db');
+if (typeof db.backupNow === 'function') {
+  setInterval(() => db.backupNow(), 6 * 60 * 60 * 1000).unref?.();
+  setTimeout(() => db.backupNow(), 60 * 1000).unref?.();
+}
+
 app.listen(PORT, () => {
   console.log(`\n  🐎 Gallop Learning Academy is running!`);
   console.log(`  → http://localhost:${PORT}`);
