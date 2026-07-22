@@ -1291,7 +1291,11 @@ route('placement', async (subject) => {
         <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}
           <button class="choice idk" data-i="-1">🤷 ${playful() ? "I haven't learned this yet" : "Haven't covered this yet"}</button>
         </div>
-        ${data.progress === 0 ? `<p class="muted" style="margin-top:16px">${playful() ? 'No guessing needed! Saying "I haven\'t learned this yet" is a SMART answer, it helps me find lessons that fit you.' : 'Skip anything you haven\'t covered, honest answers give you an accurate starting level.'}</p>` : ''}
+        <div class="lesson-actions" style="justify-content:space-between">
+          <span class="muted" id="pick-hint" style="font-size:.9rem">${playful() ? 'Tap your answer, then press Next.' : 'Choose an answer, then press Next.'}</span>
+          <button class="btn green" id="place-next" disabled style="opacity:.5">Next →</button>
+        </div>
+        ${data.progress === 0 ? `<p class="muted" style="margin-top:14px">${playful() ? 'No guessing needed! Saying "I haven\'t learned this yet" is a SMART answer, it helps me find lessons that fit you. You can change your pick before Next.' : 'Skip anything you haven\'t covered, honest answers give you an accurate starting level. You can change your answer before pressing Next.'}</p>` : ''}
       </div>
     </div>`);
     wireChrome();
@@ -1302,11 +1306,25 @@ route('placement', async (subject) => {
     // Auto: read the STORY aloud for passages (delight for the littles), else the question
     if (qn.passage && pwords && Voice.auto) Voice.readAlong(pwords, vlang);
     else if (Voice.auto) Voice.speak(qn.voice || qn.prompt, vlang);
+    // Placement is deliberate: picking an answer HIGHLIGHTS it (and the child can change
+    // their mind) — nothing is submitted until they press Next. We never flash right/wrong
+    // during a placement quiz; it's a level-finder, not a graded test.
+    let picked = null;
+    const nextBtn = $('#place-next'), hint = $('#pick-hint');
     document.querySelectorAll('.choice').forEach(b => b.onclick = () => {
-      const i = Number(b.dataset.i);
-      if (i === -1) Sound.click(); else if (i === qn.answerIndex) Sound.correct(); else Sound.wrong();
-      step({ answerIndex: i, questionAnswerIndex: qn.answerIndex, probeGrade: data.probeGrade });
+      Sound.click();
+      document.querySelectorAll('.choice').forEach(x => x.classList.remove('picked'));
+      b.classList.add('picked');
+      picked = Number(b.dataset.i);
+      nextBtn.disabled = false; nextBtn.style.opacity = '1';
+      if (hint) hint.textContent = picked === -1 ? (playful() ? "That's okay — press Next." : 'Marked as not covered — press Next.') : (playful() ? 'Nice! Press Next when ready.' : 'Press Next to continue.');
     });
+    nextBtn.onclick = () => {
+      if (picked === null) return;
+      Sound.click();
+      nextBtn.disabled = true; nextBtn.style.opacity = '.5';
+      step({ answerIndex: picked, questionAnswerIndex: qn.answerIndex, probeGrade: data.probeGrade, skillName: qn.skillName });
+    };
   }
   function finish(data) {
     Sound.levelup(); Confetti.burst(160);
@@ -1826,6 +1844,22 @@ function statusNote(s) {
   if (s.status === 'on-track') return ' · moving along at a healthy pace';
   return '';
 }
+// The status badge ("On track", "Excelling", "Extra support") is computed from the child's
+// RECENT work (last ~15 answers), not their all-time average. So the headline number here
+// must be that same recent figure — otherwise a green "On track" can sit next to a low
+// all-time % and read as a contradiction (a parent-reported confusion we're fixing).
+function accuracyLine(s) {
+  const qn = `${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'}`;
+  if (s.recentAccuracy != null) {
+    const recent = Math.round(s.recentAccuracy * 100);
+    const allTime = s.accuracy != null ? Math.round(s.accuracy * 100) : null;
+    const tail = (allTime != null && Math.abs(recent - allTime) >= 10)
+      ? ` <span class="muted" style="font-size:.85rem">(${allTime}% across all their work)</span>` : '';
+    return `${qn} · ${recent}% correct lately${tail}`;
+  }
+  if (s.accuracy != null) return `${qn} · ${Math.round(s.accuracy * 100)}% accuracy`;
+  return `${qn} · just getting started`;
+}
 
 // Parent "Strengths & Future Paths" card, grows with the student. Emerging
 // interests early, concrete career pathways in the high-school years.
@@ -1897,7 +1931,14 @@ route('report', async (kidId) => {
           <b>Gallop Score</b>${r.gallop.deltas && r.gallop.deltas.overall > 0 ? ` <span class="gs-up">▲ +${r.gallop.deltas.overall} this week</span>` : ''}
           <span class="gh-sub">${esc(k.name)}'s all-subjects number. It climbs only with real understanding, never by lucky guesses.</span>
         </div>
-      </div>` : ''}
+      </div>
+      ${isParent ? `<details class="gs-explain"><summary>What is a Gallop Score, and will it go up? 🐎</summary>
+        <div class="gs-explain-body">
+          <p>The Gallop Score is a single number, from <b>200 to 1200</b>, that sums up how much ${esc(k.name)} has truly learned across every subject. Think of it like a credit score for learning: one glanceable number that only moves up when the learning is real.</p>
+          <p><b>Yes — it rises as they progress.</b> Two things push it up: unlocking new skills, and deepening the skills they already have. Harder, higher-grade skills are worth more points, and a skill only pays out its full value once ${esc(k.name)} has genuinely mastered it. That's why it can't be inflated by guessing or racing through — the only way up is understanding that sticks.</p>
+          <p class="muted" style="font-size:.9rem;margin-bottom:0">Rough guide: ~200 is just starting out, ~700 is solid mid-elementary, and 1000+ is high-school-level command. Each subject shows its own score below, plus the school grade it lines up with.</p>
+        </div>
+      </details>` : ''}` : ''}
       ${isParent && r.gradeScale ? `<p class="muted" style="font-size:.8rem;margin-top:8px">Letter grades reflect accuracy · Scale: ${esc(r.gradeScale)}</p>` : ''}
       <div style="margin-top:18px">
       ${r.subjects.map(s => `
@@ -1911,8 +1952,9 @@ route('report', async (kidId) => {
             </div>
           </div>
           ${s.placed ? `
-            <p class="muted" style="margin:6px 0">${isParent ? `${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} · ${s.accuracy != null ? Math.round(s.accuracy * 100) + '% accuracy' : 'just getting started'}${statusNote(s)}` : `${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} done. Keep it up, you're growing!`}</p>
+            <p class="muted" style="margin:6px 0">${isParent ? `${accuracyLine(s)}${statusNote(s)}` : `${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} done. Keep it up, you're growing!`}</p>
             ${isParent && s.placementNote ? `<p class="place-note"><b>Why we started here:</b> ${esc(s.placementNote)}</p>` : ''}
+            ${isParent && s.placementMissed && s.placementMissed.length ? `<p class="place-note" style="background:#fff6ec;border-color:#f0d9bd"><b>Missed on the placement quiz:</b> ${s.placementMissed.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')} <span class="muted" style="font-size:.85rem">— these are just the concepts to keep an eye on; ${esc(k.name)} gets extra practice on them automatically.</span></p>` : ''}
             ${s.strengths.length ? `<p>💪 Strengths: ${s.strengths.map(x => `<span class="pill strength">${esc(x)}</span>`).join(' ')}</p>` : ''}
             ${s.focusAreas.length ? `<p style="margin-top:6px">🎯 Focus areas (getting extra help): ${s.focusAreas.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')}</p>` : ''}
             ${isParent && s.skills && s.skills.length ? `
@@ -2201,7 +2243,7 @@ route('parent', async () => {
             <button class="btn green" style="width:100%" id="sub-family">Family, $54/mo (up to 4 children)</button>
             <button class="btn" style="width:100%;margin-top:8px" id="sub-solo">Solo, $34/mo (1 child)</button>
             <p class="muted center" style="margin-top:8px;font-size:.8rem">Billed monthly, renews automatically until canceled. Cancel anytime in one click.</p>`}
-          <p class="muted center" style="margin-top:10px;font-size:.85rem">${me.billingMode === 'stripe' ? 'Payments powered by Stripe' : 'Demo mode: clicking subscribe activates instantly, no card needed. Set STRIPE_SECRET_KEY to enable real payments.'}</p>
+          <p class="muted center" style="margin-top:10px;font-size:.85rem">${me.billingMode === 'stripe' ? '🔒 Payments powered by Stripe' : me.billingMode === 'demo' ? 'Demo mode: subscribe activates instantly, no card needed.' : '🔒 Payments powered by Stripe'}</p>
         </div>
         <div class="card">
           <h3>🔐 Account</h3>
