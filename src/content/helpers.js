@@ -48,6 +48,11 @@ function q(o) {
     answer: String(o.answer),
     hint: o.hint || '',
     explain: o.explain || '',
+    // Misconception-specific feedback: map a wrong choice (as a string) to a message that
+    // names WHY that specific answer is a common mistake (e.g. "you reversed the fraction"
+    // or "you added instead of multiplied"). The UI shows this instead of the generic
+    // explanation when the learner picks that exact distractor.
+    whyWrong: o.whyWrong || null,
     voice: o.voice || o.prompt.replace(/[×÷]/g, m => (m === '×' ? ' times ' : ' divided by ')),
     passage: o.passage || null,
     art: o.art || null
