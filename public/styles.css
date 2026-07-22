@@ -593,6 +593,11 @@ body[data-theme="academy"] .zone-card .muted { color: #8b94a7; }
 
 /* layered avatar */
 .av-wrap { position: relative; display: inline-block; line-height: 1; }
+/* Uploaded photo avatar — fills the round avatar frame at any size it's shown in. */
+.av-photo-wrap { width: 1.15em; height: 1.15em; display: inline-flex; vertical-align: middle; }
+.avatar-big .av-photo-wrap, .avatar-sm .av-photo-wrap, .muncher-av .av-photo-wrap { width: 100%; height: 100%; }
+.av-photo { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+.av-photo-row { margin-top: 10px; }
 .av-bg { position: absolute; inset: -8%; font-size: 1.1em; opacity: .45; z-index: 0; }
 .av-base { position: relative; z-index: 1; }
 .av-hat { position: absolute; top: -38%; left: 52%; font-size: .55em; z-index: 2; }
@@ -1383,6 +1388,11 @@ body[data-theme="junior"] .lp-body { font-size: 1.24rem; }
 .lw-svg { display: block; margin: 0 auto; }
 .lw-objects { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; font-size: 2.2rem; }
 .lw-obj { line-height: 1; }
+.shp-grid { display: flex; flex-wrap: wrap; gap: 14px 18px; justify-content: center; }
+.shp-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.shp-cell svg { display: block; }
+.shp-cell b { font-size: .95rem; text-transform: capitalize; }
+.shp-sides { font-size: .78rem; color: var(--chrome-sub); font-weight: 600; }
 .lw-groups { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .lw-group { display: flex; gap: 6px; padding: 10px; background: var(--soft-bg); border-radius: 12px; font-size: 1.7rem; }
 .lw-plus { font-size: 1.6rem; font-weight: 800; color: var(--sub); }

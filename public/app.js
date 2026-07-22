@@ -55,6 +55,8 @@ const AVATARS = { fox: '🦊', panda: '🐼', dragon: '🐉', unicorn: '🦄', r
 const ITEM_EMOJI = { crown: '👑', tophat: '🎩', cap: '🧢', party: '🥳', grad: '🎓', cowboy: '🤠', halo: '😇', headphones: '🎧', flower: '🌺', helmet: '⛑️', santa: '🎅', glasses: '👓', sunglasses: '🕶️', bowtie: '🎀', medal: '🏅', guitar: '🎸', wand: '🪄', skateboard: '🛹', trophy: '🏆', books: '📚', soccer: '⚽', controller: '🎮', rainbow: '🌈', space: '🌌', beach: '🏖️', castle: '🏰', volcano: '🌋', city: '🌆', garden: '🌻', sunset: '🌅', winter: '❄️', spooky: '🎃', holiday: '🎄', pup: '🐶', kitten: '🐱', bunny: '🐰', turtle: '🐢', butterfly: '🦋', dino: '🦕', sloth: '🦥', owl: '🦉', hamster: '🐹', parrot: '🦜', pony: '🐴' };
 // Render a kid's customized avatar (base + hat + accessory + pet + background)
 function avatarHTML(k) {
+  // A custom uploaded photo (older kids) wins over the built-in emoji avatar.
+  if (k && k.avatar_img) return `<span class="av-wrap av-photo-wrap"><img class="av-photo" src="${k.avatar_img}" alt="avatar" loading="lazy"></span>`;
   const cfg = (k && k.avatar_config) || {};
   const base = AVATARS[cfg.base || (k && k.avatar)] || '🦊';
   const bg = cfg.bg && cfg.bg !== 'purple' ? ITEM_EMOJI[cfg.bg] || '' : '';
@@ -808,7 +810,7 @@ route('landing', async () => {
 
     <div class="founder-note reveal">
       <div class="founder-emoji"><img src="/logo-mark.png" alt="" class="founder-horse"></div>
-      <p>Gallop was built by a family that wanted something better for their own kids — every subject in one place, at each child's real level, without a tutoring-center price tag. It's built and run by real people, not a faceless edtech company, and when you email support a real person answers. We'd love for your family to try it.</p>
+      <p>Gallop started at our kitchen table. We're two parents who watched our daughter drift through expensive tutoring — bored, unchallenged, doing worksheets — and decided she deserved better. So we built it ourselves: every subject in one place, teaching her at her level, turning practice into something she actually asks to do. Now we're sharing it with your family. There's no faceless edtech company behind Gallop, just a real family that built this to see their daughter succeed — and would love to see yours succeed too.</p>
     </div>
 
     <div class="card reveal" style="margin-top:40px">
@@ -1051,7 +1053,7 @@ route('kid-login', async () => {
       localStorage.bp_family_email = email;
       if (!kids.length) return showError('#k-err', 'No learners yet, ask your parent to add you!');
       $('#k-kids').innerHTML = '<h3>Who are you?</h3><div class="avatar-pick" style="margin-top:10px">' +
-        kids.map(k => `<div class="avatar-opt" data-id="${k.id}" title="${esc(k.name)}">${AVATARS[k.avatar] || '🦊'}<div style="font-size:.8rem;font-weight:700">${esc(k.name)}</div></div>`).join('') + '</div>';
+        kids.map(k => `<div class="avatar-opt" data-id="${k.id}" title="${esc(k.name)}">${k.avatar_img ? avatarHTML(k) : (AVATARS[k.avatar] || '🦊')}<div style="font-size:.8rem;font-weight:700">${esc(k.name)}</div></div>`).join('') + '</div>';
       upgradeTiles();
       document.querySelectorAll('.avatar-opt').forEach(el => el.onclick = () => {
         document.querySelectorAll('.avatar-opt').forEach(x => x.classList.remove('sel'));

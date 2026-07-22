@@ -45,7 +45,36 @@
     }
     return `<svg viewBox="0 0 ${size} ${size}" class="lw-svg" width="200" height="200" role="img">${cells}</svg>`;
   }
+  // Real drawn shapes (SVG) with big labels — for young non-readers who need to SEE
+  // the shape, not read about it. spec: { items:[shapeName...], sides:true? }.
+  const _SHAPE_SIDES = { circle: 0, oval: 0, square: 4, rectangle: 4, triangle: 3, diamond: 4, hexagon: 6, star: 5, heart: 0 };
+  const _SHAPE_COL = { circle: '#4a90d9', oval: '#e0894b', square: '#5cb85c', rectangle: '#c065c0', triangle: '#e05a5a', diamond: '#4a7fd6', hexagon: '#C9A84C', star: '#e8b64c', heart: '#e0607a' };
+  function _shapeSVG(name) {
+    const c = _SHAPE_COL[name] || '#888'; let inner = '';
+    switch (name) {
+      case 'circle': inner = `<circle cx="32" cy="32" r="26" fill="${c}"/>`; break;
+      case 'oval': inner = `<ellipse cx="32" cy="32" rx="28" ry="18" fill="${c}"/>`; break;
+      case 'square': inner = `<rect x="8" y="8" width="48" height="48" rx="4" fill="${c}"/>`; break;
+      case 'rectangle': inner = `<rect x="3" y="17" width="58" height="30" rx="4" fill="${c}"/>`; break;
+      case 'triangle': inner = `<polygon points="32,7 58,55 6,55" fill="${c}"/>`; break;
+      case 'diamond': inner = `<polygon points="32,5 57,32 32,59 7,32" fill="${c}"/>`; break;
+      case 'hexagon': inner = `<polygon points="32,6 55,19 55,45 32,58 9,45 9,19" fill="${c}"/>`; break;
+      case 'star': inner = `<polygon points="32,6 38.5,23.1 56.7,24 42.5,35.4 47.3,53 32,43 16.7,53 21.5,35.4 7.3,24 25.5,23.1" fill="${c}"/>`; break;
+      case 'heart': inner = `<path d="M32,54 C6,34 12,10 32,22 C52,10 58,34 32,54 Z" fill="${c}"/>`; break;
+      default: inner = `<circle cx="32" cy="32" r="24" fill="${c}"/>`;
+    }
+    return `<svg viewBox="0 0 64 64" width="72" height="72" role="img" aria-label="${name}">${inner}</svg>`;
+  }
   const WIDGETS = {
+    shapes(spec) {
+      const items = spec.items || ['circle', 'square', 'triangle'];
+      const cells = items.map(n => {
+        const s = _SHAPE_SIDES[n];
+        const sub = spec.sides ? `<span class="shp-sides">${s === 0 ? 'round' : s + ' sides'}</span>` : '';
+        return `<div class="shp-cell">${_shapeSVG(n)}<b>${n}</b>${sub}</div>`;
+      }).join('');
+      return { html: `<div class="shp-grid">${cells}</div>` };
+    },
     objects(spec) {
       const n = spec.n || 5, emoji = spec.emoji || '⭐';
       const items = Array.from({ length: n }, () => `<span class="lw-obj">${emoji}</span>`).join('');
@@ -482,76 +511,61 @@
         "subject": "math",
         "grade": 0,
         "title": "Shape Detective",
-        "subtitle": "Spotting shapes hiding in real things.",
+        "subtitle": "See and name every shape.",
         "steps": [
           {
             "kind": "hook",
             "title": "Shapes are everywhere",
-            "body": "A clock is a circle. A window is a square. Once you start looking, you will see shapes hiding inside everyday things all day long.",
-            "say": "A clock is a circle. A window is a square. Shapes hide inside everyday things."
+            "body": "A clock is a circle. A door is a rectangle. Once you start looking, shapes hide inside everyday things all day long.",
+            "say": "A clock is a circle. A door is a rectangle. Shapes hide inside everyday things. Let's meet them.",
+            "widget": { "w": "shapes", "items": ["circle", "square", "triangle"] }
           },
           {
             "kind": "concept",
-            "title": "Match the thing to its shape",
-            "body": "A kite has four corners that stretch out, so it is a diamond. A football is longer than it is tall and rounded at the ends, so it is an oval.",
-            "analogy": "An oval is a circle that got gently squished, like a stretched-out egg.",
-            "say": "A kite is a diamond. A football is an oval, like a stretched circle.",
-            "widget": {
-              "w": "sideBySide",
-              "cards": [
-                {
-                  "emoji": "🪁",
-                  "title": "Kite",
-                  "body": "A diamond.",
-                  "color": "#4a7fd6"
-                },
-                {
-                  "emoji": "🏈",
-                  "title": "Football",
-                  "body": "An oval.",
-                  "color": "#8a5a2b"
-                }
-              ]
-            }
+            "title": "Meet the round shapes",
+            "body": "A CIRCLE is perfectly round, like a clock or a wheel. An OVAL is a squished circle, like an egg or a football. A HEART looks like a valentine. A STAR has points that poke out, like a starfish.",
+            "say": "A circle is perfectly round, like a wheel. An oval is a squished circle, like an egg. A heart is a valentine. A star has points, like a starfish.",
+            "widget": { "w": "shapes", "items": ["circle", "oval", "heart", "star"] }
           },
           {
-            "kind": "try",
-            "title": "Your turn: name the shape",
-            "body": "Look at the football. Which shape does it match?",
-            "say": "What shape is a football? Circle, oval, or square?",
-            "widget": {
-              "w": "tapPick",
-              "prompt": "What shape is a football 🏈?",
-              "options": [
-                {
-                  "label": "circle"
-                },
-                {
-                  "label": "oval",
-                  "correct": true
-                },
-                {
-                  "label": "square"
-                }
-              ]
-            }
+            "kind": "concept",
+            "title": "Shapes with straight sides",
+            "body": "A TRIANGLE has 3 straight sides, like a slice of pizza. A SQUARE has 4 equal sides, like a cracker. A RECTANGLE has 4 sides but is longer, like a door. A DIAMOND is a square tipped on its corner, like a kite. A HEXAGON has 6 sides, like a honeycomb.",
+            "say": "A triangle has three sides, like a pizza slice. A square has four equal sides. A rectangle has four sides but is longer, like a door. A diamond is a tipped square, like a kite. A hexagon has six sides, like a honeycomb.",
+            "widget": { "w": "shapes", "items": ["triangle", "square", "rectangle", "diamond", "hexagon"], "sides": true }
           },
           {
             "kind": "example",
-            "title": "Detective steps",
-            "body": "How do we know a kite is a diamond?",
+            "title": "Count the corners",
+            "body": "To name a shape with straight sides, count its corners.",
             "reveal": [
-              "Count the corners. A kite has 4 pointy corners.",
-              "Look at the sides. They slant in to meet at top and bottom.",
-              "Four corners that point out like that make a diamond."
-            ]
+              "A triangle has 3 corners and 3 sides.",
+              "A square, a rectangle, and a diamond each have 4 corners and 4 sides.",
+              "A hexagon has 6 corners and 6 sides. Round shapes like a circle have 0 sides."
+            ],
+            "say": "A triangle has three corners. A square, rectangle, and diamond have four. A hexagon has six. Round shapes have zero."
+          },
+          {
+            "kind": "try",
+            "title": "Your turn: how many sides?",
+            "body": "Look at the triangle. How many sides does it have?",
+            "say": "How many sides does a triangle have? Three, four, or zero?",
+            "widget": {
+              "w": "tapPick",
+              "prompt": "A triangle has how many sides?",
+              "options": [
+                { "label": "3 sides", "correct": true },
+                { "label": "4 sides" },
+                { "label": "0 — it's round" }
+              ]
+            }
           },
           {
             "kind": "recap",
             "title": "Remember this",
-            "say": "A kite is a diamond. A football is an oval. Find the shape hiding inside real things.",
-            "emoji": "🪁",
-            "takeaway": "A kite is a diamond. A football is an oval, a squished circle. Look at real things and find the shape inside."
+            "say": "Round shapes: circle, oval, heart, star. Straight shapes: triangle has three sides, square, rectangle, and diamond have four, and a hexagon has six.",
+            "emoji": "🔺",
+            "takeaway": "Round shapes: circle, oval, heart, star. Straight-sided shapes: triangle (3), square, rectangle & diamond (4), hexagon (6). Count the corners to name the shape."
           }
         ]
       },

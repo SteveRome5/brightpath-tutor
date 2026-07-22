@@ -1,8 +1,4 @@
-/* Gallop Learning Academy — lesson patch layer.
-   Adds teaching beats to lessons whose questions needed a step the base lesson
-   lacked, and injects dedicated lessons for advanced skills that borrowed a
-   simpler lesson (from the lesson<->question audit). Loaded AFTER lessons.js;
-   augments window.GALLOP_LESSONS in place. Idempotent. Auto-generated. */
+/* Gallop Learning Academy — lesson patch layer. Auto-generated. */
 'use strict';
 (() => {
   const L = window.GALLOP_LESSONS;
@@ -152,51 +148,6 @@
         "You pay $96."
       ],
       "say": "Sixty percent of two forty is one hundred forty-four off. Two forty minus one forty-four is ninety-six dollars."
-    }
-  ],
-  "m.k.shapes": [
-    {
-      "kind": "show",
-      "title": "Two more shapes: hexagon and star",
-      "body": "A HEXAGON has 6 straight sides — like a patch on a soccer ball or a honeycomb cell. A STAR has points that poke out — like a starfish or a sheriff badge.",
-      "say": "A hexagon has six sides, like a soccer ball patch. A star has points that poke out, like a starfish.",
-      "widget": {
-        "w": "sideBySide",
-        "cards": [
-          {
-            "emoji": "⚽",
-            "title": "Hexagon",
-            "body": "6 straight sides."
-          },
-          {
-            "emoji": "⭐",
-            "title": "Star",
-            "body": "Points that poke out."
-          }
-        ]
-      }
-    },
-    {
-      "kind": "try",
-      "title": "Your turn: name the shape",
-      "body": "What shape is a soccer ball patch?",
-      "say": "What shape is a soccer ball patch?",
-      "widget": {
-        "w": "tapPick",
-        "prompt": "Count the sides…",
-        "options": [
-          {
-            "label": "Hexagon",
-            "correct": true
-          },
-          {
-            "label": "Circle"
-          },
-          {
-            "label": "Star"
-          }
-        ]
-      }
     }
   ],
   "e.1.rhyme": [
@@ -8315,22 +8266,8 @@
   }
 ];
   let patched = 0, added = 0;
-  for (const les of NEW_LESSONS) {
-    const list = L[les.subject]; if (!list) continue;
-    if (list.some(l => l && l.skillId === les.skillId)) continue;
-    list.push(les); bySkill[les.skillId] = les; added++;
-  }
+  for (const les of NEW_LESSONS) { const list = L[les.subject]; if (!list) continue; if (list.some(l => l && l.skillId === les.skillId)) continue; list.push(les); bySkill[les.skillId] = les; added++; }
   const subjOf = sid => sid.startsWith('sp.') ? 'spanish' : sid[0] === 'm' ? 'math' : sid[0] === 'e' ? 'english' : 'science';
-  for (const sid of Object.keys(PATCH)) {
-    let les = bySkill[sid];
-    if (!les && window.BP && window.BP.lessonForSkill) les = window.BP.lessonForSkill(subjOf(sid), sid);
-    const steps = PATCH[sid];
-    if (!les || !Array.isArray(les.steps) || !steps || !steps.length) continue;
-    const marker = steps[0].title;
-    if (marker && les.steps.some(s => s && s.title === marker)) continue;
-    let idx = les.steps.length;
-    for (let i = les.steps.length - 1; i >= 0; i--) { if (les.steps[i] && les.steps[i].kind === 'recap') { idx = i; break; } }
-    les.steps.splice(idx, 0, ...steps); patched++;
-  }
+  for (const sid of Object.keys(PATCH)) { let les = bySkill[sid]; if (!les && window.BP && window.BP.lessonForSkill) les = window.BP.lessonForSkill(subjOf(sid), sid); const steps = PATCH[sid]; if (!les || !Array.isArray(les.steps) || !steps || !steps.length) continue; const marker = steps[0].title; if (marker && les.steps.some(s => s && s.title === marker)) continue; let idx = les.steps.length; for (let i = les.steps.length - 1; i >= 0; i--) { if (les.steps[i] && les.steps[i].kind === 'recap') { idx = i; break; } } les.steps.splice(idx, 0, ...steps); patched++; }
   try { window.GALLOP_PATCHED = patched; window.GALLOP_NEWLESSONS = added; } catch (e) {}
 })();

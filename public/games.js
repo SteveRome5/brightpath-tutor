@@ -1247,14 +1247,46 @@
     const owned = new Set(data.owned);
     const SLOT_LABEL = { base: '🐾 Character', hat: '🎩 Hats', accessory: '✨ Accessories', bg: '🌈 Worlds', pet: '🐶 Pets' };
     let slot = 'base';
+    // Custom photo upload is a middle/high-school perk (grade 6+).
+    const grade = (State.me.kid && State.me.kid.grade) || 0;
+    const canPhoto = grade >= 6;
+    let photo = (State.me.kid && State.me.kid.avatar_img) || null;
+    // Read a picked file, cover-crop to a 256px square, re-encode as JPEG (strips
+    // metadata), and shrink quality until the data URL fits the server's size cap.
+    function processPhoto(file) {
+      return new Promise((resolve, reject) => {
+        if (!/^image\/(png|jpeg|jpg|webp)$/.test(file.type || '')) return reject(new Error('Please pick a JPG, PNG, or WebP image.'));
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          const S = 256, c = document.createElement('canvas'); c.width = S; c.height = S;
+          const ctx = c.getContext('2d');
+          const side = Math.min(img.width, img.height);
+          ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, S, S);
+          let q = 0.82, out = c.toDataURL('image/jpeg', q);
+          while (out.length > 88000 && q > 0.4) { q -= 0.12; out = c.toDataURL('image/jpeg', q); }
+          resolve(out);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read that image.')); };
+        img.src = url;
+      });
+    }
     function isOwned(s, item) { return item.price === 0 || owned.has(s + ':' + item.id); }
     function render() {
-      const preview = { avatar_config: cfg };
+      const preview = { avatar_config: cfg, avatar_img: photo };
       app().innerHTML = topbar(`<div class="container" style="max-width:720px">
         <div class="lesson-top"><b>🎨 Avatar Builder</b><b>🪙 ${coins} coins</b></div>
         <div class="card center" style="padding:18px">
           <div class="avatar-big" style="width:130px;height:130px;font-size:5rem;margin:0 auto">${window.BP.avatarHTML(preview)}</div>
           <p class="muted" style="margin-top:8px">Earn coins by answering questions — spend them on style! 😎</p>
+          ${canPhoto ? `<div class="av-photo-row">
+            <input type="file" id="av-file" accept="image/png,image/jpeg,image/webp" hidden>
+            <button class="btn small ghost on-page" id="av-upload">📷 ${photo ? 'Change Photo' : 'Upload a Photo'}</button>
+            ${photo ? '<button class="btn small ghost on-page" id="av-remove" style="margin-left:6px">Use built-in avatar</button>' : ''}
+            <p class="muted" style="font-size:.78rem;margin-top:8px">Use a photo of yourself or anything you like — your parent can see it too. JPG, PNG, or WebP.</p>
+            <p class="muted" id="av-photo-msg" style="font-size:.8rem;margin-top:4px;display:none"></p>
+          </div>` : ''}
         </div>
         <div class="center" style="margin:12px 0">
           ${Object.keys(SLOT_LABEL).map(s => `<button class="btn small ${s === slot ? 'sun' : 'ghost on-page'}" style="margin:3px" data-slot="${s}">${SLOT_LABEL[s]}</button>`).join('')}
@@ -1276,6 +1308,31 @@
       </div>`);
       wireChrome();
       document.querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { slot = b.dataset.slot; Sound.click(); render(); });
+      // Photo upload (grade 6+): pick → re-encode on-device → save → live preview.
+      const fileIn = $('#av-file'), upBtn = $('#av-upload'), rmBtn = $('#av-remove'), pmsg = $('#av-photo-msg');
+      const showMsg = (t, bad) => { if (pmsg) { pmsg.textContent = t; pmsg.style.display = 'block'; pmsg.style.color = bad ? '#c0392b' : ''; } };
+      if (upBtn && fileIn) {
+        upBtn.onclick = () => { Sound.click(); fileIn.click(); };
+        fileIn.onchange = async () => {
+          const file = fileIn.files && fileIn.files[0];
+          if (!file) return;
+          showMsg('Processing your photo…');
+          try {
+            const dataUrl = await processPhoto(file);
+            await api(`/play/${kidId()}/avatar/photo`, { method: 'POST', body: { dataUrl } });
+            photo = dataUrl;
+            if (State.me.kid) State.me.kid.avatar_img = dataUrl;
+            Sound.badge(); Confetti.burst(60); render();
+          } catch (e) { Sound.wrong(); showMsg(e.message || 'Could not use that image.', true); }
+        };
+      }
+      if (rmBtn) rmBtn.onclick = async () => {
+        Sound.click();
+        try { await api(`/play/${kidId()}/avatar/photo/clear`, { method: 'POST', body: {} }); } catch (e) {}
+        photo = null;
+        if (State.me.kid) State.me.kid.avatar_img = null;
+        render();
+      };
       document.querySelectorAll('.avatar-opt').forEach(el => el.onclick = async () => {
         const item = data.catalog[slot].find(i => i.id === el.dataset.item);
         if (isOwned(slot, item)) { cfg[slot] = item.id; Sound.click(); render(); return; }
