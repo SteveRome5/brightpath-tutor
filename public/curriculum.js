@@ -5,7 +5,7 @@
    skill maps to the lesson that teaches it. Chapter numbers are derived at
    render time (unit.n "." chapter index). Alias/themed practice banks fold into
    the lesson that teaches the same concept, so each concept appears once here. */
-'use strict';
+"use strict";
 window.GALLOP_CURRICULUM = {
   "math": [
     {
@@ -272,7 +272,9 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "e.6.vocab",
         "e.6.commas",
-        "e.6.theme"
+        "e.6.theme",
+        "e.6.authorpov",
+        "e.6.evidence"
       ]
     },
     {
@@ -307,7 +309,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Literary Foundations",
       "skills": [
         "e.9.vocab",
-        "e.9.literary"
+        "e.9.literary",
+        "e.9.roots",
+        "e.9.claims"
       ]
     },
     {
@@ -330,7 +334,8 @@ window.GALLOP_CURRICULUM = {
       "title": "Literary Analysis",
       "skills": [
         "e.11.satvocab",
-        "e.11.analysis"
+        "e.11.analysis",
+        "e.11.themesym"
       ]
     },
     {
@@ -341,7 +346,8 @@ window.GALLOP_CURRICULUM = {
       "title": "Synthesis & Style",
       "skills": [
         "e.12.synthesis",
-        "e.12.style"
+        "e.12.style",
+        "e.12.syntax"
       ]
     }
   ],
@@ -355,7 +361,9 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "s.k.senses",
         "s.k.weather",
-        "s.k.animals"
+        "s.k.animals",
+        "s.k.plants",
+        "s.k.skyday"
       ]
     },
     {
@@ -366,7 +374,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Living Things & Weather",
       "skills": [
         "s.1.plants",
-        "s.1.animals1"
+        "s.1.animals1",
+        "s.1.lightsound",
+        "s.1.livingnon"
       ]
     },
     {
@@ -377,7 +387,8 @@ window.GALLOP_CURRICULUM = {
       "title": "Matter & Habitats",
       "skills": [
         "s.2.matter",
-        "s.2.habitats"
+        "s.2.habitats",
+        "s.2.lifecycle"
       ]
     },
     {
@@ -388,7 +399,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Forces & Life Cycles",
       "skills": [
         "s.3.forces",
-        "s.3.life"
+        "s.3.life",
+        "s.3.magnets",
+        "s.3.lifecycles"
       ]
     },
     {
@@ -399,7 +412,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Matter, Energy & Space",
       "skills": [
         "s.4.matter",
-        "s.4.space"
+        "s.4.space",
+        "s.4.energy",
+        "s.4.rocks"
       ]
     },
     {
@@ -410,7 +425,9 @@ window.GALLOP_CURRICULUM = {
       "title": "The Human Body & Ecosystems",
       "skills": [
         "s.5.body",
-        "s.5.ecosystems"
+        "s.5.ecosystems",
+        "s.5.matter",
+        "s.5.earthwater"
       ]
     },
     {
@@ -421,7 +438,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Cells & Body Systems",
       "skills": [
         "s.6.cells",
-        "s.6.body"
+        "s.6.body",
+        "s.6.weather",
+        "s.6.energymachines"
       ]
     },
     {
@@ -432,7 +451,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Chemistry & Earth Science",
       "skills": [
         "s.7.chemistry",
-        "s.7.earth"
+        "s.7.earth",
+        "s.7.bodysystems",
+        "s.7.ecology"
       ]
     },
     {
@@ -443,7 +464,8 @@ window.GALLOP_CURRICULUM = {
       "title": "Physics, Waves & Space",
       "skills": [
         "s.8.physics",
-        "s.8.waves"
+        "s.8.waves",
+        "s.8.reactions"
       ]
     },
     {
@@ -501,7 +523,9 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "sp.0.greetings",
         "sp.0.numbers",
-        "sp.0.colors"
+        "sp.0.colors",
+        "sp.k.saludos",
+        "sp.k.colores"
       ]
     },
     {
@@ -547,7 +571,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Questions & Preferences",
       "skills": [
         "sp.4.questions",
-        "sp.4.gustar"
+        "sp.4.gustar",
+        "sp.4.comida",
+        "sp.4.numeros"
       ]
     },
     {
@@ -558,7 +584,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Verbs & Daily Life",
       "skills": [
         "sp.5.eri",
-        "sp.5.daily"
+        "sp.5.daily",
+        "sp.5.gustar",
+        "sp.5.tiempo"
       ]
     },
     {
@@ -580,7 +608,9 @@ window.GALLOP_CURRICULUM = {
       "title": "The Past & The City",
       "skills": [
         "sp.7.preterite",
-        "sp.7.places"
+        "sp.7.places",
+        "sp.7.objetos",
+        "sp.7.comparativos"
       ]
     },
     {
