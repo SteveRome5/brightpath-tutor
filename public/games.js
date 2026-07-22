@@ -63,10 +63,12 @@
   function pixStar(ctx, x, y, col) { PX.r(ctx, x + 2, y, 2, 7, col); PX.r(ctx, x, y + 2, 6, 2, col); PX.p(ctx, x + 1, y + 1, col); PX.p(ctx, x + 4, y + 1, col); PX.p(ctx, x + 1, y + 5, col); PX.p(ctx, x + 4, y + 5, col); }
 
   // Spend a token, run the game; friendly paywall if broke
+  let _curBest = 0; // best score to beat for the game currently being played
   async function gated(game, start) {
     try {
       const r = await api(`/play/${kidId()}/spend-token`, { method: 'POST', body: { game } });
       Sound.badge();
+      _curBest = r.best || 0;
       start(r.tokensLeft);
     } catch (e) {
       app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="card center">
@@ -85,11 +87,24 @@
     let r = null;
     try { r = await api(`/play/${kidId()}/score`, { method: 'POST', body: { game, score } }); } catch (e) { r = null; }
     const coinsEarned = r ? (r.coinsEarned || 0) : 0;
-    Confetti.burst(150); Sound.levelup();
+    const isRecord = !!(r && r.isRecord);
+    const best = r ? (r.best || score) : Math.max(_curBest, score);
+    const firstPlay = !!(r && r.firstPlay);
+    Confetti.burst(isRecord ? 220 : 150); Sound.levelup();
+    if (isRecord) Confetti.burst(120);
     const wins = ((r && r.challengesWon) || []).map(w => `<p style="font-weight:700;margin-top:8px">⚡ You beat ${esc(w.fromName)}'s challenge of ${w.scoreToBeat}! +5 🪙</p>`).join('');
+    // Personal-best banner: crown a new record, otherwise show the score to chase.
+    const bestBanner = isRecord
+      ? `<div class="hs-banner hs-new">🏆 NEW HIGH SCORE! You beat your old best of ${r.prevBest}!</div>`
+      : firstPlay
+        ? `<div class="hs-banner">🏅 Your first score: <b>${score}</b>. Play again and try to beat it!</div>`
+        : score === best
+          ? `<div class="hs-banner">🏅 You matched your best of <b>${best}</b> — so close to a record!</div>`
+          : `<div class="hs-banner">🏅 Your best is <b>${best}</b> — only ${best - score} more to beat it. Try again!</div>`;
     app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
-      <div class="big-emoji">🏆</div><h2>${esc(title)}</h2>
-      <div class="summary-stats"><div class="sstat"><div class="n">${score}</div>score</div>${coinsEarned ? `<div class="sstat"><div class="n">+${coinsEarned}</div>🪙 coins</div>` : ''}</div>
+      <div class="big-emoji">${isRecord ? '👑' : '🏆'}</div><h2>${esc(title)}</h2>
+      <div class="summary-stats"><div class="sstat"><div class="n">${score}</div>score</div><div class="sstat"><div class="n">${best}</div>🏅 best</div>${coinsEarned ? `<div class="sstat"><div class="n">+${coinsEarned}</div>🪙 coins</div>` : ''}</div>
+      ${bestBanner}
       ${r ? '' : '<p class="muted" style="font-size:.85rem">Score will sync when you\'re back online.</p>'}
       ${wins}
       <p class="muted">${esc(lines || '')}</p>
@@ -106,16 +121,22 @@
     if (needKid()) return;
     const s = await api(`/play/${kidId()}/status`);
     const k = s.kid;
-    const games = [
-      { id: 'bakery', emoji: '🧁', name: 'Bakery Quest', desc: 'Run the Gallop Bakery for a day — use real math to bake, price, and bank a profit!' },
-      { id: 'blitz', emoji: '⚡', name: 'Lightning Round', desc: '60 seconds. Rapid-fire questions. Build a combo — beat your best!' },
-      { id: 'lemonade', emoji: '🍋', name: 'Lemonade Tycoon', desc: 'Run your own stand — buy smart, price right, bank the profit!' },
-      { id: 'memory', emoji: '🃏', name: 'Memory Match', desc: 'Flip cards, match pairs — Spanish words, math facts & more!' },
-      { id: 'wordsearch', emoji: '🔍', name: 'Word Search', desc: 'Hunt hidden words in the letter jungle' },
-      { id: 'code', emoji: '🤖', name: 'Code Quest', desc: 'Program Robo the robot to reach the star' },
-      { id: 'art', emoji: '🎨', name: 'Art Studio', desc: 'Draw with step-by-step guides — so cute!' }
+    // Every game carries a grade band so the arcade fits the player's age: the
+    // youngest get playful money/drawing games; high-schoolers get the strategy and
+    // speed games (Market Mogul, Lightning Round, Code Quest) instead of Lemonade or
+    // the cupcake bakery. min/max are inclusive grade numbers (0 = Kindergarten).
+    const grade = k.grade || 0;
+    const CATALOG = [
+      { id: 'market', emoji: '📈', name: 'Market Mogul', desc: 'Read the news, manage risk, and grow your money on the Gallop Stock Exchange.', min: 4, max: 12 },
+      { id: 'blitz', emoji: '⚡', name: 'Lightning Round', desc: '60 seconds. Rapid-fire questions. Build a combo — beat your best!', min: 0, max: 12 },
+      { id: 'code', emoji: '🤖', name: 'Code Quest', desc: 'Program Robo the robot to reach the star — a fresh puzzle set every time.', min: 0, max: 12 },
+      { id: 'wordsearch', emoji: '🔍', name: 'Word Search', desc: 'Hunt hidden words in the letter jungle.', min: 0, max: 12 },
+      { id: 'memory', emoji: '🃏', name: 'Memory Match', desc: 'Flip cards, match pairs — Spanish words, math facts & more!', min: 0, max: 12 },
+      { id: 'bakery', emoji: '🧁', name: 'Bakery Quest', desc: 'Run the Gallop Bakery for a day — use real math to bake, price, and bank a profit!', min: 0, max: 8 },
+      { id: 'lemonade', emoji: '🍋', name: 'Lemonade Tycoon', desc: 'Run your own stand — buy smart, price right, bank the profit!', min: 0, max: 8 },
+      { id: 'art', emoji: '🎨', name: 'Art Studio', desc: 'Draw with step-by-step guides — so cute!', min: 0, max: 6 }
     ];
-    if ((k.grade || 0) >= 4) games.unshift({ id: 'market', emoji: '📈', name: 'Market Mogul', desc: 'Read the news, manage risk, grow $1,000 on the Gallop Stock Exchange' });
+    const games = CATALOG.filter(g => grade >= g.min && grade <= g.max);
     app().innerHTML = topbar(`<div class="container">
       <div class="kid-header">
         <div class="avatar-big">${avatarHTML(k)}</div>
@@ -416,7 +437,7 @@
     function render() {
       const L = lvl();
       app().innerHTML = topbar(`<div class="container" style="max-width:520px">
-        <div class="lesson-top"><b>🤖 Code Quest — Level ${levelIdx + 1}/${CODE_LEVELS.length}</b><b>Score: ${score}</b></div>
+        <div class="lesson-top"><b>🤖 Code Quest — Level ${levelIdx + 1}/${CODE_LEVELS.length}${_curBest ? `<span class="hs-target">🏅 Best: ${_curBest}</span>` : ''}</b><b>Score: ${score}</b></div>
         <div class="cq-stage px-stage"><canvas id="cq-canvas" width="160" height="160"></canvas></div>
         <div class="cq-pad">
           <span></span><button class="cq-key" data-cmd="up">▲</button><span></span>
@@ -564,7 +585,7 @@
       const ch = choicesFor(qn);
       const hot = timeLeft <= 10;
       app().innerHTML = topbar(`<div class="container" style="max-width:560px">
-        <div class="lesson-top"><b>⚡ Lightning Round</b><b>Score: <span id="bz-score">${score}</span></b></div>
+        <div class="lesson-top"><b>⚡ Lightning Round${_curBest ? `<span class="hs-target">🏅 Best: ${_curBest}</span>` : ''}</b><b>Score: <span id="bz-score">${score}</span></b></div>
         <div class="bz-ringwrap">
           <svg class="bz-ring ${hot ? 'hot' : ''}" viewBox="0 0 120 120" width="132" height="132">
             <circle class="bz-ring-bg" cx="60" cy="60" r="52"></circle>
@@ -828,21 +849,33 @@
   // ======================= MARKET MOGUL =======================
   // Stock market for grades 4+: read the news, think ahead, manage risk.
   function startMarket() {
-    const STOCKS = [
+    const grade = (State.me.kid && State.me.kid.grade) || 4;
+    const senior = grade >= 9;            // high-schoolers get a deeper, longer market
+    const ALL_STOCKS = [
       { id: 'hay', name: 'HayGrain Farms', short: 'HayGrain', emoji: '🌾', price: 20, wild: 0.05, color: '#4c9f45' },
       { id: 'sun', name: 'SunVolt Energy', short: 'SunVolt', emoji: '☀️', price: 30, wild: 0.10, color: '#C9A84C' },
       { id: 'pix', name: 'PixelPlay Games', short: 'PixelPlay', emoji: '🎮', price: 15, wild: 0.14, color: '#8e5cf7' },
-      { id: 'nova', name: 'Nova Rockets', short: 'Nova', emoji: '🚀', price: 50, wild: 0.22, color: '#eb5757' }
+      { id: 'nova', name: 'Nova Rockets', short: 'Nova', emoji: '🚀', price: 50, wild: 0.22, color: '#eb5757' },
+      // extra sectors unlocked for older investors — a steady blue-chip bank and a
+      // high-risk biotech — so diversification actually matters.
+      { id: 'vault', name: 'Vault Bank', short: 'Vault', emoji: '🏦', price: 40, wild: 0.07, color: '#4aa3c7' },
+      { id: 'geno', name: 'GenoMed Labs', short: 'GenoMed', emoji: '🧬', price: 25, wild: 0.28, color: '#d6559b' }
     ];
+    const STOCKS = senior ? ALL_STOCKS : ALL_STOCKS.slice(0, 4);
     STOCKS.forEach(s => { s.hist = [s.price]; });
     const NEWS = {
       hay: { good: ['HayGrain wins a huge grocery contract 🌾', 'Perfect growing season boosts HayGrain harvests'], bad: ['Drought hits HayGrain\'s biggest fields', 'HayGrain recalls a shipment of oats'] },
       sun: { good: ['New law rewards clean energy, SunVolt cheers ☀️', 'SunVolt\'s new panel breaks an efficiency record'], bad: ['Cheap imported panels undercut SunVolt', 'Cloudy quarter dims SunVolt\'s earnings'] },
       pix: { good: ['PixelPlay\'s new game hits #1 in downloads 🎮', 'PixelPlay announces a huge esports league'], bad: ['PixelPlay delays its biggest game launch', 'Players quit PixelPlay\'s buggy update'] },
-      nova: { good: ['Nova Rockets lands a satellite mega-contract 🚀', 'Nova\'s reusable rocket sticks the landing'], bad: ['Nova launch scrubbed, investors nervous', 'Nova loses a contract to a rival'] }
+      nova: { good: ['Nova Rockets lands a satellite mega-contract 🚀', 'Nova\'s reusable rocket sticks the landing'], bad: ['Nova launch scrubbed, investors nervous', 'Nova loses a contract to a rival'] },
+      vault: { good: ['Vault Bank raises its dividend as profits climb 🏦', 'Rising interest rates fatten Vault Bank\'s margins'], bad: ['Loan defaults tick up at Vault Bank', 'A rival fintech pulls customers from Vault Bank'] },
+      geno: { good: ['GenoMed\'s new therapy aces its big trial 🧬', 'GenoMed wins fast-track approval from regulators'], bad: ['GenoMed\'s lead drug fails a key study', 'GenoMed burns cash as trials drag on'] }
     };
-    const ROUNDS = 8, START = 1000;
-    let round = 1, cash = START, owned = { hay: 0, sun: 0, pix: 0, nova: 0 }, last = {}, headline = makeNews();
+    const ROUNDS = senior ? 12 : 8, START = senior ? 2000 : 1000;
+    const LOTS = senior ? [1, 5, 10] : [1, 5];   // trade multiple shares at once
+    let lot = 1;
+    let round = 1, cash = START, last = {}, headline = makeNews();
+    const owned = {}; STOCKS.forEach(s => owned[s.id] = 0);
     const $$ = n => '$' + n.toFixed(2);
     function makeNews() {
       const s = STOCKS[Math.floor(Math.random() * STOCKS.length)];
@@ -879,9 +912,10 @@
     function render(flash, animate) {
       const nw = netWorth(), gain = nw - START;
       app().innerHTML = topbar(`<div class="container" style="max-width:680px">
-        <div class="lesson-top"><b>📈 Market Mogul — Day ${round}/${ROUNDS}</b><b class="${gain >= 0 ? 'up' : 'down'}">${$$(nw)} ${gain >= 0 ? '▲' : '▼'} ${$$(Math.abs(gain))}</b></div>
+        <div class="lesson-top"><b>📈 Market Mogul — Day ${round}/${ROUNDS}${_curBest ? `<span class="hs-target">🏅 Best: ${_curBest}</span>` : ''}</b><b class="${gain >= 0 ? 'up' : 'down'}">${$$(nw)} ${gain >= 0 ? '▲' : '▼'} ${$$(Math.abs(gain))}</b></div>
         ${chart()}
         <div class="mm-legend">${STOCKS.map(s => `<span><i style="background:${s.color}"></i>${s.emoji} ${$$(s.price)}</span>`).join('')}</div>
+        <div class="mm-lots">Trade size: ${LOTS.map(n => `<button class="mm-lot ${lot === n ? 'on' : ''}" data-lot="${n}">×${n}</button>`).join('')}</div>
         ${flash ? `<div class="news-flash mm-surprise">${flash}</div>` : ''}
         <div class="news-flash">📰 <b>MARKET NEWS:</b> ${headline.text}<br><span style="font-weight:500;font-size:.9rem">Think ahead: what might this do to the price tomorrow?</span></div>
         <div class="card" style="padding:12px">
@@ -908,13 +942,16 @@
       </div>`);
       wireChrome();
       drawMMChart();
+      document.querySelectorAll('[data-lot]').forEach(b => b.onclick = () => { lot = Number(b.dataset.lot); Sound.click(); render(flash, false); });
       document.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => {
         const s = STOCKS.find(x => x.id === b.dataset.buy);
-        if (cash >= s.price) { cash -= s.price; owned[s.id]++; Sound.click(); render(flash, false); }
+        const n = Math.min(lot, Math.floor(cash / s.price));   // buy up to `lot`, capped by cash
+        if (n > 0) { cash -= n * s.price; owned[s.id] += n; Sound.click(); render(flash, false); }
       });
       document.querySelectorAll('[data-sell]').forEach(b => b.onclick = () => {
         const s = STOCKS.find(x => x.id === b.dataset.sell);
-        if (owned[s.id] > 0) { cash += s.price; owned[s.id]--; Sound.click(); render(flash, false); }
+        const n = Math.min(lot, owned[s.id]);                  // sell up to `lot`, capped by holdings
+        if (n > 0) { cash += n * s.price; owned[s.id] -= n; Sound.click(); render(flash, false); }
       });
       $('#next-day').onclick = advance;
     }

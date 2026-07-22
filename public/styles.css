@@ -536,6 +536,13 @@ body[data-theme="academy"] .hint-box { background: #33301f; color: #e6d9a8; }
 .sstat { background: var(--soft-bg); border-radius: 12px; padding: 14px 22px; font-weight: 600; }
 .sstat .n { font-family: var(--font-display); font-size: 1.5rem; color: var(--brand); }
 body[data-theme="academy"] .sstat .n { color: var(--accent); }
+.hs-banner { background: var(--soft-bg); border: 1.5px solid var(--card-border); border-radius: 12px; padding: 11px 15px; margin: 4px auto 14px; max-width: 30rem; font-size: .92rem; font-weight: 600; color: var(--chrome-sub); }
+.hs-banner b { color: var(--brand); }
+.hs-banner.hs-new { background: linear-gradient(90deg, #fff2c9, #ffe08a); border-color: #e0b93c; color: #7a5a12; font-weight: 800; animation: hsPop .5s ease; }
+.hs-banner.hs-new b { color: #7a5a12; }
+@keyframes hsPop { 0% { transform: scale(.9); opacity: 0; } 60% { transform: scale(1.04); } 100% { transform: scale(1); opacity: 1; } }
+/* best-to-beat pill shown inside a running game header */
+.hs-target { display: inline-block; font-size: .78rem; font-weight: 700; color: var(--chrome-sub); background: var(--soft-bg); border-radius: 999px; padding: 2px 10px; margin-left: 8px; }
 
 /* ---------- parent dashboard ---------- */
 .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
@@ -652,6 +659,9 @@ body[data-theme="scholar"] .muncher-caption { color: #1d2740 !important; }
 .mm-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; margin: 8px 0 4px; color: #fff; font-weight: 600; font-size: .9rem; }
 .mm-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .mm-legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+.mm-lots { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 8px 0 2px; color: #cfe3d6; font-weight: 700; font-size: .82rem; }
+.mm-lot { font: inherit; font-weight: 800; color: #cfe3d6; background: rgba(255,255,255,.06); border: 1.5px solid rgba(255,255,255,.18); border-radius: 999px; padding: 3px 12px; cursor: pointer; }
+.mm-lot.on { background: #C9A84C; border-color: #C9A84C; color: #1a1300; }
 .mm-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
 .mm-name { flex: 1 1 auto; min-width: 78px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .95rem; }
 .mm-price { font-variant-numeric: tabular-nums; font-weight: 700; }
