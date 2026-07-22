@@ -34,6 +34,7 @@ function toast(msg) {
   document.querySelectorAll('.gallop-toast').forEach(t => t.remove());
   const t = document.createElement('div');
   t.className = 'gallop-toast'; t.textContent = msg;
+  t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite');
   document.body.appendChild(t);
   requestAnimationFrame(() => t.classList.add('show'));
   setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3800);
@@ -44,6 +45,7 @@ function toastAction(msg, actionLabel, onAction) {
   document.querySelectorAll('.gallop-toast').forEach(t => t.remove());
   const t = document.createElement('div');
   t.className = 'gallop-toast';
+  t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite');
   const span = document.createElement('span'); span.textContent = msg + ' ';
   const btn = document.createElement('button'); btn.className = 'toast-action'; btn.textContent = actionLabel;
   btn.onclick = () => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); try { onAction(); } catch (e) {} };
@@ -685,10 +687,29 @@ function wireChrome() {
   // Accessibility: the kid nav tiles are <div>s. Make them real buttons for keyboard
   // and screen-reader users (focusable + role + label). Enter/Space is handled globally.
   upgradeTiles();
+  a11yEnhance();
+}
+// Global accessibility pass, run after every render. Two things that otherwise had to be
+// remembered on dozens of scattered forms:
+//  1. Associate every orphan <label> with the input that follows it, so screen readers
+//     announce a name for each field (the app writes `<label>Email</label><input id=…>`).
+//  2. Make every .error-msg a live region so validation errors are actually announced.
+function a11yEnhance() {
+  let auto = 0;
+  document.querySelectorAll('label:not([for])').forEach(lab => {
+    // Skip labels that already WRAP their control (those are associated implicitly).
+    if (lab.querySelector('input, select, textarea')) return;
+    let el = lab.nextElementSibling;
+    if (el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) && el.type !== 'hidden') {
+      if (!el.id) el.id = 'a11y-f-' + (auto++) + '-' + Math.random().toString(36).slice(2, 7);
+      lab.setAttribute('for', el.id);
+    }
+  });
+  document.querySelectorAll('.error-msg:not([role])').forEach(e => { e.setAttribute('role', 'alert'); });
 }
 // Callable separately after any DYNAMIC tile injection (e.g. kid-login avatar list).
 function upgradeTiles() {
-  document.querySelectorAll('.subject-card, .zone-card, .up-next, .avatar-opt').forEach(el => {
+  document.querySelectorAll('.subject-card, .zone-card, .up-next, .avatar-opt, .ach-banner, .avatar-big').forEach(el => {
     if (el.getAttribute('role') === 'button') return;
     el.setAttribute('role', 'button');
     el.setAttribute('tabindex', '0');
@@ -1200,7 +1221,7 @@ route('kid-login', async () => {
   function drawPin() {
     $('#pin-dots').textContent = '●'.repeat(pin.length) + '○'.repeat(4 - pin.length);
     $('#pinpad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, '⌫', 0, '✓'].map(k =>
-      `<button class="pinkey" data-k="${k}">${k}</button>`).join('');
+      `<button class="pinkey" data-k="${k}" aria-label="${k === '⌫' ? 'Delete last digit' : k === '✓' ? 'Enter PIN' : 'Digit ' + k}">${k}</button>`).join('');
     document.querySelectorAll('.pinkey').forEach(b => b.onclick = async () => {
       const k = b.dataset.k; Sound.click();
       if (k === '⌫') pin = pin.slice(0, -1);
@@ -1273,7 +1294,7 @@ route('home', async () => {
       return `<div class="up-next" data-upnext="${rec.subject}" data-place="${rec.type === 'place' ? 1 : 0}">
         <div class="un-emoji">${s.emoji}</div>
         <div class="un-text"><span class="un-label">${playful() ? '🐎 UP NEXT' : 'UP NEXT'}</span><b>${title}</b><span class="un-sub">${sub}</span></div>
-        <button class="btn sun">${rec.type === 'place' ? 'Find my level →' : 'Start →'}</button>
+        <button class="btn sun" tabindex="-1" aria-hidden="true">${rec.type === 'place' ? 'Find my level →' : 'Start →'}</button>
       </div>`;
     })()}
     <div class="week-gallop">
@@ -1299,7 +1320,7 @@ route('home', async () => {
           <div class="semoji">${s.emoji}</div>
           <h3>${esc(s.label)}</h3>
           <div class="lvl">${s.placed ? (playful() ? '📍 ' : 'Working at ') + esc(s.levelName) : (playful() ? '✨ Take placement quiz!' : 'Placement assessment needed')}</div>
-          <button class="btn sun small" style="margin-top:14px">${s.placed ? (playful() ? 'Play →' : 'Continue →') : 'Find my level →'}</button>
+          <button class="btn sun small" style="margin-top:14px" tabindex="-1" aria-hidden="true">${s.placed ? (playful() ? 'Play →' : 'Continue →') : 'Find my level →'}</button>
         </div>`).join('')}
     </div>
     <div class="zone-row">
@@ -1669,10 +1690,10 @@ route('lesson', async (subject, mode) => {
         // Big teaching moment: pop the explanation up LARGE, and make sure they saw it.
         const pop = document.createElement('div');
         pop.className = 'celebrate';
-        pop.innerHTML = `<div class="explain-pop">
-          <div class="big-emoji">${style.emoji}</div>
-          <h2>${diag ? (playful() ? 'Let\'s look at that! 🔍' : 'Here\'s what happened') : (playful() ? 'Let\'s learn it! 💡' : 'Here\'s the idea')}</h2>
-          <p class="explain-text">${diag ? esc(diag) + '<br>' : ''}The answer is <b>${esc(qn.choices[qn.answerIndex])}</b>.${diag ? '' : '<br>' + esc(qn.explain || qn.hint || '')}</p>
+        pop.innerHTML = `<div class="explain-pop" role="dialog" aria-modal="true" aria-labelledby="ep-h" aria-describedby="ep-body">
+          <div class="big-emoji" aria-hidden="true">${style.emoji}</div>
+          <h2 id="ep-h">${diag ? (playful() ? 'Let\'s look at that! 🔍' : 'Here\'s what happened') : (playful() ? 'Let\'s learn it! 💡' : 'Here\'s the idea')}</h2>
+          <p class="explain-text" id="ep-body">${diag ? esc(diag) + '<br>' : ''}The answer is <b>${esc(qn.choices[qn.answerIndex])}</b>.${diag ? '' : '<br>' + esc(qn.explain || qn.hint || '')}</p>
           ${why ? `<div class="why-line">🌍 <b>Real world:</b> ${esc(why)}</div>` : ''}
           <button class="btn sun" style="margin-top:14px">${playful() ? 'Got it! 👍' : 'Understood →'}</button>
         </div>`;
@@ -1919,10 +1940,10 @@ route('exam', async (trackId) => {
         fb.innerHTML = `<b>Not quite.</b><br>${esc(qn.explain || '')}`;
         const pop = document.createElement('div');
         pop.className = 'celebrate';
-        pop.innerHTML = `<div class="explain-pop">
-          <div class="big-emoji">${track.emoji || '🎓'}</div>
-          <h2>Here's the idea</h2>
-          <p class="explain-text">The answer is <b>${esc(qn.choices[qn.answerIndex])}</b>.<br>${esc(qn.explain || qn.hint || '')}</p>
+        pop.innerHTML = `<div class="explain-pop" role="dialog" aria-modal="true" aria-labelledby="ep-h2" aria-describedby="ep-body2">
+          <div class="big-emoji" aria-hidden="true">${track.emoji || '🎓'}</div>
+          <h2 id="ep-h2">Here's the idea</h2>
+          <p class="explain-text" id="ep-body2">The answer is <b>${esc(qn.choices[qn.answerIndex])}</b>.<br>${esc(qn.explain || qn.hint || '')}</p>
           <button class="btn sun" style="margin-top:14px">Understood →</button>
         </div>`;
         pop.querySelector('button').onclick = () => { pop.remove(); Sound.click(); const nb = $('#next-btn'); if (nb) nb.focus(); };
@@ -1985,7 +2006,9 @@ function statusBadge(status) {
   const M = {
     'excelling': ['🚀 Excelling', 'st-excelling'],
     'on-track': ['✅ On track', 'st-ontrack'],
+    'developing': ['📈 Developing', 'st-developing'],
     'needs-support': ['🤝 Extra support', 'st-support'],
+    'insufficient': ['🔎 Not enough data yet', 'st-insuff'],
     'building': ['🌱 Getting started', 'st-building']
   };
   const m = M[status]; if (!m) return '';
@@ -1994,7 +2017,9 @@ function statusBadge(status) {
 function statusNote(s) {
   if (s.status === 'excelling') return ' · <b style="color:#1f8a5f">has this down, so we\'re steadily raising the challenge</b>';
   if (s.status === 'needs-support') return ' · <b style="color:#C9A84C">we\'ve eased the difficulty and added extra practice here</b>';
+  if (s.status === 'developing') return ' · making progress — a little more practice to lock it in';
   if (s.status === 'on-track') return ' · moving along at a healthy pace';
+  if (s.status === 'insufficient') return ` · <span class="muted">a few more sessions and we'll have a clear read</span>`;
   return '';
 }
 // The status badge ("On track", "Excelling", "Extra support") is computed from the child's
@@ -2106,6 +2131,7 @@ route('report', async (kidId) => {
           </div>
           ${s.placed ? `
             <p class="muted" style="margin:6px 0">${isParent ? `${accuracyLine(s)}${statusNote(s)}` : `${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} done. Keep it up, you're growing!`}</p>
+            ${isParent ? `<p class="muted" style="margin:2px 0 6px;font-size:.9rem">Working level: <b>${esc(s.levelName)}</b>${s.enrolledGrade != null ? ` · enrolled in <b>${s.enrolledGrade === 0 ? 'Kindergarten' : 'Grade ' + s.enrolledGrade}</b>` : ''} <span class="muted">(a child can work at a different level than their grade — that's the point of adapting)</span></p>` : ''}
             ${isParent && s.placementNote ? `<p class="place-note"><b>Why we started here:</b> ${esc(s.placementNote)}</p>` : ''}
             ${isParent && s.placementMissed && s.placementMissed.length ? `<p class="place-note" style="background:#fff6ec;border-color:#f0d9bd"><b>Missed on the placement quiz:</b> ${s.placementMissed.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')} <span class="muted" style="font-size:.85rem">— these are just the concepts to keep an eye on; ${esc(k.name)} gets extra practice on them automatically.</span></p>` : ''}
             ${s.strengths.length ? `<p>💪 Strengths: ${s.strengths.map(x => `<span class="pill strength">${esc(x)}</span>`).join(' ')}</p>` : ''}
@@ -2215,7 +2241,7 @@ route('weekly', async (kidId) => {
           <div class="sstat"><div class="n">${activeDays}/7</div>days active</div>
           ${best && State.me.role === 'parent' ? `<div class="sstat"><div class="n">${best.letter}</div>${esc(best.label)}</div>` : ''}
         </div>
-        <svg viewBox="0 0 458 92" style="width:100%;height:auto;margin:8px 0">${bars}</svg>
+        <svg viewBox="0 0 458 92" style="width:100%;height:auto;margin:8px 0" role="img" aria-label="Weekly activity chart: ${total} questions over ${activeDays} active day${activeDays === 1 ? '' : 's'}, ${acc}% correct.">${bars}</svg>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
           <div><b style="color:#1f8a5f">💪 Shining at</b><br><span class="muted" style="font-size:.9rem">${strengthList.length ? strengthList.map(esc).join('<br>') : 'Building the basics, stars incoming!'}</span></div>
           <div><b style="color:#C9A84C">🎯 Working on</b><br><span class="muted" style="font-size:.9rem">${focusList.length ? focusList.map(esc).join('<br>') : 'No trouble spots this week!'}</span></div>
@@ -2377,7 +2403,7 @@ route('parent', async () => {
           <option value="homeschool">Homeschool (Sep–Jun)</option>
         </select>
         <label>Pick an avatar</label>
-        <div class="avatar-pick" id="nk-avatars">${Object.entries(AVATARS).map(([k, e], i) => `<div class="avatar-opt${i === 0 ? ' sel' : ''}" data-a="${k}">${e}</div>`).join('')}</div>
+        <div class="avatar-pick" id="nk-avatars">${Object.entries(AVATARS).map(([k, e], i) => `<div class="avatar-opt${i === 0 ? ' sel' : ''}" data-a="${k}" title="${esc(k.charAt(0).toUpperCase() + k.slice(1))} avatar">${e}</div>`).join('')}</div>
         <p class="muted" style="font-size:.83rem;margin-top:6px">This is just their starting look, kids fully customize it in the Avatar Builder with hats, pets & worlds they buy with coins they earn by learning. 🎨</p>
         <label style="display:flex;align-items:flex-start;gap:9px;margin-top:14px;font-weight:500;cursor:pointer">
           <input type="checkbox" id="nk-consent" style="margin-top:3px;width:18px;height:18px;flex:none">
@@ -2628,7 +2654,7 @@ route('admin', async () => {
         </div>
         <div class="card">
           <h3>📈 Signups, last 14 days</h3>
-          ${d.signups.length ? `<svg viewBox="0 0 480 80" style="width:100%;height:auto">${d.signups.map((x, i) => `<g><rect x="${i * 34 + 4}" y="${62 - Math.round(x.n / maxSign * 55)}" width="26" height="${Math.max(3, Math.round(x.n / maxSign * 55))}" rx="4" fill="#1f8a5f"/><text x="${i * 34 + 17}" y="76" font-size="8" text-anchor="middle" fill="#98a0af">${x.d.slice(5)}</text></g>`).join('')}</svg>` : '<p class="muted">No signups in the last 14 days.</p>'}
+          ${d.signups.length ? `<svg viewBox="0 0 480 80" style="width:100%;height:auto" role="img" aria-label="Signups per day over the last 14 days: ${d.signups.map(x => x.d.slice(5) + ' ' + x.n).join(', ')}.">${d.signups.map((x, i) => `<g><rect x="${i * 34 + 4}" y="${62 - Math.round(x.n / maxSign * 55)}" width="26" height="${Math.max(3, Math.round(x.n / maxSign * 55))}" rx="4" fill="#1f8a5f"/><text x="${i * 34 + 17}" y="76" font-size="8" text-anchor="middle" fill="#98a0af">${x.d.slice(5)}</text></g>`).join('')}</svg>` : '<p class="muted">No signups in the last 14 days.</p>'}
         </div>
       </div>
       <div>

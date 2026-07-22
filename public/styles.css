@@ -302,6 +302,10 @@ body[data-theme="junior"] .feedback, body[data-theme="junior"] .hint-box { font-
 .choice:focus-visible { outline: 3px solid #4a90d9; outline-offset: 2px; }
 .choice.correct { border-color: #14a37f; background: #e2f8f1; color: #0c6b53; animation: pop .35s ease; }
 .choice.wrong { border-color: var(--danger); background: #fdecec; color: #96323a; animation: shake .4s ease; }
+/* Color-independent state: a glyph so correct/incorrect never rely on color alone (WCAG 1.4.1). */
+.choice.correct::after { content: " ✓"; font-weight: 800; }
+.choice.wrong::after { content: " ✗"; font-weight: 800; }
+.choice.answer-reveal::after { content: " ✓ answer"; font-weight: 700; font-size: .85em; }
 .choice.answer-reveal { border-color: #14a37f; background: #edfaf5; color: #0c6b53; opacity: 1; }
 /* Placement: an answer the child has chosen but not yet submitted (they can change it). */
 .choice.picked { border-color: var(--brand); background: #fff3e8; color: var(--ink); box-shadow: 0 0 0 3px rgba(230,138,60,.18); }
@@ -1261,8 +1265,9 @@ body[data-theme="academy"] .pill.focus { color: #e6c675; }
 .site-footer { border-color: color-mix(in srgb, var(--ink) 8%, transparent); }
 
 /* Smooth focus rings for accessibility + polish */
-a:focus-visible, button:focus-visible, .zone-card:focus-visible, input:focus-visible, select:focus-visible {
-  outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 6px;
+a:focus-visible, button:focus-visible, .zone-card:focus-visible, input:focus-visible, select:focus-visible,
+.subject-card:focus-visible, .up-next:focus-visible, .avatar-opt:focus-visible, .ach-banner:focus-visible, .avatar-big:focus-visible, [role="button"]:focus-visible {
+  outline: 3px solid var(--brand); outline-offset: 2px; border-radius: 6px;
 }
 
 /* ============================================================
@@ -1344,6 +1349,9 @@ body[data-theme="academy"] .compare-table .us { background: rgba(74,128,214,.14)
 .st-ontrack { background: color-mix(in srgb, #2f78c2 15%, transparent); color: #235d97; }
 .st-support { background: color-mix(in srgb, var(--accent) 20%, transparent); color: #7a5c00; }
 .st-building { background: rgba(127,127,127,.14); color: var(--chrome-sub); }
+.st-developing { background: color-mix(in srgb, #7a5cc2 15%, transparent); color: #5a3fa0; }
+.st-insuff { background: rgba(127,127,127,.12); color: var(--chrome-sub); font-style: italic; }
+body[data-theme="academy"] .st-developing { color: #c3aef0; }
 body[data-theme="academy"] .st-excelling { color: #7fe0b6; }
 body[data-theme="academy"] .st-support { color: #e6c675; }
 
