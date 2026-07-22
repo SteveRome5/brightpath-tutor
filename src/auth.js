@@ -125,14 +125,29 @@ function requireKid(req, res, next) {
   return res.status(401).json({ error: 'Not signed in as a learner' });
 }
 
+// Single source of truth for "can this account access paid content, and if not, WHY".
+// Both the API gate (below) and any surface that renders access state should derive
+// from this so the parent dashboard and the child paywall never disagree (a past-due
+// parent must not see the child told "your free trial ended").
+function entitlement(parent) {
+  if (!parent) return { ok: false, reason: 'no_account', message: 'No account found.' };
+  const trialOk = parent.sub_status === 'trial' && new Date(parent.trial_ends + 'Z') > new Date();
+  if (parent.sub_status === 'active' || trialOk) return { ok: true, reason: 'active', message: '' };
+  // Not entitled — name the exact reason so every surface can speak to it honestly.
+  if (parent.sub_status === 'past_due') return { ok: false, reason: 'past_due', message: "There's a problem with the payment on this account. Ask a grown-up to update it to keep learning!" };
+  if (parent.sub_status === 'canceled') return { ok: false, reason: 'canceled', message: 'This subscription was canceled. Ask a grown-up to reactivate it to keep learning!' };
+  if (parent.sub_status === 'trial') return { ok: false, reason: 'trial_expired', message: 'The free trial has ended. Ask a grown-up to subscribe to keep learning!' };
+  return { ok: false, reason: 'no_subscription', message: 'A subscription is needed to keep learning. Ask a grown-up to help!' };
+}
+
 // Subscription gate — trial or active lets you through
 function requireActiveSub(req, res, next) {
   let parent = req.parent;
   if (!parent && req.kid) parent = db.prepare('SELECT * FROM parents WHERE id=?').get(req.kid.parent_id);
   if (!parent) return res.status(401).json({ error: 'No account' });
-  const trialOk = parent.sub_status === 'trial' && new Date(parent.trial_ends + 'Z') > new Date();
-  if (parent.sub_status === 'active' || trialOk) return next();
-  return res.status(402).json({ error: 'subscription_required', message: 'Your free trial has ended. Subscribe to keep learning!' });
+  const ent = entitlement(parent);
+  if (ent.ok) return next();
+  return res.status(402).json({ error: 'subscription_required', reason: ent.reason, message: ent.message });
 }
 
-module.exports = { createParent, verifyParent, setPassword, hashPin, verifyPin, isLegacyPin, createSession, getSession, destroySession, requireParent, requireKid, requireActiveSub, requireAdmin, syncAdminFlag };
+module.exports = { createParent, verifyParent, setPassword, hashPin, verifyPin, isLegacyPin, createSession, getSession, destroySession, requireParent, requireKid, requireActiveSub, requireAdmin, syncAdminFlag, entitlement };

@@ -234,22 +234,44 @@ router.get('/learn/:kidId/overview', auth.requireKid, auth.requireActiveSub, (re
     // number matches the report card instead of crediting untouched seeded skills.
     const srows = db.prepare('SELECT skill_id, mastery FROM skill_state WHERE kid_id=? AND subject=? AND attempts>0').all(req.kid.id, sub);
     const gallopScore = srows.length ? gscore.subjectScore(sub, Object.fromEntries(srows.map(r => [r.skill_id, r.mastery])), st.placed ? st.level : undefined) : null;
-    return { subject: sub, label: meta.label, emoji: meta.emoji, color: meta.color, level: st.level, levelName: adaptive.gradeName(Math.round(st.level)), placed: !!st.placed, avgMastery: m.m, answersToday: today.n || 0, gallopScore };
+    // Recommendation signals (tester finding #2): an unresolved difficulty (a skill tried
+    // several times and still stuck) and an overdue retention check should drive "Up Next"
+    // ahead of mere daily subject rotation.
+    const struggling = db.prepare('SELECT COUNT(*) AS n FROM skill_state WHERE kid_id=? AND subject=? AND attempts>=3 AND mastery < ?').get(req.kid.id, sub, adaptive.STRUGGLING).n;
+    const retentionDue = db.prepare("SELECT COUNT(*) AS n FROM skill_state WHERE kid_id=? AND subject=? AND mastery >= ? AND (last_seen IS NULL OR last_seen < datetime('now','-3 days'))").get(req.kid.id, sub, adaptive.MASTERED).n;
+    return { subject: sub, label: meta.label, emoji: meta.emoji, color: meta.color, level: st.level, levelName: adaptive.gradeName(Math.round(st.level)), placed: !!st.placed, avgMastery: m.m, answersToday: today.n || 0, gallopScore, struggling, retentionDue };
   });
   const _perSub = {}; subjects.forEach(s => { if (s.gallopScore != null) _perSub[s.subject] = s.gallopScore; });
   const gallopOverall = gscore.overall(_perSub);
-  // Smart "Up Next": weakest, least-practiced-today subject — or first placement needed
+  // Smart "Up Next" (tester finding #2): priority is (1) unresolved difficulty, then
+  // (2) an overdue retention check, then (3) weakest subject — with daily "not practiced
+  // today" rotation as only a gentle tiebreak, NOT the dominant factor it used to be.
+  // (Explicit exam/goal deadlines aren't modeled per-learner yet — noted as remaining work.)
   let recommended = null;
   const placedSubs = subjects.filter(s => s.placed);
   if (!placedSubs.length) {
     recommended = { subject: subjects[0].subject, type: 'place' };
   } else {
-    const cand = [...placedSubs].sort((a, b) =>
-      ((a.avgMastery == null ? 0.5 : a.avgMastery) + (a.answersToday > 0 ? 1 : 0)) -
-      ((b.avgMastery == null ? 0.5 : b.avgMastery) + (b.answersToday > 0 ? 1 : 0)))[0];
+    const priority = s => {
+      let p = 0;
+      if (s.struggling > 0) p += 100;                                   // unresolved difficulty first
+      if (s.retentionDue > 0) p += 40;                                  // then overdue retention
+      p += (1 - (s.avgMastery == null ? 0.5 : s.avgMastery)) * 20;      // then weakness
+      if (s.answersToday > 0) p -= 3;                                   // gentle rotation nudge only
+      return p;
+    };
+    const cand = [...placedSubs].sort((a, b) => priority(b) - priority(a))[0];
     const unplaced = subjects.find(s => !s.placed);
-    if (unplaced && placedSubs.every(s => s.answersToday > 0)) recommended = { subject: unplaced.subject, type: 'place' };
-    else recommended = { subject: cand.subject, type: cand.avgMastery != null && cand.avgMastery < 0.5 ? 'boost' : cand.answersToday > 0 ? 'more' : 'fresh' };
+    const type = cand.struggling > 0 ? 'boost'
+      : cand.retentionDue > 0 ? 'review'
+      : (cand.avgMastery != null && cand.avgMastery < 0.5) ? 'boost'
+      : cand.answersToday > 0 ? 'more' : 'fresh';
+    // Only steer to a brand-new placement when nothing urgent is pending and everything's been touched today.
+    if (unplaced && cand.struggling === 0 && cand.retentionDue === 0 && placedSubs.every(s => s.answersToday > 0)) {
+      recommended = { subject: unplaced.subject, type: 'place' };
+    } else {
+      recommended = { subject: cand.subject, type };
+    }
   }
   const week = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-7 days')").get(req.kid.id);
   const lastWeek = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-14 days') AND ts < datetime('now','-7 days')").get(req.kid.id);
@@ -296,11 +318,15 @@ router.get('/learn/:kidId/next/:subject', auth.requireKid, auth.requireActiveSub
   const { subject } = req.params;
   if (!validSubject(subject)) return res.status(404).json({ error: 'Unknown subject' });
   let activity = null;
+  // Mission coherence: the client passes ?focus=<skillId> so a 10-question mission stays on
+  // one skill until it's mastered (tester finding #1). Sanitize to a plausible skill id.
+  const focusRaw = typeof req.query.focus === 'string' ? req.query.focus.slice(0, 64) : '';
+  const focusSkill = /^[\w.\-]+$/.test(focusRaw) ? focusRaw : '';
   // A single flaky generator must never freeze a kid's session — retry, then fail soft.
   // A truthy activity whose question failed to generate (question:null) still counts as a
   // miss here, otherwise indexing qn.choices below would throw a 500 instead of the soft 503.
   for (let attempt = 0; attempt < 3 && !(activity && activity.question); attempt++) {
-    try { activity = adaptive.nextActivity(req.kid.id, subject); } catch (e) { activity = null; }
+    try { activity = adaptive.nextActivity(req.kid.id, subject, { focusSkill }); } catch (e) { activity = null; }
   }
   if (!activity || !activity.question) return res.status(503).json({ error: 'Hiccup loading the next question — tap to try again!' });
   const qn = activity.question;

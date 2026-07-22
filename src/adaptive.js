@@ -180,7 +180,7 @@ function maxGrade(subject) {
 // ---------- lesson selection: the tutor's judgment ----------
 // Priorities: (1) rescue struggling skills, (2) advance frontier skills,
 // (3) sprinkle review of mastered skills to keep them fresh.
-function nextActivity(kidId, subject) {
+function nextActivity(kidId, subject, opts = {}) {
   const { state, zone } = activeSkills(kidId, subject);
   // Spaced retention: ~1 in 8 questions resurfaces an old mastered skill
   // (last seen 3+ days ago) so learning actually STICKS, the science of review.
@@ -220,8 +220,27 @@ function nextActivity(kidId, subject) {
   const fresh = states.filter(x => x.st.mastery >= MASTERED);
 
   let chosen, mode;
+  // MISSION COHERENCE (tester finding #1): a 10-question mission should stay on ONE skill
+  // long enough to build fluency, not hop to a brand-new lesson after a single question.
+  // When the client anchors the mission to a focus skill that isn't mastered yet, keep
+  // serving that skill (difficulty still adapts). Once it's mastered we fall through to
+  // normal selection, and the client adopts the newly-served skill as the mission's focus.
+  // (The ~12% spaced-retention interleave above still fires and is shown as a labeled
+  // "Memory Check", which is the explicitly-labeled mixed review the review asked for.)
+  if (opts.focusSkill) {
+    const fsk = content.getSkill(subject, opts.focusSkill);
+    if (fsk) {
+      const fst = getSkillState(kidId, subject, opts.focusSkill);
+      if (fst.mastery < MASTERED) {
+        chosen = { skill: fsk, st: fst };
+        mode = (fst.attempts >= 3 && fst.mastery < STRUGGLING) ? 'boost' : 'learn';
+      }
+    }
+  }
   const roll = Math.random();
-  if (struggling.length && roll < 0.5) {
+  if (chosen) {
+    /* focus skill already selected above */
+  } else if (struggling.length && roll < 0.5) {
     chosen = weightedLowest(struggling); mode = 'boost';       // extra help where needed
   } else if (frontier.length) {
     chosen = weightedLowest(frontier); mode = 'learn';
