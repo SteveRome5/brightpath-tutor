@@ -2405,9 +2405,13 @@ route('parent', async () => {
         <label>Pick an avatar</label>
         <div class="avatar-pick" id="nk-avatars">${Object.entries(AVATARS).map(([k, e], i) => `<div class="avatar-opt${i === 0 ? ' sel' : ''}" data-a="${k}" title="${esc(k.charAt(0).toUpperCase() + k.slice(1))} avatar">${e}</div>`).join('')}</div>
         <p class="muted" style="font-size:.83rem;margin-top:6px">This is just their starting look, kids fully customize it in the Avatar Builder with hats, pets & worlds they buy with coins they earn by learning. 🎨</p>
-        <label style="display:flex;align-items:flex-start;gap:9px;margin-top:14px;font-weight:500;cursor:pointer">
+        <div class="consent-notice">
+          <b>Before you add your child — what we collect and why</b>
+          <p>To run and adapt lessons, Gallop collects your child's first name (or a nickname), their grade, a 4-digit login PIN, and their answers and progress. That's it. We use it only to teach your child and show you their progress. <b>We never sell children's data or use it for advertising.</b> You can review or delete your child's data anytime from this dashboard. Full details are in the <a href="/privacy" target="_blank" rel="noopener">Children's Privacy notice</a>.</p>
+        </div>
+        <label style="display:flex;align-items:flex-start;gap:9px;margin-top:12px;font-weight:500;cursor:pointer">
           <input type="checkbox" id="nk-consent" style="margin-top:3px;width:18px;height:18px;flex:none">
-          <span style="font-size:.86rem;line-height:1.5">I am this child's parent or legal guardian, and I consent to Gallop collecting the limited information described in the <a href="/privacy" target="_blank" rel="noopener">Children's Privacy notice</a> to run their lessons.</span>
+          <span style="font-size:.86rem;line-height:1.5">I am this child's parent or legal guardian, and I consent to Gallop collecting and using the information described above to run their lessons.</span>
         </label>
         <div class="error-msg" id="nk-err"></div>
         <button class="btn green" style="margin-top:14px;width:100%" id="nk-go">Add Learner ✨</button>
@@ -2435,6 +2439,15 @@ route('parent', async () => {
           <div class="error-msg" id="cp-err"></div>
           <button class="btn small" style="margin-top:10px" id="cp-go">Change Password</button>
           <span id="cp-ok" style="margin-left:10px;color:#1f8a5f;font-weight:700;display:none">✓ Updated!</span>
+        </div>
+        <div class="card">
+          <h3>🛡️ Children's privacy &amp; your data</h3>
+          <p class="muted" style="margin:8px 0 10px;line-height:1.6">For each child we collect only their first name, grade, a login PIN, and their lesson answers &amp; progress — used solely to teach them and show you results. <b>We never sell children's data or use it for ads.</b> You're in control of it.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn small" id="pv-export">⬇️ Download my data</button>
+            <a class="btn ghost small" href="/privacy" target="_blank" rel="noopener" style="text-decoration:none">Privacy notice</a>
+          </div>
+          <p class="muted" style="margin:10px 0 0;font-size:.82rem">To delete a child and erase their data, use the ✏️ edit button on that learner above and choose Delete — it removes everything and withdraws consent immediately.</p>
         </div>
         <div class="card">
           <h3>🚀 How kids log in (any device)</h3>
@@ -2589,6 +2602,19 @@ route('parent', async () => {
       $('#cp-ok').style.display = 'inline'; Sound.badge();
       setTimeout(() => { const el = $('#cp-ok'); if (el) el.style.display = 'none'; }, 3000);
     } catch (e) { showError('#cp-err', e.message); }
+  };
+  const pvx = $('#pv-export');
+  if (pvx) pvx.onclick = async () => {
+    pvx.disabled = true; const orig = pvx.textContent; pvx.textContent = 'Preparing…';
+    try {
+      const res = await fetch('/api/privacy/export', { credentials: 'same-origin' });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'gallop-my-data.json';
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      toast('✓ Your data downloaded as gallop-my-data.json');
+    } catch (e) { toast('Could not prepare the download. Please try again.'); }
+    pvx.disabled = false; pvx.textContent = orig;
   };
   const fam = $('#sub-family'), solo = $('#sub-solo'), portal = $('#sub-portal');
   if (fam) fam.onclick = () => checkout('family');
