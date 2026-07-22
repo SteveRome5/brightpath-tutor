@@ -9,7 +9,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 // Behind a hosting proxy (Render/Railway/Fly), trust X-Forwarded-* so
 // secure cookies and req.protocol work correctly over HTTPS.
-if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
+// Always trust the first proxy hop: Render fronts the app with exactly one proxy, and
+// req.ip must resolve to the real client for the rate limiter to be unspoofable.
+app.set('trust proxy', 1);
 
 // Security headers (dependency-free). The SPA relies on inline onclick/style attributes,
 // so script/style must allow 'unsafe-inline'; the remaining directives still block
@@ -43,6 +45,15 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), webh
 app.use(express.json());
 app.use(cookieParser());
 app.use('/api', routes);
+
+// QA / staging launchpad — mounts ONLY when QA_MODE=1 and QA_KEY are set (i.e. on the
+// isolated staging service). Never active on production unless explicitly enabled there.
+const qa = require('./src/qa');
+if (qa.enabled()) {
+  app.use('/qa', qa.buildRouter());
+  console.log('[qa] staging launchpad enabled at /qa');
+}
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Legal pages as real, crawlable URLs (ad review + search engines need standalone pages,
@@ -52,6 +63,14 @@ app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'public', 'ter
 
 // SPA fallback
 app.get(/.*/, (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+
+// Lapsed-practice nudges: hourly sweep, only when an email provider is configured
+// (otherwise we'd mark kids as nudged while the emails sit in the queue unsent).
+const mailer = require('./src/mailer');
+if (mailer.configured()) {
+  setInterval(() => mailer.nudgeSweep(), 60 * 60 * 1000).unref?.();
+  setTimeout(() => mailer.nudgeSweep(), 90 * 1000).unref?.();
+}
 
 app.listen(PORT, () => {
   console.log(`\n  🐎 Gallop Learning Academy is running!`);
