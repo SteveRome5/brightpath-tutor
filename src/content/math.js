@@ -33,14 +33,16 @@ const skills = [
     gen(d) {
       let a = rint(1, 8), b = rint(1, 8);
       if (a === b) b = a + 1;
-      const e1 = pick(['🍓', '🐟']), e2 = pick(['🍪', '🐸']);
+      // Compare two groups of the SAME thing (a plate of 6 strawberries vs a plate
+      // of 4 strawberries) — comparing strawberries to frogs confused kids.
+      const e1 = pick(['🍓', '🍪', '🐟', '⭐', '🎈']);
       const bigger = a > b;
       return q({
-        prompt: `${e1.repeat(a)}\n${e2.repeat(b)}\nWhich group has MORE?`,
-        voice: 'Look at the two groups. Which one has more?',
-        choices: shuffle([`the ${a} ${e1}`, `the ${b} ${e2}`]),
-        answer: bigger ? `the ${a} ${e1}` : `the ${b} ${e2}`,
-        hint: 'Count each group first!',
+        prompt: `Plate 1: ${e1.repeat(a)}\nPlate 2: ${e1.repeat(b)}\nWhich plate has MORE?`,
+        voice: 'Look at the two plates. Which one has more?',
+        choices: shuffle([`Plate 1 (${a})`, `Plate 2 (${b})`]),
+        answer: bigger ? `Plate 1 (${a})` : `Plate 2 (${b})`,
+        hint: 'Count each plate first!',
         explain: `${Math.max(a, b)} is more than ${Math.min(a, b)}.`
       });
     }
@@ -51,13 +53,13 @@ const skills = [
       const shapes = [
         ['circle', 'a pizza 🍕 (the whole pie!)', 0], ['square', 'a cracker 🍘', 4],
         ['triangle', 'a slice of watermelon 🍉', 3], ['rectangle', 'a door 🚪', 4],
-        ['star', 'a starfish at the beach', 5], ['heart', 'a valentine card', 0],
+        ['star', 'a starfish at the beach', 0], ['heart', 'a valentine card', 0],
         ['circle', 'a clock 🕐', 0], ['circle', 'a full moon 🌕', 0], ['circle', 'a wheel 🛞', 0],
         ['square', 'a waffle 🧇', 4], ['square', 'a checkerboard tile', 4],
         ['triangle', 'a party hat 🥳', 3], ['triangle', 'a slice of pizza 🍕', 3], ['triangle', 'a yield sign', 3],
         ['rectangle', 'a phone 📱', 4], ['rectangle', 'a dollar bill 💵', 4], ['rectangle', 'a book 📖', 4],
         ['oval', 'an egg 🥚', 0], ['oval', 'a football 🏈', 0],
-        ['diamond', 'a kite 🪁', 4], ['star', 'a sheriff badge', 5], ['heart', 'a candy heart', 0],
+        ['diamond', 'a kite 🪁', 4], ['star', 'a sheriff badge', 0], ['heart', 'a candy heart', 0],
         ['hexagon', 'a honeycomb cell 🍯', 6], ['hexagon', 'a soccer ball patch ⚽', 6]
       ];
       const allNames = ['circle', 'square', 'triangle', 'rectangle', 'star', 'heart', 'oval', 'diamond', 'hexagon'];
@@ -161,7 +163,7 @@ const skills = [
       if (total === 0) return this.gen(d);
       return q({
         prompt: `Your piggy bank 🐷 has:\n${dimes} dime${dimes === 1 ? '' : 's'}, ${nickels} nickel${nickels === 1 ? '' : 's'}, ${pennies} penn${pennies === 1 ? 'y' : 'ies'}.\nHow many cents?`,
-        choices: numChoices(total, () => total + pick([-5, 5, -10, 10, -1, 1])).map(c => `${c}¢`),
+        choices: numChoices(total, () => Math.max(0, total + pick([-5, 5, -10, 10, -1, 1]))).map(c => `${c}¢`),
         answer: `${total}¢`,
         hint: 'Dimes = 10¢, nickels = 5¢, pennies = 1¢.',
         explain: `${dimes}×10 + ${nickels}×5 + ${pennies}×1 = ${total}¢.`
@@ -219,7 +221,7 @@ const skills = [
       const paid = price <= 25 ? 25 : price <= 50 ? 50 : 100;
       return q({
         prompt: `At ${pick(PLACES)}, a smoothie costs ${price}¢. You pay with ${paid === 100 ? 'a dollar' : paid + '¢'}. How much change?`,
-        choices: numChoices(paid - price).map(c => `${c}¢`),
+        choices: numChoices(paid - price, () => Math.max(0, (paid - price) + pick([-10, -5, -1, 1, 5, 10]))).map(c => `${c}¢`),
         answer: `${paid - price}¢`,
         hint: `Count up from ${price} to ${paid}.`,
         explain: `${paid} − ${price} = ${paid - price}¢ back in your pocket.`
@@ -294,13 +296,34 @@ const skills = [
   {
     id: 'm.3.frac', name: 'Fraction Foundations', grade: 3,
     gen(d) {
-      const den = pick(d > 0.5 ? [3, 4, 6, 8] : [2, 3, 4]), num = rint(1, den - 1);
+      // Wider denominator range + rotating contexts so struggling kids (low d) don't
+      // see the same handful of pizza prompts on repeat.
+      const den = pick(d > 0.5 ? [3, 4, 5, 6, 8, 10] : [2, 3, 4, 5, 6]), num = rint(1, den - 1);
+      const ctx = pick([
+        { thing: 'pizza 🍕', pieces: 'equal slices', act: 'You eat' },
+        { thing: 'chocolate bar 🍫', pieces: 'equal squares', act: 'You eat' },
+        { thing: 'sandwich 🥪', pieces: 'equal pieces', act: 'You eat' },
+        { thing: 'garden 🌷', pieces: 'equal rows', act: 'You plant flowers in' },
+        { thing: 'poster 🎨', pieces: 'equal sections', act: 'You paint' },
+        { thing: 'pack of stickers ⭐', pieces: 'equal sheets', act: 'You give away' }
+      ]);
+      const leftMode = d > 0.5 && Math.random() < 0.35;
+      if (leftMode) {
+        const left = den - num;
+        return q({
+          prompt: `A ${ctx.thing} is split into ${den} ${ctx.pieces}. ${ctx.act} ${num}. What fraction is LEFT?`,
+          choices: textChoices(`${left}/${den}`, [`${num}/${den}`, `${den}/${left}`, `${Math.min(left + 1, den)}/${den}`, `1/${left || 1}`]),
+          answer: `${left}/${den}`,
+          hint: `${den} parts minus the ${num} used.`,
+          explain: `${den} − ${num} = ${left}, so ${left}/${den} is left.`
+        });
+      }
       return q({
-        prompt: `A pizza 🍕 is cut into ${den} equal slices. You eat ${num}. What fraction of the pizza did you eat?`,
+        prompt: `A ${ctx.thing} is split into ${den} ${ctx.pieces}. ${ctx.act} ${num}. What fraction is that?`,
         choices: textChoices(`${num}/${den}`, [`${den}/${num}`, `${num}/${den + 1}`, `${Math.min(num + 1, den)}/${den}`, `1/${num || 1}`]),
         answer: `${num}/${den}`,
-        hint: 'Slices you ate over total slices.',
-        explain: `${num} out of ${den} slices = ${num}/${den}.`
+        hint: 'The parts used, over the total parts.',
+        explain: `${num} out of ${den} parts = ${num}/${den}.`
       });
     }
   },
@@ -489,7 +512,7 @@ const skills = [
       const ans = (a + b).toFixed(2);
       return q({
         prompt: `Ordering lunch 🌮: tacos cost $${a.toFixed(2)} and a smoothie costs $${b.toFixed(2)}. What's the total?`,
-        choices: textChoices(`$${ans}`, [`$${(a + b + 1).toFixed(2)}`, `$${(a + b - 0.1).toFixed(2)}`, `$${(a + b + 0.05).toFixed(2)}`, `$${(a - b).toFixed(2)}`]),
+        choices: textChoices(`$${ans}`, [`$${(a + b + 1).toFixed(2)}`, `$${(a + b - 0.1).toFixed(2)}`, `$${(a + b + 0.05).toFixed(2)}`, `$${Math.abs(a - b).toFixed(2)}`]),
         answer: `$${ans}`,
         hint: 'Line up the decimal points and add.',
         explain: `$${a.toFixed(2)} + $${b.toFixed(2)} = $${ans}.`
@@ -544,17 +567,19 @@ const skills = [
       const base = pick(d > 0.5 ? [40, 60, 80, 120, 150, 200, 240] : [20, 40, 50, 100]);
       const pct = pick(d > 0.5 ? [10, 15, 20, 25, 30, 40, 60, 75] : [10, 25, 50]);
       const ans = Math.round(base * pct / 100 * 100) / 100;
+      // Money always renders as whole dollars or 2 decimals — never "$22.5".
+      const $$ = v => { const n = Number(v); return Number.isInteger(n) ? String(n) : n.toFixed(2); };
       const mode = pick(['save', 'tip', 'tax', 'score', 'whatpct', 'left']);
       if (mode === 'tip') {
         return q({ prompt: `Dinner 🍝 costs $${base}. You leave a ${pct}% tip. How much is the TIP?`,
-          choices: numChoices(ans, () => pick([ans, base * (pct + 5) / 100, ans + 2, ans * 2])).map(c => `$${c}`),
-          answer: `$${ans}`, hint: `${pct}% of $${base}.`, explain: `${pct}% × $${base} = $${ans} tip.` });
+          choices: numChoices(ans, () => pick([ans, base * (pct + 5) / 100, ans + 2, ans * 2])).map(c => `$${$$(c)}`),
+          answer: `$${$$(ans)}`, hint: `${pct}% of $${base}.`, explain: `${pct}% × $${base} = $${$$(ans)} tip.` });
       }
       if (mode === 'tax') {
         const total = base + ans;
         return q({ prompt: `A game 🎮 costs $${base} plus ${pct}% sales tax. What's the TOTAL you pay?`,
-          choices: numChoices(total, () => pick([total, base, ans, total + 5])).map(c => `$${c}`),
-          answer: `$${total}`, hint: `Find the tax, then add it to $${base}.`, explain: `Tax = $${ans}; $${base} + $${ans} = $${total}.` });
+          choices: numChoices(total, () => pick([total, base, ans, total + 5])).map(c => `$${$$(c)}`),
+          answer: `$${$$(total)}`, hint: `Find the tax, then add it to $${base}.`, explain: `Tax = $${$$(ans)}; $${base} + $${$$(ans)} = $${$$(total)}.` });
       }
       if (mode === 'score') {
         const total = pick([20, 25, 40, 50]);
@@ -576,12 +601,12 @@ const skills = [
       if (mode === 'left') {
         const left = base - ans;
         return q({ prompt: `A $${base} jacket 🧥 is ${pct}% off. What's the SALE price you actually pay?`,
-          choices: numChoices(left, () => pick([left, ans, base, left + 5])).map(c => `$${c}`),
-          answer: `$${left}`, hint: `Save ${pct}%, pay the rest.`, explain: `$${base} − $${ans} off = $${left}.` });
+          choices: numChoices(left, () => pick([left, ans, base, left + 5])).map(c => `$${$$(c)}`),
+          answer: `$${$$(left)}`, hint: `Save ${pct}%, pay the rest.`, explain: `$${base} − $${$$(ans)} off = $${$$(left)}.` });
       }
       return q({ prompt: `SALE! 🛍️ Sneakers cost $${base} and are ${pct}% off. How many dollars do you SAVE?`,
-        choices: numChoices(ans, () => pick([ans, base - ans, ans + 5, ans * 2])).map(c => `$${c}`),
-        answer: `$${ans}`, hint: `${pct}% means ${pct} out of every 100.`, explain: `${pct}% of $${base} = $${ans} saved.` });
+        choices: numChoices(ans, () => pick([ans, base - ans, ans + 5, ans * 2])).map(c => `$${$$(c)}`),
+        answer: `$${$$(ans)}`, hint: `${pct}% means ${pct} out of every 100.`, explain: `${pct}% of $${base} = $${$$(ans)} saved.` });
     }
   },
   {
@@ -681,7 +706,7 @@ const skills = [
       const m = rint(2, d > 0.5 ? 8 : 5), c = rint(1, 15), x = rint(2, 9);
       return q({
         prompt: `A streaming service costs $${c} to join plus $${m}/month. Using y = ${m}x + ${c}, what do you pay after ${x} months?`,
-        choices: numChoices(m * x + c, () => pick([m * x + c, m * (x + c), m * x - c, (m + c) * x])).map(v => `$${v}`),
+        choices: numChoices(m * x + c, () => pick([m * x + c, m * (x + c), Math.abs(m * x - c) || m + c, (m + c) * x])).map(v => `$${v}`),
         answer: `$${m * x + c}`,
         hint: `Plug in x = ${x}.`,
         explain: `${m}×${x} + ${c} = $${m * x + c}.`
@@ -697,7 +722,7 @@ const skills = [
       const slope = rise / run;
       return q({
         prompt: `A skate ramp 🛹 goes from point (${x1}, ${y1}) to (${x2}, ${y2}). What's its slope (rise over run)?`,
-        choices: numChoices(slope, () => pick([slope, run / rise || 1, slope + 1, rise, run])),
+        choices: numChoices(slope, () => pick([slope, Math.round((run / rise) * 100) / 100 || 1, slope + 1, rise, run])),
         answer: slope,
         hint: `Rise = ${y2}−${y1}, Run = ${x2}−${x1}.`,
         explain: `Slope = ${rise}/${run} = ${slope}.`

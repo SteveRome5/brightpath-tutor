@@ -17,13 +17,13 @@ function _balanceAnswer(a, w) {
 // Ordered track metadata. exam ∈ {Regents, AP, Honors}. subject links to the
 // four core subjects for theming/labels.
 const TRACK_META = [
-  { id: 'regents-alg1', subject: 'math', exam: 'Regents', name: 'Regents Algebra I', emoji: '📐' },
-  { id: 'regents-geo', subject: 'math', exam: 'Regents', name: 'Regents Geometry', emoji: '📐' },
-  { id: 'regents-alg2', subject: 'math', exam: 'Regents', name: 'Regents Algebra II', emoji: '📐' },
-  { id: 'regents-earth', subject: 'science', exam: 'Regents', name: 'Regents Earth Science', emoji: '🌍' },
-  { id: 'regents-living', subject: 'science', exam: 'Regents', name: 'Regents Living Environment', emoji: '🧬' },
-  { id: 'regents-chem', subject: 'science', exam: 'Regents', name: 'Regents Chemistry', emoji: '⚗️' },
-  { id: 'regents-ela', subject: 'english', exam: 'Regents', name: 'Regents ELA', emoji: '📝' },
+  { id: 'regents-alg1', subject: 'math', exam: 'Regents', name: 'State Test Prep: Algebra I', emoji: '📐' },
+  { id: 'regents-geo', subject: 'math', exam: 'Regents', name: 'State Test Prep: Geometry', emoji: '📐' },
+  { id: 'regents-alg2', subject: 'math', exam: 'Regents', name: 'State Test Prep: Algebra II', emoji: '📐' },
+  { id: 'regents-earth', subject: 'science', exam: 'Regents', name: 'State Test Prep: Earth Science', emoji: '🌍' },
+  { id: 'regents-living', subject: 'science', exam: 'Regents', name: 'State Test Prep: Biology', emoji: '🧬' },
+  { id: 'regents-chem', subject: 'science', exam: 'Regents', name: 'State Test Prep: Chemistry', emoji: '⚗️' },
+  { id: 'regents-ela', subject: 'english', exam: 'Regents', name: 'State Test Prep: English', emoji: '📝' },
   { id: 'ap-calc-ab', subject: 'math', exam: 'AP', name: 'AP Calculus AB', emoji: '∫' },
   { id: 'ap-stats', subject: 'math', exam: 'AP', name: 'AP Statistics', emoji: '📊' },
   { id: 'ap-bio', subject: 'science', exam: 'AP', name: 'AP Biology', emoji: '🧬' },

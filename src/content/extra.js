@@ -10,20 +10,31 @@ try { BANKS = require('./extra_banks'); } catch (e) { BANKS = {}; }
 
 const _hasEmoji = s => /\p{Extended_Pictographic}/u.test(String(s));
 function _balanceAnswer(a, w) {
-  if (_hasEmoji(a) && !w.some(_hasEmoji)) return String(a).replace(/\p{Extended_Pictographic}/gu, '').replace(/\s{2,}/g, ' ').trim();
+  // Strip the pictograph AND its companion codepoints (variation selector U+FE0F,
+  // zero-width joiner U+200D) or answers end with an invisible dangling character.
+  if (_hasEmoji(a) && !w.some(_hasEmoji)) return String(a).replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/\s{2,}/g, ' ').trim();
   return a;
+}
+
+// A translation prompt ("'gato' means…") must never include the emoji that IS the
+// answer (🐱 next to it hands the kid the translation). Strip pictographs from
+// translation-style prompts; decorative emojis on non-translation prompts stay.
+const _XLATE = /\bmeans\b|\bmeans…|\bin english\b|\btranslat|significa|\bes tu\b|\bis your…/i;
+function _deGiveaway(p) {
+  if (!_XLATE.test(String(p))) return p;
+  return String(p).replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/\s{2,}/g, ' ').replace(/\s+([?!.,…])/g, '$1').trim();
 }
 function fromBank(bank) {
   return function () {
     const item = pick(bank);
     const a = _balanceAnswer(item.a, item.w);
     return q({
-      prompt: item.p,
+      prompt: _deGiveaway(item.p),
       choices: textChoices(a, item.w),
       answer: a,
       hint: item.h || '',
       explain: item.e || '',
-      voice: item.v || item.p,
+      voice: item.v || _deGiveaway(item.p),
       passage: item.pg || null
     });
   };
@@ -68,6 +79,25 @@ const META = [
   { id: 'sp.7.preterite', subject: 'spanish', grade: 7, name: 'El Pasado (Preterite)' },
   { id: 'sp.8.culture', subject: 'spanish', grade: 8, name: 'Cultura y Tradiciones' },
   { id: 'sp.10.subjunctive', subject: 'spanish', grade: 10, name: 'The Subjunctive Mood' },
+
+  // Verified replacements for formerly-thin base banks (each ≥30 fact-checked items):
+  { id: 's.4.space', subject: 'science', grade: 4, name: "Solar System Explorer" },
+  { id: 's.k.weather', subject: 'science', grade: 0, name: "Weather Watch" },
+  { id: 's.7.chemistry', subject: 'science', grade: 7, name: "Chemistry Basics" },
+  { id: 's.8.physics', subject: 'science', grade: 8, name: "Energy & Physics" },
+  { id: 's.7.earth', subject: 'science', grade: 7, name: "Earth Science" },
+  { id: 's.10.chem2', subject: 'science', grade: 10, name: "Chemistry II" },
+  { id: 's.11.physics2', subject: 'science', grade: 11, name: "Physics II" },
+  { id: 's.9.biology', subject: 'science', grade: 9, name: "Biology: DNA & Genetics" },
+  { id: 's.2.habitats', subject: 'science', grade: 2, name: "Habitats & Homes" },
+  { id: 's.12.advanced', subject: 'science', grade: 12, name: "Advanced Science" },
+  { id: 's.5.body', subject: 'science', grade: 5, name: "Amazing Human Body" },
+  { id: 'sp.2.days', subject: 'spanish', grade: 2, name: "Días y Meses" },
+  { id: 'sp.2.body', subject: 'spanish', grade: 2, name: "El Cuerpo" },
+  { id: 's.5.ecosystems', subject: 'science', grade: 5, name: "Ecosystems & Energy" },
+  { id: 'sp.3.ser', subject: 'spanish', grade: 3, name: "Ser vs. Estar" },
+  { id: 'sp.2.phrases', subject: 'spanish', grade: 2, name: "Frases Útiles" },
+  { id: 'sp.1.family', subject: 'spanish', grade: 1, name: "La Familia" },
 ];
 
 // Build skill objects only for metas that actually have a non-empty bank.

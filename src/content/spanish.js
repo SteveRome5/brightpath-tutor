@@ -7,20 +7,29 @@ const _hasEmoji = s => /\p{Extended_Pictographic}/u.test(String(s));
 // If only the correct answer carries an emoji, it gives itself away among plain-text
 // distractors. Strip it so every choice looks the same.
 function _balanceAnswer(a, w) {
-  if (_hasEmoji(a) && !w.some(_hasEmoji)) return String(a).replace(/\p{Extended_Pictographic}/gu, '').replace(/\s{2,}/g, ' ').trim();
+  if (_hasEmoji(a) && !w.some(_hasEmoji)) return String(a).replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/\s{2,}/g, ' ').trim();
   return a;
+}
+
+// A translation prompt ("'gato' means…") must never include the emoji that IS the
+// answer (🐱 next to it hands the kid the translation). Strip pictographs from
+// translation-style prompts; decorative emojis on non-translation prompts stay.
+const _XLATE = /\bmeans\b|\bmeans…|\bin english\b|\btranslat|significa|\bes tu\b|\bis your…/i;
+function _deGiveaway(p) {
+  if (!_XLATE.test(String(p))) return p;
+  return String(p).replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/\s{2,}/g, ' ').replace(/\s+([?!.,…])/g, '$1').trim();
 }
 function fromBank(bank) {
   return function () {
     const item = pick(bank);
     const a = _balanceAnswer(item.a, item.w);
     return q({
-      prompt: item.p,
+      prompt: _deGiveaway(item.p),
       choices: textChoices(a, item.w),
       answer: a,
       hint: item.h || '',
       explain: item.e || '',
-      voice: item.v || item.p
+      voice: item.v || _deGiveaway(item.p)
     });
   };
 }

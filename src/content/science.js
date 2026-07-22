@@ -5,7 +5,7 @@ const _hasEmoji = s => /\p{Extended_Pictographic}/u.test(String(s));
 // If only the correct answer carries an emoji, it gives itself away among plain-text
 // distractors. Strip it so every choice looks the same.
 function _balanceAnswer(a, w) {
-  if (_hasEmoji(a) && !w.some(_hasEmoji)) return String(a).replace(/\p{Extended_Pictographic}/gu, '').replace(/\s{2,}/g, ' ').trim();
+  if (_hasEmoji(a) && !w.some(_hasEmoji)) return String(a).replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/\s{2,}/g, ' ').trim();
   return a;
 }
 function fromBank(bank) {
