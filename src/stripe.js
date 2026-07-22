@@ -29,7 +29,13 @@ const PLANS = {
 // Attach availability (computed once at load).
 for (const key of Object.keys(PLANS)) PLANS[key].available = !KEY || !!PLANS[key].envPrice;
 
-function billingMode() { return stripe ? 'stripe' : 'demo'; }
+// Three honest states so the UI never shows dev-only copy to a real user:
+//  'stripe'   — real payments configured
+//  'demo'     — no keys AND demo grants allowed (local/dev only)
+//  'disabled' — no keys in production (billing genuinely unavailable; fail closed)
+// In production with Stripe unset, this returns 'disabled', so the parent UI shows neutral
+// copy instead of leaking "demo billing / Set STRIPE_SECRET_KEY".
+function billingMode() { return stripe ? 'stripe' : (DEMO_BILLING_OK ? 'demo' : 'disabled'); }
 
 async function createCheckout(parent, plan, origin) {
   const planKey = PLANS[plan] ? plan : 'family';

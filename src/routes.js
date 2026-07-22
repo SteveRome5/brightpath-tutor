@@ -262,15 +262,23 @@ router.post('/learn/:kidId/placement/:subject', auth.requireKid, auth.requireAct
   const { subject } = req.params;
   if (!validSubject(subject)) return res.status(404).json({ error: 'Unknown subject' });
   const key = `${req.kid.id}:${subject}`;
-  const { answerIndex, questionAnswerIndex, probeGrade, reset } = req.body || {};
+  const { answerIndex, questionAnswerIndex, probeGrade, reset, skillName } = req.body || {};
   if (reset) placements.delete(key);
   let history = placements.get(key) || [];
   if (answerIndex != null && probeGrade != null) {
-    history.push({ grade: Number(probeGrade), correct: Number(answerIndex) === Number(questionAnswerIndex) });
+    const wasCorrect = Number(answerIndex) === Number(questionAnswerIndex);
+    // -1 = "haven't learned this yet". We record the skill name of a genuine miss (a wrong
+    // pick) so parents can later see, in plain words, what the assessment surfaced. Honest
+    // "haven't covered this" skips aren't framed as mistakes.
+    const missed = (!wasCorrect && Number(answerIndex) !== -1 && skillName) ? String(skillName).slice(0, 80) : null;
+    history.push({ grade: Number(probeGrade), correct: wasCorrect, missed });
     placements.set(key, history);
   }
   const result = adaptive.placementNext(req.kid.id, subject, history);
   if (result.done) {
+    // Persist a de-duplicated list of missed concepts for the parent report before clearing.
+    const missedNames = [...new Set(history.filter(h => h.missed).map(h => h.missed))].slice(0, 6);
+    try { adaptive.savePlacementMissed(req.kid.id, subject, missedNames); } catch (e) { /* best-effort */ }
     placements.delete(key);
     return res.json({ done: true, level: result.level, levelName: adaptive.gradeName(Math.round(result.level)) });
   }

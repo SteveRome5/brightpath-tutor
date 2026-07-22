@@ -645,6 +645,15 @@ function placementRationale(sub, state, kid) {
   return `${name} placed right around their enrolled grade in ${sub}, at ${lvlName}. That's the sweet spot: familiar enough to feel confident, with room to stretch.`;
 }
 
+// Store the concepts a child missed on the placement quiz (array of skill names).
+// Kept small and human-readable so the parent report can show them verbatim.
+function savePlacementMissed(kidId, subject, missedNames) {
+  getSubjectState(kidId, subject); // ensure row exists
+  const uniq = Array.isArray(missedNames) ? [...new Set(missedNames.filter(Boolean))].slice(0, 6) : [];
+  const json = uniq.length ? JSON.stringify(uniq) : null;
+  db.prepare('UPDATE subject_state SET placement_missed=? WHERE kid_id=? AND subject=?').run(json, kidId, subject);
+}
+
 function reportCard(kidId) {
   const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(kidId);
   const subjects = ['math', 'english', 'science', 'spanish'].map(sub => {
@@ -680,6 +689,7 @@ function reportCard(kidId) {
       questionsAnswered: agg.n || 0, accuracy: agg.n ? (agg.c / agg.n) : null,
       status, recentAccuracy: recentAcc,
       placementNote: placementRationale(sub, state, kid),
+      placementMissed: (() => { try { return state.placement_missed ? JSON.parse(state.placement_missed) : []; } catch (e) { return []; } })(),
       strengths: strengths.map(r => nameOf(r.skill_id)),
       focusAreas: focus.map(r => nameOf(r.skill_id)),
       // full per-skill drill-down for parents
@@ -775,7 +785,7 @@ function setLevel(kidId, subject, level) {
 }
 
 module.exports = {
-  getSubjectState, nextActivity, recordAnswer, placementNext, reportCard,
+  getSubjectState, nextActivity, recordAnswer, placementNext, reportCard, savePlacementMissed,
   gradeName, subjectLabel, setLevel, maxGrade, achievements, careerInsights, BADGES, MASTERED, STRUGGLING,
   updateStreak
 };

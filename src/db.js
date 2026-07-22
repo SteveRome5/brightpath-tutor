@@ -212,7 +212,10 @@ for (const stmt of [
   // Lapsed-practice nudges: remember the last time we nudged so one lapse = one email
   "ALTER TABLE kids ADD COLUMN last_nudge_at TEXT",
   // Custom uploaded avatar photo (data URL) for older kids — null = use the built-in avatar
-  "ALTER TABLE kids ADD COLUMN avatar_img TEXT"
+  "ALTER TABLE kids ADD COLUMN avatar_img TEXT",
+  // Concepts the child missed during the placement quiz (JSON array of skill names) so
+  // parents can see, in plain language, what to keep an eye on from the assessment.
+  "ALTER TABLE subject_state ADD COLUMN placement_missed TEXT"
 ]) {
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }
