@@ -127,6 +127,48 @@ function sendNudge(parent, kid, daysIdle) {
   } catch (e) { /* never throw from the scheduler */ }
 }
 
+// ---------- password reset (transactional; always sends) ----------
+function sendPasswordReset(parent, resetUrl) {
+  try {
+    if (!parent || !parent.email) return;
+    const first = esc((parent.name || '').split(' ')[0] || 'there');
+    const html = layout(`
+      <h2 style="margin:0 0 12px;color:${BRAND}">Reset your password 🔐</h2>
+      <p>Hi ${first} — we got a request to reset the password for your Gallop account.</p>
+      <p>Click the button below to choose a new password. This link works once and expires in 1 hour.</p>
+      ${btn(esc(resetUrl), 'Reset my password')}
+      <p style="margin:16px 0 0;font-size:14px;color:#5f6b7d">If you didn't ask for this, you can safely ignore this email — your password won't change.</p>
+    `);
+    sendEmail({ to: parent.email, subject: 'Reset your Gallop password', html, kind: 'password_reset' });
+  } catch (e) { /* never throw from an auth flow */ }
+}
+
+// ---------- weekly parent report (autonomous digest) ----------
+function sendWeeklyReport(parent, summary) {
+  try {
+    if (!parent || !parent.email || parent.email_opt_out) return;
+    const first = esc((parent.name || '').split(' ')[0] || 'there');
+    const kidBlocks = summary.kids.map(k => {
+      const subjLines = k.subjects.map(s =>
+        `<tr><td style="padding:4px 10px 4px 0;color:#16213a">${esc(s.label)}</td>
+         <td style="padding:4px 0;color:#5f6b7d">${s.answers} answered · ${s.accuracy != null ? Math.round(s.accuracy * 100) + '%' : '—'}${s.delta > 0 ? ` · <span style="color:#1f8a5f">▲ +${s.delta}</span>` : ''}</td></tr>`
+      ).join('');
+      return `<div style="margin:14px 0;padding:14px 16px;background:#f9f7f1;border-radius:12px">
+        <p style="margin:0 0 6px"><b style="color:${BRAND}">${esc(k.name)}</b> — ${k.weekAnswers} question${k.weekAnswers === 1 ? '' : 's'} this week${k.gallop != null ? ` · Gallop Score ${k.gallop}` : ''}</p>
+        ${subjLines ? `<table style="border-collapse:collapse;font-size:14px">${subjLines}</table>` : '<p style="margin:0;color:#5f6b7d;font-size:14px">No practice logged this week — a quick session gets them going again.</p>'}
+        ${k.focus ? `<p style="margin:8px 0 0;font-size:14px">🎯 Worth a look together: <b>${esc(k.focus)}</b></p>` : ''}
+      </div>`;
+    }).join('');
+    const html = layout(`
+      <h2 style="margin:0 0 12px;color:${BRAND}">${first}, here's this week in learning 📊</h2>
+      <p>A quick snapshot of how your ${summary.kids.length === 1 ? 'learner is' : 'learners are'} doing. The full, interactive report is always in your dashboard.</p>
+      ${kidBlocks}
+      ${btn(ORIGIN + '/#parent', 'Open the full report')}
+    `, { unsubToken: unsubTokenFor(parent.id) });
+    sendEmail({ to: parent.email, subject: 'Your weekly Gallop learning report 📊', html, kind: 'weekly_report' });
+  } catch (e) { /* a report email must never break anything */ }
+}
+
 // ---------- lapsed-practice sweep (called hourly from server.js) ----------
 // One nudge per lapse: a kid qualifies when their last activity (or account creation,
 // for never-started kids) is 48h–7d old, and we haven't nudged since that activity.
@@ -152,4 +194,39 @@ function nudgeSweep() {
   } catch (e) { console.error('nudgeSweep error:', e.message); }
 }
 
-module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, nudgeSweep, unsubTokenFor };
+// Weekly report sweep: sends each active/trial parent one digest per week, fully
+// autonomously. Restart-safe and idempotent via the email_log (a parent who already has a
+// 'weekly_report' logged in the last 7 days is skipped), so it can run on a frequent timer
+// without ever double-sending. Only emails parents whose learners actually did work this
+// week — dormant accounts aren't pestered.
+const REPORT_SUBJECTS = [['math', 'Math'], ['english', 'English'], ['science', 'Science'], ['spanish', 'Spanish']];
+function weeklyReportSweep() {
+  try {
+    const content = require('./content');
+    const parents = db.prepare(`SELECT * FROM parents WHERE (sub_status='active' OR sub_status='trial') AND COALESCE(email_opt_out,0)=0`).all();
+    for (const p of parents) {
+      const already = db.prepare(`SELECT 1 FROM email_log WHERE to_email=? AND kind='weekly_report' AND created_at > datetime('now','-6 days') LIMIT 1`).get(p.email);
+      if (already) continue;
+      const kids = db.prepare('SELECT * FROM kids WHERE parent_id=?').all(p.id);
+      if (!kids.length) continue;
+      const kidSummaries = kids.map(k => {
+        const week = db.prepare(`SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts>=datetime('now','-7 days')`).get(k.id).n;
+        const subjects = REPORT_SUBJECTS.map(([sub, label]) => {
+          const r = db.prepare(`SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND subject=? AND ts>=datetime('now','-7 days')`).get(k.id, sub);
+          return { label, answers: r.n || 0, accuracy: r.n ? (r.c || 0) / r.n : null, delta: 0 };
+        }).filter(s => s.answers > 0);
+        const snap = db.prepare(`SELECT score FROM score_snapshots WHERE kid_id=? AND subject='overall' ORDER BY day DESC LIMIT 1`).get(k.id);
+        let focus = null;
+        try {
+          const fr = db.prepare(`SELECT skill_id, subject FROM skill_state WHERE kid_id=? AND attempts>=3 AND mastery<0.4 ORDER BY mastery ASC LIMIT 1`).get(k.id);
+          if (fr) { const sk = content.getSkill(fr.subject, fr.skill_id); focus = sk ? sk.name : null; }
+        } catch (e) {}
+        return { name: k.name, weekAnswers: week, subjects, gallop: snap ? snap.score : null, focus };
+      });
+      if (!kidSummaries.some(k => k.weekAnswers > 0)) continue; // don't email dormant accounts
+      sendWeeklyReport(p, { kids: kidSummaries });
+    }
+  } catch (e) { console.error('weeklyReportSweep error:', e.message); }
+}
+
+module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendWeeklyReport, nudgeSweep, weeklyReportSweep, unsubTokenFor };

@@ -167,6 +167,39 @@ router.post('/auth/change-password', loginLimiter, auth.requireParent, (req, res
   res.json({ ok: true });
 });
 
+// ---------- forgot / reset password ----------
+const crypto = require('crypto');
+const hashToken = t => crypto.createHash('sha256').update(String(t)).digest('hex');
+// Request a reset link. ALWAYS returns 200 with the same message whether or not the email
+// exists — never reveal which addresses have accounts (prevents account enumeration).
+router.post('/auth/forgot', loginLimiter, (req, res) => {
+  try {
+    const email = String((req.body || {}).email || '').toLowerCase().trim();
+    const p = EMAIL_RE.test(email) ? db.prepare('SELECT * FROM parents WHERE email=?').get(email) : null;
+    if (p) {
+      const token = crypto.randomBytes(32).toString('hex');
+      db.prepare("INSERT INTO password_resets (token_hash, parent_id, expires_at) VALUES (?,?, datetime('now','+1 hour'))").run(hashToken(token), p.id);
+      const origin = process.env.APP_ORIGIN || `${req.protocol}://${req.headers.host}`;
+      mailer.sendPasswordReset(p, `${origin}/#reset/${token}`);
+    }
+  } catch (e) { /* never leak internal errors on this path */ }
+  res.json({ ok: true, message: 'If that email has an account, a reset link is on its way.' });
+});
+// Consume a reset token and set a new password.
+router.post('/auth/reset', loginLimiter, (req, res) => {
+  const { token, password } = req.body || {};
+  if (!password || String(password).length < 8) return res.status(400).json({ error: 'New password needs 8+ characters.' });
+  if (!token) return res.status(400).json({ error: 'Missing reset token.' });
+  const row = db.prepare("SELECT * FROM password_resets WHERE token_hash=? AND used=0 AND expires_at > datetime('now')").get(hashToken(token));
+  if (!row) return res.status(400).json({ error: 'This reset link is invalid or has expired. Please request a new one.' });
+  auth.setPassword(row.parent_id, String(password));
+  db.prepare('UPDATE password_resets SET used=1 WHERE token_hash=?').run(row.token_hash);
+  // Invalidate any other outstanding reset links + existing sessions for safety.
+  db.prepare("UPDATE password_resets SET used=1 WHERE parent_id=? AND used=0").run(row.parent_id);
+  try { db.prepare("DELETE FROM sessions WHERE kind='parent' AND ref_id=?").run(row.parent_id); } catch (e) {}
+  res.json({ ok: true });
+});
+
 router.post('/auth/logout', (req, res) => {
   auth.destroySession(req.cookies.bp_session);
   res.clearCookie('bp_session');
@@ -324,12 +357,13 @@ router.post('/learn/:kidId/placement/:subject', auth.requireKid, auth.requireAct
   if (reset) placements.delete(key);
   let history = placements.get(key) || [];
   if (answerIndex != null && probeGrade != null) {
+    const isIdk = Number(answerIndex) === -1;              // "I haven't learned this yet"
     const wasCorrect = Number(answerIndex) === Number(questionAnswerIndex);
-    // -1 = "haven't learned this yet". We record the skill name of a genuine miss (a wrong
-    // pick) so parents can later see, in plain words, what the assessment surfaced. Honest
-    // "haven't covered this" skips aren't framed as mistakes.
-    const missed = (!wasCorrect && Number(answerIndex) !== -1 && skillName) ? String(skillName).slice(0, 80) : null;
-    history.push({ grade: Number(probeGrade), correct: wasCorrect, missed });
+    // "Haven't learned this yet" is NOT a wrong answer — it's a signal to stop testing
+    // higher, never a reason to demote the child (it must never sink them toward K). We
+    // flag it so the placement engine caps the ceiling instead of descending on it.
+    const missed = (!wasCorrect && !isIdk && skillName) ? String(skillName).slice(0, 80) : null;
+    history.push({ grade: Number(probeGrade), correct: wasCorrect, idk: isIdk, missed });
     placements.set(key, history);
   }
   const result = adaptive.placementNext(req.kid.id, subject, history);

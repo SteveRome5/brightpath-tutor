@@ -68,7 +68,10 @@ const PLACE_FAIL = 0.5;         // <50% at a grade = "fails" that grade
 
 function gradeTallies(history) {
   const t = {};
-  for (const h of history) { (t[h.grade] = t[h.grade] || { c: 0, n: 0 }).n++; if (h.correct) t[h.grade].c++; }
+  // "I haven't learned this yet" (idk) is NOT counted as an attempt: it isn't evidence the
+  // child failed the grade, only that they haven't reached it. Counting it as a miss is what
+  // used to sink a learner toward Kindergarten during the assessment.
+  for (const h of history) { if (h.idk) continue; (t[h.grade] = t[h.grade] || { c: 0, n: 0 }).n++; if (h.correct) t[h.grade].c++; }
   return t;
 }
 function highestPassed(tallies) {
@@ -87,11 +90,27 @@ function placementNext(kidId, subject, history) {
   // Never show material more than 3 grades above enrollment during placement.
   const probeCap = subject === 'spanish' ? maxG : Math.min(maxG, enrolled + 3);
   const tallies = gradeTallies(history);
+  const hp = highestPassed(tallies);
+
+  // "I haven't learned this yet" caps the CEILING — it means "don't test me higher," never
+  // "send me back." When the child taps it, settle at the highest grade they actually passed,
+  // floored at one grade below their enrolled grade so the assessment can never demote them
+  // multiple grades from an honest "not yet." Genuine WRONG answers still place lower (that's
+  // real evidence); only idk is floored. (Spanish always starts at 0, so the floor is 0.)
+  const lastEntry = history.length ? history[history.length - 1] : null;
+  if (lastEntry && lastEntry.idk) {
+    const floor = subject === 'spanish' ? 0 : Math.max(0, enrolled - 1);
+    let level = Math.max(hp >= 0 ? hp : floor, floor);
+    if (subject !== 'spanish') level = Math.min(level, probeCap);
+    level = Math.max(0, Math.min(maxG, level));
+    db.prepare('UPDATE subject_state SET level=?, placed=1 WHERE kid_id=? AND subject=?').run(level, kidId, subject);
+    for (const s of content.skillsForSubject(subject).filter(s => s.grade === Math.round(level))) getSkillState(kidId, subject, s.id);
+    return { done: true, level };
+  }
 
   // Decide the next probe grade. We stay MONOTONIC-AWARE: once a child has clearly
   // passed grade H, a later stray miss at or below H is treated as noise (we don't
   // sink them), instead we push upward to keep finding their true ceiling.
-  const hp = highestPassed(tallies);
   let probe = start;
   if (history.length) {
     const lastGrade = history[history.length - 1].grade;

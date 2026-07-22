@@ -203,6 +203,16 @@ CREATE TABLE IF NOT EXISTS webhook_events (
   type TEXT,
   processed_at TEXT DEFAULT (datetime('now'))
 );
+
+-- Password reset tokens. We store only a SHA-256 hash of the token (never the raw value);
+-- the raw token lives only in the emailed link. Single-use, short-lived.
+CREATE TABLE IF NOT EXISTS password_resets (
+  token_hash TEXT PRIMARY KEY,
+  parent_id INTEGER NOT NULL REFERENCES parents(id) ON DELETE CASCADE,
+  expires_at TEXT NOT NULL,
+  used INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
 `);
 
 // Column migrations for existing databases (safe to re-run)
