@@ -38,6 +38,20 @@ function toast(msg) {
   requestAnimationFrame(() => t.classList.add('show'));
   setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3800);
 }
+// Toast with an inline action button (e.g. an Undo). Stays a little longer so a child has
+// time to reverse a tap — nothing they do should ever feel like a one-way trap.
+function toastAction(msg, actionLabel, onAction) {
+  document.querySelectorAll('.gallop-toast').forEach(t => t.remove());
+  const t = document.createElement('div');
+  t.className = 'gallop-toast';
+  const span = document.createElement('span'); span.textContent = msg + ' ';
+  const btn = document.createElement('button'); btn.className = 'toast-action'; btn.textContent = actionLabel;
+  btn.onclick = () => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); try { onAction(); } catch (e) {} };
+  t.appendChild(span); t.appendChild(btn);
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 7000);
+}
 
 async function api(path, opts = {}) {
   const res = await fetch('/api' + path, {
@@ -1044,7 +1058,8 @@ route('login', async () => {
       <label>Password</label><input id="f-pass" type="password">
       <div class="error-msg" id="f-err"></div>
       <button class="btn" style="margin-top:18px;width:100%" id="f-go">Log In →</button>
-      <p class="muted center" style="margin-top:12px">New here? <a href="#signup">Create an account</a> · <a href="#kid-login">Kid login</a></p>
+      <p class="muted center" style="margin-top:12px"><a href="#forgot">Forgot password?</a></p>
+      <p class="muted center" style="margin-top:4px">New here? <a href="#signup">Create an account</a> · <a href="#kid-login">Kid login</a></p>
     </div></div>`);
   wireChrome();
   const go = async () => {
@@ -1055,6 +1070,60 @@ route('login', async () => {
   };
   $('#f-go').onclick = go;
   $('#f-pass').addEventListener('keydown', e => e.key === 'Enter' && go());
+});
+
+// ======================= forgot password =======================
+route('forgot', async () => {
+  app().innerHTML = topbar(`<div class="container" style="max-width:460px">
+    <div class="card">
+      <h2>Reset your password 🔐</h2>
+      <p class="muted" style="margin:6px 0 14px">Enter your account email and we'll send you a link to set a new password.</p>
+      <label>Email</label><input id="fg-email" type="email" autocomplete="email">
+      <div class="error-msg" id="fg-err"></div>
+      <button class="btn" style="margin-top:16px;width:100%" id="fg-go">Send reset link →</button>
+      <div id="fg-done" style="display:none;margin-top:14px;padding:12px 14px;background:#e2f8f1;color:#0c6b53;border-radius:12px;font-weight:600"></div>
+      <p class="muted center" style="margin-top:12px"><a href="#login">← Back to login</a></p>
+    </div></div>`);
+  wireChrome();
+  const go = async () => {
+    const btn = $('#fg-go'); btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      const r = await api('/auth/forgot', { method: 'POST', body: { email: $('#fg-email').value } });
+      $('#fg-done').style.display = 'block';
+      $('#fg-done').textContent = '✓ ' + (r.message || 'If that email has an account, a reset link is on its way. Check your inbox (and spam).');
+      btn.style.display = 'none';
+    } catch (e) { showError('#fg-err', e.message); btn.disabled = false; btn.textContent = 'Send reset link →'; }
+  };
+  $('#fg-go').onclick = go;
+  $('#fg-email').addEventListener('keydown', e => e.key === 'Enter' && go());
+});
+
+// ======================= reset password (from emailed link #reset/<token>) =======================
+route('reset', async (token) => {
+  app().innerHTML = topbar(`<div class="container" style="max-width:460px">
+    <div class="card">
+      <h2>Choose a new password 🔑</h2>
+      <p class="muted" style="margin:6px 0 14px">Almost done — pick a new password (8+ characters).</p>
+      <label>New password</label><input id="rs-pass" type="password" autocomplete="new-password">
+      <label>Confirm new password</label><input id="rs-pass2" type="password" autocomplete="new-password">
+      <div class="error-msg" id="rs-err"></div>
+      <button class="btn green" style="margin-top:16px;width:100%" id="rs-go">Set new password →</button>
+      <p class="muted center" style="margin-top:12px"><a href="#login">← Back to login</a></p>
+    </div></div>`);
+  wireChrome();
+  const go = async () => {
+    const pw = $('#rs-pass').value, pw2 = $('#rs-pass2').value;
+    if (pw.length < 8) { showError('#rs-err', 'Password needs at least 8 characters.'); return; }
+    if (pw !== pw2) { showError('#rs-err', 'The two passwords don\'t match.'); return; }
+    const btn = $('#rs-go'); btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      await api('/auth/reset', { method: 'POST', body: { token, password: pw } });
+      toast('✓ Password updated — you can log in now.');
+      location.hash = '#login';
+    } catch (e) { showError('#rs-err', e.message); btn.disabled = false; btn.textContent = 'Set new password →'; }
+  };
+  $('#rs-go').onclick = go;
+  $('#rs-pass2').addEventListener('keydown', e => e.key === 'Enter' && go());
 });
 
 // ======================= kid login =======================
@@ -1491,7 +1560,10 @@ route('lesson', async (subject, mode) => {
           <button class="btn green" id="next-btn" style="display:none">Next →</button>
           <button class="btn ghost small" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:auto" onclick="location.hash='#home'">Exit</button>
         </div>
-        <div class="too-tricky"><button class="tt-btn" id="tt-btn">${playful() ? '🐴 Whoa, too tricky? Gallop back to easier questions' : 'Too difficult? Step back a level'}</button></div>
+        <div class="too-tricky">
+          <button class="tt-btn" id="tt-btn">${playful() ? '🐴 Too tricky? Try easier questions' : 'Too difficult? Step back a level'}</button>
+          <button class="tt-btn tt-up" id="tt-up-btn">${playful() ? '🚀 Too easy? Level me up' : 'Too easy? Move up a level'}</button>
+        </div>
         <div class="mastery-mini">Skill power: <span id="mastery-pct">${Math.round((data.skill.mastery || 0) * 100)}%</span>
           <div class="mastery-bar"><div id="mastery-fill" style="width:${(data.skill.mastery || 0) * 100}%"></div></div>
         </div>
@@ -1506,15 +1578,29 @@ route('lesson', async (subject, mode) => {
     if (qn.passage && pwords && Voice.auto) Voice.readAlong(pwords, vlang);
     else if (Voice.auto) Voice.speak(qn.voice || qn.prompt, vlang);
     $('#hint-btn').onclick = () => { $('#hint-box').classList.add('show'); Sound.click(); };
-    $('#tt-btn').onclick = async () => {
+    // Stepping the level is never a one-way trap: whichever way the child moves, the toast
+    // offers an instant Undo, and both directions are always one tap away. This is the fix
+    // for "the too-tricky button stranded her and there was no way back up."
+    async function levelShift(delta) {
       Sound.click();
-      const btn = $('#tt-btn'); btn.disabled = true; btn.textContent = playful() ? '🐴 Galloping back…' : 'Adjusting…';
+      const down = delta < 0;
+      const btn = down ? $('#tt-btn') : $('#tt-up-btn');
+      const orig = btn.textContent;
+      $('#tt-btn').disabled = true; $('#tt-up-btn').disabled = true;
+      btn.textContent = playful() ? (down ? '🐴 One sec…' : '🚀 One sec…') : 'Adjusting…';
       try {
-        const r = await api(`/learn/${kidId}/level-shift/${subject}`, { method: 'POST', body: { delta: -1 } });
-        toast(playful() ? `🌈 No worries! We galloped back to ${r.levelName} questions. You've got this!` : `Level adjusted to ${r.levelName}.`);
+        const r = await api(`/learn/${kidId}/level-shift/${subject}`, { method: 'POST', body: { delta } });
+        const msg = playful()
+          ? (down ? `🌈 Okay! Easier ${r.levelName} questions coming up.` : `🚀 Nice! Stepping up to ${r.levelName} questions.`)
+          : `Level set to ${r.levelName}.`;
+        toastAction(msg, playful() ? '↩︎ Undo' : 'Undo', () => levelShift(-delta));
         nextQuestion();
-      } catch (e) { btn.disabled = false; btn.textContent = playful() ? '🐴 Whoa, too tricky? Gallop back to easier questions' : 'Too difficult? Step back a level'; }
-    };
+      } catch (e) {
+        $('#tt-btn').disabled = false; $('#tt-up-btn').disabled = false; btn.textContent = orig;
+      }
+    }
+    $('#tt-btn').onclick = () => levelShift(-1);
+    $('#tt-up-btn').onclick = () => levelShift(1);
     // Keyboard: 1-4 answer, Enter = next, H = hint (great for desktop & teens)
     document.onkeydown = e => {
       if (document.querySelector('.celebrate')) return;
