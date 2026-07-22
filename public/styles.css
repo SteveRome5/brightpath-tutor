@@ -1444,6 +1444,43 @@ body[data-theme="academy"] .lw-passage { background: #2a2921; border-color: #4a4
 .learn-meta { font-size: .78rem !important; }
 .learn-go { font-weight: 800; color: var(--sub); white-space: nowrap; }
 
+/* ---- Curriculum: textbook table of contents ---- */
+.toc-wrap { max-width: 860px; }
+.toc-subject { margin: 6px 0 26px; }
+.toc-subhead { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 20px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--card-border); }
+.toc-subhead h3 { font-size: 1.28rem; margin: 0; }
+.toc-subright { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.toc-subprog { font-size: .82rem; color: var(--chrome-sub); font-weight: 700; white-space: nowrap; }
+.toc-practice { background: var(--sub); border-color: var(--sub); color: #fff; white-space: nowrap; }
+.toc-practice:hover { filter: brightness(1.06); }
+.toc-band { border: 1px solid var(--card-border); border-radius: 14px; margin: 10px 0; overflow: hidden; background: var(--card-bg); }
+.toc-band summary { list-style: none; cursor: pointer; }
+.toc-band summary::-webkit-details-marker { display: none; }
+.toc-band-sum { display: flex; align-items: center; gap: 10px; padding: 13px 16px; font-family: var(--font-display); font-weight: 700; font-size: 1.02rem; position: relative; }
+.toc-band-sum::before { content: '▸'; color: var(--sub); font-size: .8rem; transition: transform .2s; }
+.toc-band[open] .toc-band-sum::before { transform: rotate(90deg); }
+.toc-band-grades { margin-left: auto; font-family: var(--font-body); font-weight: 600; font-size: .78rem; color: var(--chrome-sub); }
+.toc-units { padding: 4px 12px 12px; }
+.toc-unit { padding: 10px 4px; border-top: 1px dashed var(--card-border); }
+.toc-unit:first-child { border-top: none; }
+.toc-unit-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.toc-unit-n { color: #fff; font-size: .72rem; font-weight: 800; padding: 3px 9px; border-radius: 999px; letter-spacing: .02em; }
+.toc-unit-title { font-size: 1rem; }
+.toc-here { font-size: .68rem; font-weight: 800; color: var(--sub); border: 1.5px solid var(--sub); border-radius: 999px; padding: 2px 8px; text-transform: uppercase; letter-spacing: .04em; }
+.toc-unit-prog { margin-left: auto; font-size: .76rem; color: var(--chrome-sub); font-weight: 700; }
+.toc-chs { display: flex; flex-direction: column; gap: 6px; }
+.toc-ch { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 11px 13px; border-radius: 11px;
+  background: var(--bg, #fff); border: 1px solid var(--card-border); cursor: pointer; transition: transform .12s, box-shadow .12s, border-color .12s; font: inherit; }
+@media (hover: hover) { .toc-ch:hover { transform: translateX(3px); border-color: var(--sub); box-shadow: 0 10px 24px -18px rgba(22,33,58,.5); } }
+.toc-ch.done { opacity: .72; }
+.toc-num { font-family: var(--font-display); font-weight: 800; font-size: .82rem; color: var(--sub); min-width: 34px; }
+.toc-chbody { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.toc-chbody b { font-size: .97rem; }
+.toc-chbody span { font-size: .8rem; color: var(--chrome-sub); }
+.toc-status { font-size: .95rem; color: var(--sub); font-weight: 800; min-width: 16px; text-align: center; }
+.toc-go { font-weight: 800; color: var(--sub); font-size: .84rem; white-space: nowrap; }
+@media (max-width: 560px) { .toc-go { display: none; } .toc-subhead h3 { font-size: 1.12rem; } }
+
 /* ---- Sale-readiness: trust strip + FAQ ---- */
 .trust-strip { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 22px; margin: 18px 0 4px; }
 .trust-strip span { font-family: var(--font-body); font-size: .9rem; font-weight: 600; color: var(--ink); opacity: .82; white-space: nowrap; }

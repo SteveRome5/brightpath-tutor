@@ -13743,58 +13743,120 @@
   BP.lessonDone = id => { try { return localStorage[doneKey(id)] === '1'; } catch (e) { return false; } };
 
   // ---------------------------------------------------------------------------
-  // LESSONS HUB — browse and pick a lesson to learn
+  // LESSONS HUB — a textbook table of contents. Every subject is a scope-and-
+  // sequence: grade Units in curriculum order, each with numbered chapters that
+  // link to the lesson teaching that skill. Driven by window.GALLOP_CURRICULUM.
   // ---------------------------------------------------------------------------
+  const BANDS = ['Early Elementary', 'Upper Elementary', 'Middle School', 'High School'];
+  // Resolve a curriculum skillId to its lesson (direct or aliased).
+  const lessonForChapter = (sub, sid) => (BP.lessonForSkill ? BP.lessonForSkill(sub, sid) : null);
+
   route('learn', async (only) => {
     if (State.me.role !== 'kid') { location.hash = '#kid-login'; return; }
     const grade = (State.me.kid && State.me.kid.grade) || 0;
-    const subjects = only && L[only] ? [only] : ['math', 'english', 'science', 'spanish'];
-    const section = (sub) => {
-      const list = (L[sub] || []).slice().sort((a, b) => a.grade - b.grade);
-      if (!list.length) return '';
-      const cards = list.map(l => {
-        const near = Math.abs(l.grade - grade) <= 1;
-        return `<div class="learn-card ${BP.lessonDone(l.id) ? 'ldone' : ''}" data-id="${l.id}" style="--sub:${SUB[sub].color}">
-          <div class="learn-emoji">${SUB[sub].emoji}</div>
-          <div class="learn-body"><b>${esc(l.title)}</b><span>${esc(l.subtitle || '')}</span>
-            <span class="learn-meta">${l.grade === 0 ? 'Kindergarten' : 'Grade ' + l.grade}${near ? ' · just right for you' : ''}${BP.lessonDone(l.id) ? ' · ✓ learned' : ''}</span></div>
-          <span class="learn-go">${BP.lessonDone(l.id) ? 'Review' : 'Learn'} →</span>
-        </div>`;
+    const CUR = window.GALLOP_CURRICULUM || {};
+    const subjects = only && CUR[only] ? [only] : ['math', 'english', 'science', 'spanish'];
+
+    // One subject's full textbook TOC, grouped by grade band into accordions.
+    const subjectBlock = (sub) => {
+      const units = CUR[sub] || [];
+      if (!units.length) return '';
+      const st = SUB[sub];
+      // total progress for the subject
+      let totChs = 0, totDone = 0;
+      const bandHtml = BANDS.map(band => {
+        const bUnits = units.filter(u => u.band === band);
+        if (!bUnits.length) return '';
+        const openBand = bUnits.some(u => u.g === grade || (u.g <= grade + 1 && u.g >= grade - 1));
+        const unitsHtml = bUnits.map(u => {
+          const rows = u.skills.map((sid, i) => {
+            const l = lessonForChapter(sub, sid);
+            if (!l) return '';
+            totChs++;
+            const done = BP.lessonDone(l.id); if (done) totDone++;
+            const near = Math.abs(u.g - grade) <= 1;
+            return `<button class="toc-ch ${done ? 'done' : ''}" data-id="${l.id}"
+                data-txt="${esc((l.title + ' ' + (l.subtitle || '')).toLowerCase())}">
+              <span class="toc-num">${u.n}.${i + 1}</span>
+              <span class="toc-chbody"><b>${esc(l.title)}</b>${l.subtitle ? `<span>${esc(l.subtitle)}</span>` : ''}</span>
+              <span class="toc-status">${done ? '✓' : (near ? '★' : '')}</span>
+              <span class="toc-go">${done ? 'Review' : 'Learn'} →</span>
+            </button>`;
+          }).join('');
+          const uDone = u.skills.filter(sid => { const l = lessonForChapter(sub, sid); return l && BP.lessonDone(l.id); }).length;
+          const hereBadge = u.g === grade ? '<span class="toc-here">You’re here</span>' : '';
+          return `<div class="toc-unit" data-grade="${u.g}">
+            <div class="toc-unit-head">
+              <div><span class="toc-unit-n" style="background:${st.color}">Unit ${u.n}</span>
+                <b class="toc-unit-title">${esc(u.gradeLabel)} · ${esc(u.title)}</b>${hereBadge}</div>
+              <span class="toc-unit-prog">${uDone}/${u.skills.length} learned</span>
+            </div>
+            <div class="toc-chs">${rows}</div>
+          </div>`;
+        }).join('');
+        return `<details class="toc-band" ${openBand ? 'open' : ''}>
+          <summary class="toc-band-sum" style="--sub:${st.color}">${esc(band)}<span class="toc-band-grades">Grades ${bUnits[0].gradeLabel.replace('Kindergarten', 'K').replace('Grade ', '')}–${bUnits[bUnits.length - 1].gradeLabel.replace('Grade ', '')}</span></summary>
+          <div class="toc-units">${unitsHtml}</div>
+        </details>`;
       }).join('');
-      return `<h3 class="learn-subhead" style="color:${SUB[sub].color}">${SUB[sub].emoji} ${SUB[sub].name}</h3><div class="learn-grid">${cards}</div>`;
+      const pct = totChs ? Math.round(totDone / totChs * 100) : 0;
+      return `<section class="toc-subject" data-sub="${sub}" style="--sub:${st.color}">
+        <div class="toc-subhead">
+          <h3 style="color:${st.color}">${st.emoji} ${st.name}</h3>
+          <div class="toc-subright">
+            <span class="toc-subprog">${totDone}/${totChs} lessons · ${pct}%</span>
+            <button class="btn small toc-practice" onclick="location.hash='#lesson/${sub}'">Practice ${st.name.split(' ')[0]} →</button>
+          </div>
+        </div>
+        ${bandHtml}
+      </section>`;
     };
-    app().innerHTML = topbar(`<div class="container">
+
+    app().innerHTML = topbar(`<div class="container toc-wrap">
       <div class="kid-header" style="margin-bottom:8px">
-        <div><h1>📖 Lessons</h1><p class="muted" style="margin-top:4px">Short teaching moments. See it, hear it, try it. Then go practice.</p></div>
+        <div><h1>📚 Curriculum</h1><p class="muted" style="margin-top:4px">Every subject, in order — like a textbook. Read a lesson, then practice it. Chapters marked ★ are just right for you.</p></div>
         <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#home'">← Home</button></div>
       </div>
       <div class="learn-tabs">
         <button class="learn-tab ${!only ? 'active' : ''}" onclick="location.hash='#learn'">All subjects</button>
         ${['math', 'english', 'science', 'spanish'].map(s => `<button class="learn-tab ${only === s ? 'active' : ''}" style="--sub:${SUB[s].color}" onclick="location.hash='#learn/${s}'">${SUB[s].emoji} ${SUB[s].name}</button>`).join('')}
       </div>
-      <input id="learn-search" class="learn-search" type="search" placeholder="🔍 Search lessons… (fractions, verbs, planets)" aria-label="Search lessons">
-      ${subjects.map(section).join('')}
+      <input id="learn-search" class="learn-search" type="search" placeholder="🔍 Search the whole curriculum… (fractions, verbs, planets)" aria-label="Search lessons">
+      ${subjects.map(subjectBlock).join('')}
       <p id="learn-none" class="muted center" style="display:none;margin-top:18px">No lessons match that — try a shorter word like "add" or "read".</p>
     </div>`);
     wireChrome();
-    document.querySelectorAll('.learn-card').forEach(c => c.onclick = () => { Sound.click(); location.hash = '#teach/' + c.dataset.id; });
-    // Live search: filter lesson cards by title/subtitle/grade so a parent can jump
-    // straight to "story problems" or "subtraction" without scrolling four subjects.
+    document.querySelectorAll('.toc-ch').forEach(c => c.onclick = () => { Sound.click(); location.hash = '#teach/' + c.dataset.id; });
+
+    // Jump the kid to their grade's unit on load (single-subject view only).
+    if (only) {
+      const here = document.querySelector('.toc-unit[data-grade="' + grade + '"]');
+      if (here) setTimeout(() => here.scrollIntoView({ behavior: 'smooth', block: 'center' }), 120);
+    }
+
+    // Live search across every chapter. Matching chapters stay; their unit/band/
+    // subject open and stay visible; everything empty collapses out of the way.
     const sIn = $('#learn-search');
     if (sIn) sIn.oninput = () => {
       const t = sIn.value.trim().toLowerCase();
       let shown = 0;
-      document.querySelectorAll('.learn-card').forEach(c => {
-        const hit = !t || c.textContent.toLowerCase().includes(t);
+      document.querySelectorAll('.toc-ch').forEach(c => {
+        const hit = !t || c.dataset.txt.includes(t);
         c.style.display = hit ? '' : 'none';
         if (hit) shown++;
       });
-      document.querySelectorAll('.learn-subhead, .learn-grid').forEach(el => {
-        if (el.classList.contains('learn-grid')) {
-          const any = [...el.querySelectorAll('.learn-card')].some(c => c.style.display !== 'none');
-          el.style.display = any ? '' : 'none';
-          if (el.previousElementSibling && el.previousElementSibling.classList.contains('learn-subhead')) el.previousElementSibling.style.display = any ? '' : 'none';
-        }
+      document.querySelectorAll('.toc-unit').forEach(u => {
+        const any = [...u.querySelectorAll('.toc-ch')].some(c => c.style.display !== 'none');
+        u.style.display = any ? '' : 'none';
+      });
+      document.querySelectorAll('.toc-band').forEach(b => {
+        const any = [...b.querySelectorAll('.toc-unit')].some(u => u.style.display !== 'none');
+        b.style.display = any ? '' : 'none';
+        if (t && any) b.open = true;                 // open matching bands while searching
+      });
+      document.querySelectorAll('.toc-subject').forEach(s => {
+        const any = [...s.querySelectorAll('.toc-band')].some(b => b.style.display !== 'none');
+        s.style.display = any ? '' : 'none';
       });
       const none = $('#learn-none'); if (none) none.style.display = shown ? 'none' : 'block';
     };
