@@ -270,6 +270,9 @@ router.post('/kids', auth.requireParent, (req, res) => {
   if (count >= plan.kids) return res.status(400).json({ error: `Your ${plan.name} plan supports up to ${plan.kids} learner(s).` });
   const info = db.prepare('INSERT INTO kids (parent_id, name, grade, pin, avatar, calendar_mode, consent_at) VALUES (?,?,?,?,?,?, datetime(\'now\'))')
     .run(req.parent.id, cleanName, Math.max(0, Math.min(12, Math.round(Number(grade)))), auth.hashPin(String(pin)), AVATARS.includes(avatar) ? avatar : 'fox', calendar_mode || 'traditional');
+  // Record the parent's affirmative consent (auditable, versioned). If they've paid, the
+  // card transaction on file already stands as the stronger verifiable consent.
+  db.recordConsent({ parentId: req.parent.id, parentEmail: req.parent.email, kidId: info.lastInsertRowid, method: 'checkbox', detail: 'learner-creation' });
   res.json({ ok: true, kidId: info.lastInsertRowid });
 });
 
@@ -289,8 +292,45 @@ router.patch('/kids/:kidId', auth.requireParent, (req, res) => {
 });
 
 router.delete('/kids/:kidId', auth.requireParent, (req, res) => {
-  db.prepare('DELETE FROM kids WHERE id=? AND parent_id=?').run(Number(req.params.kidId), req.parent.id);
+  const kidId = Number(req.params.kidId);
+  const kid = db.prepare('SELECT id FROM kids WHERE id=? AND parent_id=?').get(kidId, req.parent.id);
+  if (kid) {
+    // Deleting a learner is also a consent withdrawal — record it before the cascade wipes
+    // the child's data, so the audit trail shows consent was withdrawn and data removed.
+    db.recordConsent({ parentId: req.parent.id, parentEmail: req.parent.email, kidId, method: 'withdrawn', detail: 'learner-deleted' });
+    db.prepare('DELETE FROM kids WHERE id=? AND parent_id=?').run(kidId, req.parent.id);
+  }
   res.json({ ok: true });
+});
+
+// ---------- parent data-control (COPPA: review, export, withdraw) ----------
+// A parent can see exactly what's collected about their children and their consent history.
+router.get('/privacy/summary', auth.requireParent, (req, res) => {
+  const kids = db.prepare('SELECT id, name, grade, created_at, consent_at FROM kids WHERE parent_id=?').all(req.parent.id).map(k => {
+    const answers = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=?').get(k.id).n;
+    return { id: k.id, name: k.name, grade: k.grade, addedOn: k.created_at, consentOn: k.consent_at, dataPoints: { answers, profile: true } };
+  });
+  const paid = req.parent.sub_status === 'active';
+  res.json({
+    policyVersion: db.POLICY_VERSION,
+    collected: ['Child\'s first name (or nickname)', 'Grade level', 'A 4-digit login PIN', 'Answers and progress in lessons'],
+    usedFor: 'Running and adapting your child\'s lessons and showing you their progress. We do not sell children\'s data or use it for advertising.',
+    consentMethod: paid ? 'payment_card' : 'checkbox',
+    consentHistory: db.consentFor(req.parent.id),
+    kids
+  });
+});
+// Full machine-readable export of the family's data (parent's right to review/port).
+router.get('/privacy/export', auth.requireParent, (req, res) => {
+  const parent = { id: req.parent.id, name: req.parent.name, email: req.parent.email, created_at: req.parent.created_at, sub_status: req.parent.sub_status, sub_plan: req.parent.sub_plan };
+  const kids = db.prepare('SELECT id, name, grade, avatar, calendar_mode, xp, coins, streak, created_at, consent_at FROM kids WHERE parent_id=?').all(req.parent.id).map(k => {
+    k.subjectState = db.prepare('SELECT subject, level, placed FROM subject_state WHERE kid_id=?').all(k.id);
+    k.skills = db.prepare('SELECT subject, skill_id, mastery, attempts, correct FROM skill_state WHERE kid_id=?').all(k.id);
+    k.recentActivity = db.prepare('SELECT subject, skill_id, correct, ts FROM activity_log WHERE kid_id=? ORDER BY id DESC LIMIT 500').all(k.id);
+    return k;
+  });
+  res.setHeader('Content-Disposition', 'attachment; filename="gallop-my-data.json"');
+  res.json({ exportedAt: new Date().toISOString(), policyVersion: db.POLICY_VERSION, parent, kids, consentHistory: db.consentFor(req.parent.id) });
 });
 
 // ---------- learning (kid or parent-on-behalf) ----------

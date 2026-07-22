@@ -213,6 +213,22 @@ CREATE TABLE IF NOT EXISTS password_resets (
   used INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now'))
 );
+
+-- Auditable parental-consent ledger (COPPA). Every consent event is recorded with the
+-- METHOD used to obtain it (a checkbox affirmation, or the stronger card-transaction that
+-- the FTC recognizes as verifiable parental consent), the policy version in force, and a
+-- timestamp. Withdrawals are recorded too. NOT cascade-deleted with the parent, so the
+-- consent history survives even after a learner or account is removed (an audit trail).
+CREATE TABLE IF NOT EXISTS consent_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  parent_id INTEGER,
+  parent_email TEXT,
+  kid_id INTEGER,
+  method TEXT NOT NULL,          -- 'checkbox' | 'payment_card' | 'withdrawn'
+  policy_version TEXT,
+  detail TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
 `);
 
 // Column migrations for existing databases (safe to re-run)
@@ -270,4 +286,19 @@ function latestBackup() {
 
 db.backupNow = backup;
 db.latestBackup = latestBackup;
+
+// ---------- parental consent (COPPA) ----------
+// Version string for the privacy notice / consent terms currently in force. Bump this when
+// the children's privacy notice changes so consent records show which version was agreed to.
+db.POLICY_VERSION = '2026-07-22';
+db.recordConsent = function ({ parentId = null, parentEmail = null, kidId = null, method, detail = null }) {
+  try {
+    db.prepare('INSERT INTO consent_records (parent_id, parent_email, kid_id, method, policy_version, detail) VALUES (?,?,?,?,?,?)')
+      .run(parentId, parentEmail, kidId, method, db.POLICY_VERSION, detail);
+  } catch (e) { /* consent logging must never break the primary action */ }
+};
+db.consentFor = function (parentId) {
+  try { return db.prepare('SELECT method, policy_version, kid_id, detail, created_at FROM consent_records WHERE parent_id=? ORDER BY id DESC').all(parentId); }
+  catch (e) { return []; }
+};
 module.exports = db;

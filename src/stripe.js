@@ -46,6 +46,7 @@ async function createCheckout(parent, plan, origin) {
     }
     // Demo mode (non-production only): activate instantly so the full product flow is testable
     db.prepare("UPDATE parents SET sub_status='active', sub_plan=? WHERE id=?").run(planKey, parent.id);
+    try { db.recordConsent({ parentId: parent.id, parentEmail: parent.email, method: 'payment_card', detail: 'demo-checkout' }); } catch (e) {}
     return { demo: true, url: origin + '/?billing=success' };
   }
   if (!p.envPrice) {
@@ -110,6 +111,12 @@ function webhookHandler(req, res) {
   switch (event.type) {
     case 'checkout.session.completed': {
       setStatus(data.customer, 'active', data.metadata && data.metadata.plan);
+      // The completed card transaction stands as verifiable parental consent (an FTC-approved
+      // method). Record it against the account so consent is backed by more than a checkbox.
+      try {
+        const prow = db.prepare('SELECT id, email FROM parents WHERE stripe_customer_id=?').get(data.customer);
+        if (prow) db.recordConsent({ parentId: prow.id, parentEmail: prow.email, method: 'payment_card', detail: 'stripe:' + (data.id || data.customer || '') });
+      } catch (e) { /* consent logging never breaks the webhook */ }
       // Welcome-to-paid email (fire-and-forget; never fails the webhook)
       try {
         const mailer = require('./mailer');
