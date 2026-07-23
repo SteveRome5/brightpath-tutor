@@ -154,14 +154,20 @@ async function sendToSubscribers(nl) {
   let n = 0;
   for (const r of list) {
     try {
+      // Idempotent: if this address already got the newsletter successfully in the last day,
+      // skip it. Makes a re-run safe (only the ones that failed get another attempt — no dupes).
+      const already = db.prepare("SELECT 1 FROM email_log WHERE to_email=? AND kind='newsletter' AND status='sent' AND created_at > datetime('now','-1 day') LIMIT 1").get(r.email);
+      if (already) { n++; continue; }
       const html = wrap(nl.body_html, unsubUrlFor(r));
       let res = await mailer.sendEmail({ to: r.email, subject: nl.subject, html, kind: 'newsletter' });
-      if (res && res.sent === false) {          // transient failure (e.g. a rate blip) — one retry
-        await sleep(1200);
+      let tries = 0;
+      while (res && res.sent === false && tries < 3) {   // rescue transient failures with backoff
+        await sleep(1500);
         res = await mailer.sendEmail({ to: r.email, subject: nl.subject, html, kind: 'newsletter' });
+        tries++;
       }
       if (res && (res.sent === true || res.queued)) n++;
-      await sleep(150);                           // stay well under 10 req/sec
+      await sleep(200);                            // ~5 req/sec — comfortably under Resend's 10/sec
     } catch (e) { /* one bad address never stops the send */ }
   }
   db.prepare("UPDATE newsletters SET status='sent', recipients=?, sent_at=datetime('now') WHERE id=?").run(n, nl.id);
