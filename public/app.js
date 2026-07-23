@@ -934,7 +934,7 @@ route('landing', async () => {
     <form class="nl-form" id="nl-form"><input type="email" id="nl-email" placeholder="you@example.com" required aria-label="Email address"><button class="btn green" type="submit">Sign me up</button></form>
     <p id="nl-done" style="display:none;font-weight:700;color:var(--brand);margin-top:8px">🎉 You're on the list!</p>
   </div>
-  <div class="site-footer">© ${new Date().getFullYear()} Gallop Learning Academy · Adaptive tutoring for grades K–12<br>
+  <div class="site-footer">© ${new Date().getFullYear()} Lotus Farms LLC · Gallop Learning Academy · Adaptive tutoring for grades K–12<br>
     <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow along on Instagram at @learnwithgallop</a><br>
     <a href="#standards" style="color:inherit;opacity:.8">Standards Alignment</a> · <a href="#help" style="color:inherit;opacity:.8">Help &amp; Support</a> · <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
   </div>`);
@@ -1058,15 +1058,19 @@ route('signup', async () => {
       <label>Email</label><input id="f-email" type="email" placeholder="you@example.com">
       <label>Password (8+ characters)</label><input id="f-pass" type="password">
       <div class="error-msg" id="f-err"></div>
-      <button class="btn green" style="margin-top:18px;width:100%" id="f-go">${subscribing ? 'Continue to plans →' : 'Start Free Trial →'}</button>
+      <label style="display:flex;gap:9px;align-items:flex-start;margin-top:16px;font-size:.82rem;color:#5b6478;font-weight:400;cursor:pointer">
+        <input type="checkbox" id="f-consent" style="margin-top:3px;flex:none;width:16px;height:16px">
+        <span>I am the parent or legal guardian and am 18 or older. I agree to the <a href="/terms" target="_blank" rel="noopener">Terms</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>, and I consent to Gallop collecting the limited information described there to provide the service to my child (COPPA).</span>
+      </label>
+      <button class="btn green" style="margin-top:16px;width:100%" id="f-go">${subscribing ? 'Continue to plans →' : 'Start Free Trial →'}</button>
       <p class="muted center" style="margin-top:10px;font-size:.85rem">${subscribing ? 'Subscribe today · Cancel anytime, one click' : '7 days free · No credit card required · Cancel anytime'}</p>
       <p class="muted center" style="margin-top:10px">Already have an account? <a href="#login">Log in</a></p>
-      <p class="muted center" style="margin-top:8px;font-size:.8rem">By signing up you agree to our <a href="/terms" target="_blank" rel="noopener">Terms</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</p>
     </div></div>`);
   wireChrome();
   $('#f-go').onclick = async () => {
+    if (!$('#f-consent').checked) { showError('#f-err', 'Please confirm you are the parent or guardian and agree to the Terms and Privacy Policy to continue.'); return; }
     try {
-      await api('/auth/signup', { method: 'POST', body: { name: $('#f-name').value, email: $('#f-email').value, password: $('#f-pass').value } });
+      await api('/auth/signup', { method: 'POST', body: { name: $('#f-name').value, email: $('#f-email').value, password: $('#f-pass').value, consent: true } });
       await refreshMe(); Sound.levelup(); State.onboard = true;
       // Came from "Sign up now"? Go straight to plan choice → checkout, skipping the trial.
       if (window.__subscribeIntent) { window.__subscribeIntent = 0; location.hash = '#subscribe'; }
@@ -1099,8 +1103,9 @@ route('subscribe', async () => {
           <button class="btn" style="width:100%;margin-top:10px" id="sub-solo">Subscribe →</button>
         </div>
       </div>
-      <p class="muted center" style="margin-top:16px;font-size:.85rem">🔒 Secure checkout · Billed monthly, renews until you cancel</p>
-      <p class="muted center" style="margin-top:8px;font-size:.85rem">Want to try before you buy? <a href="#parent">Start with a free trial instead</a></p>
+      <p class="muted center" style="margin-top:16px;font-size:.85rem">🔒 Secure checkout through Stripe — we never see your card number.</p>
+      <p class="muted center" style="margin:6px auto 0;font-size:.82rem;max-width:34rem">Your plan (<b>$54/month Family</b> or <b>$34/month Solo</b>) is a recurring subscription that automatically renews each month until you cancel. Cancel anytime in one click from your Parent Dashboard; cancellation stops future charges and you keep access through the period you've paid for.</p>
+      <p class="muted center" style="margin-top:10px;font-size:.85rem">Want to try before you buy? <a href="#parent">Start with a free 7-day trial instead</a> — no card required, and you're only charged if you choose to subscribe.</p>
     </div></div>`);
   wireChrome();
   const fam = $('#sub-family'), solo = $('#sub-solo');
@@ -2700,7 +2705,10 @@ route('standards', async () => {
     </div>
     ${subjSections}
     <div class="card" style="margin-top:16px;text-align:center">
-      <p class="muted" style="margin:0">Questions about alignment to your state's standards? Email <a href="mailto:support@learnwithgallop.com" style="color:var(--brand)">support@learnwithgallop.com</a> — most state standards (including Nevada) are built on these same frameworks.</p>
+      <p class="muted" style="margin:0 0 12px">Questions about alignment to your state's standards? Email <a href="mailto:support@learnwithgallop.com" style="color:var(--brand)">support@learnwithgallop.com</a> — most state standards (including Louisiana and Nevada) are built on these same frameworks.</p>
+      <p class="muted" style="margin:0;font-size:.72rem;line-height:1.5;color:#8a8fa0">
+        © Copyright 2010. National Governors Association Center for Best Practices and Council of Chief State School Officers. All rights reserved. "Common Core State Standards" is a trademark of these organizations. Gallop Learning Academy is not affiliated with, sponsored by, or endorsed by these organizations. NGSS is a registered trademark of Achieve; the ACTFL World-Readiness Standards are © ACTFL. Standard codes are referenced here for educators to verify curriculum alignment.
+      </p>
     </div>
   </div>`);
   wireChrome();
