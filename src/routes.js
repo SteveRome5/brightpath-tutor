@@ -758,7 +758,7 @@ router.get('/support/queue', auth.requireAdmin, (req, res) => {
   const open = db.prepare(`SELECT * FROM support_tickets WHERE status IN ('escalated') ORDER BY id DESC LIMIT 100`).all();
   const recent = db.prepare(`SELECT * FROM support_tickets WHERE status IN ('sent','dismissed','auto_answered','auto_sent') ORDER BY id DESC LIMIT 40`).all();
   const autoSent = db.prepare(`SELECT COUNT(*) AS n FROM support_tickets WHERE status='auto_sent'`).get().n;
-  res.json({ open, recent, inboundConnected: inbound.configured(), aiConnected: support.aiConfigured(), autoSentCount: autoSent });
+  res.json({ open, recent, inboundConnected: inbound.configured() || inbound.webhookConfigured(), aiConnected: support.aiConfigured(), autoSentCount: autoSent });
 });
 
 // Admin: send a (possibly edited) reply to the parent and close the ticket.
@@ -777,6 +777,31 @@ router.post('/support/queue/:id/reply', auth.requireAdmin, (req, res) => {
 router.post('/support/queue/:id/dismiss', auth.requireAdmin, (req, res) => {
   db.prepare("UPDATE support_tickets SET status='dismissed', handled_at=datetime('now') WHERE id=?").run(req.params.id);
   res.json({ ok: true });
+});
+
+// Inbound support email via the Google Apps Script bridge (Workspace-friendly path;
+// used instead of IMAP when app passwords aren't available). Authenticated by a shared
+// secret (SUPPORT_INBOUND_TOKEN) that lives in Render and in the Apps Script. The script
+// only marks a Gmail message read once we return 200, so nothing is lost on a hiccup.
+const inboundLimiter = rateLimit({ windowMs: 60000, max: 60, key: 'inbound' });
+router.post('/support/inbound', inboundLimiter, async (req, res) => {
+  const token = process.env.SUPPORT_INBOUND_TOKEN || '';
+  const given = req.get('X-Gallop-Token') || (req.body && req.body.token) || '';
+  if (!token || given !== token) return res.status(401).json({ error: 'unauthorized' });
+  try {
+    const b = req.body || {};
+    let fromEmail = b.email, fromName = b.name;
+    if (!fromEmail && b.from) { const p = inbound.parseFrom(b.from); fromEmail = p.email; fromName = fromName || p.name; }
+    const result = await inbound.processInbound({
+      fromEmail, fromName,
+      subject: String(b.subject || '').slice(0, 300),
+      body: String(b.body || '').slice(0, 8000),
+      messageId: String(b.messageId || b.message_id || '').slice(0, 250)
+    });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(500).json({ error: 'processing-failed' });
+  }
 });
 
 // ---------- Standards alignment (administrator-facing coverage map) ----------

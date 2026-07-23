@@ -46,46 +46,69 @@ function isJunkSender(email) {
   return /(no-?reply|do-?not-?reply|mailer-daemon|postmaster|bounce|notification|noreply)/i.test(email);
 }
 
-async function handleMessage(simpleParser, client, uid, source) {
-  const parsed = await simpleParser(source);
-  const markSeen = async () => { try { await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true }); } catch (e) {} };
+// Parse a raw From header ("Jane Parent <jane@example.com>" or "jane@example.com")
+// into { email, name }. Used by the webhook path (Apps Script sends the raw header).
+function parseFrom(raw) {
+  const s = String(raw || '').trim();
+  const m = s.match(/^(.*?)<([^>]+)>\s*$/);
+  if (m) return { name: m[1].replace(/(^["'\s]+|["'\s]+$)/g, '').trim(), email: m[2].trim().toLowerCase() };
+  return { name: '', email: s.toLowerCase() };
+}
 
-  const fromObj = parsed.from && parsed.from.value && parsed.from.value[0];
-  const fromEmail = fromObj ? String(fromObj.address || '').toLowerCase() : '';
-  const fromName = fromObj ? (fromObj.name || '') : '';
-  const subject = String(parsed.subject || '').slice(0, 300);
-  const messageId = String(parsed.messageId || ('uid-' + uid)).slice(0, 250);
+// Core: process ONE inbound support message. Shared by the IMAP poller and the Apps
+// Script webhook. Returns { action: 'auto_sent'|'escalated'|'skipped', reason? } and
+// performs the send/escalation. Callers handle marking the source message read.
+async function processInbound({ fromEmail, fromName, subject, body, messageId }) {
+  fromEmail = String(fromEmail || '').toLowerCase();
+  subject = String(subject || '').slice(0, 300);
+  messageId = String(messageId || '').slice(0, 250);
+  if (!messageId) messageId = 'msg-' + Math.abs(hashStr(fromEmail + subject + (body || '').slice(0, 200)));
 
-  // Loop / junk guards.
-  if (!fromEmail) { await markSeen(); return; }
-  if (isJunkSender(fromEmail)) { await markSeen(); return; }
-  if (/@learnwithgallop\.com$/i.test(fromEmail)) { await markSeen(); return; }   // never reply to ourselves
-  try {
-    const h = parsed.headers;
-    if (h && (h.get('auto-submitted') && h.get('auto-submitted') !== 'no' || h.get('x-autoreply') || h.get('x-autorespond') || h.get('list-id') || h.get('list-unsubscribe'))) { await markSeen(); return; }
-  } catch (e) {}
+  if (!fromEmail) return { action: 'skipped', reason: 'no-sender' };
+  if (isJunkSender(fromEmail)) return { action: 'skipped', reason: 'junk-sender' };
+  if (/@learnwithgallop\.com$/i.test(fromEmail)) return { action: 'skipped', reason: 'self' };
+  if (db.prepare('SELECT id FROM support_tickets WHERE message_id=?').get(messageId)) return { action: 'skipped', reason: 'duplicate' };
 
-  // De-dup: one ticket per inbound message.
-  if (db.prepare('SELECT id FROM support_tickets WHERE message_id=?').get(messageId)) { await markSeen(); return; }
+  let clean = stripQuoted(body || '');
+  if (!clean) clean = String(body || '').slice(0, 6000);
+  clean = clean.slice(0, 6000);
+  if (!clean && !subject) return { action: 'skipped', reason: 'empty' };
 
-  let body = stripQuoted(parsed.text || '');
-  if (!body) body = String(parsed.text || '').slice(0, 6000);
-  body = body.slice(0, 6000);
-  if (!body && !subject) { await markSeen(); return; }
-
-  const draft = await support.draftEmailReply({ fromName, subject, body });
+  const draft = await support.draftEmailReply({ fromName, subject, body: clean });
   const status = draft.autoSend ? 'auto_sent' : 'escalated';
   const info = db.prepare(
     `INSERT INTO support_tickets (source, from_email, from_name, subject, question, ai_reply, category, status, message_id, handled_at)
      VALUES ('email', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(fromEmail, fromName, subject, body, draft.reply, draft.category, status, messageId, draft.autoSend ? new Date().toISOString() : null);
+  ).run(fromEmail, fromName || '', subject, clean, draft.reply, draft.category, status, messageId, draft.autoSend ? new Date().toISOString() : null);
 
   if (draft.autoSend) {
     mailer.sendSupportReply(fromEmail, subject, draft.reply);
-  } else {
-    const ticket = db.prepare('SELECT * FROM support_tickets WHERE id=?').get(info.lastInsertRowid);
-    mailer.sendSupportEscalation(ticket);
+    return { action: 'auto_sent' };
   }
+  const ticket = db.prepare('SELECT * FROM support_tickets WHERE id=?').get(info.lastInsertRowid);
+  mailer.sendSupportEscalation(ticket);
+  return { action: 'escalated' };
+}
+
+function hashStr(s) { let h = 0; for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; } return h; }
+
+async function handleMessage(simpleParser, client, uid, source) {
+  const parsed = await simpleParser(source);
+  const markSeen = async () => { try { await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true }); } catch (e) {} };
+  // Skip autoresponders/newsletters/lists at the IMAP layer (the webhook path relies on
+  // the Apps Script's own Gmail filters + these same guards inside processInbound).
+  try {
+    const h = parsed.headers;
+    if (h && ((h.get('auto-submitted') && h.get('auto-submitted') !== 'no') || h.get('x-autoreply') || h.get('x-autorespond') || h.get('list-id') || h.get('list-unsubscribe'))) { await markSeen(); return; }
+  } catch (e) {}
+  const fromObj = parsed.from && parsed.from.value && parsed.from.value[0];
+  await processInbound({
+    fromEmail: fromObj ? fromObj.address : '',
+    fromName: fromObj ? (fromObj.name || '') : '',
+    subject: parsed.subject || '',
+    body: parsed.text || '',
+    messageId: parsed.messageId || ('uid-' + uid)
+  });
   await markSeen();
 }
 
@@ -119,4 +142,8 @@ async function pollOnce() {
   }
 }
 
-module.exports = { pollOnce, configured };
+// Webhook-connected? (Apps Script bridge — the Workspace-friendly path when IMAP app
+// passwords aren't available.)
+const webhookConfigured = () => !!process.env.SUPPORT_INBOUND_TOKEN;
+
+module.exports = { pollOnce, configured, webhookConfigured, processInbound, parseFrom };
