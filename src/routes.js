@@ -8,6 +8,7 @@ const billing = require('./stripe');
 const play = require('./play');
 const gscore = require('./score');
 const mailer = require('./mailer');
+const support = require('./support');
 
 const router = express.Router();
 router.use(play.router);
@@ -717,6 +718,62 @@ router.get('/admin/newsletter.csv', auth.requireAdmin, (req, res) => {
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="gallop-mailing-list.csv"');
   res.send(rows.join('\n'));
+});
+
+// ---------- AI support: in-app Help Assistant + admin review queue ----------
+const supportLimiter = rateLimit({ windowMs: 10 * 60000, max: 12, key: 'support' });
+
+// Public: a parent asks the in-app assistant a question. Safe answers come back
+// instantly; sensitive/uncertain ones create a ticket and notify a human.
+router.post('/support/ask', supportLimiter, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const question = String(b.question || '').trim().slice(0, 4000);
+    const name = String(b.name || '').trim().slice(0, 120);
+    const email = String(b.email || '').trim().slice(0, 200);
+    if (question.length < 2) return res.status(400).json({ error: 'Please type your question.' });
+
+    const result = await support.assist({ question, name });
+    const status = result.escalate ? 'escalated' : 'auto_answered';
+    const handledAt = result.escalate ? null : new Date().toISOString();
+    const info = db.prepare(
+      `INSERT INTO support_tickets (source, from_email, from_name, subject, question, ai_reply, category, status, handled_at)
+       VALUES ('widget', ?, ?, NULL, ?, ?, ?, ?, ?)`
+    ).run(email || null, name || null, question, result.reply, result.category, status, handledAt);
+
+    if (result.escalate) {
+      const ticket = db.prepare('SELECT * FROM support_tickets WHERE id=?').get(info.lastInsertRowid);
+      try { mailer.sendSupportEscalation(ticket); } catch (e) {}
+    }
+    res.json({ answer: result.reply, escalated: !!result.escalate, needEmail: result.escalate && !email });
+  } catch (e) {
+    res.json({ answer: "Thanks for reaching out! I'm having a brief hiccup — please email support@learnwithgallop.com and a person will help you right away.", escalated: true });
+  }
+});
+
+// Admin: list recent support tickets that need attention or were handled.
+router.get('/support/queue', auth.requireAdmin, (req, res) => {
+  const open = db.prepare(`SELECT * FROM support_tickets WHERE status IN ('escalated') ORDER BY id DESC LIMIT 100`).all();
+  const recent = db.prepare(`SELECT * FROM support_tickets WHERE status IN ('sent','dismissed','auto_answered','auto_sent') ORDER BY id DESC LIMIT 40`).all();
+  res.json({ open, recent });
+});
+
+// Admin: send a (possibly edited) reply to the parent and close the ticket.
+router.post('/support/queue/:id/reply', auth.requireAdmin, (req, res) => {
+  const t = db.prepare('SELECT * FROM support_tickets WHERE id=?').get(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Ticket not found.' });
+  const reply = String((req.body || {}).reply || '').trim().slice(0, 6000);
+  if (!reply) return res.status(400).json({ error: 'Reply is empty.' });
+  if (!t.from_email) return res.status(400).json({ error: 'This ticket has no email address to reply to.' });
+  try { mailer.sendSupportReply(t.from_email, t.subject || 'your question', reply); } catch (e) {}
+  db.prepare("UPDATE support_tickets SET status='sent', ai_reply=?, handled_at=datetime('now') WHERE id=?").run(reply, t.id);
+  res.json({ ok: true });
+});
+
+// Admin: dismiss a ticket without replying.
+router.post('/support/queue/:id/dismiss', auth.requireAdmin, (req, res) => {
+  db.prepare("UPDATE support_tickets SET status='dismissed', handled_at=datetime('now') WHERE id=?").run(req.params.id);
+  res.json({ ok: true });
 });
 
 // Unknown /api/* paths must return JSON 404, not the SPA's index.html.

@@ -229,6 +229,25 @@ CREATE TABLE IF NOT EXISTS consent_records (
   detail TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
+
+-- AI support tickets: every question from the in-app Help Assistant and every
+-- inbound support@ email. status tracks how it was handled so nothing is lost.
+CREATE TABLE IF NOT EXISTS support_tickets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source TEXT NOT NULL,            -- 'widget' | 'email'
+  from_email TEXT,
+  from_name TEXT,
+  subject TEXT,
+  question TEXT NOT NULL,
+  ai_reply TEXT,
+  category TEXT,                   -- 'safe' | 'sensitive' | 'unknown'
+  status TEXT NOT NULL,            -- 'auto_answered' | 'auto_sent' | 'escalated' | 'sent' | 'dismissed'
+  message_id TEXT,                 -- inbound email Message-ID, for de-dup
+  created_at TEXT DEFAULT (datetime('now')),
+  handled_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_support_status ON support_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_support_msgid ON support_tickets(message_id);
 `);
 
 // Column migrations for existing databases (safe to re-run)

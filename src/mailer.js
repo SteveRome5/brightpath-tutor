@@ -235,4 +235,39 @@ function weeklyReportSweep() {
   } catch (e) { console.error('weeklyReportSweep error:', e.message); }
 }
 
-module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendWeeklyReport, nudgeSweep, weeklyReportSweep, unsubTokenFor };
+// ---------- AI support: escalation to a human + sending an approved reply ----------
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'lin@learnwithgallop.com';
+
+// Notify the admin (Lin) that a support question needs a person, with the AI's
+// suggested reply pre-drafted so it can be sent from the dashboard in one click.
+function sendSupportEscalation(ticket) {
+  try {
+    const q = esc(ticket.question || '').replace(/\n/g, '<br>');
+    const draft = esc(ticket.ai_reply || '(no draft)').replace(/\n/g, '<br>');
+    const who = esc(ticket.from_name || 'A parent') + (ticket.from_email ? ` (${esc(ticket.from_email)})` : '');
+    const html = layout(`
+      <h2 style="margin:0 0 12px;color:${BRAND}">A support message needs you 📨</h2>
+      <p style="margin:0 0 4px"><b>From:</b> ${who}</p>
+      ${ticket.subject ? `<p style="margin:0 0 4px"><b>Subject:</b> ${esc(ticket.subject)}</p>` : ''}
+      <p style="margin:0 0 4px"><b>Category:</b> ${esc(ticket.category || 'review')}</p>
+      <div style="margin:12px 0;padding:12px 14px;background:#f9f7f1;border-radius:10px"><b>Their message</b><br>${q}</div>
+      <div style="margin:12px 0;padding:12px 14px;background:#f2f7f4;border-radius:10px"><b>Suggested reply (draft)</b><br>${draft}</div>
+      <p style="margin:14px 0 0">Open the dashboard to send, edit, or dismiss it — one click.</p>
+      ${btn(ORIGIN + '/#admin', 'Review & send')}
+    `);
+    sendEmail({ to: ADMIN_EMAIL, subject: `Support: ${ticket.subject || 'new message from a parent'}`, html, kind: 'support_escalation' });
+  } catch (e) { /* escalation email must never throw */ }
+}
+
+// Send a support reply to the parent, from support@, so their reply threads back to support.
+function sendSupportReply(toEmail, subject, replyText) {
+  try {
+    if (!toEmail) return { sent: false };
+    const body = esc(replyText || '').replace(/\n/g, '<br>');
+    const html = layout(`<div style="line-height:1.65">${body}</div>`);
+    const subj = /^re:/i.test(subject || '') ? subject : `Re: ${subject || 'your question'}`;
+    return sendEmail({ to: toEmail, subject: subj, html, kind: 'support_reply' });
+  } catch (e) { return { sent: false }; }
+}
+
+module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendWeeklyReport, nudgeSweep, weeklyReportSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply };
