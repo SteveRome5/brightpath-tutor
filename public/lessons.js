@@ -310,7 +310,7 @@
       </div>`);
       wireChrome();
       const nextBtn = $('#lp-next');
-      const goNext = () => { Sound.click(); if (last) { try { localStorage['bp_lesson_' + lesson.id] = '1'; } catch (e) {} Sound.levelup(); Confetti.burst(120); location.hash = '#lesson/' + lesson.subject; } else { i++; render(); } };
+      const goNext = () => { Sound.click(); if (last) { try { localStorage['bp_lesson_' + lesson.id] = '1'; } catch (e) {} Sound.levelup(); Confetti.burst(120); const anchor = lesson.skillId ? '/' + encodeURIComponent(lesson.skillId) : ''; location.hash = '#lesson/' + lesson.subject + anchor; } else { i++; render(); } };
       const goBack = () => { Sound.click(); i = Math.max(0, i - 1); render(); };
       if ($('#lp-back')) $('#lp-back').onclick = goBack;
       $('#lp-say').onclick = () => narrate(step);

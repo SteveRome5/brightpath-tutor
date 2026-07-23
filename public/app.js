@@ -1488,15 +1488,19 @@ route('placement', async (subject) => {
 });
 
 // ======================= lesson player =======================
-route('lesson', async (subject, mode) => {
+route('lesson', async (subject, mode, anchor) => {
   if (State.me.role !== 'kid') { location.hash = '#kid-login'; return; }
   if (!SUBJECT_STYLE[subject]) { location.hash = '#home'; return; }
   const kidId = State.me.kid.id;
   const style = SUBJECT_STYLE[subject];
   const focus = mode === 'focus';
+  // A lesson hands off to practice as #lesson/<subject>/<skillId> (or
+  // #lesson/<subject>/focus/<skillId>). When arg2 isn't the "focus" keyword it IS
+  // the anchor skill, so "finish a lesson → 10 questions on THAT skill" holds.
+  const anchorSkill = focus ? (anchor || null) : (mode && mode !== 'focus' ? mode : null);
   const FOCUS_MIN = 15;
   const SESSION_LEN = focus ? 9999 : 10;
-  const session = { n: 0, correct: 0, xp: 0, startedAt: Date.now(), events: [], endAt: focus ? Date.now() + FOCUS_MIN * 60000 : null, focusSkill: null };
+  const session = { n: 0, correct: 0, xp: 0, startedAt: Date.now(), events: [], endAt: focus ? Date.now() + FOCUS_MIN * 60000 : null, focusSkill: anchorSkill };
   let focusTimer = null;
   const fmtLeft = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
   if (focus) {
