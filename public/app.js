@@ -2819,7 +2819,11 @@ route('admin', async () => {
       <div>
         <div class="card">
           <h3>📨 Support inbox ${sq.open.length ? `<span class="pill focus">${sq.open.length} need${sq.open.length === 1 ? 's' : ''} you</span>` : '<span class="pill strength">all clear</span>'}</h3>
-          <p class="muted" style="margin:4px 0 10px;font-size:.85rem">Common questions are answered automatically. These need a person — the AI drafted a reply you can send, edit, or dismiss.</p>
+          <p class="muted" style="margin:4px 0 8px;font-size:.85rem">Common questions are answered automatically. These need a person — the AI drafted a reply you can send, edit, or dismiss.</p>
+          <p class="muted" style="margin:0 0 10px;font-size:.78rem">
+            AI assistant: ${sq.aiConnected ? '<b style="color:#1f8a5f">on</b>' : '<span style="color:#b8860b">fallback (add AI key)</span>'} ·
+            Inbox auto-reply: ${sq.inboundConnected ? '<b style="color:#1f8a5f">connected</b>' : '<span style="color:#b8860b">not connected</span>'}${sq.autoSentCount ? ` · <b>${sq.autoSentCount}</b> auto-answered by email` : ''}
+          </p>
           <div id="sq-list">
             ${sq.open.length ? sq.open.map(tk => `
               <div class="card" data-tid="${tk.id}" style="background:#fbfaf6;margin:10px 0;padding:14px">
