@@ -246,6 +246,9 @@ router.get('/auth/me', (req, res) => {
   if (s.kind === 'parent') {
     const p = db.prepare('SELECT id, email, name, sub_status, sub_plan, trial_ends, is_admin FROM parents WHERE id=?').get(s.ref_id);
     if (!p) return res.json({ role: 'guest' });
+    // Grant owner/admin on any load (not only fresh login) if the email is on the
+    // ADMIN_EMAILS list — so adding an owner never requires them to log out and back in.
+    auth.syncAdminFlag(p);
     const kids = db.prepare('SELECT * FROM kids WHERE parent_id=?').all(p.id).map(publicKid);
     return res.json({ role: 'parent', parent: p, kids, billingMode: billing.billingMode(), plans: billing.PLANS });
   }
