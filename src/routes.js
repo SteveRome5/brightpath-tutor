@@ -673,6 +673,42 @@ router.get('/family/stats', auth.requireParent, (req, res) => {
   res.json({ stats });
 });
 
+// Actionable per-child snapshot for the dashboard: how each child is doing this week,
+// their overall pace status, and the exact skill they're struggling with (with a deep
+// link so a parent can launch focused practice on it in one tap).
+router.get('/family/overview', auth.requireParent, (req, res) => {
+  const STRUGGLING = 0.45;
+  const kids = db.prepare('SELECT * FROM kids WHERE parent_id=?').all(req.parent.id);
+  const out = kids.map(k => {
+    const w = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-7 days')").get(k.id);
+    const totalAns = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=?').get(k.id).n;
+    // The skills this child is genuinely stuck on, hardest first — this is "where they need help".
+    const struggles = db.prepare(
+      `SELECT subject, skill_id, mastery FROM skill_state WHERE kid_id=? AND attempts>=3 AND mastery<? ORDER BY mastery ASC LIMIT 2`
+    ).all(k.id, STRUGGLING);
+    const focus = struggles.map(s => { const sk = content.getSkill(s.subject, s.skill_id); return { subject: s.subject, skillId: s.skill_id, name: sk ? sk.name : s.skill_id }; });
+    // Overall pace: worst-case across placed subjects, using the same honest status rules.
+    let overall = 'getting-started';
+    try {
+      const card = adaptive.reportCard(k.id);
+      const st = (card.subjects || []).map(s => s.status).filter(x => x && x !== 'insufficient');
+      if (st.length) {
+        if (st.some(s => s === 'needs-support')) overall = 'needs-support';
+        else if (st.every(s => s === 'excelling')) overall = 'excelling';
+        else if (st.some(s => s === 'developing')) overall = 'developing';
+        else overall = 'on-track';
+      }
+    } catch (e) {}
+    return {
+      id: k.id, name: k.name, grade: k.grade, avatar: k.avatar, streak: k.streak, xp: k.xp,
+      weekAnswers: w.n || 0, weekAccuracy: w.n ? Math.round((w.c || 0) / w.n * 100) : null,
+      weeklyGoal: (k.weekly_goal || 12) * 10, totalAnswers: totalAns, needsSetup: totalAns === 0,
+      overall, focus
+    };
+  });
+  res.json({ kids: out });
+});
+
 // ---------- billing ----------
 router.post('/billing/checkout', auth.requireParent, async (req, res) => {
   try {
