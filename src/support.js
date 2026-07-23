@@ -35,6 +35,8 @@ SIGN-UP / SKIP-TRIAL: There's a "Sign up now" option to subscribe directly and s
 
 HOW LOGIN WORKS: A parent creates one account with their email. Each child logs in with the parent's email plus the child's own 4-digit PIN. Works on any device with a web browser (phone, tablet, laptop, desktop) — nothing to install, progress syncs automatically.
 
+ADDING A CHILD: Parents add each child from their Parent Dashboard — you enter the child's name, grade, and a 4-digit PIN, and they're ready to start. The Family plan supports up to four children; Solo supports one. There's no extra charge to add children within your plan's limit.
+
 PLACEMENT: Each child takes a short placement per subject that finds their true starting level, so a strong reader who finds math harder starts in the right spot for each subject independently. There is a "too tricky" option and a level-shift so a child is never stuck too high or dropped too low.
 
 ADVANCED TRACK: Kids who master their grade get a separate Advanced Track with AP-style, honors, and state-test-prep material (Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English, Spanish). It's kept separate so working ahead never changes a child's placement.
@@ -188,12 +190,15 @@ async function assist({ question, name } = {}) {
 // safe to auto-send. autoSend is true only for non-sensitive questions the model
 // answered confidently.
 async function draftEmailReply({ fromName, subject, body } = {}) {
-  const combined = `${subject ? 'Subject: ' + subject + '\n\n' : ''}${body || ''}`;
+  const combined = `${subject ? subject + '\n\n' : ''}${body || ''}`;
   const res = await assist({ question: combined, name: fromName });
   return {
     reply: res.reply,
     category: res.category,
-    autoSend: !res.escalate && (res.source === 'ai' || res.source === 'faq'),
+    // Email auto-send is intentionally stricter than the in-app widget: only a genuine
+    // AI answer auto-replies. If the AI is unavailable and we fall back to the keyword FAQ,
+    // the email escalates to a human instead of risking a mismatched auto-reply.
+    autoSend: !res.escalate && res.source === 'ai',
     source: res.source
   };
 }

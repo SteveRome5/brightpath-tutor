@@ -10,6 +10,7 @@ const gscore = require('./score');
 const mailer = require('./mailer');
 const support = require('./support');
 const newsletter = require('./newsletter');
+const inbound = require('./inbound');
 
 const router = express.Router();
 router.use(play.router);
@@ -756,7 +757,8 @@ router.post('/support/ask', supportLimiter, async (req, res) => {
 router.get('/support/queue', auth.requireAdmin, (req, res) => {
   const open = db.prepare(`SELECT * FROM support_tickets WHERE status IN ('escalated') ORDER BY id DESC LIMIT 100`).all();
   const recent = db.prepare(`SELECT * FROM support_tickets WHERE status IN ('sent','dismissed','auto_answered','auto_sent') ORDER BY id DESC LIMIT 40`).all();
-  res.json({ open, recent });
+  const autoSent = db.prepare(`SELECT COUNT(*) AS n FROM support_tickets WHERE status='auto_sent'`).get().n;
+  res.json({ open, recent, inboundConnected: inbound.configured(), aiConnected: support.aiConfigured(), autoSentCount: autoSent });
 });
 
 // Admin: send a (possibly edited) reply to the parent and close the ticket.
