@@ -776,6 +776,24 @@ route('landing', async () => {
       <div><b>156</b><span>Guided lessons</span></div>
       <div><b>3,400+</b><span>Expert-verified questions</span></div>
     </div>
+    <div class="showcase reveal">
+      <h2 class="section-title" style="margin-bottom:4px">See it in action</h2>
+      <p class="section-sub">The real thing — what your child uses, and what you see.</p>
+      <div class="showcase-grid">
+        <figure class="shot">
+          <img src="/shots/student-home.webp" alt="A student's Gallop home screen with their score, streak, daily goals, and next lesson" loading="lazy" width="1200" height="923">
+          <figcaption><b>The student's home base.</b> Streaks, daily goals, and their next lesson — ready the moment they log in.</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="/shots/lesson.webp" alt="A Gallop lesson question teaching money math with multiple-choice answers" loading="lazy" width="1200" height="923">
+          <figcaption><b>Taught, then practiced.</b> Every skill is explained first, then the questions adapt to each answer.</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="/shots/parent-dashboard.webp" alt="A parent dashboard showing a child's weekly progress and where they need help" loading="lazy" width="1200" height="923">
+          <figcaption><b>Your view.</b> Exactly where each child is ahead, and where they need a hand — updated automatically.</figcaption>
+        </figure>
+      </div>
+    </div>
     <h2 class="section-title reveal">How it works</h2>
     <p class="section-sub">The same three moves a good teacher makes, built into every session.</p>
     <div class="feature-grid">
