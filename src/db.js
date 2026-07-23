@@ -248,6 +248,22 @@ CREATE TABLE IF NOT EXISTS support_tickets (
 );
 CREATE INDEX IF NOT EXISTS idx_support_status ON support_tickets(status);
 CREATE INDEX IF NOT EXISTS idx_support_msgid ON support_tickets(message_id);
+
+-- Monthly newsletter: AI-drafted, school-year-calendar themed. First few go out as a
+-- draft to the admin for approval; after that the system sends on its own. One row per
+-- calendar month (month_key = YYYY-MM) keeps the monthly sweep idempotent.
+CREATE TABLE IF NOT EXISTS newsletters (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  month_key TEXT UNIQUE,           -- 'YYYY-MM'
+  subject TEXT NOT NULL,
+  body_html TEXT NOT NULL,
+  theme TEXT,
+  status TEXT NOT NULL,            -- 'draft' | 'sent' | 'discarded'
+  mode TEXT NOT NULL,              -- 'approval' | 'auto'
+  recipients INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now')),
+  sent_at TEXT
+);
 `);
 
 // Column migrations for existing databases (safe to re-run)
@@ -262,6 +278,8 @@ for (const stmt of [
   // Email preferences + one-click unsubscribe token (lazily generated) for parents
   "ALTER TABLE parents ADD COLUMN email_opt_out INTEGER DEFAULT 0",
   "ALTER TABLE parents ADD COLUMN unsub_token TEXT",
+  // Newsletter signups get their own one-click unsubscribe token (lazily generated)
+  "ALTER TABLE newsletter_subs ADD COLUMN unsub_token TEXT",
   // Lapsed-practice nudges: remember the last time we nudged so one lapse = one email
   "ALTER TABLE kids ADD COLUMN last_nudge_at TEXT",
   // Custom uploaded avatar photo (data URL) for older kids — null = use the built-in avatar

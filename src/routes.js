@@ -9,6 +9,7 @@ const play = require('./play');
 const gscore = require('./score');
 const mailer = require('./mailer');
 const support = require('./support');
+const newsletter = require('./newsletter');
 
 const router = express.Router();
 router.use(play.router);
@@ -803,6 +804,54 @@ router.get('/standards/overview', (req, res) => {
   const totalSkills = meta.reduce((n, s) => n + s.skills.length, 0);
   const mapped = Object.values(fwCount).reduce((a, b) => a + b, 0);
   res.json({ subjects, frameworks: standards.FRAMEWORKS, frameworkCounts: fwCount, totals: { skills: totalSkills, mapped } });
+});
+
+// ---------- Monthly newsletter (admin review + autonomous send) ----------
+// One-click unsubscribe for newsletter-only signups (parents use /email/unsubscribe).
+router.get('/newsletter/unsubscribe', (req, res) => {
+  const t = String(req.query.t || '');
+  const row = t ? db.prepare('SELECT email FROM newsletter_subs WHERE unsub_token=?').get(t) : null;
+  if (row) db.prepare('DELETE FROM newsletter_subs WHERE unsub_token=?').run(t);
+  res.type('html').send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:Georgia,serif;background:#f6f4ee;color:#16213a;text-align:center;padding:60px 20px">
+    <h2 style="color:#1A5C38">${row ? "You're unsubscribed" : 'Link not recognized'}</h2>
+    <p>${row ? "We've removed this address from the Gallop newsletter." : 'This unsubscribe link looks expired — email support@learnwithgallop.com and we\'ll sort it instantly.'}</p>
+    <p><a href="/" style="color:#1A5C38">← Back to Gallop</a></p></body>`);
+});
+
+// Admin: list the current draft(s) + history, with recipient count.
+router.get('/admin/newsletters', auth.requireAdmin, (req, res) => {
+  const drafts = db.prepare("SELECT * FROM newsletters WHERE status='draft' ORDER BY id DESC").all();
+  const history = db.prepare("SELECT id, month_key, subject, theme, status, mode, recipients, sent_at, created_at FROM newsletters WHERE status!='draft' ORDER BY id DESC LIMIT 24").all();
+  res.json({ drafts, history, recipientCount: newsletter.recipients().length, approvalRemaining: Math.max(0, newsletter.APPROVAL_COUNT - newsletter.sentCount()) });
+});
+
+// Admin: generate (or regenerate) this month's draft on demand.
+router.post('/admin/newsletters/generate', auth.requireAdmin, async (req, res) => {
+  try {
+    const nl = await newsletter.ensureDraft(new Date(), { force: !!(req.body && req.body.force) });
+    res.json({ ok: true, id: nl.id });
+  } catch (e) { res.status(500).json({ error: 'Could not generate a draft right now.' }); }
+});
+
+// Admin: send a draft to all subscribers (optionally with edited subject/body).
+router.post('/admin/newsletters/:id/send', auth.requireAdmin, (req, res) => {
+  const nl = db.prepare('SELECT * FROM newsletters WHERE id=?').get(req.params.id);
+  if (!nl) return res.status(404).json({ error: 'Draft not found.' });
+  if (nl.status === 'sent') return res.status(400).json({ error: 'Already sent.' });
+  const b = req.body || {};
+  if (b.subject || b.body_html) {
+    db.prepare('UPDATE newsletters SET subject=COALESCE(?,subject), body_html=COALESCE(?,body_html) WHERE id=?')
+      .run(b.subject ? String(b.subject).slice(0, 200) : null, b.body_html ? String(b.body_html).slice(0, 40000) : null, nl.id);
+  }
+  const fresh = db.prepare('SELECT * FROM newsletters WHERE id=?').get(nl.id);
+  const n = newsletter.sendToSubscribers(fresh);
+  res.json({ ok: true, sent: n });
+});
+
+// Admin: discard a draft without sending.
+router.post('/admin/newsletters/:id/discard', auth.requireAdmin, (req, res) => {
+  db.prepare("UPDATE newsletters SET status='discarded' WHERE id=? AND status='draft'").run(req.params.id);
+  res.json({ ok: true });
 });
 
 // Unknown /api/* paths must return JSON 404, not the SPA's index.html.
