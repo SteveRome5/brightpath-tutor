@@ -18,7 +18,8 @@ window.GALLOP_CURRICULUM = {
         "m.k.count",
         "m.k.compare",
         "m.k.add5",
-        "m.k.shapes"
+        "m.k.shapes",
+        "m.k.numbonds"
       ]
     },
     {
@@ -140,7 +141,8 @@ window.GALLOP_CURRICULUM = {
         "m.9.multistep",
         "m.9.inequal",
         "m.9.systems",
-        "m.9.quadratic"
+        "m.9.quadratic",
+        "m.9.exponents"
       ]
     },
     {
@@ -194,7 +196,8 @@ window.GALLOP_CURRICULUM = {
         "e.k.letters",
         "e.k.rhyme",
         "e.k.sight",
-        "e.k.story"
+        "e.k.story",
+        "e.k.phonemes"
       ]
     },
     {
@@ -288,7 +291,8 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "e.7.vocab",
         "e.7.clauses",
-        "e.7.evidence"
+        "e.7.evidence",
+        "e.7.figlang"
       ]
     },
     {
@@ -300,7 +304,8 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "e.8.voice",
         "e.8.reading",
-        "e.8.argument"
+        "e.8.argument",
+        "e.8.evidence"
       ]
     },
     {
@@ -313,7 +318,8 @@ window.GALLOP_CURRICULUM = {
         "e.9.vocab",
         "e.9.literary",
         "e.9.roots",
-        "e.9.claims"
+        "e.9.claims",
+        "e.9.connotation"
       ]
     },
     {
@@ -339,7 +345,8 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "e.11.satvocab",
         "e.11.analysis",
-        "e.11.themesym"
+        "e.11.themesym",
+        "e.11.seminal"
       ]
     },
     {
@@ -352,7 +359,8 @@ window.GALLOP_CURRICULUM = {
         "e.12.synthesis",
         "e.12.style",
         "e.12.syntax",
-        "e.12.rhetanalysis"
+        "e.12.rhetanalysis",
+        "e.12.founddocs"
       ]
     }
   ],
@@ -394,7 +402,8 @@ window.GALLOP_CURRICULUM = {
         "s.2.matter",
         "s.2.habitats",
         "s.2.lifecycle",
-        "s.2.forces"
+        "s.2.forces",
+        "s.2.landwater"
       ]
     },
     {
@@ -407,7 +416,8 @@ window.GALLOP_CURRICULUM = {
         "s.3.forces",
         "s.3.life",
         "s.3.magnets",
-        "s.3.lifecycles"
+        "s.3.lifecycles",
+        "s.3.weather"
       ]
     },
     {
@@ -433,7 +443,8 @@ window.GALLOP_CURRICULUM = {
         "s.5.body",
         "s.5.ecosystems",
         "s.5.matter",
-        "s.5.earthwater"
+        "s.5.earthwater",
+        "s.5.stars"
       ]
     },
     {
@@ -446,7 +457,8 @@ window.GALLOP_CURRICULUM = {
         "s.6.cells",
         "s.6.body",
         "s.6.weather",
-        "s.6.energymachines"
+        "s.6.energymachines",
+        "s.6.platetectonics"
       ]
     },
     {
@@ -471,7 +483,8 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "s.8.physics",
         "s.8.waves",
-        "s.8.reactions"
+        "s.8.reactions",
+        "s.8.genetics"
       ]
     },
     {
@@ -497,7 +510,8 @@ window.GALLOP_CURRICULUM = {
         "s.10.evolution",
         "s.10.chem2",
         "s.10.atoms",
-        "s.10.bonding"
+        "s.10.bonding",
+        "s.10.dnagenetics"
       ]
     },
     {
@@ -523,7 +537,8 @@ window.GALLOP_CURRICULUM = {
         "s.12.earth",
         "s.12.advanced",
         "s.12.environment",
-        "s.12.labskills"
+        "s.12.labskills",
+        "s.12.astronomy"
       ]
     }
   ],

@@ -24,10 +24,14 @@ function verifyParent(email, password) {
   return ok ? p : null;
 }
 
-// The account whose email matches ADMIN_EMAIL (env) is the owner/admin.
+// Owner/admin accounts. Set ADMIN_EMAILS to a comma-separated list of owner emails
+// (e.g. "lin@learnwithgallop.com,steve.jerome5@gmail.com"). Falls back to the single
+// ADMIN_EMAIL for backward compatibility. Any account whose email is on the list gets
+// is_admin=1 the next time they log in or sign up.
 function syncAdminFlag(p) {
-  const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
-  if (adminEmail && p.email === adminEmail && !p.is_admin) {
+  const admins = (process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || '')
+    .toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+  if (admins.length && admins.includes(String(p.email || '').toLowerCase().trim()) && !p.is_admin) {
     db.prepare('UPDATE parents SET is_admin=1 WHERE id=?').run(p.id);
     p.is_admin = 1;
   }
