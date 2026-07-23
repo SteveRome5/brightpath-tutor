@@ -62,7 +62,8 @@
 
       <a class="back" href="/">&larr; Back to Gallop</a>
     </main>
-    <footer>© 2026 Lotus Farms LLC · <a href="/terms">Terms of Service</a></footer>
+    <footer>© <span id="yr">2026</span> Lotus Farms LLC · <a href="/terms">Terms of Service</a></footer>
+  <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
   </div>
 </body>
 </html>

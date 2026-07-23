@@ -101,6 +101,10 @@ router.post('/auth/signup', loginLimiter, (req, res) => {
     return res.status(400).json({ error: 'Need email, name, and a password of 8+ characters.' });
   if (!EMAIL_RE.test(String(email).trim()))
     return res.status(400).json({ error: 'That email address doesn\'t look right — double-check it?' });
+  // Server-side gate: every account must affirmatively accept Terms/Privacy and parent consent
+  // (recorded below), not just pass the client checkbox.
+  if ((req.body || {}).consent !== true)
+    return res.status(400).json({ error: 'Please confirm you are the parent or guardian and agree to the Terms and Privacy Policy.' });
   try {
     const id = auth.createParent(email, name, password);
     auth.syncAdminFlag(db.prepare('SELECT * FROM parents WHERE id=?').get(id));
@@ -485,6 +489,18 @@ router.post('/learn/:kidId/answer', answerLimiter, auth.requireKid, auth.require
   const result = adaptive.recordAnswer(req.kid.id, subject, skillId, !!correct, tMs, diff);
   const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id);
   res.json({ ...result, kid: publicKid(kid) });
+});
+
+// A child on the paywall can ask their parent to subscribe — emails the parent a one-click
+// link. Rate-limited to once per day per family so it can't be used to spam.
+router.post('/learn/:kidId/notify-parent', auth.requireKid, (req, res) => {
+  try {
+    const parent = db.prepare('SELECT * FROM parents WHERE id=?').get(req.kid.parent_id);
+    if (!parent || !parent.email) return res.status(404).json({ error: 'No parent account.' });
+    const recent = db.prepare("SELECT 1 FROM email_log WHERE to_email=? AND kind='child_request' AND created_at > datetime('now','-1 day') LIMIT 1").get(parent.email);
+    if (!recent) mailer.sendChildSubscribeRequest(parent, req.kid);
+    res.json({ ok: true });
+  } catch (e) { res.json({ ok: true }); } // never surface an error to a child
 });
 
 // ---------- advanced exam-prep tracks (AP / Honors / Regents) ----------

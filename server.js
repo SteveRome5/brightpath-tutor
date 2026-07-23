@@ -75,6 +75,12 @@ if (mailer.configured()) {
   setInterval(() => mailer.weeklyReportSweep(), 6 * 60 * 60 * 1000).unref?.();
   setTimeout(() => mailer.weeklyReportSweep(), 120 * 1000).unref?.();
 
+  // Trial conversion sequence — "your trial ends soon / has ended, add a card." Checked every
+  // 3h; idempotent via email_log so each account gets each nudge at most once. This is the
+  // core trial→paid lever, so it runs independently of whether the child is active.
+  setInterval(() => mailer.trialSweep(), 3 * 60 * 60 * 1000).unref?.();
+  setTimeout(() => mailer.trialSweep(), 150 * 1000).unref?.();
+
   // Monthly newsletter — autonomous & school-year-calendar themed. Checked daily; the
   // one-row-per-month guard makes it idempotent, so it drafts/sends exactly once a month.
   // The first NEWSLETTER_APPROVAL_COUNT go to the admin as a draft for approval; then it

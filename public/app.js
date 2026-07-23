@@ -774,7 +774,7 @@ route('landing', async () => {
       <div><b>4</b><span>Core subjects</span></div>
       <div><b>260+</b><span>Skill areas</span></div>
       <div><b>156</b><span>Guided lessons</span></div>
-      <div><b>3,400+</b><span>Expert-verified questions</span></div>
+      <div><b>3,400+</b><span>Accuracy-checked questions</span></div>
     </div>
     <div class="showcase reveal">
       <h2 class="section-title" style="margin-bottom:4px">See it in action</h2>
@@ -820,7 +820,7 @@ route('landing', async () => {
     <p class="section-sub">As your child works, Gallop picks up on what they're good at and shows it to you. By the high school years, those strengths turn into real career directions with a clear sense of what to focus on next.</p>
     <div class="lp-career reveal">
       <div class="lp-career-panel">
-        <div class="lp-career-badge">Career Pathways · a parent's view</div>
+        <div class="lp-career-badge">Career Pathways · illustrative example</div>
         <div class="lp-strength"><span class="lp-s-name">🔬 Science</span><span class="lp-s-bar"><i style="width:82%;background:#2f78c2"></i></span><b>82</b></div>
         <div class="lp-strength"><span class="lp-s-name">🔢 Math</span><span class="lp-s-bar"><i style="width:76%;background:#5b5bd6"></i></span><b>76</b></div>
         <div class="lp-strength"><span class="lp-s-name">📚 English</span><span class="lp-s-bar"><i style="width:61%;background:#0f9d76"></i></span><b>61</b></div>
@@ -909,7 +909,7 @@ route('landing', async () => {
     <div class="card reveal" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:6px">Simple plans</h2>
       <p class="center muted" style="margin-bottom:20px">Start with a 7-day free trial. No credit card to begin, and you can cancel anytime.</p>
-      <p class="center" style="margin:-8px 0 20px;font-weight:600">Centers like Kumon, Sylvan, and Mathnasium tend to run $150 to $200 a month <i>per subject</i>, and a private tutor is often $40 to $80 an hour. Gallop covers all four subjects, all year, for less than a single week at a center.</p>
+      <p class="center" style="margin:-8px 0 20px;font-weight:600">A month at a learning center commonly runs $150 to $200 for a single subject, and private tutors often charge $40 to $80 an hour. Gallop covers all four subjects, all year, for less than most families spend on just one subject at a center.</p>
       <div class="plans">
         <div class="plan"><h3>Solo</h3><div class="price">$34<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">One student · all four subjects · lessons, adaptive tutor & reports</p></div>
         <div class="plan hot"><span class="tag">MOST POPULAR</span><h3>Family</h3><div class="price">$54<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">Up to four students · all subjects · lessons, reports, certificates & buddies</p></div>
@@ -944,10 +944,10 @@ route('landing', async () => {
       <details><summary>Do I need a credit card to start?</summary><p>No. Your first 7 days are free, and you can set up your children and use everything without entering any payment details. We only ask for a card if you choose to continue after the trial.</p></details>
       <details><summary>What does it cost after the trial?</summary><p>Solo is $34 a month for one student, and Family is $54 a month for up to four. Both are billed monthly and include all four subjects, the guided lessons, the adaptive tutor, the games, and the parent reports. Nothing is sold as an add-on.</p></details>
       <details><summary>What ages and subjects does it cover?</summary><p>Every grade from kindergarten through 12th, in Math, English, Science, and Spanish. Each child is placed at their real level in each subject, so a strong reader who finds math harder starts in the right spot for both. High-school math runs all the way through calculus and statistics.</p></details>
-      <details><summary>Is it aligned to academic standards?</summary><p>Yes. Every skill is mapped to a recognized standard: Common Core for Math and English, NGSS for Science, and ACTFL for Spanish — the same frameworks nearly every state (including Nevada) builds its standards on. Educators and administrators can see the full, skill-by-skill coverage map on our <a href="#standards">Standards Alignment</a> page. Students just see the lesson and practice; the standard codes are there for schools.</p></details>
+      <details><summary>Is it aligned to academic standards?</summary><p>Yes. Every skill is mapped to a recognized standard: Common Core for Math and English, NGSS for Science, and ACTFL for Spanish — the same frameworks most states, including Nevada, build their standards on. Educators and administrators can see the full, skill-by-skill coverage map on our <a href="#standards">Standards Alignment</a> page. Students just see the lesson and practice; the standard codes are there for schools.</p></details>
       <details><summary>What about kids who are ahead of grade level?</summary><p>They get a separate Advanced Track. Once a student has mastered their grade, they can practice college-level and honors material — AP-style sets in Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English, and Spanish, honors courses, and state test prep built on rigorous state standards (great preparation whatever state you're in). It's kept separate from grade-level work, so working ahead never changes a child's placement.</p></details>
       <details><summary>What if my child doesn't like it?</summary><p>The first 7 days are completely free and need no card, so you can let your child try the real thing before you ever pay. If it isn't a fit, do nothing and the trial simply ends — you're never charged. If you've already subscribed, cancel in one click and you keep access through the time you've paid for.</p></details>
-      <details><summary>Are there real, human tutors?</summary><p>No — and that's the point. Gallop is self-paced adaptive software your child uses on their own, so there's nothing to schedule and no hourly rate. It teaches each concept with a short guided lesson, then adjusts every question to your child, which is how it covers all four subjects for less than a single week at a tutoring center.</p></details>
+      <details><summary>Are there real, human tutors?</summary><p>No — and that's the point. Gallop is self-paced adaptive software your child uses on their own, so there's nothing to schedule and no hourly rate. It teaches each concept with a short guided lesson, then adjusts every question to your child, which is how it covers all four subjects for a fraction of what a tutoring center charges for a single subject.</p></details>
       <details><summary>Can I cancel anytime?</summary><p>Yes, in one click from your parent dashboard. Cancelling stops any future charges, and your child keeps access through the time you have already paid for.</p></details>
       <details><summary>Is my child safe, and is our data private?</summary><p>Yes. There are no ads and we never sell your data. Children connect only with buddies you approve, and they can send only pre-written cheers, so there is no open chat and no way for strangers to reach them. Payments run through Stripe, so we never see or store your card number.</p></details>
       <details><summary>What devices does it work on?</summary><p>Any device with a web browser: phone, tablet, laptop, or desktop. There is nothing to install, and progress syncs automatically across devices.</p></details>
@@ -1025,7 +1025,7 @@ route('demo', async () => {
         <h2>${correct}/${DEMO_QUESTIONS.length}, and that's just a sample!</h2>
         <p class="muted" style="margin:12px 0 6px">The real tutor goes much further: a placement quiz finds your child's exact level in each subject, every answer adapts what comes next, and correct answers earn tokens for the games arcade.</p>
         <p class="muted" style="margin-bottom:18px">All four subjects. Every grade K–12. From $34/month.</p>
-        <button class="btn green" onclick="location.hash='#signup'">Start 7-Day Free Trial →</button>
+        <button class="btn green" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start 7-Day Free Trial →</button>
         <button class="btn sun" style="margin-left:8px" onclick="window.__subscribeIntent=1;location.hash='#signup'">Subscribe now →</button>
         <p class="muted" style="margin-top:10px;font-size:.82rem">Free for 7 days, or subscribe today and skip the wait. Either way you can cancel anytime.</p>
         <button class="btn ghost small" style="color:var(--brand);border-color:var(--brand);margin-top:8px" onclick="location.hash='#'">Back</button>
@@ -1117,22 +1117,22 @@ route('subscribe', async () => {
     <div class="card center">
       <img src="/logo-roundel.png" alt="" style="width:76px;height:76px">
       <h2 style="margin-top:8px">Choose your plan</h2>
-      <p class="muted" style="margin:8px auto 20px;max-width:30rem">Full access to all four subjects, the adaptive tutor, the games arcade, and weekly parent reports. Cancel anytime in one click.</p>
+      <p class="muted" style="margin:8px auto 14px;max-width:30rem">Full access to all four subjects, the adaptive tutor, the games arcade, and weekly parent reports.</p>
+      <p class="muted center" style="margin:0 auto 18px;font-size:.82rem;max-width:34rem">Both plans are recurring subscriptions that <b>automatically renew each month</b> until you cancel. You can cancel anytime in one click from your Parent Dashboard — cancellation stops future charges and you keep access through the period you've paid for.</p>
       <div class="plan-grid">
         <div class="plan-card featured">
           <div class="plan-badge">Most popular</div>
           <h3>Family</h3><div class="plan-price">$54<span>/mo</span></div>
-          <p class="muted">Up to 4 children</p>
+          <p class="muted">Up to 4 children · auto-renews monthly</p>
           <button class="btn green" style="width:100%;margin-top:10px" id="sub-family">Subscribe →</button>
         </div>
         <div class="plan-card">
           <h3>Solo</h3><div class="plan-price">$34<span>/mo</span></div>
-          <p class="muted">1 child</p>
+          <p class="muted">1 child · auto-renews monthly</p>
           <button class="btn" style="width:100%;margin-top:10px" id="sub-solo">Subscribe →</button>
         </div>
       </div>
       <p class="muted center" style="margin-top:16px;font-size:.85rem">🔒 Secure checkout through Stripe — we never see your card number.</p>
-      <p class="muted center" style="margin:6px auto 0;font-size:.82rem;max-width:34rem">Your plan (<b>$54/month Family</b> or <b>$34/month Solo</b>) is a recurring subscription that automatically renews each month until you cancel. Cancel anytime in one click from your Parent Dashboard; cancellation stops future charges and you keep access through the period you've paid for.</p>
       <p class="muted center" style="margin-top:10px;font-size:.85rem">Want to try before you buy? <a href="#parent">Start with a free 7-day trial instead</a> — no card required, and you're only charged if you choose to subscribe.</p>
     </div></div>`);
   wireChrome();
@@ -2346,16 +2346,27 @@ function renderPaywall(reason) {
     <img src="/logo-roundel.png" alt="" style="width:84px;height:84px">
     <h2 style="margin-top:10px">${heading}</h2>
     <p class="muted" style="margin:10px 0 4px"><b>Everything is saved</b>, streaks, skill levels, badges, and certificates are waiting exactly where you left off.</p>
-    <p class="muted" style="margin:0 0 16px">Keep all four subjects, the adaptive tutor, the games arcade, buddies, and weekly parent reports, for less than a single week at a tutoring center.</p>
+    <p class="muted" style="margin:0 0 16px">Keep all four subjects, the adaptive tutor, the games arcade, buddies, and weekly parent reports, for a fraction of what a tutoring center charges for a single subject.</p>
     ${State.me.role === 'parent'
       ? `<button class="btn green" id="sub-family">Family, $54/mo (up to 4 children)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo, $34/mo</button>
          <p class="muted" style="margin-top:12px;font-size:.85rem">Billed monthly and renews automatically until you cancel. Cancel anytime in one click from your dashboard.</p>`
-      : `<p><b>Ask your parent to log in and subscribe!</b></p><button class="btn" onclick="location.hash='#login'">Parent Login</button>`}
+      : `<p><b>Ask your parent to keep it going!</b></p>
+         ${State.me.kid ? `<button class="btn green" id="email-parent">📧 Email my parent to subscribe</button> ` : ''}<button class="btn ghost small" style="margin-left:8px" onclick="location.hash='#login'">Parent Login</button>
+         <p id="ep-done" style="display:none;margin-top:12px;color:var(--brand);font-weight:700"></p>`}
   </div></div>`);
   wireChrome();
   const fam = $('#sub-family'), solo = $('#sub-solo');
   if (fam) fam.onclick = () => checkout('family');
   if (solo) solo.onclick = () => checkout('solo');
+  const ep = $('#email-parent');
+  if (ep) ep.onclick = async () => {
+    ep.disabled = true; ep.textContent = 'Sending…';
+    try {
+      await api('/learn/' + (State.me.kid ? State.me.kid.id : '0') + '/notify-parent', { method: 'POST' });
+      ep.style.display = 'none';
+      const done = $('#ep-done'); if (done) { done.style.display = 'block'; done.textContent = '✓ We let your grown-up know — check with them soon!'; }
+    } catch (e) { ep.disabled = false; ep.textContent = '📧 Email my parent to subscribe'; toast((e && e.message) || 'Could not send right now.'); }
+  };
 }
 async function checkout(plan) {
   try {
@@ -2782,7 +2793,7 @@ route('standards', async () => {
         ${badge('ACTFL · Spanish', actfl, '#E17055')}
         ${adv ? badge('AP / Advanced', adv, '#b8860b') : ''}
       </div>
-      <p class="muted" style="font-size:.8rem;margin-top:16px">Frameworks: ${Object.values(fw).map(f => esc(f.short)).join(' · ')}. Common Core is used by 45 states; NGSS and ACTFL are the national frameworks for science and world languages. Standard codes are shown here for educators — students simply see the lesson and practice.</p>
+      <p class="muted" style="font-size:.8rem;margin-top:16px">Frameworks: ${Object.values(fw).map(f => esc(f.short)).join(' · ')}. Common Core (or standards based on it) is used by most states, including Nevada; NGSS is the most widely adopted next-generation science standard, and ACTFL sets the national standard for world-language learning. Standard codes are shown here for educators — students simply see the lesson and practice.</p>
       <div style="margin-top:12px"><button class="btn ghost small" style="color:var(--brand);border-color:var(--brand)" onclick="window.print()">🖨️ Print / save this map</button></div>
     </div>
     ${subjSections}

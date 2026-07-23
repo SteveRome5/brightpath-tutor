@@ -327,7 +327,7 @@ db.latestBackup = latestBackup;
 // ---------- parental consent (COPPA) ----------
 // Version string for the privacy notice / consent terms currently in force. Bump this when
 // the children's privacy notice changes so consent records show which version was agreed to.
-db.POLICY_VERSION = '2026-07-22';
+db.POLICY_VERSION = '2026-07-19'; // must match the "Last updated" date shown on /privacy and /terms
 db.recordConsent = function ({ parentId = null, parentEmail = null, kidId = null, method, detail = null }) {
   try {
     db.prepare('INSERT INTO consent_records (parent_id, parent_email, kid_id, method, policy_version, detail) VALUES (?,?,?,?,?,?)')

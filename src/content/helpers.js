@@ -32,6 +32,18 @@ function textChoices(answer, distractors) {
     if (!seen.has(s)) { seen.add(s); uniq.push(s); }
     if (uniq.length === 3) break;
   }
+  // Guarantee 4 options: when the supplied distractors collide (e.g. 3×3 where several
+  // "off by a group" wrong answers land on the same number), backfill with nearby numbers
+  // so we never render a 3-choice question. Only applies when the answer is a plain number.
+  const an = Number(answer);
+  if (uniq.length < 3 && Number.isFinite(an) && String(an) === String(answer).trim()) {
+    for (let k = 1; uniq.length < 3 && k < 60; k++) {
+      for (const cand of [an + k, an - k]) {
+        const s = String(cand);
+        if (cand >= 0 && !seen.has(s)) { seen.add(s); uniq.push(s); if (uniq.length === 3) break; }
+      }
+    }
+  }
   return shuffle([String(answer), ...uniq]);
 }
 const KID_NAMES = ['Margaux', 'Leo', 'Zoe', 'Mateo', 'Ava', 'Kai', 'Nia', 'Sofia', 'Jayden', 'Ruby', 'Diego', 'Emma'];

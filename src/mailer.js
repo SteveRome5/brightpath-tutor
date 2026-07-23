@@ -25,6 +25,10 @@ const REPLY_TO = process.env.EMAIL_REPLY_TO || 'support@learnwithgallop.com';
 const ORIGIN = process.env.APP_ORIGIN || 'https://learnwithgallop.com';
 
 const configured = () => !!KEY;
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+// Bulk sends must stay under Resend's 10 requests/second cap, or the whole batch 429s and
+// fails silently. ~180ms between sends ≈ 5-6/sec leaves headroom.
+const SEND_GAP_MS = 180;
 
 function unsubTokenFor(parentId) {
   const row = db.prepare('SELECT unsub_token FROM parents WHERE id=?').get(parentId);
@@ -116,6 +120,80 @@ function sendWelcomePaid(parent, planName) {
   } catch (e) { /* never break the webhook */ }
 }
 
+// ---------- trial conversion sequence (the "add a card before it ends" nudge) ----------
+function sendTrialEnding(parent, daysLeft) {
+  try {
+    if (!parent || !parent.email || parent.email_opt_out) return;
+    const first = esc((parent.name || '').split(' ')[0] || 'there');
+    const when = daysLeft <= 1 ? 'tomorrow' : `in ${daysLeft} days`;
+    const html = layout(`
+      <h2 style="margin:0 0 12px;color:${BRAND}">${first}, your free trial ends ${when}</h2>
+      <p>We hope this week showed you what Gallop can do for your family. To keep your child's lessons, streaks, badges, and progress going without a break, add a card before the trial ends.</p>
+      <p style="margin:14px 0 6px"><b>Everything stays exactly where it is</b> — nothing your child earned is lost. It's $34/mo for one learner or $54/mo for the whole family (up to four), all four subjects included, and you can cancel in one click anytime.</p>
+      ${btn(ORIGIN + '/#subscribe', 'Keep learning — choose a plan')}
+      <p style="margin:16px 0 0;font-size:14px;color:#5f6b7d">Not ready? No problem — do nothing and the trial simply ends, with no charge.</p>
+    `, { unsubToken: unsubTokenFor(parent.id) });
+    return sendEmail({ to: parent.email, subject: `Your Gallop free trial ends ${when}`, html, kind: 'trial_ending' });
+  } catch (e) { /* never throw from the scheduler */ }
+}
+
+function sendTrialEnded(parent) {
+  try {
+    if (!parent || !parent.email || parent.email_opt_out) return;
+    const first = esc((parent.name || '').split(' ')[0] || 'there');
+    const html = layout(`
+      <h2 style="margin:0 0 12px;color:${BRAND}">${first}, your free trial has ended</h2>
+      <p>Your child's learning is paused for now — but everything they built is saved and waiting. Add a card and they pick up right where they left off, same level, same streak, same badges.</p>
+      ${btn(ORIGIN + '/#subscribe', 'Reactivate in one click')}
+      <p style="margin:16px 0 0">All four subjects, from $34/mo, cancel anytime. If Gallop wasn't the right fit, we'd genuinely love to know why — just reply and tell us.</p>
+    `, { unsubToken: unsubTokenFor(parent.id) });
+    return sendEmail({ to: parent.email, subject: 'Your Gallop trial ended — pick up where you left off', html, kind: 'trial_ended' });
+  } catch (e) { /* never throw from the scheduler */ }
+}
+
+// Sent when a child taps "email my parent to subscribe" from the paywall — recovery at the
+// exact moment the trial blocks them.
+function sendChildSubscribeRequest(parent, kid) {
+  try {
+    if (!parent || !parent.email) return;
+    const first = esc((parent.name || '').split(' ')[0] || 'there');
+    const kidName = esc(kid.name || 'Your child');
+    const html = layout(`
+      <h2 style="margin:0 0 12px;color:${BRAND}">${kidName} wants to keep learning 🐎</h2>
+      <p>Hi ${first} — ${kidName} just tried to keep going on Gallop and reached the end of your free trial. Everything they've built is saved. Add a card and they pick up right where they left off.</p>
+      ${btn(ORIGIN + '/#subscribe', `Keep ${kidName} learning`)}
+      <p style="margin:16px 0 0;font-size:14px;color:#5f6b7d">All four subjects, from $34/mo, cancel anytime in one click.</p>
+    `, { unsubToken: unsubTokenFor(parent.id) });
+    return sendEmail({ to: parent.email, subject: `${kid.name} wants to keep learning on Gallop`, html, kind: 'child_request' });
+  } catch (e) { /* never throw */ }
+}
+
+// Trial conversion sweep (called on a timer from server.js). For each trial account:
+//  • when the trial has ~2 days or less left (but hasn't ended), send one "ending soon" email
+//  • when the trial has ended (still on 'trial' status), send one "ended — reactivate" email
+// Idempotent via email_log (each email sent at most once per account) and throttled.
+async function trialSweep() {
+  try {
+    const parents = db.prepare("SELECT * FROM parents WHERE sub_status='trial' AND COALESCE(email_opt_out,0)=0 AND trial_ends IS NOT NULL").all();
+    for (const p of parents) {
+      let ends;
+      try { ends = new Date(p.trial_ends.replace(' ', 'T') + 'Z'); } catch (e) { continue; }
+      if (isNaN(ends)) continue;
+      const msLeft = ends.getTime() - Date.now();
+      const daysLeft = msLeft / 86400000;
+      let sentSomething = false;
+      if (msLeft <= 0) {
+        const already = db.prepare("SELECT 1 FROM email_log WHERE to_email=? AND kind='trial_ended' AND status='sent' LIMIT 1").get(p.email);
+        if (!already) { await sendTrialEnded(p); sentSomething = true; }
+      } else if (daysLeft <= 2) {
+        const already = db.prepare("SELECT 1 FROM email_log WHERE to_email=? AND kind='trial_ending' AND status='sent' LIMIT 1").get(p.email);
+        if (!already) { await sendTrialEnding(p, Math.max(1, Math.round(daysLeft))); sentSomething = true; }
+      }
+      if (sentSomething) await sleep(SEND_GAP_MS);
+    }
+  } catch (e) { console.error('trialSweep error:', e.message); }
+}
+
 function sendNudge(parent, kid, daysIdle) {
   try {
     if (!parent || !parent.email || parent.email_opt_out) return;
@@ -129,7 +207,7 @@ function sendNudge(parent, kid, daysIdle) {
       <p style="margin:6px 0">Ten minutes is plenty. One short session keeps skills warm, and correct answers earn arcade tokens — so it rarely takes more than a reminder that the games are waiting.</p>
       ${btn(ORIGIN + '/#kid-login', `Send ${kidName} back in`)}
     `, { unsubToken: unsubTokenFor(parent.id) });
-    sendEmail({ to: parent.email, subject: `${kid.name}'s learning streak needs a quick rescue`, html, kind: 'nudge' });
+    return sendEmail({ to: parent.email, subject: `${kid.name}'s learning streak needs a quick rescue`, html, kind: 'nudge' });
   } catch (e) { /* never throw from the scheduler */ }
 }
 
@@ -171,14 +249,14 @@ function sendWeeklyReport(parent, summary) {
       ${kidBlocks}
       ${btn(ORIGIN + '/#parent', 'Open the full report')}
     `, { unsubToken: unsubTokenFor(parent.id) });
-    sendEmail({ to: parent.email, subject: 'Your weekly Gallop learning report 📊', html, kind: 'weekly_report' });
+    return sendEmail({ to: parent.email, subject: 'Your weekly Gallop learning report 📊', html, kind: 'weekly_report' });
   } catch (e) { /* a report email must never break anything */ }
 }
 
 // ---------- lapsed-practice sweep (called hourly from server.js) ----------
 // One nudge per lapse: a kid qualifies when their last activity (or account creation,
 // for never-started kids) is 48h–7d old, and we haven't nudged since that activity.
-function nudgeSweep() {
+async function nudgeSweep() {
   try {
     const rows = db.prepare(`
       SELECT k.id, k.name, k.streak, k.parent_id, k.last_nudge_at, k.created_at,
@@ -194,8 +272,13 @@ function nudgeSweep() {
       const parent = db.prepare('SELECT * FROM parents WHERE id=?').get(k.parent_id);
       if (!parent || parent.email_opt_out) continue;
       if (parent.sub_status !== 'active' && parent.sub_status !== 'trial') continue; // don't nudge lapsed/canceled accounts
-      db.prepare("UPDATE kids SET last_nudge_at=datetime('now') WHERE id=?").run(k.id);
-      sendNudge(parent, k, Math.round(idleDays));
+      // Send first; only record the nudge if it actually went out, so a failed send retries
+      // next run instead of silently burning this lapse's one nudge.
+      const res = await sendNudge(parent, k, Math.round(idleDays));
+      if (res && (res.sent === true || res.queued)) {
+        db.prepare("UPDATE kids SET last_nudge_at=datetime('now') WHERE id=?").run(k.id);
+      }
+      await sleep(SEND_GAP_MS);                                          // stay under Resend's 10/sec
     }
   } catch (e) { console.error('nudgeSweep error:', e.message); }
 }
@@ -206,12 +289,13 @@ function nudgeSweep() {
 // without ever double-sending. Only emails parents whose learners actually did work this
 // week — dormant accounts aren't pestered.
 const REPORT_SUBJECTS = [['math', 'Math'], ['english', 'English'], ['science', 'Science'], ['spanish', 'Spanish']];
-function weeklyReportSweep() {
+async function weeklyReportSweep() {
   try {
     const content = require('./content');
     const parents = db.prepare(`SELECT * FROM parents WHERE (sub_status='active' OR sub_status='trial') AND COALESCE(email_opt_out,0)=0`).all();
     for (const p of parents) {
-      const already = db.prepare(`SELECT 1 FROM email_log WHERE to_email=? AND kind='weekly_report' AND created_at > datetime('now','-6 days') LIMIT 1`).get(p.email);
+      // Only a *successfully sent* report counts as "already sent" — a prior failure should retry.
+      const already = db.prepare(`SELECT 1 FROM email_log WHERE to_email=? AND kind='weekly_report' AND status='sent' AND created_at > datetime('now','-6 days') LIMIT 1`).get(p.email);
       if (already) continue;
       const kids = db.prepare('SELECT * FROM kids WHERE parent_id=?').all(p.id);
       if (!kids.length) continue;
@@ -230,7 +314,8 @@ function weeklyReportSweep() {
         return { name: k.name, weekAnswers: week, subjects, gallop: snap ? snap.score : null, focus };
       });
       if (!kidSummaries.some(k => k.weekAnswers > 0)) continue; // don't email dormant accounts
-      sendWeeklyReport(p, { kids: kidSummaries });
+      await sendWeeklyReport(p, { kids: kidSummaries });
+      await sleep(SEND_GAP_MS);                                   // stay under Resend's 10/sec
     }
   } catch (e) { console.error('weeklyReportSweep error:', e.message); }
 }
@@ -270,4 +355,4 @@ function sendSupportReply(toEmail, subject, replyText) {
   } catch (e) { return { sent: false }; }
 }
 
-module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendWeeklyReport, nudgeSweep, weeklyReportSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply };
+module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendWeeklyReport, sendTrialEnding, sendTrialEnded, sendChildSubscribeRequest, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply };
