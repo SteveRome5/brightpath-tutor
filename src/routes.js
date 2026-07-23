@@ -104,6 +104,10 @@ router.post('/auth/signup', loginLimiter, (req, res) => {
   try {
     const id = auth.createParent(email, name, password);
     auth.syncAdminFlag(db.prepare('SELECT * FROM parents WHERE id=?').get(id));
+    // Record the parent's affirmative consent at signup (checkbox), part of the COPPA trail.
+    if ((req.body || {}).consent) {
+      try { db.recordConsent({ parentId: id, parentEmail: String(email).trim(), method: 'checkbox', detail: 'signup: parent/guardian 18+, agreed to Terms & Privacy Policy, consented to child data collection' }); } catch (e) {}
+    }
     const token = auth.createSession('parent', id);
     res.cookie('bp_session', token, COOKIE_OPTS);
     // Fire-and-forget welcome email (never blocks or fails the signup itself)
