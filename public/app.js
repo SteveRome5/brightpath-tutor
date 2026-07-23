@@ -629,7 +629,7 @@ function topbar(inner = '') {
   const me = State.me;
   const homeHash = me.role === 'kid' ? '#home' : me.role === 'parent' ? '#parent' : '#';
   let right = '';
-  if (me.role === 'parent') right = `${me.parent && me.parent.is_admin ? `<button class="btn ghost small" onclick="location.hash='#admin'">🛡️ Admin</button>` : ''}<button class="btn ghost small" onclick="location.hash='#parent'">Dashboard</button><button class="btn ghost small" id="logout-btn">Log out</button>`;
+  if (me.role === 'parent') right = `${me.parent && me.parent.is_admin ? `<button class="btn ghost small" onclick="location.hash='#admin'">🛡️ Admin</button>` : ''}<button class="btn ghost small" onclick="location.hash='#parent'">Dashboard</button><button class="btn ghost small" onclick="location.hash='#help'" title="Help &amp; support">💬 Help</button><button class="btn ghost small" id="logout-btn">Log out</button>`;
   else if (me.role === 'kid') {
     // When a child is inside a game, give them a big obvious way back to the Play Zone,
     // so they are never trapped in a game they don't want to be in.
@@ -935,7 +935,7 @@ route('landing', async () => {
   </div>
   <div class="site-footer">© ${new Date().getFullYear()} Gallop Learning Academy · Adaptive tutoring for grades K–12<br>
     <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow along on Instagram at @learnwithgallop</a><br>
-    <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
+    <a href="#help" style="color:inherit;opacity:.8">Help &amp; Support</a> · <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
   </div>`);
   wireChrome();
   const nlF = $('#nl-form');
@@ -2647,12 +2647,80 @@ route('parent', async () => {
   }
 });
 
+// ======================= help & support (AI assistant) =======================
+route('help', async () => {
+  const me = State.me || {};
+  const prefillName = me.role === 'parent' ? (me.parent && me.parent.name || '') : '';
+  const prefillEmail = me.role === 'parent' ? (me.parent && me.parent.email || '') : '';
+  const suggestions = ['How much does it cost?', 'How does my child log in?', 'What grades and subjects are covered?', 'How do I cancel?'];
+  app().innerHTML = topbar(`<div class="container" style="max-width:680px">
+    <div class="dash-welcome" style="margin-bottom:14px"><h1>💬 Help &amp; Support</h1><p>Ask anything about Gallop — you'll get an instant answer. Anything that needs a person, we'll email you back.</p></div>
+    <div class="card">
+      <div id="help-thread" style="display:flex;flex-direction:column;gap:12px;min-height:60px">
+        <div class="help-msg bot" style="background:#f2f7f4;border-radius:12px;padding:12px 14px;align-self:flex-start;max-width:90%">
+          Hi${prefillName ? ' ' + esc(prefillName.split(' ')[0]) : ''}! I'm the Gallop assistant. What can I help you with?
+        </div>
+      </div>
+      <div id="help-suggest" style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px">
+        ${suggestions.map(s => `<button class="btn ghost small help-chip" style="color:var(--brand);border-color:var(--brand)">${esc(s)}</button>`).join('')}
+      </div>
+      <div style="margin-top:12px">
+        <input id="help-email" type="email" placeholder="Your email (so we can reply if needed)" value="${esc(prefillEmail)}" style="width:100%;padding:11px 13px;border:1px solid #dfe6e9;border-radius:10px;margin-bottom:8px;font-size:1rem" aria-label="Your email">
+        <div style="display:flex;gap:8px">
+          <input id="help-input" type="text" placeholder="Type your question…" style="flex:1;padding:11px 13px;border:1px solid #dfe6e9;border-radius:10px;font-size:1rem" aria-label="Your question">
+          <button class="btn green" id="help-send">Send</button>
+        </div>
+      </div>
+      <p class="muted" style="font-size:.8rem;margin-top:12px">You can also email <a href="mailto:support@learnwithgallop.com" style="color:var(--brand)">support@learnwithgallop.com</a> directly.</p>
+    </div>
+  </div>`);
+  wireChrome();
+  const thread = $('#help-thread'), input = $('#help-input'), emailEl = $('#help-email');
+  const add = (who, text) => {
+    const el = document.createElement('div');
+    el.className = 'help-msg ' + who;
+    el.style.cssText = who === 'you'
+      ? 'background:var(--brand);color:#fff;border-radius:12px;padding:12px 14px;align-self:flex-end;max-width:90%;white-space:pre-wrap'
+      : 'background:#f2f7f4;border-radius:12px;padding:12px 14px;align-self:flex-start;max-width:90%;white-space:pre-wrap';
+    el.textContent = text;
+    thread.appendChild(el);
+    el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    return el;
+  };
+  let busy = false;
+  async function ask(q) {
+    if (busy || !q.trim()) return;
+    busy = true;
+    const sg = $('#help-suggest'); if (sg) sg.style.display = 'none';
+    add('you', q);
+    input.value = '';
+    const thinking = add('bot', '…');
+    try {
+      const r = await api('/support/ask', { method: 'POST', body: { question: q, name: prefillName, email: (emailEl.value || '').trim() } });
+      thinking.textContent = r.answer || 'Thanks — a team member will follow up by email.';
+      if (r.escalated && r.needEmail) {
+        add('bot', 'What email should we reply to? Pop it in the box above and send your question again, or write to support@learnwithgallop.com.');
+        emailEl.focus();
+      }
+    } catch (e) {
+      thinking.textContent = "I hit a snag — please email support@learnwithgallop.com and we'll help right away.";
+    }
+    busy = false;
+    input.focus();
+  }
+  $('#help-send').onclick = () => ask(input.value);
+  input.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); ask(input.value); } };
+  document.querySelectorAll('.help-chip').forEach(c => c.onclick = () => ask(c.textContent));
+});
+
 // ======================= admin (owner) =======================
 route('admin', async () => {
   await refreshMe();
   if (State.me.role === 'kid') { location.hash = '#home'; return; }
   if (State.me.role !== 'parent' || !State.me.parent.is_admin) { location.hash = '#parent'; return; }
   const d = await api('/admin/overview');
+  let sq = { open: [], recent: [] };
+  try { sq = await api('/support/queue'); } catch (e) {}
   const t = d.totals;
   const fmtDate = s => s ? s.slice(0, 10) : '—';
   const statusPill = st => st === 'active' ? '<span class="pill strength">active</span>' : st === 'trial' ? '<span class="pill" style="background:#fdf3d7;color:#7a5b00">trial</span>' : `<span class="pill focus">${esc(st)}</span>`;
@@ -2689,6 +2757,24 @@ route('admin', async () => {
       </div>
       <div>
         <div class="card">
+          <h3>📨 Support inbox ${sq.open.length ? `<span class="pill focus">${sq.open.length} need${sq.open.length === 1 ? 's' : ''} you</span>` : '<span class="pill strength">all clear</span>'}</h3>
+          <p class="muted" style="margin:4px 0 10px;font-size:.85rem">Common questions are answered automatically. These need a person — the AI drafted a reply you can send, edit, or dismiss.</p>
+          <div id="sq-list">
+            ${sq.open.length ? sq.open.map(tk => `
+              <div class="card" data-tid="${tk.id}" style="background:#fbfaf6;margin:10px 0;padding:14px">
+                <div style="font-size:.82rem;color:#7f8c9b;margin-bottom:6px">${esc(tk.from_name || 'A parent')}${tk.from_email ? ` · ${esc(tk.from_email)}` : ' · <i>no email given</i>'} · ${esc(tk.category || 'review')}</div>
+                <div style="background:#fff;border:1px solid #eee5d8;border-radius:8px;padding:9px 11px;margin-bottom:8px"><b>Q:</b> ${esc(tk.question)}</div>
+                <textarea class="sq-reply" rows="4" style="width:100%;padding:9px 11px;border:1px solid #dfe6e9;border-radius:8px;font-size:.92rem;font-family:inherit">${esc(tk.ai_reply || '')}</textarea>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                  <button class="btn green small sq-send" ${tk.from_email ? '' : 'disabled title="No email to reply to"'}>Send reply</button>
+                  <button class="btn ghost small sq-dismiss" style="color:#7f8c9b;border-color:#dfe6e9">Dismiss</button>
+                </div>
+              </div>`).join('') : '<p class="muted">Nothing waiting — the assistant is handling questions on its own. 🎉</p>'}
+          </div>
+          ${sq.recent.length ? `<details style="margin-top:8px"><summary class="muted" style="cursor:pointer">Recently handled (${sq.recent.length})</summary>
+            <div style="margin-top:8px">${sq.recent.map(tk => `<div class="kid-row" style="font-size:.83rem"><span style="flex:1">${esc((tk.question || '').slice(0, 60))}</span><span class="pill ${tk.status === 'sent' ? 'strength' : ''}" style="${tk.status === 'auto_answered' ? 'background:#eef6f1;color:#1f8a5f' : ''}">${tk.status.replace('_', ' ')}</span></div>`).join('')}</div></details>` : ''}
+        </div>
+        <div class="card">
           <h3>🧾 Recent families <a class="btn ghost small" style="float:right;color:var(--brand);border-color:var(--brand)" href="/api/admin/export.csv" download>⬇️ CSV</a></h3>
           <div style="margin-top:10px;overflow-x:auto">
             ${d.recent.map(p => `
@@ -2703,6 +2789,27 @@ route('admin', async () => {
     </div>
   </div>`);
   wireChrome();
+  // Wire the support inbox actions
+  document.querySelectorAll('#sq-list [data-tid]').forEach(card => {
+    const tid = card.getAttribute('data-tid');
+    const sendBtn = card.querySelector('.sq-send');
+    const dismissBtn = card.querySelector('.sq-dismiss');
+    if (sendBtn) sendBtn.onclick = async () => {
+      const reply = card.querySelector('.sq-reply').value.trim();
+      if (!reply) { toast('Reply is empty.'); return; }
+      sendBtn.disabled = true; sendBtn.textContent = 'Sending…';
+      try {
+        await api('/support/queue/' + tid + '/reply', { method: 'POST', body: { reply } });
+        card.style.opacity = '.5'; card.querySelector('div').textContent = '✓ Sent — a reply is on its way.';
+        card.querySelectorAll('textarea,button,div:not(:first-child)').forEach(el => el.remove());
+      } catch (e) { toast(e.message || 'Could not send.'); sendBtn.disabled = false; sendBtn.textContent = 'Send reply'; }
+    };
+    if (dismissBtn) dismissBtn.onclick = async () => {
+      dismissBtn.disabled = true;
+      try { await api('/support/queue/' + tid + '/dismiss', { method: 'POST' }); card.style.display = 'none'; }
+      catch (e) { toast('Could not dismiss.'); dismissBtn.disabled = false; }
+    };
+  });
 });
 
 // ======================= shared API for games.js =======================
