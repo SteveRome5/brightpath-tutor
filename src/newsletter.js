@@ -127,13 +127,16 @@ function unsubTokenForSub(email) {
   db.prepare('UPDATE newsletter_subs SET unsub_token=? WHERE email=?').run(t, email);
   return t;
 }
+// Exclude QA/smoke-test and reserved example addresses so a real send never wastes attempts
+// on them (Resend rejects example.com outright) and the "sent to N" count reflects real people.
+const isTestEmail = (e) => /@(gallop\.test|gallop-test\.com|example\.(com|org|net)|test\.com)$/i.test(String(e || ''));
 function recipients() {
   const map = new Map();
   for (const s of db.prepare('SELECT email FROM newsletter_subs').all()) {
-    if (s.email) map.set(s.email.toLowerCase(), { email: s.email, kind: 'sub' });
+    if (s.email && !isTestEmail(s.email)) map.set(s.email.toLowerCase(), { email: s.email, kind: 'sub' });
   }
-  for (const p of db.prepare("SELECT id, email FROM parents WHERE COALESCE(email_opt_out,0)=0 AND email NOT LIKE '%@gallop.test'").all()) {
-    if (p.email && !map.has(p.email.toLowerCase())) map.set(p.email.toLowerCase(), { email: p.email, kind: 'parent', id: p.id });
+  for (const p of db.prepare("SELECT id, email FROM parents WHERE COALESCE(email_opt_out,0)=0").all()) {
+    if (p.email && !isTestEmail(p.email) && !map.has(p.email.toLowerCase())) map.set(p.email.toLowerCase(), { email: p.email, kind: 'parent', id: p.id });
   }
   return [...map.values()];
 }
