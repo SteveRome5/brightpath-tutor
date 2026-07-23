@@ -551,7 +551,8 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "sp.1.family",
         "sp.1.animals",
-        "sp.1.food"
+        "sp.1.food",
+        "sp.1.juguetes"
       ]
     },
     {
@@ -564,7 +565,8 @@ window.GALLOP_CURRICULUM = {
         "sp.2.days",
         "sp.2.body",
         "sp.2.phrases",
-        "sp.2.ropa"
+        "sp.2.ropa",
+        "sp.2.casa"
       ]
     },
     {
@@ -576,7 +578,8 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "sp.3.ser",
         "sp.3.ar",
-        "sp.3.cuerpo"
+        "sp.3.cuerpo",
+        "sp.3.hora"
       ]
     },
     {
@@ -589,7 +592,8 @@ window.GALLOP_CURRICULUM = {
         "sp.4.questions",
         "sp.4.gustar",
         "sp.4.comida",
-        "sp.4.numeros"
+        "sp.4.numeros",
+        "sp.4.escuela"
       ]
     },
     {
@@ -614,7 +618,8 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "sp.6.adjectives",
         "sp.6.commands",
-        "sp.6.lugares"
+        "sp.6.lugares",
+        "sp.6.stemchange"
       ]
     },
     {
@@ -627,7 +632,8 @@ window.GALLOP_CURRICULUM = {
         "sp.7.preterite",
         "sp.7.places",
         "sp.7.objetos",
-        "sp.7.comparativos"
+        "sp.7.comparativos",
+        "sp.7.progressive"
       ]
     },
     {
@@ -639,7 +645,8 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "sp.8.convo",
         "sp.8.travel",
-        "sp.8.futuro"
+        "sp.8.futuro",
+        "sp.8.negatives"
       ]
     },
     {
@@ -652,7 +659,8 @@ window.GALLOP_CURRICULUM = {
         "sp.9.subjunctive",
         "sp.9.conditional",
         "sp.9.imperfect",
-        "sp.9.porpara"
+        "sp.9.porpara",
+        "sp.9.relatives"
       ]
     },
     {
@@ -664,7 +672,8 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "sp.10.reading",
         "sp.10.idioms",
-        "sp.10.commands"
+        "sp.10.commands",
+        "sp.10.narracion"
       ]
     },
     {
@@ -677,7 +686,8 @@ window.GALLOP_CURRICULUM = {
         "sp.11.advanced",
         "sp.11.professional",
         "sp.11.futcond",
-        "sp.11.perfect"
+        "sp.11.perfect",
+        "sp.11.pasiva"
       ]
     },
     {
@@ -690,7 +700,8 @@ window.GALLOP_CURRICULUM = {
         "sp.12.fluency",
         "sp.12.register",
         "sp.12.subjunctive2",
-        "sp.12.idioms"
+        "sp.12.idioms",
+        "sp.12.debate"
       ]
     }
   ]

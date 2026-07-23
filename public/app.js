@@ -2375,6 +2375,7 @@ route('parent', async () => {
       <span>Update your card to keep your subscription active — you won't be charged twice.</span></div>
       <div style="white-space:nowrap"><button class="btn sun" id="tb-portal">Update payment method</button></div>
     </div>` : ''}
+    <div id="kid-snapshots" style="margin-bottom:16px"></div>
     <div class="dash-grid">
       <div class="card">
         <h3>👧 Your Learners</h3>
@@ -2651,6 +2652,59 @@ route('parent', async () => {
       </div>`;
     }).catch(() => {});
   }
+  // Actionable per-child snapshot at the top: status, weekly progress, and the exact
+  // skill they need help with — with a one-tap launch straight into practice on it.
+  api('/family/overview').then(({ kids }) => {
+    const box = $('#kid-snapshots');
+    if (!box || !kids || !kids.length) return;
+    const S = {
+      'excelling':     { label: 'Excelling',      color: '#1f8a5f', bg: '#eaf6ef', emoji: '🌟' },
+      'on-track':      { label: 'On track',       color: '#2f7fd1', bg: '#eaf2fb', emoji: '✅' },
+      'developing':    { label: 'Developing',     color: '#b8860b', bg: '#fbf3dc', emoji: '📈' },
+      'needs-support': { label: 'Needs a hand',   color: '#d9683f', bg: '#fdeee7', emoji: '🤝' },
+      'getting-started': { label: 'Getting started', color: '#7f8c9b', bg: '#f1f3f5', emoji: '🌱' }
+    };
+    const SUBJ = { math: '🔢 Math', english: '📚 Reading', science: '🔬 Science', spanish: '🌎 Spanish' };
+    box.innerHTML = `<div class="dash-grid" style="gap:14px">${kids.map(k => {
+      const st = S[k.overall] || S['getting-started'];
+      const goalPct = Math.min(100, k.weeklyGoal ? Math.round(k.weekAnswers / k.weeklyGoal * 100) : 0);
+      const f = k.focus && k.focus[0];
+      return `<div class="card" style="border-top:4px solid ${st.color};padding:16px 18px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="avatar-sm" style="font-size:1.5rem">${avatarHTML(k)}</span>
+          <div style="flex:1;min-width:0">
+            <b style="font-size:1.05rem">${esc(k.name)}</b> <span class="muted" style="font-size:.82rem">· Grade ${k.grade === 0 ? 'K' : k.grade} · 🔥${k.streak}</span>
+          </div>
+          <span style="background:${st.bg};color:${st.color};font-weight:700;font-size:.8rem;padding:4px 11px;border-radius:999px;white-space:nowrap">${st.emoji} ${st.label}</span>
+        </div>
+        ${k.needsSetup ? `
+          <p class="muted" style="margin:12px 0 10px;font-size:.9rem">Ready to begin! Start ${esc(k.name.split(' ')[0])} and they'll take a quick placement so every subject begins at exactly the right level.</p>
+          <button class="btn green small snap-start" data-kid="${k.id}">▶ Start ${esc(k.name.split(' ')[0])}</button>
+        ` : `
+          <div style="margin:12px 0 8px">
+            <div style="display:flex;justify-content:space-between;font-size:.8rem;color:#5f6b7d;margin-bottom:4px">
+              <span>This week: <b>${k.weekAnswers}</b> / ${k.weeklyGoal} answers${k.weekAccuracy != null ? ` · ${k.weekAccuracy}% correct` : ''}</span>
+              <span>${goalPct}%</span>
+            </div>
+            <div style="height:7px;background:#eef0f2;border-radius:999px;overflow:hidden"><div style="height:100%;width:${goalPct}%;background:${st.color}"></div></div>
+          </div>
+          ${f ? `
+            <div style="background:#fdeee7;border-radius:10px;padding:10px 12px;margin:10px 0 4px">
+              <div style="font-size:.82rem;color:#b0532f"><b>🎯 Needs a hand with:</b> ${esc(f.name)} <span class="muted">(${SUBJ[f.subject] || f.subject})</span></div>
+              <button class="btn coral small snap-focus" data-kid="${k.id}" data-subject="${f.subject}" data-skill="${esc(f.skillId)}" style="margin-top:8px">✨ Practice this together</button>
+            </div>` : `
+            <p class="muted" style="margin:8px 0 4px;font-size:.85rem">No trouble spots right now — ${esc(k.name.split(' ')[0])} is moving along nicely. 🎉</p>`}
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn green small snap-start" data-kid="${k.id}">▶ Start</button>
+            <button class="btn small snap-report" data-kid="${k.id}">📊 Full report</button>
+          </div>
+        `}
+      </div>`;
+    }).join('')}</div>`;
+    box.querySelectorAll('.snap-start').forEach(b => b.onclick = () => enterKid(Number(b.dataset.kid)));
+    box.querySelectorAll('.snap-report').forEach(b => b.onclick = () => { location.hash = '#report/' + b.dataset.kid; });
+    box.querySelectorAll('.snap-focus').forEach(b => b.onclick = () => enterKid(Number(b.dataset.kid), '#lesson/' + b.dataset.subject + '/' + b.dataset.skill));
+  }).catch(() => {});
 });
 
 // ======================= standards alignment (for educators & administrators) =======================
