@@ -24,14 +24,16 @@ function verifyParent(email, password) {
   return ok ? p : null;
 }
 
-// Owner/admin accounts. Set ADMIN_EMAILS to a comma-separated list of owner emails
-// (e.g. "lin@learnwithgallop.com,steve.jerome5@gmail.com"). Falls back to the single
-// ADMIN_EMAIL for backward compatibility. Any account whose email is on the list gets
-// is_admin=1 the next time they log in or sign up.
+// Owner/admin accounts. The two founders are always admins (hardcoded so admin never
+// depends on an env var being set correctly). ADMIN_EMAILS may add more owners as a
+// comma-separated list; ADMIN_EMAIL is kept for backward compatibility. Any account whose
+// email matches gets is_admin=1 on its next login, signup, or dashboard load.
+const OWNER_EMAILS = ['lin@learnwithgallop.com', 'steve.jerome5@gmail.com'];
 function syncAdminFlag(p) {
-  const admins = (process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || '')
+  const envAdmins = (process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || '')
     .toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
-  if (admins.length && admins.includes(String(p.email || '').toLowerCase().trim()) && !p.is_admin) {
+  const admins = [...new Set([...OWNER_EMAILS.map(e => e.toLowerCase()), ...envAdmins])];
+  if (admins.includes(String(p.email || '').toLowerCase().trim()) && !p.is_admin) {
     db.prepare('UPDATE parents SET is_admin=1 WHERE id=?').run(p.id);
     p.is_admin = 1;
   }
