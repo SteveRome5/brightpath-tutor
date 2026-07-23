@@ -164,7 +164,13 @@ function notifyApproval(nl) {
         <p style="color:#7f8c9b;font-size:13px">Preview below:</p>
         ${preview}
       </div></body></html>`;
-    mailer.sendEmail({ to: ADMIN_EMAIL, subject: `Newsletter draft ready: ${nl.subject}`, html, kind: 'newsletter_approval' });
+    // Notify every owner (both founders), not just the single ADMIN_EMAIL, so a draft
+    // ready for review reaches whoever is actually managing the newsletter.
+    const owners = [...new Set([
+      ...String(process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean),
+      'lin@learnwithgallop.com', 'steve.jerome5@gmail.com'
+    ])];
+    for (const to of owners) mailer.sendEmail({ to, subject: `Newsletter draft ready: ${nl.subject}`, html, kind: 'newsletter_approval' });
   } catch (e) { /* never throw */ }
 }
 
