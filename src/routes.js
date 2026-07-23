@@ -776,6 +776,35 @@ router.post('/support/queue/:id/dismiss', auth.requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// ---------- Standards alignment (administrator-facing coverage map) ----------
+const standards = require('./content/standards');
+const GRADE_LABEL = g => g === 0 ? 'Kindergarten' : `Grade ${g}`;
+router.get('/standards/overview', (req, res) => {
+  const meta = content.subjectMeta();
+  const fwCount = {};
+  const subjects = meta.map(s => {
+    const byGrade = {};
+    for (const k of s.skills) {
+      const std = k.standard || null;
+      if (std && std.framework) fwCount[std.framework] = (fwCount[std.framework] || 0) + 1;
+      (byGrade[k.grade] = byGrade[k.grade] || []).push({
+        id: k.id, name: k.name,
+        code: std ? std.code : null, framework: std ? std.framework : null,
+        domain: std ? std.domain : null, description: std ? std.description : null,
+        proficiency: std ? (std.proficiency || null) : null
+      });
+    }
+    const grades = Object.keys(byGrade).map(Number).sort((a, b) => a - b)
+      .map(g => ({ grade: g, label: GRADE_LABEL(g), skills: byGrade[g] }));
+    const primaryFw = s.subject === 'math' || s.subject === 'english' ? 'Common Core'
+      : s.subject === 'science' ? 'NGSS' : 'ACTFL';
+    return { subject: s.subject, label: s.label, emoji: s.emoji, color: s.color, primaryFramework: primaryFw, grades };
+  });
+  const totalSkills = meta.reduce((n, s) => n + s.skills.length, 0);
+  const mapped = Object.values(fwCount).reduce((a, b) => a + b, 0);
+  res.json({ subjects, frameworks: standards.FRAMEWORKS, frameworkCounts: fwCount, totals: { skills: totalSkills, mapped } });
+});
+
 // Unknown /api/* paths must return JSON 404, not the SPA's index.html.
 router.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
