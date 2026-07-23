@@ -84,6 +84,16 @@ if (mailer.configured()) {
   setTimeout(() => newsletter.monthlySweep(), 150 * 1000).unref?.();
 }
 
+// Inbound support@ auto-responder — polls the support mailbox over IMAP and answers or
+// escalates each new parent email. Dormant until SUPPORT_IMAP_USER + SUPPORT_IMAP_PASSWORD
+// are set, so this is a no-op until the mailbox is connected.
+const inbound = require('./src/inbound');
+if (inbound.configured()) {
+  setInterval(() => inbound.pollOnce(), 2 * 60 * 1000).unref?.();
+  setTimeout(() => inbound.pollOnce(), 40 * 1000).unref?.();
+  console.log('[inbound] support@ auto-responder enabled');
+}
+
 // Automated database backups — every 6 hours, plus one shortly after boot. Timestamped
 // snapshots land on the persistent disk (DATA_DIR/backups) and survive redeploys.
 const db = require('./src/db');
