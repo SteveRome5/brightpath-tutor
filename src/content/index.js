@@ -6,6 +6,7 @@ const spanish = require('./spanish');
 const { extraSkills } = require('./extra');
 const { expansionSkills } = require('./expansion');
 const advanced = require('./advanced');
+const standards = require('./standards');
 
 const SUBJECTS = { math, english, science, spanish };
 
@@ -33,11 +34,17 @@ for (const [subj, s] of Object.entries(SUBJECTS)) {
     s.skills = s.skills.filter(k => !expIds.has(k.id)).concat(exp);
   }
 }
+// Attach each skill's curriculum standard (Common Core / NGSS / ACTFL) as metadata.
+// This rides along on every skill and generated question so administrators and the
+// Standards page can verify alignment; it is intentionally not shown in the kid UI.
+for (const s of Object.values(SUBJECTS)) {
+  for (const k of s.skills) { k.standard = standards.getStandard(k.id) || null; }
+}
 
 function subjectMeta() {
   return Object.values(SUBJECTS).map(s => ({
     subject: s.subject, label: s.label, emoji: s.emoji, color: s.color,
-    skills: s.skills.map(k => ({ id: k.id, name: k.name, grade: k.grade }))
+    skills: s.skills.map(k => ({ id: k.id, name: k.name, grade: k.grade, standard: k.standard || null }))
   }));
 }
 
@@ -69,7 +76,9 @@ function generateQuestion(subject, skillId, difficulty = 0.4, avoid = null) {
   }
   question = question || fallback;
   if (!question) return null;
-  return { subject, skillId, skillName: skill.name, grade: skill.grade, difficulty, ...question };
+  // `standard` rides along as metadata (Common Core / NGSS / ACTFL) for administrators
+  // and reporting; the student-facing question UI simply doesn't render it.
+  return { subject, skillId, skillName: skill.name, grade: skill.grade, difficulty, standard: skill.standard || null, ...question };
 }
 
 // Advanced exam-prep track passthrough (separate from the adaptive engine).
