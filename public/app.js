@@ -2780,6 +2780,8 @@ route('admin', async () => {
   const d = await api('/admin/overview');
   let sq = { open: [], recent: [] };
   try { sq = await api('/support/queue'); } catch (e) {}
+  let nl = { drafts: [], history: [], recipientCount: 0, approvalRemaining: 0 };
+  try { nl = await api('/admin/newsletters'); } catch (e) {}
   const t = d.totals;
   const fmtDate = s => s ? s.slice(0, 10) : '—';
   const statusPill = st => st === 'active' ? '<span class="pill strength">active</span>' : st === 'trial' ? '<span class="pill" style="background:#fdf3d7;color:#7a5b00">trial</span>' : `<span class="pill focus">${esc(st)}</span>`;
@@ -2834,6 +2836,26 @@ route('admin', async () => {
             <div style="margin-top:8px">${sq.recent.map(tk => `<div class="kid-row" style="font-size:.83rem"><span style="flex:1">${esc((tk.question || '').slice(0, 60))}</span><span class="pill ${tk.status === 'sent' ? 'strength' : ''}" style="${tk.status === 'auto_answered' ? 'background:#eef6f1;color:#1f8a5f' : ''}">${tk.status.replace('_', ' ')}</span></div>`).join('')}</div></details>` : ''}
         </div>
         <div class="card">
+          <h3>📰 Monthly newsletter</h3>
+          <p class="muted" style="margin:4px 0 10px;font-size:.85rem">Auto-drafted each month on the school-year calendar. ${nl.approvalRemaining > 0 ? `The next <b>${nl.approvalRemaining}</b> need your approval before sending; after that it sends on its own.` : 'Now sending autonomously each month.'} Reaches <b>${nl.recipientCount}</b> subscriber${nl.recipientCount === 1 ? '' : 's'}.</p>
+          <div id="nl-drafts">
+            ${nl.drafts.length ? nl.drafts.map(dr => `
+              <div class="card" data-nlid="${dr.id}" style="background:#fbfaf6;margin:10px 0;padding:14px">
+                <label style="font-size:.78rem;color:#7f8c9b">Subject</label>
+                <input class="nl-subj" value="${esc(dr.subject)}" style="width:100%;padding:8px 10px;border:1px solid #dfe6e9;border-radius:8px;margin:2px 0 8px;font-size:.92rem">
+                <label style="font-size:.78rem;color:#7f8c9b">Body (HTML — edit freely)</label>
+                <textarea class="nl-body" rows="8" style="width:100%;padding:9px 11px;border:1px solid #dfe6e9;border-radius:8px;font-size:.82rem;font-family:ui-monospace,monospace">${esc(dr.body_html)}</textarea>
+                <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+                  <button class="btn green small nl-send">Send to ${nl.recipientCount} subscriber${nl.recipientCount === 1 ? '' : 's'}</button>
+                  <button class="btn ghost small nl-discard" style="color:#7f8c9b;border-color:#dfe6e9">Discard</button>
+                </div>
+              </div>`).join('') : '<p class="muted">No draft waiting. Generate this month\'s below.</p>'}
+          </div>
+          <button class="btn ghost small" id="nl-gen" style="margin-top:6px;color:var(--brand);border-color:var(--brand)">✨ Generate this month's draft</button>
+          ${nl.history.length ? `<details style="margin-top:10px"><summary class="muted" style="cursor:pointer">Sent history (${nl.history.length})</summary>
+            <div style="margin-top:8px">${nl.history.map(h => `<div class="kid-row" style="font-size:.83rem"><span style="flex:1">${esc(h.month_key)} · ${esc((h.subject || '').slice(0, 40))}</span><span class="pill ${h.status === 'sent' ? 'strength' : ''}">${h.status}${h.status === 'sent' ? ' · ' + h.recipients : ''}</span></div>`).join('')}</div></details>` : ''}
+        </div>
+        <div class="card">
           <h3>🧾 Recent families <a class="btn ghost small" style="float:right;color:var(--brand);border-color:var(--brand)" href="/api/admin/export.csv" download>⬇️ CSV</a></h3>
           <div style="margin-top:10px;overflow-x:auto">
             ${d.recent.map(p => `
@@ -2867,6 +2889,31 @@ route('admin', async () => {
       dismissBtn.disabled = true;
       try { await api('/support/queue/' + tid + '/dismiss', { method: 'POST' }); card.style.display = 'none'; }
       catch (e) { toast('Could not dismiss.'); dismissBtn.disabled = false; }
+    };
+  });
+  // Wire the newsletter draft actions
+  const nlGen = $('#nl-gen');
+  if (nlGen) nlGen.onclick = async () => {
+    nlGen.disabled = true; nlGen.textContent = 'Writing…';
+    try { await api('/admin/newsletters/generate', { method: 'POST', body: { force: true } }); navigate(); }
+    catch (e) { toast('Could not generate a draft.'); nlGen.disabled = false; nlGen.textContent = "✨ Generate this month's draft"; }
+  };
+  document.querySelectorAll('#nl-drafts [data-nlid]').forEach(card => {
+    const nid = card.getAttribute('data-nlid');
+    const sendBtn = card.querySelector('.nl-send');
+    const discBtn = card.querySelector('.nl-discard');
+    if (sendBtn) sendBtn.onclick = async () => {
+      if (!confirm('Send this newsletter to all subscribers now?')) return;
+      sendBtn.disabled = true; sendBtn.textContent = 'Sending…';
+      try {
+        const r = await api('/admin/newsletters/' + nid + '/send', { method: 'POST', body: { subject: card.querySelector('.nl-subj').value, body_html: card.querySelector('.nl-body').value } });
+        card.innerHTML = '<b style="color:var(--brand)">✓ Sent to ' + (r.sent || 0) + ' subscribers.</b>';
+      } catch (e) { toast(e.message || 'Could not send.'); sendBtn.disabled = false; sendBtn.textContent = 'Send'; }
+    };
+    if (discBtn) discBtn.onclick = async () => {
+      discBtn.disabled = true;
+      try { await api('/admin/newsletters/' + nid + '/discard', { method: 'POST' }); card.style.display = 'none'; }
+      catch (e) { toast('Could not discard.'); discBtn.disabled = false; }
     };
   });
 });
