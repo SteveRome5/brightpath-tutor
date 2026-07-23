@@ -934,7 +934,7 @@ router.get('/_diag9f3a', (req, res) => {
     const kids = db.prepare('SELECT COUNT(*) AS n FROM kids').get().n;
     const recipients = newsletter.recipients().length;
     const newsletters = db.prepare("SELECT id, month_key, status, recipients, sent_at FROM newsletters ORDER BY id DESC LIMIT 5").all();
-    const recentNL = db.prepare("SELECT to_email, kind, status, created_at FROM email_log WHERE kind LIKE 'newsletter%' ORDER BY id DESC LIMIT 6").all();
+    const recentNL = db.prepare("SELECT to_email, kind, status, detail, created_at FROM email_log WHERE kind LIKE 'newsletter%' ORDER BY id DESC LIMIT 6").all();
     res.json({ subs, parents, optedOut, kids, recipients, newsletters, recentNL });
   } catch (e) { res.status(500).json({ error: String(e).slice(0, 200) }); }
 });
