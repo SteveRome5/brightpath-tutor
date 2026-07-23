@@ -917,6 +917,7 @@ route('landing', async () => {
       <details><summary>Do I need a credit card to start?</summary><p>No. Your first 7 days are free, and you can set up your children and use everything without entering any payment details. We only ask for a card if you choose to continue after the trial.</p></details>
       <details><summary>What does it cost after the trial?</summary><p>Solo is $34 a month for one student, and Family is $54 a month for up to four. Both are billed monthly and include all four subjects, the guided lessons, the adaptive tutor, the games, and the parent reports. Nothing is sold as an add-on.</p></details>
       <details><summary>What ages and subjects does it cover?</summary><p>Every grade from kindergarten through 12th, in Math, English, Science, and Spanish. Each child is placed at their real level in each subject, so a strong reader who finds math harder starts in the right spot for both. High-school math runs all the way through calculus and statistics.</p></details>
+      <details><summary>Is it aligned to academic standards?</summary><p>Yes. Every skill is mapped to a recognized standard: Common Core for Math and English, NGSS for Science, and ACTFL for Spanish — the same frameworks nearly every state (including Nevada) builds its standards on. Educators and administrators can see the full, skill-by-skill coverage map on our <a href="#standards">Standards Alignment</a> page. Students just see the lesson and practice; the standard codes are there for schools.</p></details>
       <details><summary>What about kids who are ahead of grade level?</summary><p>They get a separate Advanced Track. Once a student has mastered their grade, they can practice college-level and honors material — AP-style sets in Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English, and Spanish, honors courses, and state test prep built on rigorous state standards (great preparation whatever state you're in). It's kept separate from grade-level work, so working ahead never changes a child's placement.</p></details>
       <details><summary>What if my child doesn't like it?</summary><p>The first 7 days are completely free and need no card, so you can let your child try the real thing before you ever pay. If it isn't a fit, do nothing and the trial simply ends — you're never charged. If you've already subscribed, cancel in one click and you keep access through the time you've paid for.</p></details>
       <details><summary>Are there real, human tutors?</summary><p>No — and that's the point. Gallop is self-paced adaptive software your child uses on their own, so there's nothing to schedule and no hourly rate. It teaches each concept with a short guided lesson, then adjusts every question to your child, which is how it covers all four subjects for less than a single week at a tutoring center.</p></details>
@@ -935,7 +936,7 @@ route('landing', async () => {
   </div>
   <div class="site-footer">© ${new Date().getFullYear()} Gallop Learning Academy · Adaptive tutoring for grades K–12<br>
     <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow along on Instagram at @learnwithgallop</a><br>
-    <a href="#help" style="color:inherit;opacity:.8">Help &amp; Support</a> · <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
+    <a href="#standards" style="color:inherit;opacity:.8">Standards Alignment</a> · <a href="#help" style="color:inherit;opacity:.8">Help &amp; Support</a> · <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
   </div>`);
   wireChrome();
   const nlF = $('#nl-form');
@@ -2645,6 +2646,64 @@ route('parent', async () => {
       </div>`;
     }).catch(() => {});
   }
+});
+
+// ======================= standards alignment (for educators & administrators) =======================
+route('standards', async () => {
+  let data;
+  try { data = await api('/standards/overview'); }
+  catch (e) { app().innerHTML = topbar('<div class="container"><div class="card center"><p class="muted">Couldn\'t load the standards map — please refresh.</p></div></div>'); wireChrome(); return; }
+  const fw = data.frameworks || {};
+  const fc = data.frameworkCounts || {};
+  const badge = (label, n, color) => `<div style="background:${color}12;border:1px solid ${color}44;border-radius:12px;padding:12px 16px;min-width:150px">
+      <div style="font-size:1.5rem;font-weight:800;color:${color}">${n}</div><div class="muted" style="font-size:.82rem">${label}</div></div>`;
+  const ccMath = fc['CCSS-M'] || 0, ccEla = fc['CCSS-ELA'] || 0, ngss = fc['NGSS'] || 0, actfl = fc['ACTFL World-Readiness'] || 0, adv = fc['AP/Advanced (beyond CCSS)'] || 0;
+
+  const subjSections = data.subjects.map(s => {
+    const grades = s.grades.map(g => `
+      <details class="std-grade" style="border:1px solid #eee5d8;border-radius:10px;margin:8px 0;overflow:hidden">
+        <summary style="cursor:pointer;padding:11px 14px;background:#faf8f3;font-weight:700;list-style:none">${esc(g.label)} <span class="muted" style="font-weight:400">· ${g.skills.length} skill${g.skills.length === 1 ? '' : 's'}</span></summary>
+        <div style="padding:6px 14px 12px">
+          <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+            <thead><tr style="text-align:left;color:#7f8c9b;font-size:.78rem"><th style="padding:6px 8px 6px 0">Skill</th><th style="padding:6px 8px">Standard</th><th style="padding:6px 0" class="std-desc-h">What it requires</th></tr></thead>
+            <tbody>
+              ${g.skills.map(k => `<tr style="border-top:1px solid #f2ede2">
+                <td style="padding:8px 8px 8px 0">${esc(k.name)}</td>
+                <td style="padding:8px 8px"><span style="display:inline-block;background:${s.color}14;color:${s.color};border:1px solid ${s.color}33;border-radius:6px;padding:2px 8px;font-family:ui-monospace,monospace;font-size:.82rem;font-weight:700">${esc(k.code || '—')}</span>${k.proficiency ? `<br><span class="muted" style="font-size:.75rem">${esc(k.proficiency)}</span>` : ''}</td>
+                <td style="padding:8px 0;color:#5f6b7d" class="std-desc">${esc(k.description || '')}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </details>`).join('');
+    return `<div class="card" style="margin-top:16px">
+      <h2 style="margin:0 0 2px;color:${s.color}">${s.emoji} ${esc(s.label)}</h2>
+      <p class="muted" style="margin:0 0 8px">Aligned to <b>${esc(s.primaryFramework)}</b> · ${s.grades.reduce((n, g) => n + g.skills.length, 0)} skills, Kindergarten–Grade 12</p>
+      ${grades}
+    </div>`;
+  }).join('');
+
+  app().innerHTML = topbar(`<div class="container" style="max-width:880px">
+    <div class="card" style="text-align:center;background:linear-gradient(180deg,#f6f9f6,#fff)">
+      <div style="font-size:2rem">🎓</div>
+      <h1 style="margin:6px 0 4px">Standards-Aligned Curriculum</h1>
+      <p class="muted" style="max-width:620px;margin:0 auto 6px">Every one of Gallop's ${data.totals.skills} skills, Kindergarten through Grade 12, is mapped to a recognized academic standard — so schools, principals, and districts can verify exactly what we teach and where it fits their requirements.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:16px">
+        ${badge('Common Core · Math', ccMath, '#6C5CE7')}
+        ${badge('Common Core · ELA', ccEla, '#00B894')}
+        ${badge('NGSS · Science', ngss, '#0984E3')}
+        ${badge('ACTFL · Spanish', actfl, '#E17055')}
+        ${adv ? badge('AP / Advanced', adv, '#b8860b') : ''}
+      </div>
+      <p class="muted" style="font-size:.8rem;margin-top:16px">Frameworks: ${Object.values(fw).map(f => esc(f.short)).join(' · ')}. Common Core is used by 45 states; NGSS and ACTFL are the national frameworks for science and world languages. Standard codes are shown here for educators — students simply see the lesson and practice.</p>
+      <div style="margin-top:12px"><button class="btn ghost small" style="color:var(--brand);border-color:var(--brand)" onclick="window.print()">🖨️ Print / save this map</button></div>
+    </div>
+    ${subjSections}
+    <div class="card" style="margin-top:16px;text-align:center">
+      <p class="muted" style="margin:0">Questions about alignment to your state's standards? Email <a href="mailto:support@learnwithgallop.com" style="color:var(--brand)">support@learnwithgallop.com</a> — most state standards (including Nevada) are built on these same frameworks.</p>
+    </div>
+  </div>`);
+  wireChrome();
 });
 
 // ======================= help & support (AI assistant) =======================
