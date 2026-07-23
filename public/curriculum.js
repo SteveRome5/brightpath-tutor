@@ -247,7 +247,9 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "e.4.context",
         "e.4.mainidea",
-        "e.4.figurative"
+        "e.4.figurative",
+        "e.4.grammar",
+        "e.4.genres"
       ]
     },
     {
@@ -323,7 +325,9 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "e.10.vocab",
         "e.10.reading",
-        "e.10.rhetoric"
+        "e.10.rhetoric",
+        "e.10.tonemood",
+        "e.10.poetry"
       ]
     },
     {
@@ -347,7 +351,8 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "e.12.synthesis",
         "e.12.style",
-        "e.12.syntax"
+        "e.12.syntax",
+        "e.12.rhetanalysis"
       ]
     }
   ],
@@ -388,7 +393,8 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "s.2.matter",
         "s.2.habitats",
-        "s.2.lifecycle"
+        "s.2.lifecycle",
+        "s.2.forces"
       ]
     },
     {
@@ -476,7 +482,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Biology & Chemistry",
       "skills": [
         "s.9.biology",
-        "s.9.chem"
+        "s.9.chem",
+        "s.9.cells",
+        "s.9.photresp"
       ]
     },
     {
@@ -487,7 +495,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Evolution & Reactions",
       "skills": [
         "s.10.evolution",
-        "s.10.chem2"
+        "s.10.chem2",
+        "s.10.atoms",
+        "s.10.bonding"
       ]
     },
     {
@@ -498,7 +508,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Chemistry & Physics",
       "skills": [
         "s.11.chem",
-        "s.11.physics2"
+        "s.11.physics2",
+        "s.11.motion",
+        "s.11.circuits"
       ]
     },
     {
@@ -509,7 +521,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Earth Systems & Advanced Science",
       "skills": [
         "s.12.earth",
-        "s.12.advanced"
+        "s.12.advanced",
+        "s.12.environment",
+        "s.12.labskills"
       ]
     }
   ],
@@ -549,7 +563,8 @@ window.GALLOP_CURRICULUM = {
       "skills": [
         "sp.2.days",
         "sp.2.body",
-        "sp.2.phrases"
+        "sp.2.phrases",
+        "sp.2.ropa"
       ]
     },
     {
@@ -560,7 +575,8 @@ window.GALLOP_CURRICULUM = {
       "title": "Your First Verbs",
       "skills": [
         "sp.3.ser",
-        "sp.3.ar"
+        "sp.3.ar",
+        "sp.3.cuerpo"
       ]
     },
     {
@@ -597,7 +613,8 @@ window.GALLOP_CURRICULUM = {
       "title": "Describing & Commands",
       "skills": [
         "sp.6.adjectives",
-        "sp.6.commands"
+        "sp.6.commands",
+        "sp.6.lugares"
       ]
     },
     {
@@ -621,7 +638,8 @@ window.GALLOP_CURRICULUM = {
       "title": "Real Conversation",
       "skills": [
         "sp.8.convo",
-        "sp.8.travel"
+        "sp.8.travel",
+        "sp.8.futuro"
       ]
     },
     {
@@ -632,7 +650,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Mood & Politeness",
       "skills": [
         "sp.9.subjunctive",
-        "sp.9.conditional"
+        "sp.9.conditional",
+        "sp.9.imperfect",
+        "sp.9.porpara"
       ]
     },
     {
@@ -643,7 +663,8 @@ window.GALLOP_CURRICULUM = {
       "title": "Reading & Idioms",
       "skills": [
         "sp.10.reading",
-        "sp.10.idioms"
+        "sp.10.idioms",
+        "sp.10.commands"
       ]
     },
     {
@@ -654,7 +675,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Advanced & Professional",
       "skills": [
         "sp.11.advanced",
-        "sp.11.professional"
+        "sp.11.professional",
+        "sp.11.futcond",
+        "sp.11.perfect"
       ]
     },
     {
@@ -665,7 +688,9 @@ window.GALLOP_CURRICULUM = {
       "title": "Fluency & Register",
       "skills": [
         "sp.12.fluency",
-        "sp.12.register"
+        "sp.12.register",
+        "sp.12.subjunctive2",
+        "sp.12.idioms"
       ]
     }
   ]
