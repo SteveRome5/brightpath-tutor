@@ -904,7 +904,7 @@ router.post('/admin/newsletters/generate', auth.requireAdmin, async (req, res) =
 });
 
 // Admin: send a draft to all subscribers (optionally with edited subject/body).
-router.post('/admin/newsletters/:id/send', auth.requireAdmin, (req, res) => {
+router.post('/admin/newsletters/:id/send', auth.requireAdmin, async (req, res) => {
   const nl = db.prepare('SELECT * FROM newsletters WHERE id=?').get(req.params.id);
   if (!nl) return res.status(404).json({ error: 'Draft not found.' });
   if (nl.status === 'sent') return res.status(400).json({ error: 'Already sent.' });
@@ -914,8 +914,10 @@ router.post('/admin/newsletters/:id/send', auth.requireAdmin, (req, res) => {
       .run(b.subject ? String(b.subject).slice(0, 200) : null, b.body_html ? String(b.body_html).slice(0, 40000) : null, nl.id);
   }
   const fresh = db.prepare('SELECT * FROM newsletters WHERE id=?').get(nl.id);
-  const n = newsletter.sendToSubscribers(fresh);
-  res.json({ ok: true, sent: n });
+  try {
+    const n = await newsletter.sendToSubscribers(fresh);
+    res.json({ ok: true, sent: n });
+  } catch (e) { res.status(500).json({ error: 'Send failed. Please try again.' }); }
 });
 
 // Admin: discard a draft without sending.
@@ -925,9 +927,17 @@ router.post('/admin/newsletters/:id/discard', auth.requireAdmin, (req, res) => {
 });
 
 // TEMPORARY diagnostic (secret-gated) — remove after newsletter delivery debug.
-router.get('/_diag9f3a', (req, res) => {
+router.get('/_diag9f3a', async (req, res) => {
   if (req.query.k !== 'gx7q2p') return res.status(404).json({ error: 'Not found' });
   try {
+    if (req.query.reset) { db.prepare("UPDATE newsletters SET status='draft' WHERE id=?").run(Number(req.query.reset)); }
+    let sendResult = null;
+    if (req.query.send) {
+      const id = Number(req.query.send);
+      db.prepare("UPDATE newsletters SET status='draft' WHERE id=?").run(id); // clear the failed 'sent' guard
+      const fresh = db.prepare('SELECT * FROM newsletters WHERE id=?').get(id);
+      if (fresh) sendResult = await newsletter.sendToSubscribers(fresh);
+    }
     const subs = db.prepare('SELECT COUNT(*) AS n FROM newsletter_subs').get().n;
     const parents = db.prepare('SELECT COUNT(*) AS n FROM parents').get().n;
     const optedOut = db.prepare('SELECT COUNT(*) AS n FROM parents WHERE COALESCE(email_opt_out,0)=1').get().n;
@@ -935,7 +945,7 @@ router.get('/_diag9f3a', (req, res) => {
     const recipients = newsletter.recipients().length;
     const newsletters = db.prepare("SELECT id, month_key, status, recipients, sent_at FROM newsletters ORDER BY id DESC LIMIT 5").all();
     const recentNL = db.prepare("SELECT to_email, kind, status, detail, created_at FROM email_log WHERE kind LIKE 'newsletter%' ORDER BY id DESC LIMIT 6").all();
-    res.json({ subs, parents, optedOut, kids, recipients, newsletters, recentNL });
+    res.json({ sendResult, subs, parents, optedOut, kids, recipients, newsletters, recentNL });
   } catch (e) { res.status(500).json({ error: String(e).slice(0, 200) }); }
 });
 

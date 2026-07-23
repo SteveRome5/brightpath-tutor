@@ -144,14 +144,24 @@ function unsubUrlFor(r) {
 }
 
 // Send an approved/auto newsletter to the whole list. Returns count sent.
-function sendToSubscribers(nl) {
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// Send throttled so we never exceed Resend's 10 requests/second cap — otherwise a bulk
+// send 429s and every email silently fails. ~150ms/send ≈ 6-7/sec leaves headroom, and a
+// single retry after a pause rescues any transient failure. Awaited by callers.
+async function sendToSubscribers(nl) {
   const list = recipients();
   let n = 0;
   for (const r of list) {
     try {
       const html = wrap(nl.body_html, unsubUrlFor(r));
-      mailer.sendEmail({ to: r.email, subject: nl.subject, html, kind: 'newsletter' });
-      n++;
+      let res = await mailer.sendEmail({ to: r.email, subject: nl.subject, html, kind: 'newsletter' });
+      if (res && res.sent === false) {          // transient failure (e.g. a rate blip) — one retry
+        await sleep(1200);
+        res = await mailer.sendEmail({ to: r.email, subject: nl.subject, html, kind: 'newsletter' });
+      }
+      if (res && (res.sent === true || res.queued)) n++;
+      await sleep(150);                           // stay well under 10 req/sec
     } catch (e) { /* one bad address never stops the send */ }
   }
   db.prepare("UPDATE newsletters SET status='sent', recipients=?, sent_at=datetime('now') WHERE id=?").run(n, nl.id);
@@ -212,7 +222,7 @@ async function monthlySweep(now = new Date()) {
     const existing = db.prepare('SELECT * FROM newsletters WHERE month_key=?').get(mk);
     if (existing) return;                                   // already handled this month
     const nl = await ensureDraft(now);
-    if (nl.mode === 'auto') { sendToSubscribers(nl); }
+    if (nl.mode === 'auto') { await sendToSubscribers(nl); }
     else { notifyApproval(nl); }
   } catch (e) { console.error('newsletter monthlySweep error:', e.message); }
 }
