@@ -749,13 +749,22 @@ route('landing', async () => {
     <p class="hero-tagline">Every child has a pace. Gallop finds it.</p>
     <p>Self-paced lessons in Math, English, Science &amp; Spanish that find your child's real level and adapt to every answer — on any device, no scheduling.</p>
     <div class="hero-cta">
-      <button class="btn hero-primary" onclick="${State.me.role === 'parent' ? "location.hash='#parent'" : "window.__subscribeIntent=1;location.hash='#signup'"}">Sign up now</button>
-      <button class="btn hero-trial" onclick="window.__subscribeIntent=0;location.hash='${State.me.role === 'parent' ? '#parent' : '#signup'}'">or start a 7-day free trial</button>
+      ${State.me.role === 'parent'
+        ? `<button class="btn hero-primary" onclick="location.hash='#parent'">Go to my dashboard →</button>`
+        : `<div class="hero-cta-main">
+        <button class="btn hero-primary" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start my free trial →</button>
+        <button class="btn sun hero-secondary" onclick="window.__subscribeIntent=1;location.hash='#signup'">Subscribe now</button>
+      </div>
+      <p class="hero-cta-note muted">Free for 7 days · No credit card to start · All 4 subjects · Cancel anytime</p>`}
       <div class="hero-cta-row">
-        <button class="btn ghost" onclick="location.hash='#demo'">Try a sample lesson</button>
+        <button class="btn ghost" onclick="location.hash='#demo'">Try a sample lesson — no signup</button>
         <button class="btn ghost" onclick="location.hash='#kid-login'">Student sign-in</button>
       </div>
-      <p class="hero-cta-note muted">Subscribe today, or try free for 7 days · Cancel anytime</p>
+    </div>
+    <div class="hero-trust">
+      <span>📏 Aligned to Common Core, NGSS &amp; ACTFL</span>
+      <span>🔒 COPPA-safe · no ads · we never sell your data</span>
+      <span>👨‍👩‍👧 Built by a family, not a faceless edtech company</span>
     </div>
     <div class="hero-journey"><img src="/journey-green.png" alt="" class="journey-img"></div>
   </div>
@@ -763,7 +772,7 @@ route('landing', async () => {
     <div class="statband reveal">
       <div><b>K–12</b><span>Every grade level</span></div>
       <div><b>4</b><span>Core subjects</span></div>
-      <div><b>200+</b><span>Skill areas</span></div>
+      <div><b>260+</b><span>Skill areas</span></div>
       <div><b>156</b><span>Guided lessons</span></div>
       <div><b>3,400+</b><span>Expert-verified questions</span></div>
     </div>
@@ -937,7 +946,8 @@ route('landing', async () => {
   <div class="site-footer">© ${new Date().getFullYear()} Lotus Farms LLC · Gallop Learning Academy · Adaptive tutoring for grades K–12<br>
     <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow along on Instagram at @learnwithgallop</a><br>
     <a href="#standards" style="color:inherit;opacity:.8">Standards Alignment</a> · <a href="#help" style="color:inherit;opacity:.8">Help &amp; Support</a> · <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
-  </div>`);
+  </div>
+  ${State.me.role !== 'parent' && State.me.role !== 'kid' ? `<div class="sticky-cta"><button class="btn" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start free trial — no card →</button></div>` : ''}`);
   wireChrome();
   const nlF = $('#nl-form');
   if (nlF) nlF.onsubmit = async (e) => {

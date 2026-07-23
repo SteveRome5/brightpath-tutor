@@ -1605,7 +1605,22 @@ body[data-theme="academy"] .lw-passage { background: #2a2921; border-color: #4a4
 .hero-trial:hover { color: var(--accent, #C9A84C); }
 .hero-cta-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 4px; }
 .hero-cta-note { font-size: .85rem; margin: 2px 0 0; }
-@media (max-width: 520px) { .hero-cta-row { width: 100%; } .hero-cta-row .btn { flex: 1 1 44%; } .hero-primary { width: 100%; } }
+@media (max-width: 520px) { .hero-cta-row { width: 100%; } .hero-cta-row .btn { flex: 1 1 44%; } .hero-primary { width: 100%; } .hero-cta-main { width: 100%; } .hero-cta-main .btn { flex: 1 1 100%; width: 100%; } }
+/* Hero CTA: free-trial-first primary + subscribe secondary */
+.hero-cta-main { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; }
+.hero-secondary { font-size: 1.05rem; padding: 16px 30px; font-weight: 800; }
+/* Above-the-fold credibility bar — standards, safety, family */
+.hero-trust { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; margin: 22px auto 0; max-width: 740px; }
+.hero-trust span { font-family: var(--font-body); font-size: .88rem; font-weight: 600; color: var(--chrome-sub); display: inline-flex; align-items: center; }
+/* Mobile sticky call-to-action — always one tap from signing up */
+.sticky-cta { display: none; }
+@media (max-width: 600px) {
+  .sticky-cta { display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); background: var(--card-bg, #fff);
+    border-top: 1px solid var(--card-border, #e6e2d8); box-shadow: 0 -4px 18px rgba(0,0,0,.14); }
+  .sticky-cta .btn { width: 100%; font-weight: 800; font-size: 1.05rem; padding: 14px; }
+  .site-footer { padding-bottom: 84px; }
+}
 /* Plan chooser (skip-the-trial subscribe path) */
 .plan-grid { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
 .plan-card { position: relative; border: 2px solid var(--card-border); border-radius: 16px; padding: 22px 26px; min-width: 190px; background: var(--soft-bg); text-align: center; }
