@@ -3,8 +3,13 @@
 // Provider: Resend (https://resend.com) via plain HTTPS — zero new dependencies.
 // Configure with:
 //   RESEND_API_KEY  = re_...            (required to actually send)
-//   EMAIL_FROM      = "Gallop Learning Academy <hello@learnwithgallop.com>" (default)
+//   EMAIL_FROM      = "Gallop Learning Academy <support@learnwithgallop.com>" (default)
+//   EMAIL_REPLY_TO  = support@learnwithgallop.com (default) — where replies land
 //   APP_ORIGIN      = https://learnwithgallop.com (default)
+//
+// All client-facing mail (welcome, receipt, password reset, weekly report, nudges)
+// sends FROM support@ and replies route to support@ so correspondence lands in the
+// support mailbox. lin@ is the admin account (owns Resend/Render), not a from-address.
 //
 // Without RESEND_API_KEY every email is written to email_log with status 'queued'
 // (a visible outbox, nothing silently lost) and the app behaves normally. Every
@@ -15,7 +20,8 @@ const crypto = require('crypto');
 const db = require('./db');
 
 const KEY = process.env.RESEND_API_KEY || '';
-const FROM = process.env.EMAIL_FROM || 'Gallop Learning Academy <hello@learnwithgallop.com>';
+const FROM = process.env.EMAIL_FROM || 'Gallop Learning Academy <support@learnwithgallop.com>';
+const REPLY_TO = process.env.EMAIL_REPLY_TO || 'support@learnwithgallop.com';
 const ORIGIN = process.env.APP_ORIGIN || 'https://learnwithgallop.com';
 
 const configured = () => !!KEY;
@@ -54,7 +60,7 @@ function sendEmail({ to, subject, html, kind = 'generic' }) {
     let logId = null;
     try { logId = db.prepare('INSERT INTO email_log (to_email, kind, subject, status) VALUES (?,?,?,?)').run(to, kind, subject, KEY ? 'sending' : 'queued').lastInsertRowid; } catch (e) {}
     if (!KEY) return resolve({ queued: true });
-    const payload = JSON.stringify({ from: FROM, to: [to], subject, html });
+    const payload = JSON.stringify({ from: FROM, to: [to], reply_to: REPLY_TO, subject, html });
     const req = https.request({
       hostname: 'api.resend.com', path: '/emails', method: 'POST',
       headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
