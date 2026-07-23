@@ -74,6 +74,14 @@ if (mailer.configured()) {
   // parent gets at most one digest per week no matter how often the timer fires or restarts.
   setInterval(() => mailer.weeklyReportSweep(), 6 * 60 * 60 * 1000).unref?.();
   setTimeout(() => mailer.weeklyReportSweep(), 120 * 1000).unref?.();
+
+  // Monthly newsletter — autonomous & school-year-calendar themed. Checked daily; the
+  // one-row-per-month guard makes it idempotent, so it drafts/sends exactly once a month.
+  // The first NEWSLETTER_APPROVAL_COUNT go to the admin as a draft for approval; then it
+  // sends on its own.
+  const newsletter = require('./src/newsletter');
+  setInterval(() => newsletter.monthlySweep(), 24 * 60 * 60 * 1000).unref?.();
+  setTimeout(() => newsletter.monthlySweep(), 150 * 1000).unref?.();
 }
 
 // Automated database backups — every 6 hours, plus one shortly after boot. Timestamped
