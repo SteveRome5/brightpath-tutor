@@ -13,7 +13,7 @@ const db = require('./db');
 const mailer = require('./mailer');
 
 const AI_KEY = process.env.ANTHROPIC_API_KEY || '';
-const AI_MODEL = process.env.SUPPORT_AI_MODEL || 'claude-3-5-haiku-latest';
+const AI_MODEL = process.env.SUPPORT_AI_MODEL || 'claude-haiku-4-5-20251001';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'lin@learnwithgallop.com';
 const ORIGIN = process.env.APP_ORIGIN || 'https://learnwithgallop.com';
 // How many newsletters go through admin approval before the system sends on its own.

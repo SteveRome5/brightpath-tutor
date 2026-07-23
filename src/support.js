@@ -15,7 +15,7 @@
 const https = require('https');
 
 const AI_KEY = process.env.ANTHROPIC_API_KEY || '';
-const AI_MODEL = process.env.SUPPORT_AI_MODEL || 'claude-3-5-haiku-latest';
+const AI_MODEL = process.env.SUPPORT_AI_MODEL || 'claude-haiku-4-5-20251001';
 const aiConfigured = () => !!AI_KEY;
 
 // ---- Knowledge base: the facts the assistant may rely on (kept in sync with the
