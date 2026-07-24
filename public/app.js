@@ -2489,6 +2489,7 @@ route('parent', async () => {
       <div style="white-space:nowrap"><button class="btn sun" id="tb-portal">Update payment method</button></div>
     </div>` : ''}
     <div id="kid-snapshots" style="margin-bottom:16px"></div>
+    <div id="monthly-recap" style="margin-bottom:16px"></div>
     <div class="dash-grid">
       <div class="card">
         <h3>👧 Your Learners</h3>
@@ -2821,6 +2822,35 @@ route('parent', async () => {
     box.querySelectorAll('.snap-start').forEach(b => b.onclick = () => enterKid(Number(b.dataset.kid)));
     box.querySelectorAll('.snap-report').forEach(b => b.onclick = () => { location.hash = '#report/' + b.dataset.kid; });
     box.querySelectorAll('.snap-focus').forEach(b => b.onclick = () => enterKid(Number(b.dataset.kid), '#lesson/' + b.dataset.subject + '/' + b.dataset.skill));
+  }).catch(() => {});
+
+  // Monthly growth recap — the longer arc that shows the program is paying off over time.
+  const SUBJ_EMOJI = { math: '🔢', english: '📚', science: '🔬', spanish: '🌎' };
+  api('/family/monthly').then(({ kids }) => {
+    const box = $('#monthly-recap');
+    if (!box || !kids || !kids.length) return;
+    box.innerHTML = `<div class="card">
+      <h3>📅 The Last 30 Days</h3>
+      <p class="muted" style="margin:4px 0 12px">The bigger picture — how far ${kids.length === 1 ? esc(kids[0].name.split(' ')[0]) + ' has' : 'everyone has'} come this month.</p>
+      <div class="recap-grid">
+        ${kids.map(k => {
+          const tiles = [
+            k.gallop != null ? { n: k.gallop, cap: 'Gallop Score', up: k.gallopDelta > 0 ? `${k.sinceStart ? '' : '▲ '}+${k.gallopDelta}` : null } : null,
+            { n: k.monthAnswers, cap: 'questions' },
+            { n: k.activeDays, cap: 'days practiced' },
+            { n: k.skillsMastered, cap: 'skills mastered' }
+          ].filter(Boolean);
+          return `<div class="recap-card">
+            <div class="recap-head"><span class="avatar-sm" style="font-size:1.35rem">${avatarHTML(k)}</span><b>${esc(k.name)}</b>${k.monthAccuracy != null ? `<span class="muted" style="font-size:.82rem;margin-left:auto">${k.monthAccuracy}% correct</span>` : ''}</div>
+            <div class="recap-tiles">
+              ${tiles.map(t => `<div class="recap-tile"><div class="rt-n">${t.n}${t.up ? `<span class="rt-up">${t.up}</span>` : ''}</div><div class="rt-cap">${t.cap}</div></div>`).join('')}
+            </div>
+            ${k.certs && k.certs.length ? `<div class="recap-win">🎓 Completed this month: ${k.certs.map(c => `<b>${esc(c.title.replace(/ Complete!?$/, ''))}</b>`).join(' · ')}</div>` : ''}
+            ${k.badges > 0 ? `<div class="recap-badges">🏅 ${k.badges} new badge${k.badges === 1 ? '' : 's'} earned</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
   }).catch(() => {});
 });
 

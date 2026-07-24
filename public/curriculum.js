@@ -31,7 +31,6 @@ window.GALLOP_CURRICULUM = {
         "m.1.add20",
         "m.1.sub20",
         "m.1.time",
-        "m.1.coins",
         "m.1.shapes"
       ]
     },
@@ -48,7 +47,8 @@ window.GALLOP_CURRICULUM = {
         "m.2.groups",
         "m.2.change",
         "m.2.measure",
-        "m.2.shapes"
+        "m.2.shapes",
+        "m.1.coins"
       ]
     },
     {

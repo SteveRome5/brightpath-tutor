@@ -156,7 +156,10 @@ const skills = [
     }
   },
   {
-    id: 'm.1.coins', name: 'Coin Counter', grade: 1,
+    // Mixed-coin value (dimes + nickels + pennies → total ¢) is CCSS 2.MD.C.8 — a grade-2
+    // money standard. (Grade 1 does single-/like-coin counting only.) Kept id 'm.1.coins'
+    // so existing learners' progress on it is preserved; the grade label is the source of truth.
+    id: 'm.1.coins', name: 'Coin Counter', grade: 2,
     gen(d) {
       const dimes = rint(0, d > 0.5 ? 4 : 2), nickels = rint(0, 2), pennies = rint(0, 4);
       const total = dimes * 10 + nickels * 5 + pennies;

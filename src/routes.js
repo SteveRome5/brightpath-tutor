@@ -744,6 +744,35 @@ router.get('/family/overview', auth.requireParent, (req, res) => {
   res.json({ kids: out });
 });
 
+// Monthly growth recap — the longer arc a parent celebrates: score trend, grades completed,
+// skills mastered, and consistency over the last 30 days. Every figure comes from real data.
+router.get('/family/monthly', auth.requireParent, (req, res) => {
+  const kids = db.prepare('SELECT * FROM kids WHERE parent_id=?').all(req.parent.id);
+  const out = kids.map(k => {
+    const ans = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts>=datetime('now','-30 days')").get(k.id).n;
+    // Accuracy excludes optional Advanced-Track (AP/honors), matching the report & dashboard.
+    const accR = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND skill_id NOT LIKE 'track:%' AND ts>=datetime('now','-30 days')").get(k.id);
+    const days = db.prepare("SELECT COUNT(DISTINCT date(ts)) AS d FROM activity_log WHERE kid_id=? AND ts>=datetime('now','-30 days')").get(k.id).d;
+    // Grades COMPLETED this month = certificates issued this month (a certificate is a level completion).
+    const certs = db.prepare("SELECT subject, title FROM certificates WHERE kid_id=? AND issued_at>=datetime('now','-30 days') ORDER BY issued_at DESC").all(k.id);
+    const badges = db.prepare("SELECT COUNT(*) AS n FROM badges WHERE kid_id=? AND earned_at>=datetime('now','-30 days')").get(k.id).n || 0;
+    // Skills mastered = cumulative count at ≥80% mastery (a real, defensible achievement tally).
+    const mastered = db.prepare("SELECT COUNT(*) AS n FROM skill_state WHERE kid_id=? AND mastery>=0.8").get(k.id).n || 0;
+    // Gallop Score + 30-day change (from the daily snapshots the report writes).
+    const cur = db.prepare("SELECT score FROM score_snapshots WHERE kid_id=? AND subject='overall' ORDER BY day DESC LIMIT 1").get(k.id);
+    const prior = db.prepare("SELECT score FROM score_snapshots WHERE kid_id=? AND subject='overall' AND day<=date('now','-30 days') ORDER BY day DESC LIMIT 1").get(k.id);
+    const earliest = db.prepare("SELECT score, day FROM score_snapshots WHERE kid_id=? AND subject='overall' ORDER BY day ASC LIMIT 1").get(k.id);
+    let gallop = cur ? cur.score : null, gallopDelta = null, sinceStart = false;
+    if (cur) { const base = prior || earliest; if (base && base.score != null) { gallopDelta = cur.score - base.score; sinceStart = !prior; } }
+    return {
+      id: k.id, name: k.name, avatar: k.avatar, grade: k.grade,
+      monthAnswers: ans, monthAccuracy: accR.n ? Math.round((accR.c || 0) / accR.n * 100) : null,
+      activeDays: days, certs, badges, skillsMastered: mastered, gallop, gallopDelta, sinceStart
+    };
+  }).filter(k => k.monthAnswers > 0);
+  res.json({ kids: out });
+});
+
 // ---------- billing ----------
 router.post('/billing/checkout', auth.requireParent, async (req, res) => {
   try {

@@ -1909,3 +1909,17 @@ body[data-theme="academy"] .pill.inprog { background: color-mix(in srgb, #5b8cf0
 body[data-theme="academy"] .sg-num { color: var(--accent); }
 .sg-up { font-family: var(--font-body); font-size: .74rem; font-weight: 700; color: #1f8a5f; background: #eaf6ef; padding: 2px 7px; border-radius: 999px; vertical-align: middle; }
 body[data-theme="academy"] .sg-up { background: color-mix(in srgb, #1f8a5f 25%, transparent); color: #7fe0b0; }
+
+/* ===================== Parent dashboard — monthly growth recap ===================== */
+.recap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.recap-card { border: 1px solid var(--card-border); border-radius: 14px; padding: 14px 16px; background: var(--soft-bg); }
+.recap-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.recap-head b { font-size: 1.02rem; }
+.recap-tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.recap-tile { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 10px 8px; text-align: center; }
+.rt-n { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; color: var(--brand); line-height: 1.05; }
+body[data-theme="academy"] .rt-n { color: var(--accent); }
+.rt-up { font-family: var(--font-body); font-size: .68rem; font-weight: 700; color: #1f8a5f; background: #eaf6ef; padding: 1px 6px; border-radius: 999px; margin-left: 4px; vertical-align: middle; }
+.rt-cap { font-size: .74rem; color: var(--chrome-sub); margin-top: 3px; }
+.recap-win { margin-top: 12px; font-size: .9rem; color: #1f6b43; background: #eaf6ef; border-radius: 10px; padding: 9px 12px; line-height: 1.5; }
+.recap-badges { margin-top: 8px; font-size: .88rem; color: var(--chrome-sub); }
