@@ -127,7 +127,7 @@
     // the cupcake bakery. min/max are inclusive grade numbers (0 = Kindergarten).
     const grade = k.grade || 0;
     const CATALOG = [
-      { id: 'market', emoji: '📈', name: 'Market Mogul', desc: 'A 10-level investing career — level up by hitting profit targets while you master diversification, dollar-cost averaging, dividends & more. Progress saves.', min: 4, max: 12 },
+      { id: 'market', emoji: '📈', name: 'Market Mogul', desc: 'A 12-level investing career — level up by hitting profit targets while you master diversification, dollar-cost averaging, dividends & more. Progress saves.', min: 4, max: 12 },
       { id: 'blitz', emoji: '⚡', name: 'Lightning Round', desc: '60 seconds. Rapid-fire questions. Build a combo — beat your best!', min: 0, max: 12 },
       { id: 'code', emoji: '🤖', name: 'Code Quest', desc: 'Program Robo the robot to reach the star — a fresh puzzle set every time.', min: 0, max: 12 },
       { id: 'wordsearch', emoji: '🔍', name: 'Word Search', desc: 'Hunt hidden words in the letter jungle.', min: 0, max: 12 },
@@ -882,45 +882,53 @@
   // (flags) that turn on. Difficulty rises via bigger targets, wilder stocks, and new forces.
   const MM_LEVELS = [
     { n: 1, emoji: '🌱', name: 'First Trades', concept: 'Diversification',
-      intro: 'Welcome to the Gallop Stock Exchange! A share is a tiny piece of a real company — buy it low, and if the company grows, so does your money. The first rule the pros live by: never put all your money in ONE stock. Spread it across several so a single bad day can\'t sink you.',
-      tip: 'Spread your cash across all three stocks — that\'s diversification.',
-      days: 8, start: 1000, targetPct: 12, stocks: ['hay', 'sun', 'pix'], flags: {} },
+      intro: 'Welcome to the Gallop Stock Exchange! A share is a tiny piece of a real company — buy it low, and if the company grows, so does your money. Each day a news headline drops that hints at what a stock might do. The first rule the pros live by: never put all your money in ONE stock. Spread it across several so a single bad day can\'t sink you.',
+      tip: 'Spread your cash across the stocks — that\'s diversification. Watch the daily news for clues.',
+      days: 12, start: 1000, targetPct: 15, stocks: ['hay', 'sun', 'pix'], flags: { news: true } },
     { n: 2, emoji: '📰', name: 'Reading the News', concept: 'News moves markets',
-      intro: 'Every trading day a headline drops. Good news usually lifts a stock and bad news usually drops it — but not always! Markets surprise everyone. Use the news as a clue about tomorrow, never as a sure thing, and never bet everything on one headline.',
+      intro: 'Every trading day a headline drops through the newswire, the TV, your phone, or the trading floor. Good news usually lifts a stock and bad news usually drops it — but not always! Markets surprise everyone. Use the news as a clue about tomorrow, never as a sure thing, and never bet everything on one headline.',
       tip: 'The news hints at tomorrow\'s move — but surprises happen. Stay diversified.',
-      days: 8, start: 1000, targetPct: 18, stocks: ['hay', 'sun', 'pix', 'nova'], flags: { news: true } },
+      days: 12, start: 1000, targetPct: 22, stocks: ['hay', 'sun', 'pix', 'nova'], flags: { news: true } },
     { n: 3, emoji: '🔁', name: 'Steady Wins', concept: 'Dollar-Cost Averaging',
       intro: 'Nobody can buy at the exact bottom every time. So the pros use DOLLAR-COST AVERAGING: invest the same amount on a schedule, no matter the price. You automatically buy more shares when they\'re cheap and fewer when they\'re pricey — which keeps your average cost low. Flip on Auto-Invest and watch your average cost work for you.',
       tip: 'Turn on 🔁 Auto-Invest to buy a set amount every day — that is dollar-cost averaging.',
-      days: 10, start: 1000, targetPct: 20, stocks: ['hay', 'sun', 'pix', 'nova'], flags: { news: true, dca: true } },
+      days: 14, start: 1000, targetPct: 26, stocks: ['hay', 'sun', 'pix', 'nova'], flags: { news: true, dca: true } },
     { n: 4, emoji: '⚖️', name: 'Risk & Reward', concept: 'Risk vs reward',
       intro: 'Meet GenoMed — a biotech that can rocket OR crater. Wild stocks offer the biggest gains and the biggest losses. Calmer stocks grow slowly but steadily. A smart portfolio holds some of each, so you get real growth without betting the farm.',
       tip: 'Balance a wild stock (🧬🚀) with steady ones (🌾☀️). High reward always rides with high risk.',
-      days: 8, start: 1200, targetPct: 25, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true } },
+      days: 14, start: 1200, targetPct: 30, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true } },
     { n: 5, emoji: '📉', name: 'The Crash', concept: 'Don\'t panic-sell',
       intro: 'Sooner or later, the whole market drops at once — a crash. It feels scary, but here\'s the secret the best investors know: crashes are temporary, and selling in a panic locks in your losses. Downturns are actually when stocks go ON SALE. Hold steady, and if you\'re brave, buy the dip.',
       tip: 'If a crash hits, DON\'T panic-sell. Markets recover — a dip can be a discount.',
-      days: 10, start: 1500, targetPct: 10, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, crash: true } },
+      days: 16, start: 1500, targetPct: 18, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, crash: true } },
     { n: 6, emoji: '💸', name: 'Fees & Patience', concept: 'Costs of over-trading',
       intro: 'From now on, every trade costs a small $1 fee — just like the real world. Traders who buy and sell constantly bleed money on fees and often do WORSE than someone who picks well and waits. Patience is a strategy. Trade with purpose, not every single day.',
       tip: 'Each trade now costs $1. Don\'t over-trade — patience beats churning.',
-      days: 10, start: 1500, targetPct: 22, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true } },
+      days: 16, start: 1500, targetPct: 30, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true } },
     { n: 7, emoji: '💰', name: 'Dividends', concept: 'Income & compounding',
       intro: 'Some companies share their profits with owners every day you hold them — that\'s a DIVIDEND. Even if the price barely moves, dividends quietly pay you just for holding. Reinvest them to buy more shares, and your money starts growing on its own growth. That snowball is called compounding.',
       tip: 'Hold 🏦🌾☕ to collect daily dividends, then reinvest them — that\'s compounding.',
-      days: 12, start: 2000, targetPct: 25, stocks: ['hay', 'brew', 'sun', 'vault', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true } },
+      days: 18, start: 2000, targetPct: 34, stocks: ['hay', 'brew', 'sun', 'vault', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true } },
     { n: 8, emoji: '📊', name: 'Rates & Sectors', concept: 'Interest rates rotate sectors',
       intro: 'A central bank sets interest rates, and rates quietly push whole sectors up or down. When rates RISE, banks (🏦) tend to win while fast-growing tech (☁️🎮🚀) feels a headwind. When rates FALL, growth stocks catch fire. Watch the rate meter and tilt toward whatever the winds favor.',
       tip: 'Rates rising? Banks 🏦 like it, growth 🎮☁️🚀 struggles. Falling? The opposite. Watch the meter.',
-      days: 12, start: 2000, targetPct: 28, stocks: ['brew', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true } },
+      days: 18, start: 2000, targetPct: 38, stocks: ['brew', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true } },
     { n: 9, emoji: '🐂', name: 'Bull & Bear', concept: 'Market cycles',
       intro: 'Markets move in cycles: a BULL run when almost everything rises, then a BEAR stretch when it all sags. Nobody can predict the exact turn, so the winning move is to stay invested through both, keep dollar-cost averaging, and let the long climb carry you. Time IN the market beats timing the market.',
       tip: 'Ride the cycle — keep investing through bull AND bear. Time in beats timing.',
-      days: 14, start: 2500, targetPct: 32, stocks: ['brew', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true, crash: true } },
-    { n: 10, emoji: '👑', name: 'Portfolio Manager', concept: 'Put it all together',
-      intro: 'Graduation day. Every force is live at once — news, fees, dividends, interest rates, and the risk of a crash — across the full market. Use everything you\'ve learned: diversify, dollar-cost average, stay calm in a dip, mind your fees, collect dividends, and read the rate winds. Hit the target and you\'re a Certified Gallop Investor.',
-      tip: 'Everything is on. Diversify, DCA, hold through dips, watch fees & rates. You\'ve got this.',
-      days: 16, start: 3000, targetPct: 40, stocks: ['hay', 'brew', 'sun', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true, crash: true } }
+      days: 20, start: 2500, targetPct: 42, stocks: ['brew', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true, crash: true } },
+    { n: 10, emoji: '🫧', name: 'The Bubble', concept: 'Don\'t chase the hype',
+      intro: 'Every so often one stock catches fire — everyone piles in, the price balloons, and it feels like it will never stop. That\'s a BUBBLE, and every bubble eventually POPS. The investors who get burned are the ones who chase the hype all the way to the top. Enjoy the ride if you like, but take your profits before the crowd panics.',
+      tip: 'One stock will balloon then POP. Ride it if you dare — but sell before it bursts. Never chase hype.',
+      days: 20, start: 2500, targetPct: 38, stocks: ['hay', 'brew', 'sun', 'vault', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, bubble: true } },
+    { n: 11, emoji: '⚖️', name: 'The Rebalance', concept: 'Rebalancing',
+      intro: 'When one stock soars, it can quietly become a huge slice of your money — and a huge risk if it turns. Smart investors REBALANCE: trim the winners and top up the laggards to keep a healthy spread. It feels backwards to sell what\'s winning, but it locks in gains and protects you from any single stock sinking the ship.',
+      tip: 'Trim your biggest winner and spread it around — rebalancing keeps one stock from sinking you.',
+      days: 22, start: 3000, targetPct: 46, stocks: ['brew', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true, crash: true } },
+    { n: 12, emoji: '👑', name: 'The Long Game', concept: 'Put it all together',
+      intro: 'This is it — the long game. Every force is live at once: news, fees, dividends, interest rates, crashes, and the pull of a bubble, across the whole market and the longest run yet. Use everything you\'ve learned: diversify, dollar-cost average, hold through the dips, mind your fees, collect your dividends, read the rate winds, and never chase the hype. Go the distance and you\'re a Certified Gallop Investor.',
+      tip: 'Everything is on, and it\'s a marathon. Patience and a spread portfolio win. You\'ve got this.',
+      days: 26, start: 3000, targetPct: 60, stocks: ['hay', 'brew', 'sun', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true, crash: true, bubble: true } }
   ];
   const MM_GLOSSARY = [
     ['Share / Stock', 'A tiny piece of ownership in a company. Owning shares means you own a slice of that business.'],
@@ -1159,6 +1167,12 @@
     let rate = 'steady', crashed = false, recover = 0, trades = 0, fees = 0, divTotal = 0;
     const feeAmt = F.fee ? 1 : 0;
     let tradesToday = 0;
+    // bubble: pick the wildest stock as the "hype darling"; it balloons, then pops mid-level
+    let bubbleStock = null, bubbleBurst = 0, bubblePopped = false;
+    if (F.bubble) {
+      bubbleStock = stocks.reduce((a, b) => (b.wild > a.wild ? b : a), stocks[0]).id;
+      bubbleBurst = Math.max(4, Math.round(L.days * 0.6));
+    }
 
     function mmNews() {
       const s = stocks[Math.floor(Math.random() * stocks.length)];
@@ -1267,7 +1281,7 @@
       }
       // interest-rate regime can shift
       if (F.rates && Math.random() < 0.30) { rate = ['rising', 'falling', 'steady'][Math.floor(Math.random() * 3)]; }
-      const follows = Math.random() < 0.85;
+      const follows = Math.random() < 0.80;   // news is right ~80% of the time — surprises keep it honest
       let flash = null;
       // crash trigger (once per level, in the middle stretch)
       let crashing = false;
@@ -1288,6 +1302,16 @@
         }
         if (crashing) { move = -(0.14 + Math.random() * 0.20); }
         else if (recover > 0) { move += 0.01 + Math.random() * 0.035; }
+        // the bubble darling detaches from reality: it balloons, then pops on the burst day
+        if (F.bubble && s.id === bubbleStock) {
+          if (day < bubbleBurst) {
+            move = 0.05 + Math.random() * 0.06;
+            if (day === bubbleBurst - 3 && !flash) flash = '🚀 Everyone is piling into ' + s.short + ' — it\'s rocketing! Thrilling... but nothing climbs forever. Think about taking profits.';
+          } else if (day === bubbleBurst) {
+            move = -(0.30 + Math.random() * 0.16);
+            if (!bubblePopped) { bubblePopped = true; flash = '💥 The bubble POPPED! ' + s.short + ' came crashing down. Chasing a red-hot stock to the very top is how investors get burned — the smart money sold before the pop.'; }
+          }
+        }
         last[s.id] = move * 100;
         s.price = Math.max(1, Math.round(s.price * (1 + move) * 100) / 100);
         s.hist.push(s.price);
