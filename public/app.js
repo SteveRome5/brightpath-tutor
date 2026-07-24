@@ -773,7 +773,7 @@ route('landing', async () => {
       <div><b>K–12</b><span>Every grade level</span></div>
       <div><b>4</b><span>Core subjects</span></div>
       <div><b>300+</b><span>Skill areas</span></div>
-      <div><b>156</b><span>Guided lessons</span></div>
+      <div><b>300+</b><span>Guided lessons</span></div>
       <div><b>5,000+</b><span>Accuracy-checked questions</span></div>
     </div>
     <div class="showcase reveal">
@@ -802,7 +802,7 @@ route('landing', async () => {
       <div class="feature reveal"><div class="fnum">STEP 03 · PROGRESS</div><h3>Prove it, then move up</h3><p>A child only advances a grade after showing they can do the whole thing, not after a lucky streak. You see the letter grades, the strengths, and the spots that need work. Certificates mark the real milestones.</p></div>
     </div>
     <h2 class="section-title reveal">Lessons, not just questions</h2>
-    <p class="section-sub">Before a child practices a skill, Gallop teaches it. Short guided lessons that explain the idea the way the teacher you still remember would have, then hand it over.</p>
+    <p class="section-sub">Before a child practices a skill, Gallop teaches it — <b>every one of our 300+ skills has its own guided lesson</b>, so there's never a question without a lesson in front of it. And you can search the whole K–12 curriculum to jump to any concept in seconds: when a teacher says <i>"that's on Gallop,"</i> your child goes straight to it and works through it at their own pace.</p>
     <div class="feature-grid">
       <div class="feature reveal"><div class="fnum">SEE IT</div><h3>Pictures do the explaining</h3><p>A pizza sliced into fourths for fractions. Rows and columns for times tables. Earth turning toward the sun for day and night. The idea shows up on the screen, not just in a sentence.</p></div>
       <div class="feature reveal"><div class="fnum">HEAR IT</div><h3>Every lesson reads aloud</h3><p>A child who learns by ear hears the concept and the worked example spoken, at their own pace, as many times as they want. Nobody gets left behind by the reading.</p></div>
@@ -1358,7 +1358,7 @@ route('home', async () => {
         </div>`).join('')}
     </div>
     <div class="zone-row">
-      <div class="zone-card" onclick="location.hash='#learn'"><span class="zemoji">📖</span><b>Lessons</b><span class="muted">${playful() ? 'Learn how it works before you play!' : 'Short lessons that teach the concept first'}</span></div>
+      <div class="zone-card" onclick="location.hash='#learn'"><span class="zemoji">📖</span><b>Lessons</b><span class="muted">${playful() ? 'Find any topic and learn it first!' : 'Search or browse any concept — learn it step by step'}</span></div>
       <div class="zone-card" onclick="location.hash='#play'"><span class="zemoji">🕹️</span><b>${playful() ? 'Play Zone' : 'Arcade'}</b><span class="muted">${playful() ? 'Games cost 1 🎟️, earn tokens by learning!' : 'Break games, 1 token each, earned by correct answers'}</span></div>
       <div class="zone-card" onclick="location.hash='#avatar'"><span class="zemoji">🎨</span><b>${playful() ? 'My Avatar' : 'Avatar'}</b><span class="muted">${playful() ? 'Spend coins on hats, pets & worlds' : 'Customize your profile with earned coins'}</span></div>
       <div class="zone-card" onclick="location.hash='#snacks'"><span class="zemoji">🍿</span><b>${playful() ? 'Snack Shack' : 'Snack Shack'}</b><span class="muted">${playful() ? 'Spend coins on treats from the vending machine!' : 'Trade coins for snacks & treats'}</span></div>
@@ -2795,6 +2795,7 @@ route('standards', async () => {
         ${adv ? badge('AP / Advanced', adv, '#b8860b') : ''}
       </div>
       <p style="max-width:660px;margin:14px auto 2px;font-weight:600">Coverage spans <b>every Common Core math and ELA domain</b>, <b>all four NGSS science disciplines</b> — including Engineering Design — and <b>all five ACTFL goal areas</b> (the "5 C's"), Kindergarten through Grade 12.</p>
+      <p class="muted" style="max-width:660px;margin:8px auto 2px">Every skill includes a short <b>guided lesson that teaches the concept before any practice</b>, and the full curriculum is searchable — so a student or teacher can look up exactly what the class is working on and get step-by-step supplemental support in seconds.</p>
       <p class="muted" style="font-size:.8rem;margin-top:12px">Frameworks: ${Object.values(fw).map(f => esc(f.short)).join(' · ')}. Common Core — or state standards built on it, as in New York and Nevada — is used across most of the country; NGSS is the most widely adopted next-generation science standard, and ACTFL sets the national standard for world-language learning. Standard codes are shown here for educators — students simply see the lesson and practice.</p>
       <div style="margin-top:12px"><button class="btn ghost small" style="color:var(--brand);border-color:var(--brand)" onclick="window.print()">🖨️ Print / save this map</button></div>
     </div>
