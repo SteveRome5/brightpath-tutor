@@ -869,20 +869,22 @@ body[data-theme="academy"] .exam-count { color: #b9c9bf; }
 .hero h1 { animation-delay: .08s; }
 .hero p { animation-delay: .18s; }
 .hero .btn { animation-delay: .3s; }
-.subject-card, .zone-card { animation: rise-in .55s cubic-bezier(.22,.9,.36,1) both; }
-.subject-card:nth-child(1) { animation-delay: .02s } .subject-card:nth-child(2) { animation-delay: .09s }
-.subject-card:nth-child(3) { animation-delay: .16s } .subject-card:nth-child(4) { animation-delay: .23s }
-.zone-card:nth-child(1) { animation-delay: .28s } .zone-card:nth-child(2) { animation-delay: .34s } .zone-card:nth-child(3) { animation-delay: .4s }
+/* Quick, subtle entrance — snappy on repeat navigation, with just a hint of stagger. */
+.subject-card, .zone-card { animation: rise-in .38s cubic-bezier(.22,.9,.36,1) both; }
+.subject-card:nth-child(2) { animation-delay: .04s } .subject-card:nth-child(3) { animation-delay: .08s }
+.subject-card:nth-child(4) { animation-delay: .12s } .subject-card:nth-child(n+5) { animation-delay: .14s }
+.zone-card:nth-child(1) { animation-delay: .06s } .zone-card:nth-child(2) { animation-delay: .1s } .zone-card:nth-child(3) { animation-delay: .14s }
 /* the resident horse trots across the landing hero */
 .hero { position: relative; overflow: hidden; }
 .horse-runner {
-  position: absolute; bottom: 4px; left: -10%; font-size: 2rem; pointer-events: none;
-  transform: scaleX(-1);
-  animation: run-across 15s linear infinite 2s, runner-bob .4s ease-in-out infinite;
-  opacity: .9;
+  position: absolute; bottom: 4px; left: 0; font-size: 2rem; pointer-events: none;
+  transform: translateX(-12vw) scaleX(-1);
+  animation: run-across 15s linear infinite 2s, runner-bob .45s ease-in-out infinite;
+  opacity: .9; will-change: transform;
 }
-@keyframes run-across { 0% { left: -8%; } 38% { left: 106%; } 100% { left: 106%; } }
-@keyframes runner-bob { 0%,100% { bottom: 4px; } 50% { bottom: 12px; } }
+/* GPU-friendly: translate the horse instead of animating the layout `left` property. */
+@keyframes run-across { 0% { transform: translateX(-12vw) scaleX(-1); } 38% { transform: translateX(112vw) scaleX(-1); } 100% { transform: translateX(112vw) scaleX(-1); } }
+@keyframes runner-bob { 0%,100% { bottom: 4px; } 50% { bottom: 11px; } }
 @media (prefers-reduced-motion: reduce) {
   .reveal, .reveal.in, .hero .eyebrow, .hero h1, .hero p, .hero .btn, .subject-card, .zone-card { animation: none; opacity: 1; }
   .horse-runner { display: none; }
@@ -1826,3 +1828,54 @@ body[data-theme="academy"] .mm-cz-name { color: var(--accent); }
 .game-card .lvl { opacity: .95; }
 /* On the Play button, keep the gold clearly readable on any tile */
 .game-card .btn.sun { color: #2a1e05; box-shadow: 0 3px 10px rgba(0,0,0,.25); }
+
+/* ============================================================
+   POLISH PASS v2 — consistency, contrast, focus & hover
+   Standardized tokens + fixes for every readability/interaction
+   issue surfaced in the design-system audit.
+   ============================================================ */
+:root {
+  --ease-out: cubic-bezier(.22, .9, .36, 1);
+  --dur-fast: .12s; --dur-base: .16s; --dur-slow: .32s;
+  --radius-pill: 999px; --radius-sm: 10px;
+  --shadow-sm: 0 1px 2px rgba(22,33,58,.05);
+  --shadow-md: 0 1px 2px rgba(22,33,58,.05), 0 8px 24px -12px rgba(22,33,58,.28);
+  --shadow-lg: 0 20px 44px -20px rgba(22,33,58,.42);
+}
+
+/* ---- CONTRAST FIXES (readable text on every theme) ---- */
+/* Market Mogul stock legend sits on the page bg, not the dark chart → use theme ink. */
+.mm-legend { color: var(--chrome-ink); }
+.mm-legend i { box-shadow: 0 0 0 1px rgba(0,0,0,.12); }
+/* Rank pill: gold surface needs dark ink, matching every other gold element. */
+.rank-chip { color: #241c04; }
+/* Junior's brand is orange — white text on it fails; use dark ink on these fills. */
+body[data-theme="junior"] .ach-banner, body[data-theme="junior"] .ach-banner .ach-sub { color: #2a1e05; }
+body[data-theme="junior"] .lg-step.on { color: #2a1e05; }
+/* "Common" rarity label was white on a light-grey gradient. */
+.badge-rar.rar-tag-common { color: #363b46; }
+/* Code Quest undo button: was forest-green on the academy dark surface. */
+#cq-undo { color: var(--chrome-ink); border-color: color-mix(in srgb, var(--chrome-ink) 30%, transparent); }
+#cq-undo:hover { background: color-mix(in srgb, var(--chrome-ink) 8%, transparent); }
+/* Word Search found-words: legible even on the academy dark badge surface. */
+body[data-theme="academy"] .badge-item.ws-done { color: #86b8a0; opacity: .8; }
+
+/* ---- UNIFIED FOCUS RING (one brand-colored indicator everywhere) ---- */
+.choice:focus-visible, .btn:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+.choice:focus-visible { border-radius: 12px; }
+
+/* ---- HOVER FEEDBACK for clickable controls that had none ---- */
+.mm-cz-swatch, .mm-cz-btn, .mm-dca-toggle, .lw-bt, .lw-chip, .furn, .paint, .room-cell, .mm-lot, .logo {
+  transition: transform var(--dur-fast) var(--ease), filter var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+@media (hover: hover) {
+  .mm-cz-swatch:hover, .mm-cz-btn:hover, .mm-dca-toggle:hover, .lw-bt:hover, .lw-chip:hover,
+  .furn:hover, .paint:hover, .room-cell:hover, .mm-lot:hover { transform: translateY(-1px); filter: brightness(1.06); }
+  .mm-cz-swatch:hover { transform: scale(1.1); }
+  .logo:hover { opacity: .82; }
+}
+
+/* ---- honor reduced-motion for the new hover transforms ---- */
+@media (prefers-reduced-motion: reduce) {
+  .mm-cz-swatch, .mm-cz-btn, .mm-dca-toggle, .lw-bt, .lw-chip, .furn, .paint, .room-cell, .mm-lot { transition: none; }
+}

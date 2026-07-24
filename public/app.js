@@ -278,23 +278,35 @@ function playful() { const t = document.body.dataset.theme; return t === 'junior
 
 // ======================= sound engine =======================
 const Sound = (() => {
-  let ctx, muted = localStorage.bp_muted === '1';
-  function ac() { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); return ctx; }
-  function tone(freq, t0, dur, type = 'sine', gain = 0.12) {
+  let ctx, master, muted = localStorage.bp_muted === '1';
+  function ac() {
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      master = ctx.createGain(); master.gain.value = 0.85; master.connect(ctx.destination);
+    }
+    return ctx;
+  }
+  // One clean voice: a soft attack (no digital click), gentle exponential release, and an
+  // optional warm low-pass so nothing sounds harsh. Everything routes through a master gain
+  // so the whole SFX bed sits at a consistent, polite level.
+  function tone(freq, t0, dur, type = 'sine', gain = 0.12, filt = 0) {
     if (muted) return;
     const c = ac(), o = c.createOscillator(), g = c.createGain();
     o.type = type; o.frequency.value = freq;
-    g.gain.setValueAtTime(gain, c.currentTime + t0);
-    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + t0 + dur);
-    o.connect(g).connect(c.destination);
-    o.start(c.currentTime + t0); o.stop(c.currentTime + t0 + dur + 0.05);
+    const t = c.currentTime + t0; let node = o;
+    if (filt) { const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = filt; f.Q.value = 0.6; o.connect(f); node = f; }
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.012);            // soft attack
+    g.gain.exponentialRampToValueAtTime(0.0008, t + dur);            // smooth release
+    node.connect(g).connect(master);
+    o.start(t); o.stop(t + dur + 0.06);
   }
   return {
-    correct() { tone(523, 0, .15); tone(659, .1, .15); tone(784, .2, .3); },
-    wrong() { tone(415, 0, .12, 'sine', .07); tone(330, .12, .18, 'sine', .06); },
-    click() { tone(600, 0, .06, 'square', .05); },
-    levelup() { [523, 587, 659, 784, 880, 1047].forEach((f, i) => tone(f, i * .12, .25)); },
-    badge() { tone(880, 0, .12); tone(1109, .12, .2); tone(1319, .26, .35); },
+    correct() { tone(659, 0, .14, 'sine', .12, 2600); tone(880, .09, .17, 'sine', .11, 2800); tone(1319, .19, .3, 'triangle', .09, 3200); },
+    wrong() { tone(392, 0, .15, 'sine', .07, 1300); tone(311, .14, .22, 'sine', .06, 1100); },
+    click() { tone(880, 0, .045, 'sine', .05, 3000); },
+    levelup() { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i * .1, .28, 'triangle', .1, 3400)); tone(1568, .52, .5, 'sine', .07, 3600); },
+    badge() { tone(880, 0, .12, 'sine', .1, 3000); tone(1175, .12, .17, 'sine', .1, 3200); tone(1568, .26, .38, 'triangle', .09, 3600); },
     get muted() { return muted; },
     toggle() { muted = !muted; localStorage.bp_muted = muted ? '1' : '0'; return muted; },
     ctx: ac
@@ -3125,4 +3137,29 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
   }
   // let games.js register its routes before first render
   setTimeout(navigate, 0);
+})();
+
+/* ---- keyboard accessibility: make clickable cards focusable & Enter/Space-activatable ---- */
+/* The primary nav (subject/zone/game cards, level tiles, banners) is built as <div onclick>.
+   This centrally gives them tabindex+role and key handling so the focus rings actually fire
+   and the app is fully keyboard-navigable — no per-render markup changes needed. */
+(function () {
+  const SEL = '.subject-card,.zone-card,.game-card,.mm-level-card,.up-next,.ach-banner,.cert-mini,.learn-card,.snap-report';
+  function tag(root) {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll(SEL).forEach(el => {
+      if (!el.hasAttribute('tabindex')) { el.setAttribute('tabindex', '0'); el.setAttribute('role', 'button'); }
+    });
+  }
+  try {
+    const root = document.getElementById('app') || document.body;
+    new MutationObserver(muts => { for (const m of muts) for (const n of m.addedNodes) if (n.nodeType === 1) tag(n); })
+      .observe(root, { childList: true, subtree: true });
+    document.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches(SEL)) {
+        e.preventDefault(); e.target.click();
+      }
+    });
+    tag(document);
+  } catch (e) {}
 })();
