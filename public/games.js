@@ -979,6 +979,7 @@
     const progress = await mmLoadProgress();
     MM_LOOK = Object.assign({}, MM_LOOK_DEFAULT, progress.hero || {});
     if (!MM_OUTFIT_IDS.includes(MM_LOOK.outfit)) MM_LOOK.outfit = 'suit'; // retired casual outfits → business default
+    if (!MM_NAMES.includes(MM_LOOK.name)) MM_LOOK.name = 'Buck';
     const total = MM_LEVELS.length;
     const clearedCount = Object.keys(progress.cleared).length;
     const starTotal = Object.values(progress.cleared).reduce((a, b) => a + b, 0);
@@ -988,7 +989,7 @@
       <div class="kid-header" style="margin-bottom:10px">
         <canvas id="mm-hub-hero" width="52" height="46" class="mm-hub-hero"></canvas>
         <div><h1 style="margin:0">📈 Market Mogul</h1>
-          <div class="muted" style="font-size:.9rem">Buck's investing career — grow real money, one level at a time.</div>
+          <div class="muted" style="font-size:.9rem">${MM_LOOK.name}'s investing career — grow real money, one level at a time.</div>
         </div>
         <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#play'">← Play Zone</button></div>
       </div>
@@ -1034,6 +1035,7 @@
   function mmCustomize(progress) {
     const look = Object.assign({}, MM_LOOK_DEFAULT, progress.hero || {});
     if (!MM_OUTFIT_IDS.includes(look.outfit)) look.outfit = 'suit';
+    if (!MM_NAMES.includes(look.name)) look.name = 'Buck';
     function draw() {
       const cv = $('#mm-cz-preview'); if (!cv) return;
       const ctx = pixelCtx(cv); ctx.clearRect(0, 0, cv.width, cv.height);
@@ -1044,7 +1046,11 @@
         <div class="lesson-top"><b>🎨 Your Trader</b><button class="btn ghost small" id="cz-back">← Back</button></div>
         <div class="card center" style="padding:18px">
           <div class="mm-cz-stage"><canvas id="mm-cz-preview" width="84" height="80"></canvas></div>
-          <p class="muted" style="margin:6px 0 14px">Make your trader look like you!</p>
+          <div class="mm-cz-name">${look.name}</div>
+          <p class="muted" style="margin:2px 0 14px">Make your trader look like you!</p>
+          <div class="mm-cz-row"><span class="mm-cz-label">Name</span>
+            ${MM_NAMES.map(nm => `<button class="mm-cz-btn ${look.name === nm ? 'on' : ''}" data-name="${nm}">${nm}</button>`).join('')}
+          </div>
           <div class="mm-cz-row"><span class="mm-cz-label">Skin</span>
             ${MM_SKINS.map((sk, i) => `<button class="mm-cz-swatch ${look.skin === i ? 'on' : ''}" data-skin="${i}" style="background:${sk.m}"></button>`).join('')}
           </div>
@@ -1068,6 +1074,7 @@
       </div>`);
       wireChrome();
       draw();
+      document.querySelectorAll('[data-name]').forEach(b => b.onclick = () => { look.name = b.dataset.name; Sound.click(); render(); });
       document.querySelectorAll('[data-skin]').forEach(b => b.onclick = () => { look.skin = Number(b.dataset.skin); Sound.click(); render(); });
       document.querySelectorAll('[data-hair]').forEach(b => b.onclick = () => { look.hair = b.dataset.hair; Sound.click(); render(); });
       document.querySelectorAll('[data-hc]').forEach(b => b.onclick = () => { look.hairColor = b.dataset.hc; Sound.click(); render(); });
@@ -1076,7 +1083,7 @@
       document.querySelectorAll('[data-glass]').forEach(b => b.onclick = () => { look.glasses = b.dataset.glass; Sound.click(); render(); });
       $('#cz-back').onclick = () => startMarketHub();
       $('#cz-save').onclick = () => {
-        progress.hero = { skin: look.skin, hair: look.hair, hairColor: look.hairColor, outfit: look.outfit, outfitColor: look.outfitColor, glasses: look.glasses };
+        progress.hero = { name: look.name, skin: look.skin, hair: look.hair, hairColor: look.hairColor, outfit: look.outfit, outfitColor: look.outfitColor, glasses: look.glasses };
         MM_LOOK = Object.assign({}, MM_LOOK_DEFAULT, progress.hero);
         mmSaveProgress(progress);
         Sound.badge(); Confetti.burst(80);
@@ -1321,7 +1328,7 @@
         Confetti.burst(cleared ? 160 : 80); Sound.levelup();
         app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
           <canvas id="mm-res-hero" width="60" height="52" class="mm-res-hero"></canvas>
-          <h2>${justGraduated ? 'You\'re a Certified Gallop Investor!' : cleared ? `Level ${L.n} cleared!` : 'So close — try again!'}</h2>
+          <h2>${justGraduated ? `${MM_LOOK.name} is a Certified Gallop Investor!` : cleared ? `Level ${L.n} cleared!` : 'So close — try again!'}</h2>
           ${cleared ? `<div class="mm-star-row">${'★'.repeat(stars)}<span class="mm-star-empty">${'★'.repeat(3 - stars)}</span></div>` : ''}
           <div class="summary-stats">
             <div class="sstat"><div class="n">${$$(nw)}</div>portfolio</div>
@@ -1381,7 +1388,9 @@
   const MM_OUTFIT_IDS = ['suit', 'blazer', 'dress'];
   const MM_OUTFIT_COLORS = { navy: '#2a3550', teal: '#1f7a70', purple: '#6a3f9c', berry: '#a83668', pink: '#d6559b', green: '#2f8a4e', slate: '#4a5568', amber: '#d2761f' };
   const MM_GLASSES = [['none', 'None'], ['glasses', 'Glasses'], ['sunglasses', 'Shades']];
-  const MM_LOOK_DEFAULT = { skin: 1, hair: 'short', hairColor: 'brown', outfit: 'suit', outfitColor: 'navy', glasses: 'none' };
+  // Money-themed names — the kid picks their own (Buck & Penny lead; the rest keep it open).
+  const MM_NAMES = ['Buck', 'Penny', 'Bill', 'Ruby', 'Cash', 'Sunny'];
+  const MM_LOOK_DEFAULT = { name: 'Buck', skin: 1, hair: 'short', hairColor: 'brown', outfit: 'suit', outfitColor: 'navy', glasses: 'none' };
   let MM_LOOK = Object.assign({}, MM_LOOK_DEFAULT);
 
   // --- the mascot: a chunky pixel trader, drawn from a customizable look ---

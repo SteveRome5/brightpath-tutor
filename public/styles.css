@@ -1800,3 +1800,5 @@ body[data-theme="academy"] .mm-cut-title { color: var(--accent); }
 .fl-top { font-size: .72rem; color: #7fe0a8; font-weight: 800; margin-bottom: 4px; }
 .fl-head { font-size: 1rem; font-weight: 800; }
 .fl-sub { font-size: .82rem; margin-top: 4px; color: #a8e6c4; }
+.mm-cz-name { font-family: var(--font-display); font-size: 1.15rem; color: var(--brand); margin-top: 8px; }
+body[data-theme="academy"] .mm-cz-name { color: var(--accent); }
