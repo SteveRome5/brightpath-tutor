@@ -307,53 +307,100 @@ const Sound = (() => {
 // lo-fi vibe for older learners, a brighter playful one for the littles. It only
 // plays in the FUN zones (arcade, avatar, snacks, trophies) so lessons stay focused.
 const Music = (() => {
-  // Real little songs, generated live — a warm chord bed, a soft bass, and a COMPOSED,
-  // hummable melody (never random notes), bathed in gentle reverb so it sounds like music,
-  // not beeping. Two moods: a bright bouncy set for younger learners, a calm lo-fi set for
-  // teens. Plays only in the FUN zones so lessons stay focused. Default OFF until switched on.
+  // Real little songs, generated live: a soft, dark chord bed, a gentle bass, and a
+  // COMPOSED, hummable melody played on a *plucked* mallet voice (music box / marimba /
+  // bells / soft e-piano) — never a sustained reed/"recorder" tone, never random notes —
+  // bathed in light reverb. Each track has its OWN instrument, key and tempo, so pressing
+  // Next Track is clearly a different song. Two moods: bright & bouncy for younger kids, a
+  // calm lo-fi set for teens. Plays only in the FUN zones so lessons stay focused. OFF by default.
   let on = localStorage.bp_music === '1';
   let ctx = null, dry = null, wet = null, verb = null, timer = null, group = 'playful', playing = false;
   let track = null, trackIdx = 0, bar = 0;
   const semis = (root, s) => root * Math.pow(2, s / 12);
   // melody note = [semitoneFromKeyRoot, startBeat, durBeats]; pentatonic degrees only, so
-  // every note is consonant over the diatonic chords. Loop is `bars` bars (4 beats each).
+  // every note stays consonant over the diatonic chords. Loop = `bars` bars (4 beats each).
   const TRACKS = {
-    // ---- playful (kids): bright, warm, bouncy ----
-    sunbeam: { root: 261.63, beat: 372, bars: 4, drums: true, lead: 'triangle', filt: 1400, swing: .10,
+    // ---------- playful (kids): bright, plucky, fun — each a different instrument ----------
+    sunbeam:  { root: 261.63, beat: 340, bars: 4, drums: true,  voice: 'box',     filt: 2600, swing: .08,
       chords: [[0,4,7],[-5,-1,2],[-3,0,4],[-7,-3,0]], bass: [0,-5,-3,-7],
       mel: [[7,0,1],[9,1,.5],[12,1.5,.5],[9,2,1],[7,3,.5], [4,4,1.5],[7,5.5,.5],[9,6,2],
             [12,8,1],[9,9,1],[7,10,1],[9,11,1], [7,12,1],[4,13,.5],[2,13.5,.5],[0,14,2]] },
-    hopscotch: { root: 293.66, beat: 356, bars: 4, drums: true, lead: 'triangle', filt: 1500, swing: .12,
-      chords: [[0,4,7],[-3,0,4],[-7,-3,0],[-5,-1,2]], bass: [0,-3,-7,-5],
-      mel: [[4,0,.5],[7,.5,.5],[9,1,1],[7,2,.5],[4,2.5,.5],[2,3,1], [0,4,1],[4,5,1],[7,6,2],
-            [9,8,.5],[7,8.5,.5],[4,9,1],[7,10,1],[9,11,1], [7,12,1],[4,13,1],[0,14,2]] },
-    // ---- chill (teens): calm lo-fi, warm ----
-    driftwood: { root: 220.00, beat: 508, bars: 4, drums: false, lead: 'sine', filt: 1000, swing: 0,
+    bounce:   { root: 174.61, beat: 300, bars: 4, drums: true,  voice: 'marimba', filt: 1500, swing: .14,
+      chords: [[0,4,7],[5,9,12],[-3,0,4],[2,5,9]], bass: [0,5,-3,2],
+      mel: [[0,0,.5],[4,.5,.5],[7,1,.5],[9,1.5,.5],[7,2,1],[4,3,1], [5,4,1],[9,5,1],[7,6,2],
+            [9,8,.5],[12,8.5,.5],[9,9,1],[7,10,1],[4,11,1], [2,12,1],[4,13,1],[0,14,2]] },
+    skiprope: { root: 196.00, beat: 322, bars: 4, drums: true,  voice: 'bells',   filt: 3000, swing: .16,
+      chords: [[0,4,7],[-5,-1,2],[2,5,9],[-3,0,4]], bass: [0,-5,2,-3],
+      mel: [[9,0,.5],[7,.5,.5],[4,1,1],[7,2,.5],[9,2.5,.5],[11,3,1], [12,4,1],[9,5,1],[7,6,1],[4,7,1],
+            [7,8,.5],[9,8.5,.5],[12,9,1],[11,10,1],[9,11,1], [7,12,2],[9,14,2]] },
+    // ---------- chill (teens): calm, warm lo-fi ----------
+    driftwood:{ root: 220.00, beat: 500, bars: 4, drums: false, voice: 'epiano',  filt: 1100, swing: 0,
       chords: [[0,3,7],[-2,2,5],[-4,0,3],[-2,2,5]], bass: [0,-2,-4,-2],
       mel: [[7,0,2],[5,2,1],[3,3,1], [5,4,2],[10,6,2], [7,8,1.5],[5,9.5,.5],[3,10,2], [3,12,1],[5,13,1],[0,14,2]] },
-    dusk: { root: 196.00, beat: 536, bars: 4, drums: false, lead: 'sine', filt: 950, swing: 0,
+    dusk:     { root: 196.00, beat: 540, bars: 4, drums: false, voice: 'epiano',  filt: 980,  swing: 0,
       chords: [[0,3,7],[-4,0,3],[-9,-5,-2],[-2,2,5]], bass: [0,-4,-9,-2],
-      mel: [[10,0,2],[7,2,2], [5,4,1.5],[7,5.5,.5],[10,6,2], [12,8,2],[10,10,1],[7,11,1], [5,12,2],[0,14,2]] }
+      mel: [[10,0,2],[7,2,2], [5,4,1.5],[7,5.5,.5],[10,6,2], [12,8,2],[10,10,1],[7,11,1], [5,12,2],[0,14,2]] },
+    lantern:  { root: 174.61, beat: 480, bars: 4, drums: true,  voice: 'marimba', filt: 1200, swing: .06,
+      chords: [[0,3,7],[3,7,10],[-2,2,5],[-4,0,3]], bass: [0,3,-2,-4],
+      mel: [[7,0,1.5],[10,1.5,.5],[7,2,2], [3,4,1],[5,5,1],[7,6,2], [10,8,1.5],[7,9.5,.5],[5,10,2], [3,12,2],[0,14,2]] }
   };
-  const PLAYLIST = { playful: ['sunbeam', 'hopscotch'], chill: ['driftwood', 'dusk'] };
+  const PLAYLIST = { playful: ['sunbeam', 'bounce', 'skiprope'], chill: ['driftwood', 'dusk', 'lantern'] };
   // small warm reverb (generated impulse) so notes bloom instead of beep
   function makeVerb() {
     const len = Math.floor(ctx.sampleRate * 1.8), buf = ctx.createBuffer(2, len, ctx.sampleRate);
     for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
     const c = ctx.createConvolver(); c.buffer = buf; return c;
   }
-  // one voice: osc -> warm lowpass -> soft envelope -> dry + reverb send
-  function voice(freq, t, dur, gain, wave, filtHz, detune) {
+  // one PLUCKED mallet voice: percussive attack + exponential decay (music box / marimba /
+  // bell / e-piano). The fast attack + decay is what makes it read as a real struck
+  // instrument instead of a held reed. A bright partial adds mallet "sparkle"; marimba adds
+  // a warm sub for body. Each style picks its own waveform, brightness and decay length.
+  function pluck(freq, t, dur, gain, style, filtHz) {
+    let wave = 'triangle', bright = 3, brightGain = 0.30, decay = dur, atk = 0.004, subGain = 0;
+    if (style === 'box')          { wave = 'triangle'; bright = 3; brightGain = 0.45; decay = Math.min(dur, 1.1); }        // music box: glassy bell
+    else if (style === 'bells')   { wave = 'sine';     bright = 4; brightGain = 0.60; decay = Math.min(dur, 1.4); }        // glockenspiel: sparkly
+    else if (style === 'marimba') { wave = 'sine';     bright = 2; brightGain = 0.28; decay = Math.min(dur, 0.55); subGain = 0.5; } // warm wood, quick
+    else if (style === 'epiano')  { wave = 'triangle'; bright = 2; brightGain = 0.16; decay = dur * 0.9; atk = 0.006; }    // mellow electric piano
     const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
-    o.type = wave || 'sine'; o.frequency.value = freq; if (detune) o.detune.value = detune;
-    f.type = 'lowpass'; f.frequency.value = filtHz || 1200; f.Q.value = 0.6;
-    const a = Math.min(0.06, dur * 0.25);
+    o.type = wave; o.frequency.value = freq;
+    f.type = 'lowpass'; f.frequency.value = filtHz || 1600; f.Q.value = 0.6;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(gain, t + atk);
+    g.gain.exponentialRampToValueAtTime(0.0006, t + decay);
+    o.connect(f).connect(g); g.connect(dry); if (wet) g.connect(wet);
+    o.start(t); o.stop(t + decay + 0.05);
+    if (brightGain) {
+      const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+      o2.type = 'sine'; o2.frequency.value = freq * bright;
+      g2.gain.setValueAtTime(0.0001, t);
+      g2.gain.linearRampToValueAtTime(gain * brightGain, t + atk);
+      g2.gain.exponentialRampToValueAtTime(0.0005, t + decay * 0.6);
+      o2.connect(g2); g2.connect(dry); if (wet) g2.connect(wet);
+      o2.start(t); o2.stop(t + decay + 0.05);
+    }
+    if (subGain) {
+      const o3 = ctx.createOscillator(), g3 = ctx.createGain();
+      o3.type = 'sine'; o3.frequency.value = freq / 2;
+      g3.gain.setValueAtTime(0.0001, t);
+      g3.gain.linearRampToValueAtTime(gain * subGain, t + atk);
+      g3.gain.exponentialRampToValueAtTime(0.0005, t + decay * 0.7);
+      o3.connect(g3); g3.connect(dry);
+      o3.start(t); o3.stop(t + decay + 0.05);
+    }
+  }
+  // soft, dark, quiet sustained pad — the chord/bass BED under the melody. Deliberately
+  // low and low-pass filtered so it's felt as warmth, never heard as a competing "reed".
+  function pad(freq, t, dur, gain, filtHz, detune) {
+    const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+    o.type = 'triangle'; o.frequency.value = freq; if (detune) o.detune.value = detune;
+    f.type = 'lowpass'; f.frequency.value = filtHz || 780; f.Q.value = 0.4;
+    const a = Math.min(0.16, dur * 0.3);
     g.gain.setValueAtTime(0.0001, t);
     g.gain.linearRampToValueAtTime(gain, t + a);
-    g.gain.setValueAtTime(gain, t + Math.max(a, dur * 0.55));
-    g.gain.exponentialRampToValueAtTime(0.0006, t + dur + 0.08);
+    g.gain.setValueAtTime(gain, t + dur * 0.6);
+    g.gain.exponentialRampToValueAtTime(0.0005, t + dur + 0.1);
     o.connect(f).connect(g); g.connect(dry); if (wet) g.connect(wet);
-    o.start(t); o.stop(t + dur + 0.12);
+    o.start(t); o.stop(t + dur + 0.15);
   }
   let _noise = null;
   function noiseBuf() { if (_noise) return _noise; const b = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return (_noise = b); }
@@ -364,17 +411,18 @@ const Music = (() => {
     if (!playing) return;
     const M = track, beat = M.beat / 1000, t0 = ctx.currentTime + 0.06, b = bar % M.bars;
     const chord = M.chords[b];
-    chord.forEach((s, i) => voice(semis(M.root, s), t0, beat * 3.6, 0.05, M.lead === 'sine' ? 'sine' : 'triangle', M.filt - 300, i === 0 ? -4 : 5));
-    voice(semis(M.root / 2, M.bass[b]), t0, beat * 2.2, 0.11, 'triangle', 380);
-    voice(semis(M.root / 2, M.bass[b] + 7), t0 + beat * 2, beat * 1.6, 0.07, 'triangle', 360);
+    // soft dark pad bed + gentle bass
+    chord.forEach((s, i) => pad(semis(M.root, s), t0, beat * 3.7, 0.036, 760, i === 0 ? -5 : 6));
+    pad(semis(M.root / 2, M.bass[b]), t0, beat * 2.0, 0.10, 340, 0);
+    pad(semis(M.root / 2, M.bass[b] + 7), t0 + beat * 2, beat * 1.6, 0.055, 320, 0);
+    // plucked mallet melody on top — clear, hummable, percussive
     const barStart = b * 4, barEnd = barStart + 4;
     for (const nt of M.mel) {
       const s = nt[0], st = nt[1], d = nt[2];
       if (st >= barStart && st < barEnd) {
         const sw = (Math.floor(st * 2) % 2 === 1) ? (M.swing || 0) * beat : 0;
-        const tt = t0 + (st - barStart) * beat + sw, dd = d * beat, f = semis(M.root * 2, s);
-        voice(f, tt, dd * 0.95, 0.075, M.lead, M.filt + 500, -3);
-        voice(f, tt, dd * 0.95, 0.032, 'sine', M.filt + 300, 8);
+        const tt = t0 + (st - barStart) * beat + sw, dd = d * beat;
+        pluck(semis(M.root * 2, s), tt, dd, 0.15, M.voice, M.filt);
       }
     }
     if (M.drums) { kick(t0); kick(t0 + beat * 2); shaker(t0 + beat, 0.03); shaker(t0 + beat * 3, 0.035); }
@@ -391,7 +439,7 @@ const Music = (() => {
       if (ctx.state === 'suspended') ctx.resume();
       if (!dry) {
         dry = ctx.createGain(); dry.gain.value = 0; dry.connect(ctx.destination);
-        try { verb = makeVerb(); wet = ctx.createGain(); wet.gain.value = 0.55; wet.connect(verb); verb.connect(dry); } catch (e) { wet = null; }
+        try { verb = makeVerb(); wet = ctx.createGain(); wet.gain.value = 0.5; wet.connect(verb); verb.connect(dry); } catch (e) { wet = null; }
       }
       dry.gain.cancelScheduledValues(ctx.currentTime);
       dry.gain.setValueAtTime(dry.gain.value, ctx.currentTime);

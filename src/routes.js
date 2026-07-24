@@ -226,8 +226,19 @@ router.post('/auth/kid-login', pinLimiter, (req, res) => {
   const { email, kidId, pin } = req.body || {};
   const parent = db.prepare('SELECT * FROM parents WHERE email=?').get((email || '').toLowerCase().trim());
   const kid = parent ? db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(kidId), parent.id) : null;
+  // Per-child brute-force lock: a 4-digit PIN is small, so after too many wrong tries we
+  // freeze THIS child's PIN login for a while (survives IP rotation — the lock lives in the
+  // DB keyed by the child, not the IP). The parent can still launch them from their own
+  // logged-in session, and can reset the PIN, so this never hard-locks a real family out.
+  if (kid && db.pinLockRemaining(kid.id) > 0) {
+    return res.status(429).json({ error: 'Too many tries for this learner. Please wait about 15 minutes, or ask a grown-up to open it from their account.' });
+  }
   // Uniform error (do not reveal whether the family/child exists vs. the PIN was wrong).
-  if (!kid || !auth.verifyPin(pin, kid.pin)) return res.status(401).json({ error: 'That email, learner, and PIN did not match. Try again!' });
+  if (!kid || !auth.verifyPin(pin, kid.pin)) {
+    if (kid) db.notePinFail(kid.id);   // count wrong PINs against this child's lockout
+    return res.status(401).json({ error: 'That email, learner, and PIN did not match. Try again!' });
+  }
+  db.clearPinFails(kid.id);            // good login wipes the failed-attempt counter
   // Transparently upgrade a legacy plaintext PIN to a salted hash on successful login.
   if (auth.isLegacyPin(kid.pin)) { try { db.prepare('UPDATE kids SET pin=? WHERE id=?').run(auth.hashPin(String(pin)), kid.id); } catch (e) {} }
   const token = auth.createSession('kid', kid.id);
@@ -846,7 +857,10 @@ const inboundLimiter = rateLimit({ windowMs: 60000, max: 60, key: 'inbound' });
 router.post('/support/inbound', inboundLimiter, async (req, res) => {
   const token = process.env.SUPPORT_INBOUND_TOKEN || '';
   const given = req.get('X-Gallop-Token') || (req.body && req.body.token) || '';
-  if (!token || given !== token) return res.status(401).json({ error: 'unauthorized' });
+  // Constant-time comparison so the shared secret can't be recovered via response timing.
+  const okToken = token && given.length === token.length &&
+    crypto.timingSafeEqual(Buffer.from(given), Buffer.from(token));
+  if (!okToken) return res.status(401).json({ error: 'unauthorized' });
   try {
     const b = req.body || {};
     let fromEmail = b.email, fromName = b.name;

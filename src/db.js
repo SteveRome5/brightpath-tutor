@@ -264,6 +264,13 @@ CREATE TABLE IF NOT EXISTS newsletters (
   created_at TEXT DEFAULT (datetime('now')),
   sent_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS pin_lockouts (
+  kid_id INTEGER PRIMARY KEY REFERENCES kids(id) ON DELETE CASCADE,
+  fails INTEGER DEFAULT 0,         -- consecutive wrong PINs in the current window
+  first_fail INTEGER,             -- epoch ms of the first fail in this window
+  locked_until INTEGER DEFAULT 0  -- epoch ms; if > now, PIN login is locked for this child
+);
 `);
 
 // Column migrations for existing databases (safe to re-run)
@@ -337,5 +344,44 @@ db.recordConsent = function ({ parentId = null, parentEmail = null, kidId = null
 db.consentFor = function (parentId) {
   try { return db.prepare('SELECT method, policy_version, kid_id, detail, created_at FROM consent_records WHERE parent_id=? ORDER BY id DESC').all(parentId); }
   catch (e) { return []; }
+};
+
+// ---------- per-child PIN brute-force lockout ----------
+// A 4-digit PIN has only 10,000 combinations, so per-IP rate limiting alone can be defeated
+// by rotating IPs. This adds a lock tied to the *child's account* (survives IP rotation and
+// process restarts because it lives in the DB): after PIN_MAX_FAILS wrong tries inside a
+// rolling window, that child's PIN login is frozen for PIN_LOCK_MS. A successful login (or a
+// parent launching the child from their own authenticated session) clears it. The parent can
+// always reset the PIN, so a griefer can only ever cause a short delay.
+const PIN_MAX_FAILS = 8;              // wrong tries allowed per window before the lock trips
+const PIN_WINDOW_MS = 15 * 60000;     // rolling window over which fails accumulate (15 min)
+const PIN_LOCK_MS = 15 * 60000;       // how long the child's PIN login stays frozen (15 min)
+db.pinLockRemaining = function (kidId) {
+  try {
+    const r = db.prepare('SELECT locked_until FROM pin_lockouts WHERE kid_id=?').get(kidId);
+    if (r && r.locked_until && r.locked_until > Date.now()) return r.locked_until - Date.now();
+  } catch (e) {}
+  return 0;
+};
+db.notePinFail = function (kidId) {
+  // Record a wrong PIN. Returns ms of lockout if this attempt just tripped the lock, else 0.
+  try {
+    const now = Date.now();
+    const r = db.prepare('SELECT fails, first_fail FROM pin_lockouts WHERE kid_id=?').get(kidId);
+    if (!r) {
+      db.prepare('INSERT INTO pin_lockouts (kid_id, fails, first_fail, locked_until) VALUES (?,1,?,0)').run(kidId, now);
+      return 0;
+    }
+    let fails = r.fails || 0, firstFail = r.first_fail || now;
+    if (now - firstFail > PIN_WINDOW_MS) { fails = 0; firstFail = now; }  // window expired: start fresh
+    fails += 1;
+    let lockedUntil = 0;
+    if (fails >= PIN_MAX_FAILS) { lockedUntil = now + PIN_LOCK_MS; fails = 0; firstFail = now; }  // trip + reset counter
+    db.prepare('UPDATE pin_lockouts SET fails=?, first_fail=?, locked_until=? WHERE kid_id=?').run(fails, firstFail, lockedUntil, kidId);
+    return lockedUntil ? PIN_LOCK_MS : 0;
+  } catch (e) { return 0; }
+};
+db.clearPinFails = function (kidId) {
+  try { db.prepare('DELETE FROM pin_lockouts WHERE kid_id=?').run(kidId); } catch (e) {}
 };
 module.exports = db;
