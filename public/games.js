@@ -953,6 +953,7 @@
   // ---- the career hub / level select (free to browse; a level costs 1 token to play) ----
   async function startMarketHub() {
     const progress = await mmLoadProgress();
+    MM_LOOK = Object.assign({}, MM_LOOK_DEFAULT, progress.hero || {});
     const total = MM_LEVELS.length;
     const clearedCount = Object.keys(progress.cleared).length;
     const starTotal = Object.values(progress.cleared).reduce((a, b) => a + b, 0);
@@ -987,7 +988,8 @@
         }).join('')}
       </div>
       <div class="center" style="margin-top:14px">
-        <button class="btn" id="mm-notebook">📓 Investor's Notebook</button>
+        <button class="btn" id="mm-customize">🎨 Customize your trader</button>
+        <button class="btn" id="mm-notebook" style="margin-left:8px">📓 Investor's Notebook</button>
       </div>
       <p class="game-hint" style="font-size:.85rem;margin-top:10px">Each level costs 1 🎟️ to play. Hit the profit target to clear it and unlock the next. Your progress saves automatically.</p>
     </div>`);
@@ -1000,6 +1002,50 @@
       mmPlayLevel(n, progress);
     });
     $('#mm-notebook').onclick = () => mmNotebook(progress);
+    $('#mm-customize').onclick = () => mmCustomize(progress);
+  }
+
+  // Inclusive character creator: pick skin tone, hairstyle & hair color, with a live preview.
+  function mmCustomize(progress) {
+    const look = Object.assign({}, MM_LOOK_DEFAULT, progress.hero || {});
+    function draw() {
+      const cv = $('#mm-cz-preview'); if (!cv) return;
+      const ctx = pixelCtx(cv); ctx.clearRect(0, 0, cv.width, cv.height);
+      mmHero(ctx, cv.width / 2, cv.height - 6, 4, 'cheer', 0, look);
+    }
+    function render() {
+      app().innerHTML = topbar(`<div class="container" style="max-width:560px">
+        <div class="lesson-top"><b>🎨 Your Trader</b><button class="btn ghost small" id="cz-back">← Back</button></div>
+        <div class="card center" style="padding:18px">
+          <div class="mm-cz-stage"><canvas id="mm-cz-preview" width="80" height="76"></canvas></div>
+          <p class="muted" style="margin:6px 0 14px">Make your trader look like you!</p>
+          <div class="mm-cz-row"><span class="mm-cz-label">Skin</span>
+            ${MM_SKINS.map((sk, i) => `<button class="mm-cz-swatch ${look.skin === i ? 'on' : ''}" data-skin="${i}" style="background:${sk.m}"></button>`).join('')}
+          </div>
+          <div class="mm-cz-row"><span class="mm-cz-label">Hair</span>
+            ${MM_HAIRSTYLES.map(([id, lbl]) => `<button class="mm-cz-btn ${look.hair === id ? 'on' : ''}" data-hair="${id}">${lbl}</button>`).join('')}
+          </div>
+          <div class="mm-cz-row"><span class="mm-cz-label">Color</span>
+            ${Object.entries(MM_HAIRCOLORS).map(([id, c]) => `<button class="mm-cz-swatch ${look.hairColor === id ? 'on' : ''}" data-hc="${id}" style="background:${c}"></button>`).join('')}
+          </div>
+          <button class="btn green" id="cz-save" style="margin-top:16px">Save my trader ✨</button>
+        </div>
+      </div>`);
+      wireChrome();
+      draw();
+      document.querySelectorAll('[data-skin]').forEach(b => b.onclick = () => { look.skin = Number(b.dataset.skin); Sound.click(); render(); });
+      document.querySelectorAll('[data-hair]').forEach(b => b.onclick = () => { look.hair = b.dataset.hair; Sound.click(); render(); });
+      document.querySelectorAll('[data-hc]').forEach(b => b.onclick = () => { look.hairColor = b.dataset.hc; Sound.click(); render(); });
+      $('#cz-back').onclick = () => startMarketHub();
+      $('#cz-save').onclick = () => {
+        progress.hero = { skin: look.skin, hair: look.hair, hairColor: look.hairColor };
+        MM_LOOK = Object.assign({}, progress.hero);
+        mmSaveProgress(progress);
+        Sound.badge(); Confetti.burst(80);
+        startMarketHub();
+      };
+    }
+    render();
   }
 
   function mmNotebook(progress) {
@@ -1283,9 +1329,24 @@
   };
   const rnd = i => { const x = Math.sin(i * 127.1 + 3.7) * 43758.5453; return x - Math.floor(x); };
 
-  // --- the mascot: a chunky pixel trader in a navy suit & gold tie ---
-  function mmHero(ctx, cx, feetY, s, pose, f) {
-    const P = { suit: '#2a3550', suit2: '#3a4a70', shirt: '#f6f7fb', tie: '#f4c020', skin: '#fcac6c', hair: '#4a2e12', shoe: '#141824', ink: '#141824' };
+  // --- inclusive character creator for the mascot ("Buck" is just the default look) ---
+  // Kids pick a skin tone, a hairstyle, and a hair color so the trader can look like them.
+  const MM_SKINS = [
+    { m: '#ffd9b3', s: '#e8b088' }, { m: '#fcac6c', s: '#e0894c' }, { m: '#e0995c', s: '#c07a3c' },
+    { m: '#b06a3c', s: '#8a4e28' }, { m: '#8a5028', s: '#6a3a18' }, { m: '#5e3620', s: '#442414' }
+  ];
+  const MM_HAIRCOLORS = { brown: '#4a2e12', black: '#171a1f', blonde: '#d6a84a', auburn: '#8a3b1a', gray: '#b8bcc4' };
+  const MM_HAIRSTYLES = [['short', 'Short'], ['long', 'Long'], ['ponytail', 'Ponytail'], ['afro', 'Afro'], ['buzz', 'Buzz']];
+  const MM_LOOK_DEFAULT = { skin: 1, hair: 'short', hairColor: 'brown' };
+  let MM_LOOK = Object.assign({}, MM_LOOK_DEFAULT);
+
+  // --- the mascot: a chunky pixel trader in a navy suit & gold tie, drawn from a look ---
+  function mmHero(ctx, cx, feetY, s, pose, f, look) {
+    const L = look || MM_LOOK;
+    const SK = MM_SKINS[L.skin] || MM_SKINS[1];
+    const HC = MM_HAIRCOLORS[L.hairColor] || MM_HAIRCOLORS.brown;
+    const style = L.hair || 'short';
+    const P = { suit: '#2a3550', suit2: '#3a4a70', shirt: '#f6f7fb', tie: '#f4c020', skin: SK.m, skin2: SK.s, hair: HC, shoe: '#141824', ink: '#141824' };
     const R = (x, y, w, h, c) => PX.r(ctx, cx + x * s, feetY + y * s, w * s, h * s, c);
     const step = pose === 'walk' ? Math.floor(f / 8) % 2 : 0;
     const bob = pose === 'idle' ? (Math.floor(f / 22) % 2) : 0;
@@ -1294,6 +1355,9 @@
     R(-3, -5 + yo, 2, 5, P.suit); R(1, -5 + yo, 2, 5, P.suit);
     if (step) { R(-4, -1 + yo, 3, 1, P.shoe); R(1, -1 + yo, 3, 1, P.shoe); }
     else { R(-3, -1 + yo, 3, 1, P.shoe); R(0, -1 + yo, 3, 1, P.shoe); }
+    // long hair / ponytail fall BEHIND the shoulders (drawn before the torso)
+    if (style === 'long') { R(-5, -19 + yo, 1, 12, P.hair); R(4, -19 + yo, 1, 12, P.hair); R(-5, -8 + yo, 2, 2, P.hair); R(3, -8 + yo, 2, 2, P.hair); }
+    else if (style === 'ponytail') { R(4, -19 + yo, 2, 3, P.hair); R(5, -17 + yo, 2, 7, P.hair); }
     // torso
     R(-4, -12 + yo, 8, 7, P.suit); R(-4, -12 + yo, 8, 1, P.suit2);
     R(-1, -12 + yo, 2, 5, P.shirt); R(0, -11 + yo, 1, 5, P.tie);
@@ -1302,7 +1366,13 @@
     else { R(-6, -12 + yo, 2, 6, P.suit); R(4, -12 + yo, 2, 6, P.suit); R(-6, -7 + yo, 2, 2, P.skin); R(4, -7 + yo, 2, 2, P.skin); }
     // head
     R(-3, -19 + yo, 6, 7, P.skin);
-    R(-3, -20 + yo, 6, 2, P.hair); R(-4, -19 + yo, 1, 3, P.hair); R(3, -19 + yo, 1, 3, P.hair);
+    // front hair by style
+    if (style === 'afro') { R(-4, -23 + yo, 8, 6, P.hair); R(-5, -21 + yo, 1, 5, P.hair); R(4, -21 + yo, 1, 5, P.hair); }
+    else if (style === 'buzz') { R(-3, -20 + yo, 6, 1, P.hair); R(-3, -20 + yo, 1, 2, P.hair); R(2, -20 + yo, 1, 2, P.hair); }
+    else if (style === 'long') { R(-3, -20 + yo, 6, 2, P.hair); R(-4, -20 + yo, 1, 6, P.hair); R(3, -20 + yo, 1, 6, P.hair); }
+    else if (style === 'ponytail') { R(-3, -20 + yo, 6, 2, P.hair); R(-4, -19 + yo, 1, 3, P.hair); R(3, -19 + yo, 1, 2, P.hair); }
+    else { R(-3, -20 + yo, 6, 2, P.hair); R(-4, -19 + yo, 1, 3, P.hair); R(3, -19 + yo, 1, 3, P.hair); }
+    // eyes + smile
     R(-2, -16 + yo, 1, 1, P.ink); R(1, -16 + yo, 1, 1, P.ink);
     if (pose === 'cheer' || pose === 'hold') R(-1, -14 + yo, 2, 1, P.ink);
   }

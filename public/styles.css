@@ -1754,3 +1754,13 @@ body[data-theme="academy"] .mm-cut-title { color: var(--accent); }
 .mm-concept-head { display: flex; align-items: flex-end; justify-content: center; gap: 8px; }
 .mm-concept-hero { width: 52px; height: 46px; }
 .mm-res-hero { width: 66px; height: 57px; margin-bottom: 4px; animation: bounceIn .6s ease; }
+
+/* ===================== Market Mogul — trader customizer ===================== */
+.mm-cz-stage { background: #101828; border: 3px solid #181828; border-radius: 10px; display: inline-block; padding: 6px; }
+.mm-cz-stage canvas { display: block; width: 120px; height: 114px; image-rendering: pixelated; image-rendering: crisp-edges; }
+.mm-cz-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0; justify-content: center; }
+.mm-cz-label { font-weight: 800; font-size: .82rem; color: var(--chrome-sub); width: 46px; text-align: right; }
+.mm-cz-swatch { width: 30px; height: 30px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; padding: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); }
+.mm-cz-swatch.on { border-color: var(--brand); transform: scale(1.08); }
+.mm-cz-btn { font: inherit; font-weight: 700; font-size: .82rem; border: 1.5px solid var(--card-border); background: var(--soft-bg); color: var(--chrome-sub); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.mm-cz-btn.on { background: var(--brand); border-color: var(--brand); color: #fff; }
