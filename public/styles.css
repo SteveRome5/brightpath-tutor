@@ -1588,7 +1588,12 @@ body[data-theme="academy"] .lw-passage { background: #2a2921; border-color: #4a4
   .topbar .right { gap: 8px 6px; width: 100%; }
   .topbar .btn.small { min-height: 40px; padding: 8px 12px; }
   .logo { font-size: 1.15rem; }
-  .sound-wrap { border-left: 0; padding-left: 0; margin-left: auto; }
+  /* On phones the right-hand controls wrap to their own full-width row; keep them
+     grouped and right-aligned. margin-left:auto here stranded the sound button to
+     the far edge and flung "Log out" to the opposite side (ugly two-row gap). */
+  .sound-wrap { border-left: 0; padding-left: 0; margin-left: 0; }
+  .topbar .right { gap: 6px; }
+  .topbar .btn.small { padding: 8px 10px; font-size: .9rem; }
   .sound-menu { right: 0; width: min(232px, 78vw); }
 }
 
