@@ -1333,7 +1333,11 @@ a:focus-visible, button:focus-visible, .zone-card:focus-visible, input:focus-vis
 .nl-form { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .nl-form input { max-width: 300px; flex: 1 1 220px; }
 @media (max-width: 480px) { .nl-form .btn { width: 100%; } }
+.founder-note .founder-body { flex: 1; }
 .founder-note p { margin: 0; font-size: 1.02rem; line-height: 1.6; color: var(--ink); }
+.founder-note .founder-body p + p { margin-top: 12px; }
+.founder-sign { font-style: italic; color: var(--muted); margin-top: 14px !important; }
+.founder-sign span { font-style: normal; font-size: .9rem; }
 @media (max-width: 560px) { .founder-note { flex-direction: column; text-align: center; gap: 8px; padding: 20px; } }
 .compare-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .compare-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .92rem; }
