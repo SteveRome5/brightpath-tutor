@@ -98,159 +98,6 @@ const ENCOURAGE = ['Almost! Every mistake grows your brain 🧠', 'Good try. Let
 const PRAISE_TEEN = ['Correct.', 'Nice, exactly right.', 'Clean solve.', 'That’s it.', 'Solid work.', 'Right on the first read.'];
 const ENCOURAGE_TEEN = ['Not quite. Here’s the reasoning:', 'Close. The key detail:', 'Let’s walk through it:', 'Off by a step. Here’s where:'];
 
-// "When will I ever use this?", answered on every single question.
-const WHY = {
-  math: {
-    young: [
-      'Kids who run lemonade stands use this math to count their money! 🍋',
-      'Bakers measure and count like this every morning. 🧁',
-      'This is how you make sure you get the right change at the store! 🪙',
-      'Builders count and measure like this to make houses stand up straight. 🏗️',
-      'Game designers use numbers like these to make your favorite games work! 🎮'
-    ],
-    teen: [
-      'Founders live in this math, margins, growth rates, break-even points.',
-      'Investors use exactly this to compare companies and spot value.',
-      'Engineers at SpaceX and Apple run these operations thousands of times a day.',
-      'This is the math behind every budget, paycheck, and smart purchase you\'ll ever make.',
-      'Data scientists, one of the best-paid careers, are built on this foundation.'
-    ]
-  },
-  english: {
-    young: [
-      'Great readers become great leaders, words are how ideas travel! 📚',
-      'Every movie, game, and book you love started with someone writing well. ✍️',
-      'Knowing lots of words helps you say exactly what you mean!',
-      'Reading fast and well makes EVERY other subject easier. 🚀'
-    ],
-    teen: [
-      'CEOs say clear writing is the #1 skill they hire for.',
-      'Persuasion, in essays, interviews, negotiations, is a superpower built here.',
-      'Contracts, colleges, and careers all filter for people who read carefully.',
-      'The best thinkers write well because writing IS thinking made visible.'
-    ]
-  },
-  science: {
-    young: [
-      'Scientists ask "why?" just like you, that\'s how everything gets invented! 🔬',
-      'Doctors use this science to help people feel better every day. 🩺',
-      'Knowing how the world works makes you the smartest explorer around! 🌍',
-      'Chefs use science, heat, mixing, freezing, every time they cook! 👩‍🍳'
-    ],
-    teen: [
-      'Every medical breakthrough, clean-energy company, and rocket starts here.',
-      'Scientific thinking, hypothesis, test, revise, is how you avoid being fooled.',
-      'Biotech and climate tech are hiring the generation that masters this now.',
-      'Understanding evidence beats believing headlines. That\'s a life skill.'
-    ]
-  },
-  spanish: {
-    young: [
-      '¡Hola! Over 500 million people speak Spanish, that\'s a lot of new friends! 🌎',
-      'Speaking two languages literally makes your brain stronger!',
-      'You could order tacos in Mexico City all by yourself! 🌮'
-    ],
-    teen: [
-      'Bilingual professionals out-earn monolingual peers in nearly every field.',
-      'The U.S. has 42+ million Spanish speakers, bilingual = twice the market.',
-      'Learning a language rewires your brain for better focus and memory. Proven.'
-    ]
-  }
-};
-// Topic-matched real-world lines, the shape question gets a BUILDER line, not a money line!
-const WHY_TOPICS = {
-  math: [
-    { match: /shape|geometr|area|perimeter|angle|symmetr|volume/i,
-      young: ['Builders use shapes to make houses and bridges strong! 🏗️', 'Artists and video game designers build whole worlds out of shapes! 🎮'],
-      teen: ['Architects, engineers, and game developers work in geometry every day.', '3D printing, CAD design, graphics engines, it\'s all geometry.'] },
-    { match: /money|coin|cent|dollar|change|percent|interest|discount|budget/i,
-      young: ['This is how you make sure you get the right change at the store! 🪙', 'Kids who run lemonade stands use this to count their profit! 🍋'],
-      teen: ['This is the math behind every budget, paycheck, and smart purchase.', 'Investors and founders live in percentages, margins, growth, interest.'] },
-    { match: /clock|time|calendar|schedule/i,
-      young: ['Reading clocks means you always know when the fun starts! ⏰', 'Pilots and train drivers read time like this to keep everyone safe!'],
-      teen: ['Schedules, time zones, deadlines, adults run their lives on this.'] },
-    { match: /fraction|ratio|divid|division/i,
-      young: ['Chefs split recipes with fractions every single day! 👩‍🍳', 'Sharing pizza fairly with friends IS fractions! 🍕'],
-      teen: ['Ratios drive recipes, medicine doses, and financial models.'] },
-    { match: /graph|data|chart|probab|statist|mean|median/i,
-      young: ['Sports announcers use stats like these during every game! 🏀', 'Weather forecasters use data to predict rain or shine! ⛅'],
-      teen: ['Data science, one of the best-paid careers, is built on this.', 'Reading data correctly means nobody can fool you with a chart.'] },
-    { match: /measur|length|weight|unit/i,
-      young: ['Carpenters measure twice and cut once, just like this! 📏', 'Bakers measure ingredients so cookies come out perfect! 🍪'],
-      teen: ['Engineering, medicine, construction, measurement is the foundation.'] }
-  ],
-  english: [
-    { match: /read|comprehen|story|detail|main idea|inference/i,
-      young: ['Great readers become great leaders, words are how ideas travel! 📚', 'Reading well makes EVERY other subject easier. 🚀'],
-      teen: ['Careful reading is how you win at contracts, colleges, and careers.'] },
-    { match: /vocab|word|synonym|antonym|prefix|suffix/i,
-      young: ['Knowing lots of words helps you say exactly what you mean!', 'Word detectives can figure out ANY new word they meet! 🔍'],
-      teen: ['A precise vocabulary is a negotiation and interview superpower.'] },
-    { match: /grammar|sentence|punctuat|noun|verb|contraction/i,
-      young: ['Clear sentences make sure everyone understands your great ideas! ✍️'],
-      teen: ['CEOs say clear writing is the #1 skill they hire for.'] },
-    { match: /writ|essay|persua|figurative|poet/i,
-      young: ['Every movie, game, and book you love started with someone writing well!'],
-      teen: ['Persuasion, essays, pitches, interviews, is a superpower built here.', 'The best thinkers write well, because writing IS thinking made visible.'] }
-  ],
-  science: [
-    { match: /animal|plant|habitat|body|sense|living/i,
-      young: ['Doctors and vets use this science to help people and pets! 🩺', 'Knowing how living things work makes you a nature explorer! 🌍'],
-      teen: ['Medicine, biotech, and conservation careers all start right here.'] },
-    { match: /matter|solid|liquid|gas|chemi|mix/i,
-      young: ['Chefs use this science, heat, mixing, freezing, every time they cook! 👩‍🍳'],
-      teen: ['Chemistry powers everything from clean water to phone batteries.'] },
-    { match: /weather|space|earth|planet|rock|water cycle/i,
-      young: ['Weather scientists use this to tell you when to grab an umbrella! ☔', 'Astronauts study this to explore space! 🚀'],
-      teen: ['Climate science and space exploration are hiring this generation.'] },
-    { match: /force|motion|energy|electric|magnet|physic/i,
-      young: ['Roller coaster designers use this science to make rides thrilling AND safe! 🎢'],
-      teen: ['Every rocket, EV, and power grid runs on these principles.'] },
-    { match: /cell|dna|genetic|biolog|microb/i,
-      young: ['Doctors and vets peek at cells to keep bodies healthy! 🔬', 'Everything alive is built from cells, even YOU! 🧬'],
-      teen: ['CRISPR, vaccines, cancer research, the biotech boom starts with cells.', 'Understanding DNA is the doorway to medicine and genetic engineering.'] },
-    { match: /ecosystem|environment|climate|conserv/i,
-      young: ['Park rangers use this to protect animals and forests! 🌲', 'Every plant and animal has a job in nature\'s team! 🐝'],
-      teen: ['Environmental science and green energy are defining careers of your generation.', 'Reading ecosystems is how we solve the climate challenge.'] }
-  ],
-  spanish: []
-};
-// Extra life-skills topic buckets, appended so each subject keeps its original
-// matches while gaining more specific, career-relevant real-world connections.
-WHY_TOPICS.english.push(
-  { match: /argument|evidence|persua|rhetoric|inference|claim|bias|author/i,
-    young: ['Spotting a good reason from a bad one keeps you smart and safe! 🕵️'],
-    teen: ['Recognizing weak evidence and spin means ads and headlines can\'t fool you.', 'Lawyers, journalists, and leaders win by reasoning from real evidence.'] }
-);
-WHY_TOPICS.math.push(
-  { match: /algebra|equation|variable|expression|slope|linear|function/i,
-    young: ['Solving for the missing number is like being a math detective! 🔍'],
-    teen: ['Algebra is the language of coding, engineering, and problem-solving itself.', 'Every app, spreadsheet, and simulation is algebra under the hood.'] },
-  { match: /probab|odds|chance|statist/i,
-    young: ['Knowing the chances helps you make smart choices in games! 🎲'],
-    teen: ['Probability is how doctors weigh risks and investors weigh bets, a core adult skill.'] },
-  // Skill-specific matches for concepts the generic bank used to mislabel (tester finding #3):
-  { match: /negative|integer|opposite|below zero|signed number/i,
-    young: ['Temperatures below zero and steps below ground use negative numbers! 🌡️'],
-    teen: ['Negative numbers track things like temperature below zero, elevation below sea level, and money owed.'] },
-  { match: /logarithm|\blog\b|exponent|exponential|power/i,
-    young: ['Exponents show how things grow really, really fast! 📈'],
-    teen: ['Logarithmic scales appear in earthquake magnitudes (Richter), sound (decibels), and pH.'] },
-  { match: /decimal|round|place value|estimat/i,
-    young: ['Money uses decimals — dollars and cents! 💵'],
-    teen: ['Decimals and rounding show up in prices, measurements, and lab data.'] }
-);
-WHY_TOPICS.spanish.push(
-  { match: /greeting|hola|phrase|conversa/i,
-    young: ['You could say hi and make a new friend anywhere in the world! 🌎', 'Travelers use these words to feel at home in new places! ✈️'],
-    teen: ['A warm greeting in someone\'s language opens doors business and diplomacy can\'t.'] },
-  { match: /family|animal|food|color|number|body/i,
-    young: ['You could order tacos or name your pet in Spanish! 🌮', 'Every new word is a new door to another culture! 🚪'],
-    teen: ['Everyday vocabulary is the foundation of real fluency, and fluency pays.'] },
-  { match: /verb|ser|estar|tense|preterite|subjunctive|grammar/i,
-    young: ['Verbs let you tell stories about what everyone is doing! 🎭'],
-    teen: ['Mastering verbs is the leap from "tourist Spanish" to true bilingual fluency, a career multiplier.'] }
-);
 // XP ranks, every learner climbs the stable, Foal to Thoroughbred 🏇
 const RANKS = [['Foal', 0], ['Pony Pal', 100], ['Trotter', 250], ['Canterer', 500], ['Galloper', 1000], ['Trailblazer', 2000], ['Champion', 4000], ['Legend', 8000], ['Thoroughbred', 15000]];
 function rankFor(xp) {
@@ -259,16 +106,155 @@ function rankFor(xp) {
   return { name: cur[0], at: cur[1], next: next ? { name: next[0], at: next[1] } : null };
 }
 
-function whyLine(subject, skillName) {
-  // Only show a "real world" connection when it's genuinely tied to THIS skill. A generic
-  // per-subject line ("bakers measure every morning" on a negative-temperature question)
-  // reads as filler and undercuts trust — better to say nothing than something unrelated.
-  const topics = WHY_TOPICS[subject] || [];
-  const hit = skillName ? topics.find(t => t.match.test(skillName)) : null;
-  if (hit) { const list = playful() ? hit.young : (hit.teen.length ? hit.teen : hit.young); return list[Math.floor(Math.random() * list.length)]; }
-  return ''; // no skill-specific match → omit rather than show an unrelated connection
+// "Why am I learning this?" — answered on questions, tied to the SPECIFIC concept, and
+// varied on purpose. Each concept bucket carries many lines across different angles
+// (everyday use, critical thinking / not being fooled, a surprising fact, a real career)
+// so the connection feels deliberate and fresh, never a cookie-cutter "a job values this".
+// `default` is a broad-but-genuine fallback used only when no concept bucket matches, so a
+// learner always gets a real reason — and it rotates too. Young = playful & concrete; teen = mature.
+const WHY_TOPICS = {
+  math: {
+    default: {
+      young: ['Every time you share, count, or measure, that\'s math working for you! ✨', 'Math is the secret behind games, sports, cooking, and money! 🎮', 'Being quick with numbers means nobody can trick you!'],
+      teen: ['Almost every "is this a good deal?" moment is secretly math you can do in your head.', 'Being fluent with numbers means no salesperson, ad, or fine print can fool you.', 'Math is less about answers and more about spotting the pattern nobody else sees.']
+    },
+    buckets: [
+      { match: /shape|geometr|area|perimeter|angle|symmetr|volume|coordinate|polygon/i,
+        young: ['Builders use shapes to make houses and bridges stand up strong! 🏗️', 'Artists and game designers build whole worlds out of shapes! 🎮', 'Folding paper into cool stuff (origami) is geometry! 🦢'],
+        teen: ['Every building you\'ve stood in stayed up because someone got the geometry right.', 'Video-game worlds, 3D printers, and animation are geometry rendered in real time.', 'Pool players, pilots, and surgeons all think in angles.', 'Area and volume decide how much paint, concrete, or pizza you actually need to buy.', 'Architecture, CAD, and product design are literally geometry as a career.'] },
+      { match: /money|coin|cent|dollar|change|budget|profit/i,
+        young: ['This is how you make sure you get the right change at the store! 🪙', 'Kids who run lemonade stands use this to count their profit! 🍋', 'Saving a little each week adds up to something big! 🐷'],
+        teen: ['A budget is just subtraction with your name on it — and it\'s the difference between stress and freedom.', 'Compound interest is why saving at 18 instead of 28 can mean six figures more later — the math of getting wealthy slowly.', 'Credit-card companies bet on people NOT doing this math. Do it, and you keep your money.', 'Every founder, investor, and shopper lives in these numbers whether they notice or not.'] },
+      { match: /percent|interest|discount|tax|ratio|proportion/i,
+        young: ['Sales signs use percents, they show how much money you save! 🏷️', 'Sharing things fairly uses ratios, like 2 cookies each! 🍪'],
+        teen: ['"40% off, then 25% more off" is NOT 65% off — knowing why keeps you from being tricked.', 'Percent is the language of tips, taxes, interest, and every statistic you\'ll ever read.', 'Ratios are how you compare fairly: miles per gallon, price per ounce, wins per game.', 'Mixing fuel, medicine doses, and recipes are all ratios where getting it wrong has real consequences.'] },
+      { match: /clock|time|calendar|schedule|elapsed/i,
+        young: ['Reading clocks means you always know when the fun starts! ⏰', 'Pilots and train drivers read time like this to keep everyone safe! 🚂'],
+        teen: ['Time zones, deadlines, and schedules run every adult\'s life; time-math is daily survival.', 'A NASA mission is planned to the second — but so is catching a connecting flight.'] },
+      { match: /fraction|divid|division|equal parts|share/i,
+        young: ['Sharing pizza fairly with friends IS fractions! 🍕', 'Chefs split recipes with fractions every single day! 👩‍🍳'],
+        teen: ['Doubling or halving a recipe is fractions — mess it up and dinner is ruined.', 'Fractions are how you split a bill, a paycheck, or a business fairly.', 'Musicians read rhythm as fractions: whole notes, halves, quarters, eighths. 🎵'] },
+      { match: /graph|data|chart|probab|statist|mean|median|average|odds/i,
+        young: ['Sports announcers use stats like these during every game! 🏀', 'Weather forecasters use data to guess rain or shine! ⛅'],
+        teen: ['Reading a chart correctly means no headline, poll, or ad can fool you with a misleading graph.', 'Averages hide as much as they reveal — knowing mean vs median is a built-in lie detector.', 'Probability is how doctors weigh risks, insurers set prices, and smart people bet.', 'Data science is one of the best-paid careers on earth, and it\'s built on exactly this.'] },
+      { match: /measur|length|weight|unit|metric|liquid volume/i,
+        young: ['Carpenters measure twice and cut once, just like this! 📏', 'Bakers measure ingredients so cookies come out perfect! 🍪'],
+        teen: ['A $125-million NASA orbiter was lost because two teams mixed up metric and imperial units.', 'Cooking, construction, and chemistry all fail fast if the measurements are off.', 'Every recipe, prescription, and blueprint is measurement you can\'t fake.'] },
+      { match: /algebra|equation|variable|expression|slope|linear|function|solve for/i,
+        young: ['Solving for the missing number is like being a math detective! 🔍', 'A letter that stands for a mystery number is a puzzle to crack! 🧩'],
+        teen: ['Algebra is just "solve for the unknown" — the exact move behind every spreadsheet, app, and engineering plan.', 'A variable is a box holding a number you don\'t know yet; all of coding is moving those boxes.', 'Every "how much do I need to…" question in adult life is secretly an equation.', 'Functions are cause-and-effect in math form: put something in, get something predictable out.'] },
+      { match: /negative|integer|opposite|below zero|signed number|absolute value/i,
+        young: ['Temperatures below zero and steps below ground use negative numbers! 🌡️', 'Losing points in a game can take your score below zero!'],
+        teen: ['Negative numbers track debt, temperature below zero, elevation below sea level, and a losing streak.', 'Your bank balance, a thermostat, and a game score can all drop below zero — same math.'] },
+      { match: /logarithm|\blog\b|exponent|exponential|power of|scientific notation/i,
+        young: ['Exponents show how things grow really, REALLY fast! 📈', 'Fold a paper in half 10 times and it\'s taller than you, that\'s exponents!'],
+        teen: ['Exponential growth is why a rumor, a virus, or a savings account can explode — the math humans are famously bad at feeling.', 'Earthquakes (Richter), sound (decibels), and pH are all logarithmic scales — reading them is reading the world.', 'Every "going viral" chart is an exponential curve.'] },
+      { match: /decimal|round|place value|estimat/i,
+        young: ['Money uses decimals, dollars and cents! 💵', 'Rounding helps you guess an answer super fast! ⚡'],
+        teen: ['Rounding well is how you sanity-check any calculator answer in one second.', 'Every price, lab measurement, and GPS coordinate lives in decimals.', 'Estimating first is how engineers catch a 10× mistake before it ships.'] },
+      { match: /calcul|deriv|integral|trigonom|\bsine\b|cosine|precalc|limit/i,
+        young: ['This is the math that sends rockets to space! 🚀'],
+        teen: ['Calculus is the math of change — how fast, how much, when it peaks. It runs physics, economics, and AI.', 'Trigonometry turns triangles into GPS, music, animation, and every wave you can\'t see.', 'The models behind weather, markets, and self-driving cars are calculus under the hood.'] }
+    ]
+  },
+  english: {
+    default: {
+      young: ['Words are how your great ideas travel to other people! 📚', 'Reading and writing well makes EVERY other subject easier! 🚀', 'The more words you know, the more you can say exactly what you mean!'],
+      teen: ['You can\'t reason with words you don\'t have — language is the tool your thinking is made of.', 'Every email, application, and post is you, arriving before you do. Make it sharp.', 'The person who reads closely and writes clearly quietly wins meetings, exams, and arguments.']
+    },
+    buckets: [
+      { match: /noun|verb|adjective|adverb|pronoun|interject|preposition|conjunction|part of speech|parts of speech/i,
+        young: ['Words have jobs, like players on a team, and each job builds an awesome sentence! ⚽', 'Action words (verbs) make your story MOVE! 🏃', 'Describing words paint pictures in a reader\'s mind! 🎨'],
+        teen: ['One misplaced word can flip a sentence\'s meaning — knowing the parts is how you say exactly what you mean, and catch when someone else doesn\'t.', 'Comedians, songwriters, and ad-writers pick parts of speech on purpose: an interjection ("Boom!") lands harder than a full sentence.', 'Every search engine, autocomplete, and AI parses parts of speech to understand you — you\'re learning what machines had to be taught.', 'Strong writers break grammar rules on purpose, but only once they know exactly which part they\'re bending, and why.', 'Naming how a sentence works is the difference between "that sounds off" and "I can fix it."'] },
+      { match: /punctuat|comma|capital|sentence|clause|fragment|run-on|subject.?verb/i,
+        young: ['A period is a tiny STOP sign that tells readers to take a breath! 🛑', 'Question marks let your reader hear you asking! ❓', 'Capital letters give names and sentences their crown! 👑'],
+        teen: ['A comma can change everything: "Let\'s eat, Grandma" vs "Let\'s eat Grandma."', 'Text someone with zero punctuation and watch the confusion — you already know this matters.', 'Contracts, code, and legal filings can turn on a single semicolon. Precision pays.', 'Screenwriters use sentence rhythm — short. punchy. fragments — to control how a scene feels.', 'Good punctuation is invisible; bad punctuation makes readers quietly stop trusting you.'] },
+      { match: /read|comprehen|main idea|detail|inference|summar|context|theme|sequence/i,
+        young: ['Good readers are like detectives hunting for clues in every story! 🕵️', 'Finding the BIG idea is like spotting the treasure on a map! 🗺️'],
+        teen: ['Inference — reading what ISN\'T said — is how you catch a lie, a sales trick, or a hidden agenda.', 'Every "terms and conditions" you\'ll ever sign rewards careful reading and punishes skimming.', 'Doctors, detectives, and coders all do the same move: gather details, infer the cause.', 'Close reading is your best defense against misinformation — you see what a headline leaves out.'] },
+      { match: /vocab|word|synonym|antonym|prefix|suffix|root|homophone|multiple meaning/i,
+        young: ['Knowing lots of words helps you say EXACTLY what you mean!', 'Word detectives can crack ANY new word they meet! 🔍', 'Prefixes are word LEGO, snap "un-" on "happy" and flip the meaning! 🧱'],
+        teen: ['Break a word into its parts (pre-, -dict, -able) and you can decode words you\'ve never seen — a cheat code for language.', 'A bigger vocabulary literally lets you think more precise thoughts.', 'Writers choose "sprinted" over "ran" on purpose — precise words control the picture in a reader\'s head.', 'Half of learning any science, trade, or job is just learning its vocabulary.'] },
+      { match: /writ|essay|paragraph|thesis|organiz|topic sentence|narrative|inform/i,
+        young: ['Every movie, game, and book you love started with someone writing it well! ✍️', 'Organizing your ideas is like packing a backpack, everything easy to find! 🎒'],
+        teen: ['Writing is thinking made visible — if you can\'t write it clearly, you don\'t fully understand it yet.', 'A clear one-paragraph pitch has launched companies and won scholarships.', 'Structure beats talent: a well-organized B+ argument beats a brilliant mess every time.', 'AI can generate words, but knowing what GOOD writing IS — that\'s the human edge that stays valuable.'] },
+      { match: /argument|evidence|persua|rhetoric|claim|bias|author|opinion|fact|point of view/i,
+        young: ['Telling a good reason from a bad one keeps you smart and safe! 🕵️', 'Convincing people with GOOD reasons is a real superpower! 💬'],
+        teen: ['Spotting a weak argument means ads, headlines, and "influencers" can\'t fool you.', 'Knowing the persuasion tricks is the best defense against having them used on you.', 'Recognizing bias — including your own — is the rarest, most valuable thinking skill there is.', 'The gap between an opinion and a claim you can back up is the gap between noise and influence.'] },
+      { match: /figurativ|metaphor|simile|idiom|poet|imagery|symbol|hyperbole|personif/i,
+        young: ['Similes paint pictures, "busy as a bee" shows more than "very busy"! 🐝', 'Idioms are fun word-puzzles hiding in everyday talk! 🧩'],
+        teen: ['Metaphor isn\'t decoration — it\'s how humans explain new ideas ("the cloud," "a computer virus," "a market crash").', 'Every song lyric, brand slogan, and great speech runs on figurative language.', 'Idioms are cultural passwords; knowing them is how you sound like an insider anywhere.', 'Poetry trains you to pack maximum meaning into minimum words — the exact skill behind a caption that goes viral.'] }
+    ]
+  },
+  science: {
+    default: {
+      young: ['Scientists ask "why?" just like you, that\'s how everything gets invented! 🔬', 'Knowing how the world works makes you the smartest explorer around! 🌍', 'Science is just careful curiosity, and you\'ve got plenty!'],
+      teen: ['Science isn\'t a pile of facts — it\'s a method for not fooling yourself, which is a life skill.', 'Understanding how things actually work is how you tell real breakthroughs from clickbait and scams.', 'Every technology you use was, at some point, a science question someone chose to chase.']
+    },
+    buckets: [
+      { match: /animal|plant|habitat|body|sense|living|organ|digest|skeleton|muscle/i,
+        young: ['Doctors and vets use this science to help people and pets! 🩺', 'Knowing how living things work makes you a nature explorer! 🌍'],
+        teen: ['Understanding how a body works is the first step to keeping yours healthy — and to careers in medicine, sports, and nutrition.', 'Knowing how living systems work helps you tell real health facts from health scams.', 'Every doctor, vet, and trainer started by learning exactly this.'] },
+      { match: /cell|dna|genetic|biolog|microb|heredity|trait|evolution/i,
+        young: ['Everything alive is built from cells, even YOU! 🧬', 'Tiny cells team up to make your whole body work! 💪'],
+        teen: ['CRISPR, vaccines, and cancer research all start with the cell and DNA you\'re learning now.', 'Understanding DNA is how you\'ll make sense of ancestry tests, genetic risk, and the biotech boom.', 'Genetics is why you look like your family — and how doctors predict and prevent disease.'] },
+      { match: /matter|solid|liquid|gas|chemi|mix|element|atom|molecul|reaction|acid/i,
+        young: ['Chefs use this science, heat, mixing, freezing, every time they cook! 👩‍🍳', 'Ice, water, and steam are the same stuff wearing different outfits! 💧'],
+        teen: ['Chemistry explains cooking, cleaning, batteries — and why mixing certain cleaners is dangerous.', 'Every material in your phone was chosen by someone who understood matter.', 'Knowing a chemical reaction from a physical change is the difference between a chef and a chemist — and sometimes a safe kitchen.'] },
+      { match: /weather|space|earth|planet|rock|water cycle|climate zone|moon|star|solar/i,
+        young: ['Weather scientists use this to tell you when to grab an umbrella! ☔', 'Astronauts study this to explore space! 🚀'],
+        teen: ['Reading weather and climate data is how societies plan for storms, droughts, and the food supply.', 'Space and Earth science are hiring the generation that masters this — satellites, climate, exploration.', 'The water cycle you\'re learning decides droughts, floods, and where cities can even exist.'] },
+      { match: /force|motion|energy|electric|magnet|physic|gravity|friction|wave|light|sound|heat/i,
+        young: ['Roller coaster designers use this to make rides thrilling AND safe! 🎢', 'Push, pull, zoom, that\'s forces in action! 🛝'],
+        teen: ['Every rocket, EV, roller coaster, and power grid runs on these exact principles.', 'Physics is why a seatbelt saves you and a well-built bridge doesn\'t fall — common sense with numbers.', 'Understanding energy is how you\'ll judge real solutions to the biggest problem of your lifetime: power.'] },
+      { match: /ecosystem|environment|climate|conserv|food chain|biome|pollut|sustain/i,
+        young: ['Park rangers use this to protect animals and forests! 🌲', 'Every plant and animal has a job on nature\'s team! 🐝'],
+        teen: ['Reading how ecosystems balance is how we tackle the defining challenge — and job market — of your generation.', 'Every choice from farming to energy depends on understanding these systems.', 'Knowing how a food chain collapses is knowing why one small change can ripple across a whole planet.'] },
+      { match: /scientif|experiment|hypothes|method|observ|evidence|variable|data|predict/i,
+        young: ['Scientists guess, test, and try again, that\'s how discoveries happen! 🔬'],
+        teen: ['Hypothesis, test, revise — this is the single best defense against being fooled, by others or by yourself.', 'Understanding evidence beats believing headlines. That\'s a life skill, not just a science one.', 'Every claim you\'ll ever weigh — medical, financial, political — comes back to "where\'s the evidence?"'] }
+    ]
+  },
+  spanish: {
+    default: {
+      young: ['¡Hola! Every Spanish word is a new friend you can make! 🌎', 'Speaking two languages literally makes your brain stronger! 🧠', 'You could travel and feel at home in so many places! ✈️'],
+      teen: ['Learning a language literally rewires your brain for better focus and memory — that\'s proven, not a pep talk.', 'Over 500 million people speak Spanish; every word is access to more of the world.', 'Bilingual professionals out-earn monolingual peers in nearly every field.']
+    },
+    buckets: [
+      { match: /greeting|hola|phrase|conversa|introduc|question/i,
+        young: ['You could say hi and make a new friend anywhere in the world! 🌎', 'Travelers use these words to feel at home in new places! ✈️'],
+        teen: ['A warm greeting in someone\'s own language opens doors that business and diplomacy can\'t.', 'The first sentence you speak in Spanish is the moment a stranger decides to help you — or not.'] },
+      { match: /family|animal|food|color|number|body|clothes|house|weather|vocab|noun/i,
+        young: ['You could order tacos or name your pet in Spanish! 🌮', 'Every new word is a new door to another culture! 🚪'],
+        teen: ['Everyday vocabulary is the foundation of real fluency — and fluency is a career multiplier.', 'The U.S. has 40+ million Spanish speakers; bilingual means twice the community you can reach.'] },
+      { match: /verb|ser|estar|tense|preterite|subjunctive|grammar|conjugat|present|past|future/i,
+        young: ['Verbs let you tell stories about what everyone is doing! 🎭'],
+        teen: ['Mastering verbs is the leap from "tourist Spanish" to real conversation — the difference employers pay for.', 'Verb tenses are how you talk about yesterday, today, and your plans — the whole timeline of a life.'] }
+    ]
+  }
+};
+// Avoid showing the same "why" twice in a row per subject, so it never reads as a loop.
+const _lastWhy = {};
+function pickWhy(subject, pool) {
+  if (!pool || !pool.length) return '';
+  if (pool.length === 1) return pool[0];
+  let pick, tries = 0;
+  do { pick = pool[Math.floor(Math.random() * pool.length)]; tries++; } while (pick === _lastWhy[subject] && tries < 6);
+  _lastWhy[subject] = pick;
+  return pick;
 }
-
+function whyLine(subject, skillName) {
+  // Tie the "real world" line to THIS concept when we can (deliberate, specific); otherwise use
+  // a broad-but-genuine subject fallback — never an unrelated line, and never the same one twice.
+  const T = WHY_TOPICS[subject];
+  if (!T) return '';
+  const teen = !playful();
+  const hit = skillName ? T.buckets.find(b => b.match.test(skillName)) : null;
+  let pool = null;
+  if (hit) pool = teen ? (hit.teen && hit.teen.length ? hit.teen : hit.young) : (hit.young && hit.young.length ? hit.young : hit.teen);
+  else if (T.default) pool = teen ? T.default.teen : T.default.young;
+  return pickWhy(subject, pool);
+}
 // ---- age-adaptive themes: the app grows up with the student ----
 function themeForGrade(g) { return g <= 2 ? 'junior' : g <= 5 ? 'explorer' : g <= 8 ? 'scholar' : 'academy'; }
 function applyTheme() {
