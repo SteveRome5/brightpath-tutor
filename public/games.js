@@ -935,6 +935,30 @@
     ['Buy the Dip', 'Buying good stocks after a drop, when they\'re effectively on sale — the opposite of panic-selling.']
   ];
 
+  // The market news arrives through a different "channel" each day so it never feels stale —
+  // a newspaper, a TV broadcast, a trading terminal, the radio, a phone alert, or a shout
+  // from the floor. Same headline, fresh delivery. Each has its own styled card + nudge.
+  const MM_SOURCES = [
+    { id: 'paper', icon: '📰', label: 'The Wall Street Herald', ask: 'Read the headline — what might it mean for the price tomorrow?' },
+    { id: 'tv', icon: '📺', label: 'Gallop Business News', ask: 'The anchor turns to you: how will the market react?' },
+    { id: 'terminal', icon: '💻', label: 'Trading Terminal', ask: 'ALERT — weigh the impact before you trade.' },
+    { id: 'radio', icon: '📻', label: 'Market Radio', ask: 'You catch it on the radio. What will you do?' },
+    { id: 'phone', icon: '📱', label: 'Market Alert', ask: 'A breaking alert buzzes your phone. Think a day ahead.' },
+    { id: 'floor', icon: '🔔', label: 'From the Trading Floor', ask: 'A trader shouts it across the floor. Stay a step ahead.' }
+  ];
+  function mmNewsCard(h) {
+    const src = (h && h.src) || MM_SOURCES[0];
+    const t = h.text, ask = src.ask;
+    switch (src.id) {
+      case 'paper': return `<div class="news-src news-paper"><div class="np-mast">${src.label}</div><div class="np-head">${t}</div><div class="np-sub">${ask}</div></div>`;
+      case 'tv': return `<div class="news-src news-tv"><div class="tv-top"><span class="tv-live">● LIVE</span> ${src.label}</div><div class="tv-head">${t}</div><div class="tv-sub">${ask}</div></div>`;
+      case 'terminal': return `<div class="news-src news-term"><div class="tm-line">&gt; ${src.label.toUpperCase()} :: MARKET FEED</div><div class="tm-head">${t}<span class="tm-cur">▋</span></div><div class="tm-sub">${ask}</div></div>`;
+      case 'radio': return `<div class="news-src news-radio"><div class="rd-top">📻 ${src.label} · ON AIR</div><div class="rd-head">“${t}”</div><div class="rd-sub">${ask}</div></div>`;
+      case 'phone': return `<div class="news-src news-phone"><div class="ph-top">${src.icon} ${src.label} · now</div><div class="ph-head">${t}</div><div class="ph-sub">${ask}</div></div>`;
+      default: return `<div class="news-src news-floor"><div class="fl-top">${src.icon} ${src.label}</div><div class="fl-head">${t}</div><div class="fl-sub">${ask}</div></div>`;
+    }
+  }
+
   const MM_BLANK = { unlocked: 1, cleared: {}, best: {}, careerProfit: 0, graduated: false };
   async function mmLoadProgress() {
     try {
@@ -954,6 +978,7 @@
   async function startMarketHub() {
     const progress = await mmLoadProgress();
     MM_LOOK = Object.assign({}, MM_LOOK_DEFAULT, progress.hero || {});
+    if (!MM_OUTFIT_IDS.includes(MM_LOOK.outfit)) MM_LOOK.outfit = 'suit'; // retired casual outfits → business default
     const total = MM_LEVELS.length;
     const clearedCount = Object.keys(progress.cleared).length;
     const starTotal = Object.values(progress.cleared).reduce((a, b) => a + b, 0);
@@ -1008,6 +1033,7 @@
   // Inclusive character creator: pick skin tone, hairstyle & hair color, with a live preview.
   function mmCustomize(progress) {
     const look = Object.assign({}, MM_LOOK_DEFAULT, progress.hero || {});
+    if (!MM_OUTFIT_IDS.includes(look.outfit)) look.outfit = 'suit';
     function draw() {
       const cv = $('#mm-cz-preview'); if (!cv) return;
       const ctx = pixelCtx(cv); ctx.clearRect(0, 0, cv.width, cv.height);
@@ -1131,7 +1157,8 @@
       const s = stocks[Math.floor(Math.random() * stocks.length)];
       const up = Math.random() < 0.5;
       const list = MM_NEWS[s.id][up ? 'good' : 'bad'];
-      return { stock: s.id, up, text: list[Math.floor(Math.random() * list.length)] };
+      const src = MM_SOURCES[Math.floor(Math.random() * MM_SOURCES.length)]; // fresh delivery channel each day
+      return { stock: s.id, up, text: list[Math.floor(Math.random() * list.length)], src };
     }
     function netWorth() { return cash + stocks.reduce((t, s) => t + shares[s.id] * s.price, 0); }
     function avgCost(id) { return shares[id] > 0 ? spent[id] / shares[id] : 0; }
@@ -1170,7 +1197,7 @@
         ${chart()}
         <div class="mm-legend">${stocks.map(s => `<span><i style="background:${s.color}"></i>${s.emoji} ${$$(s.price)}</span>`).join('')} ${rateBadge}</div>
         ${flash ? `<div class="news-flash mm-surprise">${flash}</div>` : ''}
-        ${headline ? `<div class="news-flash">📰 <b>MARKET NEWS:</b> ${headline.text}<br><span style="font-weight:500;font-size:.9rem">Think ahead: what might this do tomorrow?</span></div>` : ''}
+        ${headline ? mmNewsCard(headline) : ''}
         ${F.dca ? `<div class="mm-dca ${dcaOn ? 'on' : ''}">
           <button class="mm-dca-toggle ${dcaOn ? 'on' : ''}" id="dca-toggle">🔁 Auto-Invest ${dcaOn ? 'ON' : 'OFF'}</button>
           <span class="mm-dca-desc">Buys <b>${$$(dcaAmt)}</b> of <select id="dca-pick">${stocks.map(s => `<option value="${s.id}" ${dcaPick === s.id ? 'selected' : ''}>${s.emoji} ${s.short}</option>`).join('')}</select> each day — that's dollar-cost averaging.</span>
@@ -1349,7 +1376,9 @@
   ];
   const MM_HAIRCOLORS = { brown: '#4a2e12', black: '#171a1f', blonde: '#d6a84a', auburn: '#8a3b1a', gray: '#b8bcc4' };
   const MM_HAIRSTYLES = [['short', 'Short'], ['long', 'Long'], ['ponytail', 'Ponytail'], ['afro', 'Afro'], ['buzz', 'Buzz']];
-  const MM_OUTFITS = [['suit', 'Suit & tie'], ['blazer', 'Blazer'], ['dress', 'Dress'], ['hoodie', 'Hoodie'], ['sweater', 'Sweater']];
+  // Business-appropriate attire only — part of the lesson is "dress the part."
+  const MM_OUTFITS = [['suit', 'Suit & tie'], ['blazer', 'Blazer'], ['dress', 'Dress']];
+  const MM_OUTFIT_IDS = ['suit', 'blazer', 'dress'];
   const MM_OUTFIT_COLORS = { navy: '#2a3550', teal: '#1f7a70', purple: '#6a3f9c', berry: '#a83668', pink: '#d6559b', green: '#2f8a4e', slate: '#4a5568', amber: '#d2761f' };
   const MM_GLASSES = [['none', 'None'], ['glasses', 'Glasses'], ['sunglasses', 'Shades']];
   const MM_LOOK_DEFAULT = { skin: 1, hair: 'short', hairColor: 'brown', outfit: 'suit', outfitColor: 'navy', glasses: 'none' };
