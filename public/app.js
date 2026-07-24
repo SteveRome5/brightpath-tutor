@@ -291,7 +291,7 @@ const Sound = (() => {
   }
   return {
     correct() { tone(523, 0, .15); tone(659, .1, .15); tone(784, .2, .3); },
-    wrong() { tone(220, 0, .25, 'triangle'); tone(196, .15, .3, 'triangle'); },
+    wrong() { tone(415, 0, .12, 'sine', .07); tone(330, .12, .18, 'sine', .06); },
     click() { tone(600, 0, .06, 'square', .05); },
     levelup() { [523, 587, 659, 784, 880, 1047].forEach((f, i) => tone(f, i * .12, .25)); },
     badge() { tone(880, 0, .12); tone(1109, .12, .2); tone(1319, .26, .35); },
@@ -307,100 +307,101 @@ const Sound = (() => {
 // lo-fi vibe for older learners, a brighter playful one for the littles. It only
 // plays in the FUN zones (arcade, avatar, snacks, trophies) so lessons stay focused.
 const Music = (() => {
-  let on = localStorage.bp_music === '1';   // default OFF until a kid switches it on
-  let ctx = null, master = null, timer = null, step = 0, group = 'chill', playing = false;
-  let track = null, trackIdx = 0, barsOnTrack = 0;
-  // A library of procedural tracks. Offsets are semitones from `root`; scales are
-  // pentatonic-friendly so every note lands pleasantly. Each track has its own
-  // chords, arpeggio, bass pattern, timbre and melody scale for a distinct feel.
+  // Real little songs, generated live — a warm chord bed, a soft bass, and a COMPOSED,
+  // hummable melody (never random notes), bathed in gentle reverb so it sounds like music,
+  // not beeping. Two moods: a bright bouncy set for younger learners, a calm lo-fi set for
+  // teens. Plays only in the FUN zones so lessons stay focused. Default OFF until switched on.
+  let on = localStorage.bp_music === '1';
+  let ctx = null, dry = null, wet = null, verb = null, timer = null, group = 'playful', playing = false;
+  let track = null, trackIdx = 0, bar = 0;
+  const semis = (root, s) => root * Math.pow(2, s / 12);
+  // melody note = [semitoneFromKeyRoot, startBeat, durBeats]; pentatonic degrees only, so
+  // every note is consonant over the diatonic chords. Loop is `bars` bars (4 beats each).
   const TRACKS = {
-    // ---- older learners: chill / lo-fi / ambient ----
-    lofi:     { root: 220.00, tempo: 1900, wave: 'sine',     chords: [[0,7,12,16],[-2,5,10,14],[3,10,15,19],[-4,3,8,12]], arp: [0,7,12,16,19,16,12,7], mel: [0,3,7,10,12], padGain: .05, arpGain: .04, bassGain: .06, filt: 900, bell: true },
-    midnight: { root: 196.00, tempo: 2100, wave: 'sine',     chords: [[0,3,7,10],[-2,3,5,10],[-4,0,3,7],[-5,-2,3,7]], arp: [0,3,7,10,12,10,7,3], mel: [0,3,5,7,10], padGain: .052, arpGain: .036, bassGain: .06, filt: 780, bell: true },
-    focus:    { root: 174.61, tempo: 2300, wave: 'triangle', chords: [[0,7,12],[5,12,17],[-3,4,9],[2,9,14]], arp: [0,7,12,7], mel: [0,2,5,7,9], padGain: .055, arpGain: .03, bassGain: .05, filt: 700, bell: false },
-    cosmos:   { root: 164.81, tempo: 2200, wave: 'sine',     chords: [[0,5,10,14],[2,7,12,16],[-3,2,7,12],[-5,0,5,10]], arp: [0,5,10,14,17,14,10,5], mel: [0,5,7,10,12], padGain: .05, arpGain: .038, bassGain: .058, filt: 1000, bell: true },
-    // ---- younger learners: bright / bouncy / adventurous (with a gentle drum groove) ----
-    sunny:     { root: 293.66, tempo: 1500, wave: 'triangle', chords: [[0,4,7,12],[5,9,12,17],[7,11,14,19],[2,5,9,14]], arp: [0,4,7,12,7,4], mel: [0,4,7,9,12], padGain: .045, arpGain: .052, bassGain: .06, filt: 1500, bell: true, drums: true },
-    adventure: { root: 261.63, tempo: 1400, wave: 'triangle', chords: [[0,4,7],[5,9,12],[9,12,16],[7,11,14]], arp: [0,4,7,12,7,4], mel: [0,2,4,7,9], padGain: .04, arpGain: .05, bassGain: .06, filt: 1400, bell: true, drums: true },
-    bubbles:   { root: 329.63, tempo: 1350, wave: 'sine',     chords: [[0,5,9,12],[-3,2,7,12],[0,4,9,14],[5,9,12,16]], arp: [0,5,9,12,16,12,9,5], mel: [0,5,9,12,14], padGain: .04, arpGain: .052, bassGain: .055, filt: 1800, bell: true, drums: true },
-    arcade:    { root: 277.18, tempo: 1250, wave: 'triangle', chords: [[0,4,7,12],[3,7,10,15],[5,9,12,17],[-2,3,7,10]], arp: [0,4,7,12,16,12,7,4], mel: [0,3,5,7,10], padGain: .03, arpGain: .05, bassGain: .06, filt: 2000, bell: true, drums: true }
+    // ---- playful (kids): bright, warm, bouncy ----
+    sunbeam: { root: 261.63, beat: 372, bars: 4, drums: true, lead: 'triangle', filt: 1400, swing: .10,
+      chords: [[0,4,7],[-5,-1,2],[-3,0,4],[-7,-3,0]], bass: [0,-5,-3,-7],
+      mel: [[7,0,1],[9,1,.5],[12,1.5,.5],[9,2,1],[7,3,.5], [4,4,1.5],[7,5.5,.5],[9,6,2],
+            [12,8,1],[9,9,1],[7,10,1],[9,11,1], [7,12,1],[4,13,.5],[2,13.5,.5],[0,14,2]] },
+    hopscotch: { root: 293.66, beat: 356, bars: 4, drums: true, lead: 'triangle', filt: 1500, swing: .12,
+      chords: [[0,4,7],[-3,0,4],[-7,-3,0],[-5,-1,2]], bass: [0,-3,-7,-5],
+      mel: [[4,0,.5],[7,.5,.5],[9,1,1],[7,2,.5],[4,2.5,.5],[2,3,1], [0,4,1],[4,5,1],[7,6,2],
+            [9,8,.5],[7,8.5,.5],[4,9,1],[7,10,1],[9,11,1], [7,12,1],[4,13,1],[0,14,2]] },
+    // ---- chill (teens): calm lo-fi, warm ----
+    driftwood: { root: 220.00, beat: 508, bars: 4, drums: false, lead: 'sine', filt: 1000, swing: 0,
+      chords: [[0,3,7],[-2,2,5],[-4,0,3],[-2,2,5]], bass: [0,-2,-4,-2],
+      mel: [[7,0,2],[5,2,1],[3,3,1], [5,4,2],[10,6,2], [7,8,1.5],[5,9.5,.5],[3,10,2], [3,12,1],[5,13,1],[0,14,2]] },
+    dusk: { root: 196.00, beat: 536, bars: 4, drums: false, lead: 'sine', filt: 950, swing: 0,
+      chords: [[0,3,7],[-4,0,3],[-9,-5,-2],[-2,2,5]], bass: [0,-4,-9,-2],
+      mel: [[10,0,2],[7,2,2], [5,4,1.5],[7,5.5,.5],[10,6,2], [12,8,2],[10,10,1],[7,11,1], [5,12,2],[0,14,2]] }
   };
-  const PLAYLIST = { chill: ['lofi', 'midnight', 'focus', 'cosmos'], playful: ['sunny', 'adventure', 'bubbles', 'arcade'] };
-  const BARS_PER_TRACK = 8;  // rotate to the next track for variety after 8 bars
-
-  function note(freq, t, dur, gain, wave, filtHz) {
-    const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
-    o.type = wave; o.frequency.value = freq;
-    f.type = 'lowpass'; f.frequency.value = filtHz || 1200;
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(gain, t + dur * 0.2);
-    g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
-    o.connect(f).connect(g).connect(master);
-    o.start(t); o.stop(t + dur + 0.05);
+  const PLAYLIST = { playful: ['sunbeam', 'hopscotch'], chill: ['driftwood', 'dusk'] };
+  // small warm reverb (generated impulse) so notes bloom instead of beep
+  function makeVerb() {
+    const len = Math.floor(ctx.sampleRate * 1.8), buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+    const c = ctx.createConvolver(); c.buffer = buf; return c;
   }
-  // Soft, warm kick + hi-hat for a bouncy (not harsh) kid groove.
+  // one voice: osc -> warm lowpass -> soft envelope -> dry + reverb send
+  function voice(freq, t, dur, gain, wave, filtHz, detune) {
+    const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+    o.type = wave || 'sine'; o.frequency.value = freq; if (detune) o.detune.value = detune;
+    f.type = 'lowpass'; f.frequency.value = filtHz || 1200; f.Q.value = 0.6;
+    const a = Math.min(0.06, dur * 0.25);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(gain, t + a);
+    g.gain.setValueAtTime(gain, t + Math.max(a, dur * 0.55));
+    g.gain.exponentialRampToValueAtTime(0.0006, t + dur + 0.08);
+    o.connect(f).connect(g); g.connect(dry); if (wet) g.connect(wet);
+    o.start(t); o.stop(t + dur + 0.12);
+  }
   let _noise = null;
   function noiseBuf() { if (_noise) return _noise; const b = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return (_noise = b); }
-  function kick(t) { try { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(135, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.32, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0006, t + 0.18); o.connect(g).connect(master); o.start(t); o.stop(t + 0.2); } catch (e) {} }
-  function hat(t, gain) { try { const s = ctx.createBufferSource(), g = ctx.createGain(), f = ctx.createBiquadFilter(); s.buffer = noiseBuf(); f.type = 'highpass'; f.frequency.value = 8000; g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0004, t + 0.045); s.connect(f).connect(g).connect(master); s.start(t); s.stop(t + 0.06); } catch (e) {} }
-  function semis(root, s) { return root * Math.pow(2, s / 12); }
-  function pickTrackForGroup() {
-    const list = PLAYLIST[group] || PLAYLIST.chill;
-    track = TRACKS[list[trackIdx % list.length]];
-    trackIdx++; barsOnTrack = 0;
-  }
+  function kick(t) { try { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(46, t + 0.11); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.2, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0006, t + 0.17); o.connect(g).connect(dry); o.start(t); o.stop(t + 0.2); } catch (e) {} }
+  function shaker(t, gain) { try { const s = ctx.createBufferSource(), g = ctx.createGain(), f = ctx.createBiquadFilter(); s.buffer = noiseBuf(); f.type = 'bandpass'; f.frequency.value = 5200; f.Q.value = 0.8; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(gain, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0004, t + 0.05); s.connect(f).connect(g).connect(dry); s.start(t); s.stop(t + 0.07); } catch (e) {} }
+  function pick() { const list = PLAYLIST[group] || PLAYLIST.playful; track = TRACKS[list[trackIdx % list.length]]; trackIdx++; bar = 0; }
   function schedule() {
     if (!playing) return;
-    const M = track, t = ctx.currentTime + 0.05, beat = M.tempo / 1000;
-    const chord = M.chords[step % M.chords.length];
-    // sustained pad (whole chord)
-    chord.forEach(s => note(semis(M.root, s), t, beat * 1.9, M.padGain * (0.85 + Math.random() * 0.3), M.wave, M.filt));
-    // bass: root two octaves down, with a soft mid-bar pulse for groove
-    note(semis(M.root / 2, chord[0]), t, beat * 1.1, M.bassGain, 'triangle', 500);
-    note(semis(M.root / 2, chord[0] + 7), t + beat, beat * 0.9, M.bassGain * 0.7, 'triangle', 500);
-    // arpeggio across the bar
-    const per = beat / M.arp.length * 2;
-    M.arp.forEach((s, i) => note(semis(M.root * 2, s + chord[0]), t + i * per, per * 1.3, M.arpGain, 'sine', M.filt + 400));
-    // gentle melody: a couple of pentatonic notes, humanized, not every bar. A soft second
-    // voice a whisker detuned adds warmth (a mini chorus) so it sings instead of beeps.
-    if (step % 2 === 0) {
-      const mel = M.mel, n1 = mel[Math.floor(Math.random() * mel.length)] + 12, n2 = mel[Math.floor(Math.random() * mel.length)] + 12;
-      const mf1 = semis(M.root, n1 + chord[0]);
-      note(mf1, t + beat * 0.5, beat * 0.6, M.arpGain * 1.15, 'triangle', M.filt + 800);
-      note(mf1 * 1.004, t + beat * 0.5, beat * 0.6, M.arpGain * 0.5, 'sine', M.filt + 600);
-      if (Math.random() < 0.6) note(semis(M.root, n2 + chord[0]), t + beat * 1.3, beat * 0.6, M.arpGain, 'sine', M.filt + 800);
+    const M = track, beat = M.beat / 1000, t0 = ctx.currentTime + 0.06, b = bar % M.bars;
+    const chord = M.chords[b];
+    chord.forEach((s, i) => voice(semis(M.root, s), t0, beat * 3.6, 0.05, M.lead === 'sine' ? 'sine' : 'triangle', M.filt - 300, i === 0 ? -4 : 5));
+    voice(semis(M.root / 2, M.bass[b]), t0, beat * 2.2, 0.11, 'triangle', 380);
+    voice(semis(M.root / 2, M.bass[b] + 7), t0 + beat * 2, beat * 1.6, 0.07, 'triangle', 360);
+    const barStart = b * 4, barEnd = barStart + 4;
+    for (const nt of M.mel) {
+      const s = nt[0], st = nt[1], d = nt[2];
+      if (st >= barStart && st < barEnd) {
+        const sw = (Math.floor(st * 2) % 2 === 1) ? (M.swing || 0) * beat : 0;
+        const tt = t0 + (st - barStart) * beat + sw, dd = d * beat, f = semis(M.root * 2, s);
+        voice(f, tt, dd * 0.95, 0.075, M.lead, M.filt + 500, -3);
+        voice(f, tt, dd * 0.95, 0.032, 'sine', M.filt + 300, 8);
+      }
     }
-    // occasional shimmer bell
-    if (M.bell && step % 2 === 1) note(semis(M.root * 4, chord[1]), t + beat, beat * 1.2, 0.026, 'sine', 3200);
-    // bouncy drum groove for the kids' tracks: kick on the two main beats, hats on the offbeats
-    if (M.drums) {
-      const half = beat;  // one "beat" here is half the bar
-      kick(t); kick(t + half * 0.5);
-      hat(t + half * 0.25, 0.05); hat(t + half * 0.5, 0.07); hat(t + half * 0.75, 0.05); hat(t + half, 0.06); hat(t + half * 1.5, 0.06);
-    }
-    step++; barsOnTrack++;
-    if (barsOnTrack >= BARS_PER_TRACK) pickTrackForGroup();  // rotate track for variety
-    timer = setTimeout(schedule, M.tempo);
+    if (M.drums) { kick(t0); kick(t0 + beat * 2); shaker(t0 + beat, 0.03); shaker(t0 + beat * 3, 0.035); }
+    bar++;
+    if (bar % (M.bars * 2) === 0) pick();   // fresh tune every 2 loops for variety
+    timer = setTimeout(schedule, M.beat * 4);
   }
   function start(which) {
     if (!on) return;
-    if (which && which !== group) { group = which; trackIdx = 0; if (playing) pickTrackForGroup(); }
+    if (which && which !== group) { group = which; trackIdx = 0; if (playing) pick(); }
     else group = which || group;
     try {
       ctx = Sound.ctx();
       if (ctx.state === 'suspended') ctx.resume();
-      if (!master) { master = ctx.createGain(); master.gain.value = 0; master.connect(ctx.destination); }
-      master.gain.cancelScheduledValues(ctx.currentTime);
-      master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
-      master.gain.linearRampToValueAtTime(0.62, ctx.currentTime + 1.5); // gentle fade-in, sits behind gameplay
-      if (!playing) { playing = true; step = 0; pickTrackForGroup(); schedule(); }
-    } catch (e) { /* audio unsupported, fine */ }
+      if (!dry) {
+        dry = ctx.createGain(); dry.gain.value = 0; dry.connect(ctx.destination);
+        try { verb = makeVerb(); wet = ctx.createGain(); wet.gain.value = 0.55; wet.connect(verb); verb.connect(dry); } catch (e) { wet = null; }
+      }
+      dry.gain.cancelScheduledValues(ctx.currentTime);
+      dry.gain.setValueAtTime(dry.gain.value, ctx.currentTime);
+      dry.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 1.6);   // sits gently behind gameplay
+      if (!playing) { playing = true; bar = 0; pick(); schedule(); }
+    } catch (e) {}
   }
   function stop() {
     if (!playing) return;
-    try {
-      if (master) { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6); }
-    } catch (e) {}
+    try { if (dry) { dry.gain.cancelScheduledValues(ctx.currentTime); dry.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.7); } } catch (e) {}
     playing = false;
     if (timer) { clearTimeout(timer); timer = null; }
   }
@@ -408,13 +409,8 @@ const Music = (() => {
     start, stop,
     get on() { return on; },
     get nowPlaying() { const list = PLAYLIST[group] || []; return list[(trackIdx - 1 + list.length) % list.length]; },
-    // Skip to the next track in the current playlist (for a "next track" button)
-    skip() { if (playing) { pickTrackForGroup(); step = 0; } },
-    toggle(currentMood) {
-      on = !on; localStorage.bp_music = on ? '1' : '0';
-      if (on) start(currentMood); else stop();
-      return on;
-    }
+    skip() { if (playing) { pick(); bar = 0; } },
+    toggle(currentMood) { on = !on; localStorage.bp_music = on ? '1' : '0'; if (on) start(currentMood); else stop(); return on; }
   };
 })();
 
@@ -864,7 +860,7 @@ route('landing', async () => {
       <div class="feature reveal"><h3>An experience that grows up</h3><p>A first grader gets big friendly type and read-along storytime, where the words light up as they are read out loud. A teenager gets 15-minute focus sessions and quiet background music in a clean study space. It is the same engine underneath, dressed for a different age.</p></div>
       <div class="feature reveal"><h3>A trophy case worth chasing</h3><p>There are 33 badges to collect across six categories, a rank ladder that climbs from Foal to Thoroughbred, and progress bars that always show the next goal. Certificates mark each grade level a child finishes.</p></div>
       <div class="feature reveal"><h3>Motivation that makes sense</h3><p>Daily quests, streaks, a built-in learning arcade, and a coin-powered Snack Shack where a child's avatar actually eats the treats they buy. There are 48 characters to unlock, from astronauts to unicorns. Play is the reward and learning is what earns it.</p></div>
-      <div class="feature reveal"><h3>Sound that was actually made for it</h3><p>Eight original soundtracks are built in, a calmer set for teenagers and brighter tunes for the younger kids, with a single tap to turn it all off. None of it is stock audio.</p></div>
+      <div class="feature reveal"><h3>Sound that was actually made for it</h3><p>Original background music, composed live in the app — warm, melodic tunes with a calmer set for teenagers and brighter ones for the younger kids, and a single tap turns it all off. None of it is stock audio.</p></div>
       <div class="feature reveal"><h3>Safe by design</h3><p>Children can only connect with buddies a parent approves. They send pre-written cheers, race each other's high scores, and team up on weekly goals where both kids win. There is no open chat and no way for strangers to reach them.</p></div>
       <div class="feature reveal"><h3>Proof for the fridge</h3><p>Printable certificates, a one-page weekly summary, a two-week activity chart, per-skill progress bars, a spreadsheet export, and the strengths and career insights. You will always know how it is going.</p></div>
     </div>
