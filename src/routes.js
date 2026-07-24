@@ -697,8 +697,9 @@ router.get('/admin/export.csv', auth.requireAdmin, (req, res) => {
 router.get('/family/stats', auth.requireParent, (req, res) => {
   const kids = db.prepare('SELECT * FROM kids WHERE parent_id=?').all(req.parent.id);
   const stats = kids.map(k => {
-    const w = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-7 days')").get(k.id);
-    return { id: k.id, name: k.name, avatar: k.avatar, streak: k.streak, weekAnswers: w.n || 0, weekAccuracy: w.n ? Math.round((w.c || 0) / w.n * 100) : null };
+    const w = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-7 days')").get(k.id);
+    const wAcc = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND skill_id NOT LIKE 'track:%' AND ts >= datetime('now','-7 days')").get(k.id);
+    return { id: k.id, name: k.name, avatar: k.avatar, streak: k.streak, weekAnswers: w.n || 0, weekAccuracy: wAcc.n ? Math.round((wAcc.c || 0) / wAcc.n * 100) : null };
   }).sort((a, b) => b.weekAnswers - a.weekAnswers);
   res.json({ stats });
 });
@@ -710,15 +711,18 @@ router.get('/family/overview', auth.requireParent, (req, res) => {
   const STRUGGLING = 0.45;
   const kids = db.prepare('SELECT * FROM kids WHERE parent_id=?').all(req.parent.id);
   const out = kids.map(k => {
-    const w = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-7 days')").get(k.id);
+    // weekAnswers counts ALL work (engagement/goal); weekAccuracy excludes optional Advanced
+    // Track (AP/honors) so the accuracy figure is a fair grade-level read, matching the report.
+    const w = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-7 days')").get(k.id);
+    const wAcc = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND skill_id NOT LIKE 'track:%' AND ts >= datetime('now','-7 days')").get(k.id);
     const totalAns = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=?').get(k.id).n;
     // The skills this child is genuinely stuck on, hardest first — this is "where they need help".
     const struggles = db.prepare(
       `SELECT subject, skill_id, mastery FROM skill_state WHERE kid_id=? AND attempts>=3 AND mastery<? ORDER BY mastery ASC LIMIT 2`
     ).all(k.id, STRUGGLING);
     const focus = struggles.map(s => { const sk = content.getSkill(s.subject, s.skill_id); return { subject: s.subject, skillId: s.skill_id, name: sk ? sk.name : s.skill_id }; });
-    // Overall pace: worst-case across placed subjects, using the same honest status rules.
-    let overall = 'getting-started';
+    // Overall pace + growth: the report card computes both (and writes today's score snapshot).
+    let overall = 'getting-started', gallop = null, gallopDelta = null;
     try {
       const card = adaptive.reportCard(k.id);
       const st = (card.subjects || []).map(s => s.status).filter(x => x && x !== 'insufficient');
@@ -728,12 +732,13 @@ router.get('/family/overview', auth.requireParent, (req, res) => {
         else if (st.some(s => s === 'developing')) overall = 'developing';
         else overall = 'on-track';
       }
+      if (card.gallop) { gallop = card.gallop.overall; gallopDelta = (card.gallop.deltas && card.gallop.deltas.overall) || null; }
     } catch (e) {}
     return {
       id: k.id, name: k.name, grade: k.grade, avatar: k.avatar, streak: k.streak, xp: k.xp,
-      weekAnswers: w.n || 0, weekAccuracy: w.n ? Math.round((w.c || 0) / w.n * 100) : null,
+      weekAnswers: w.n || 0, weekAccuracy: wAcc.n ? Math.round((wAcc.c || 0) / wAcc.n * 100) : null,
       weeklyGoal: (k.weekly_goal || 12) * 10, totalAnswers: totalAns, needsSetup: totalAns === 0,
-      overall, focus
+      overall, focus, gallop, gallopDelta
     };
   });
   res.json({ kids: out });

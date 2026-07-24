@@ -235,18 +235,36 @@ function sendWeeklyReport(parent, summary) {
     const kidBlocks = summary.kids.map(k => {
       const subjLines = k.subjects.map(s =>
         `<tr><td style="padding:4px 10px 4px 0;color:#16213a">${esc(s.label)}</td>
-         <td style="padding:4px 0;color:#5f6b7d">${s.answers} answered · ${s.accuracy != null ? Math.round(s.accuracy * 100) + '%' : '—'}${s.delta > 0 ? ` · <span style="color:#1f8a5f">▲ +${s.delta}</span>` : ''}</td></tr>`
+         <td style="padding:4px 0;color:#5f6b7d">${s.answers} answered · ${s.accuracy != null ? Math.round(s.accuracy * 100) + '%' : '—'} correct</td></tr>`
       ).join('');
+      // Wins this week: a completed grade (certificate) is the headline; badges and streaks reinforce it.
+      const wins = [];
+      (k.certsWon || []).forEach(t => wins.push(`🎓 <b>${esc(t)}</b>`));
+      if (k.badgesWon > 0) wins.push(`🏅 ${k.badgesWon} new badge${k.badgesWon === 1 ? '' : 's'}`);
+      if (k.streak >= 3) wins.push(`🔥 ${k.streak}-day streak`);
+      const gallopBit = k.gallop != null
+        ? ` · Gallop Score <b>${k.gallop}</b>${k.gallopDelta > 0 ? ` <span style="color:#1f8a5f;font-weight:700">▲ +${k.gallopDelta} this week</span>` : ''}`
+        : '';
       return `<div style="margin:14px 0;padding:14px 16px;background:#f9f7f1;border-radius:12px">
-        <p style="margin:0 0 6px"><b style="color:${BRAND}">${esc(k.name)}</b> — ${k.weekAnswers} question${k.weekAnswers === 1 ? '' : 's'} this week${k.gallop != null ? ` · Gallop Score ${k.gallop}` : ''}</p>
+        <p style="margin:0 0 6px"><b style="color:${BRAND};font-size:15px">${esc(k.name)}</b> — ${k.weekAnswers} question${k.weekAnswers === 1 ? '' : 's'} this week${gallopBit}</p>
+        ${wins.length ? `<p style="margin:0 0 8px;font-size:14px;color:#1f6b43">🎉 This week: ${wins.join(' · ')}</p>` : ''}
         ${subjLines ? `<table style="border-collapse:collapse;font-size:14px">${subjLines}</table>` : '<p style="margin:0;color:#5f6b7d;font-size:14px">No practice logged this week — a quick session gets them going again.</p>'}
-        ${k.focus ? `<p style="margin:8px 0 0;font-size:14px">🎯 Worth a look together: <b>${esc(k.focus)}</b></p>` : ''}
+        ${k.focus ? `<p style="margin:8px 0 0;font-size:14px">🎯 Worth a look together: <b>${esc(k.focus)}</b> — they get extra practice on it automatically.</p>` : ''}
       </div>`;
     }).join('');
+    // Family headline: total questions + standout win, so the value lands in the first line.
+    const totalQ = summary.kids.reduce((t, k) => t + (k.weekAnswers || 0), 0);
+    const anyCert = summary.kids.some(k => (k.certsWon || []).length);
+    const headline = anyCert
+      ? `A big week — a grade was completed! Here's the full picture. 🎉`
+      : totalQ > 0
+        ? `${totalQ} question${totalQ === 1 ? '' : 's'} answered this week. Here's how it's going. 📊`
+        : `A quick snapshot of where things stand. 📊`;
     const html = layout(`
       <h2 style="margin:0 0 12px;color:${BRAND}">${first}, here's this week in learning 📊</h2>
-      <p>A quick snapshot of how your ${summary.kids.length === 1 ? 'learner is' : 'learners are'} doing. The full, interactive report is always in your dashboard.</p>
+      <p>${headline}</p>
       ${kidBlocks}
+      <p style="font-size:13px;color:#8a94a3;margin:14px 0 0">Every number here comes from questions your ${summary.kids.length === 1 ? 'child' : 'children'} actually answered — and matches your dashboard exactly. The Gallop Score only rises with real, lasting understanding.</p>
       ${btn(ORIGIN + '/#parent', 'Open the full report')}
     `, { unsubToken: unsubTokenFor(parent.id) });
     return sendEmail({ to: parent.email, subject: 'Your weekly Gallop learning report 📊', html, kind: 'weekly_report' });
@@ -299,19 +317,27 @@ async function weeklyReportSweep() {
       if (already) continue;
       const kids = db.prepare('SELECT * FROM kids WHERE parent_id=?').all(p.id);
       if (!kids.length) continue;
+      const adaptive = require('./adaptive');
       const kidSummaries = kids.map(k => {
         const week = db.prepare(`SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts>=datetime('now','-7 days')`).get(k.id).n;
         const subjects = REPORT_SUBJECTS.map(([sub, label]) => {
-          const r = db.prepare(`SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND subject=? AND ts>=datetime('now','-7 days')`).get(k.id, sub);
-          return { label, answers: r.n || 0, accuracy: r.n ? (r.c || 0) / r.n : null, delta: 0 };
+          // Accuracy excludes optional Advanced Track (AP/honors), matching the dashboard/report.
+          const r = db.prepare(`SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND subject=? AND skill_id NOT LIKE 'track:%' AND ts>=datetime('now','-7 days')`).get(k.id, sub);
+          const all = db.prepare(`SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND subject=? AND ts>=datetime('now','-7 days')`).get(k.id, sub);
+          return { label, answers: all.n || 0, accuracy: r.n ? (r.c || 0) / r.n : null };
         }).filter(s => s.answers > 0);
-        const snap = db.prepare(`SELECT score FROM score_snapshots WHERE kid_id=? AND subject='overall' ORDER BY day DESC LIMIT 1`).get(k.id);
+        // Canonical growth number, straight from the same report the dashboard shows.
+        let gallop = null, gallopDelta = null;
+        try { const card = adaptive.reportCard(k.id); if (card.gallop) { gallop = card.gallop.overall; gallopDelta = (card.gallop.deltas && card.gallop.deltas.overall) || null; } } catch (e) {}
+        // Concrete wins this week — the strongest proof the program is working.
+        const certsWon = db.prepare(`SELECT title FROM certificates WHERE kid_id=? AND issued_at>=datetime('now','-7 days') ORDER BY issued_at DESC`).all(k.id).map(c => c.title);
+        const badgesWon = db.prepare(`SELECT COUNT(*) AS n FROM badges WHERE kid_id=? AND earned_at>=datetime('now','-7 days')`).get(k.id).n || 0;
         let focus = null;
         try {
           const fr = db.prepare(`SELECT skill_id, subject FROM skill_state WHERE kid_id=? AND attempts>=3 AND mastery<0.4 ORDER BY mastery ASC LIMIT 1`).get(k.id);
           if (fr) { const sk = content.getSkill(fr.subject, fr.skill_id); focus = sk ? sk.name : null; }
         } catch (e) {}
-        return { name: k.name, weekAnswers: week, subjects, gallop: snap ? snap.score : null, focus };
+        return { name: k.name, weekAnswers: week, subjects, gallop, gallopDelta, certsWon, badgesWon, streak: k.streak || 0, focus };
       });
       if (!kidSummaries.some(k => k.weekAnswers > 0)) continue; // don't email dormant accounts
       await sendWeeklyReport(p, { kids: kidSummaries });

@@ -2794,6 +2794,10 @@ route('parent', async () => {
           <p class="muted" style="margin:12px 0 10px;font-size:.9rem">Ready to begin! Start ${esc(k.name.split(' ')[0])} and they'll take a quick placement so every subject begins at exactly the right level.</p>
           <button class="btn green small snap-start" data-kid="${k.id}">▶ Start ${esc(k.name.split(' ')[0])}</button>
         ` : `
+          ${k.gallop != null ? `<div class="snap-growth">
+            <span class="sg-label">🏆 Gallop Score</span>
+            <span class="sg-num">${k.gallop}${k.gallopDelta > 0 ? ` <span class="sg-up">▲ +${k.gallopDelta} this week</span>` : ''}</span>
+          </div>` : ''}
           <div style="margin:12px 0 8px">
             <div style="display:flex;justify-content:space-between;font-size:.8rem;color:#5f6b7d;margin-bottom:4px">
               <span>This week: <b>${k.weekAnswers}</b> / ${k.weeklyGoal} answers${k.weekAccuracy != null ? ` · ${k.weekAccuracy}% correct` : ''}</span>
