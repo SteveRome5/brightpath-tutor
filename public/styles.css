@@ -1809,3 +1809,20 @@ body[data-theme="academy"] .mm-cut-title { color: var(--accent); }
 .fl-sub { font-size: .82rem; margin-top: 4px; color: #a8e6c4; }
 .mm-cz-name { font-family: var(--font-display); font-size: 1.15rem; color: var(--brand); margin-top: 8px; }
 body[data-theme="academy"] .mm-cz-name { color: var(--accent); }
+
+/* ===================== Play Zone game cards — give each a solid, readable tile ===================== */
+/* Game cards use white text but (unlike subject cards) never got an inline background, so on
+   light themes they washed out. Give each game its own colored gradient tile for clear contrast. */
+.game-card { background: linear-gradient(150deg, #3a4568, #232c48); box-shadow: 0 10px 26px -12px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.16); }
+.game-card[data-g="market"]     { background: linear-gradient(150deg, #2f7a52, #1d5236); }
+.game-card[data-g="blitz"]      { background: linear-gradient(150deg, #c58a2a, #986014); }
+.game-card[data-g="code"]       { background: linear-gradient(150deg, #4a5bb0, #2f3a86); }
+.game-card[data-g="wordsearch"] { background: linear-gradient(150deg, #2a8a8a, #1a5f63); }
+.game-card[data-g="memory"]     { background: linear-gradient(150deg, #7a4bb0, #522f86); }
+.game-card[data-g="bakery"]     { background: linear-gradient(150deg, #c25a86, #8f3a63); }
+.game-card[data-g="lemonade"]   { background: linear-gradient(150deg, #7a9a2c, #556f16); }
+.game-card[data-g="art"]        { background: linear-gradient(150deg, #d2683f, #a3441f); }
+.game-card h3, .game-card .lvl { color: #fff; }
+.game-card .lvl { opacity: .95; }
+/* On the Play button, keep the gold clearly readable on any tile */
+.game-card .btn.sun { color: #2a1e05; box-shadow: 0 3px 10px rgba(0,0,0,.25); }
