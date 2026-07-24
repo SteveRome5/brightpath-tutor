@@ -1247,10 +1247,10 @@
     const owned = new Set(data.owned);
     const SLOT_LABEL = { base: '🐾 Character', hat: '🎩 Hats', accessory: '✨ Accessories', bg: '🌈 Worlds', pet: '🐶 Pets' };
     let slot = 'base';
-    // Custom photo upload is a middle/high-school perk (grade 6+).
+    // Custom photo uploads were removed for child privacy — illustrated avatars only.
     const grade = (State.me.kid && State.me.kid.grade) || 0;
-    const canPhoto = grade >= 6;
-    let photo = (State.me.kid && State.me.kid.avatar_img) || null;
+    const canPhoto = false;
+    let photo = null;
     // Read a picked file, cover-crop to a 256px square, re-encode as JPEG (strips
     // metadata), and shrink quality until the data URL fits the server's size cap.
     function processPhoto(file) {

@@ -227,20 +227,12 @@ router.post('/play/:kidId/avatar/equip', auth.requireKid, (req, res) => {
   res.json({ ok: true, config: clean });
 });
 
-// Custom avatar photo upload — middle & high school only (grade >= 6). The client
-// re-encodes the image to a small square JPEG/PNG/WebP (which strips metadata and
-// caps size); the server double-checks the type and size before storing. SVG is
-// rejected outright (it can carry script). Max ~90KB of data-URL text.
-const AVATAR_IMG_MAX = 92000;
-const AVATAR_IMG_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
-router.post('/play/:kidId/avatar/photo', auth.requireKid, auth.requireActiveSub, (req, res) => {
-  const kid = db.prepare('SELECT grade FROM kids WHERE id=?').get(req.kid.id);
-  if ((kid.grade || 0) < 6) return res.status(403).json({ error: 'Custom photos unlock in middle school.' });
-  const dataUrl = String((req.body || {}).dataUrl || '');
-  if (dataUrl.length > AVATAR_IMG_MAX) return res.status(413).json({ error: 'That image is too large — try a smaller one.' });
-  if (!AVATAR_IMG_RE.test(dataUrl)) return res.status(400).json({ error: 'Please choose a JPG, PNG, or WebP photo.' });
-  db.prepare('UPDATE kids SET avatar_img=? WHERE id=?').run(dataUrl, req.kid.id);
-  res.json({ ok: true });
+// Custom avatar PHOTO uploads have been removed for child privacy — learners use the
+// built-in illustrated avatars only, so we never collect or store a child's photograph.
+// The upload endpoint now refuses (in case any old client still calls it); the clear
+// endpoint stays so an old stored photo can still be wiped from a device that has one.
+router.post('/play/:kidId/avatar/photo', auth.requireKid, (req, res) => {
+  return res.status(410).json({ error: 'Photo avatars have been retired — pick from the built-in avatars instead.' });
 });
 router.post('/play/:kidId/avatar/photo/clear', auth.requireKid, (req, res) => {
   db.prepare('UPDATE kids SET avatar_img=NULL WHERE id=?').run(req.kid.id);

@@ -298,6 +298,12 @@ for (const stmt of [
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }
 
+// Child-privacy: custom avatar PHOTOS were retired in favor of illustrated avatars only.
+// Scrub any previously-stored photo so no child's image remains at rest. Guarded by IS NOT
+// NULL so it's a no-op once clean (won't rewrite rows on every boot). New backups taken
+// after this runs contain no child photos; rotate out old backups to purge them fully.
+try { db.exec("UPDATE kids SET avatar_img=NULL WHERE avatar_img IS NOT NULL"); } catch (e) {}
+
 // ---------- automated backups ----------
 // Periodic hot backup of the SQLite database using better-sqlite3's online backup (safe
 // while the app is running). Writes timestamped copies into DATA_DIR/backups and keeps the
