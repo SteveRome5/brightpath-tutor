@@ -266,6 +266,12 @@ function playful() { const t = document.body.dataset.theme; return t === 'junior
 // real level in the report — this only governs what the child themselves is shown.
 function showLevel() { try { return !!(State.me && State.me.kid && State.me.kid.show_level); } catch (e) { return false; } }
 
+// --- Analytics: push funnel events to Google Tag Manager's dataLayer. GTM (container
+// GTM-N5F65TST) picks these up as triggers and forwards them to GA4 (or any tag) as
+// conversions. Fully guarded: if GTM/dataLayer isn't present, these are harmless no-ops.
+function gtmPush(obj) { try { window.dataLayer = window.dataLayer || []; window.dataLayer.push(obj); } catch (e) {} }
+const PLAN_PRICE = { solo: 34, family: 54 };
+
 // ======================= sound engine =======================
 const Sound = (() => {
   let ctx, master, muted = localStorage.bp_muted === '1';
@@ -1149,6 +1155,7 @@ route('signup', async () => {
     if (!$('#f-consent').checked) { showError('#f-err', 'Please confirm you are the parent or guardian and agree to the Terms and Privacy Policy to continue.'); return; }
     try {
       await api('/auth/signup', { method: 'POST', body: { name: $('#f-name').value, email: $('#f-email').value, password: $('#f-pass').value, consent: true } });
+      gtmPush({ event: 'sign_up', method: 'email', intent: window.__subscribeIntent ? 'subscribe' : 'trial' });
       await refreshMe(); Sound.levelup(); State.onboard = true;
       // Came from "Sign up now"? Go straight to plan choice → checkout, skipping the trial.
       if (window.__subscribeIntent) { window.__subscribeIntent = 0; location.hash = '#subscribe'; }
@@ -2446,7 +2453,11 @@ async function checkout(plan) {
   try {
     const out = await api('/billing/checkout', { method: 'POST', body: { plan } });
     if (out.error) { toast(out.error); return; }
-    if (out.demo) { await refreshMe(); Confetti.burst(150); Sound.levelup(); location.hash = '#parent'; }
+    const value = PLAN_PRICE[plan] || 0;
+    gtmPush({ event: 'begin_checkout', currency: 'USD', value, plan });
+    // Stash so the return from Stripe (a full page reload) can fire 'purchase' with the plan/value.
+    try { sessionStorage.setItem('gallop_purchase', JSON.stringify({ plan, value })); } catch (e) {}
+    if (out.demo) { gtmPush({ event: 'purchase', currency: 'USD', value, plan }); try { sessionStorage.removeItem('gallop_purchase'); } catch (e) {} await refreshMe(); Confetti.burst(150); Sound.levelup(); location.hash = '#parent'; }
     else if (out.url) location.href = out.url;
   } catch (e) {
     toast(e.message || 'Could not start checkout. Please try again in a moment.');
@@ -3258,6 +3269,12 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
   const billing = new URLSearchParams(location.search).get('billing');
   if (billing) history.replaceState(null, '', location.pathname); // strip ?billing=… from the URL
   if (billing === 'success') {
+    // Fire the purchase conversion using the plan/value stashed before the Stripe redirect.
+    try {
+      const pd = JSON.parse(sessionStorage.getItem('gallop_purchase') || 'null');
+      gtmPush({ event: 'purchase', currency: 'USD', value: (pd && pd.value) || 0, plan: (pd && pd.plan) || undefined });
+      sessionStorage.removeItem('gallop_purchase');
+    } catch (e) { gtmPush({ event: 'purchase', currency: 'USD' }); }
     // The webhook that marks the account active can lag the redirect by a moment; re-check once.
     try {
       const notYet = () => State.me && State.me.role === 'parent' && State.me.parent && State.me.parent.sub_status !== 'active';
