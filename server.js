@@ -23,11 +23,14 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=()');
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    // Google Tag Manager + GA4. googletagmanager.com serves the container/library;
+    // *.google-analytics.com / *.analytics.google.com receive the measurement hits.
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.googletagmanager.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data:",
-    "connect-src 'self'",
+    "img-src 'self' data: https://www.googletagmanager.com https://*.google-analytics.com https://*.googletagmanager.com",
+    "connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
+    "frame-src https://www.googletagmanager.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "object-src 'none'",
