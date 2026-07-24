@@ -127,7 +127,7 @@
     // the cupcake bakery. min/max are inclusive grade numbers (0 = Kindergarten).
     const grade = k.grade || 0;
     const CATALOG = [
-      { id: 'market', emoji: '📈', name: 'Market Mogul', desc: 'Read the news, manage risk, and grow your money on the Gallop Stock Exchange.', min: 4, max: 12 },
+      { id: 'market', emoji: '📈', name: 'Market Mogul', desc: 'A 10-level investing career — level up by hitting profit targets while you master diversification, dollar-cost averaging, dividends & more. Progress saves.', min: 4, max: 12 },
       { id: 'blitz', emoji: '⚡', name: 'Lightning Round', desc: '60 seconds. Rapid-fire questions. Build a combo — beat your best!', min: 0, max: 12 },
       { id: 'code', emoji: '🤖', name: 'Code Quest', desc: 'Program Robo the robot to reach the star — a fresh puzzle set every time.', min: 0, max: 12 },
       { id: 'wordsearch', emoji: '🔍', name: 'Word Search', desc: 'Hunt hidden words in the letter jungle.', min: 0, max: 12 },
@@ -169,10 +169,17 @@
   // ======================= GAME DISPATCH =======================
   route('game', async (which) => {
     if (needKid()) return;
-    const starters = { bakery: startBakery, memory: startMemory, wordsearch: startWordSearch, code: startCode, art: startArt, lemonade: startLemonade, market: startMarket, blitz: startBlitz };
+    // Market Mogul is a persistent, level-based career: opening the hub is free (progress
+    // resume + level select), and a *token is spent per level* from inside the hub — so it
+    // bypasses the one-token-per-open `gated()` wrapper the other arcade games use.
+    if (which === 'market') {
+      if (((State.me.kid && State.me.kid.grade) || 0) < 4) { toast('Market Mogul unlocks in 4th grade! 📈'); location.hash = '#play'; return; }
+      await startMarketHub();
+      return;
+    }
+    const starters = { bakery: startBakery, memory: startMemory, wordsearch: startWordSearch, code: startCode, art: startArt, lemonade: startLemonade, blitz: startBlitz };
     const fn = starters[which];
     if (!fn) { location.hash = '#play'; return; }
-    if (which === 'market' && ((State.me.kid && State.me.kid.grade) || 0) < 4) { toast('Market Mogul unlocks in 4th grade! 📈'); location.hash = '#play'; return; }
     await gated(which, fn);
   });
 
@@ -846,149 +853,408 @@
     renderPlan();
   }
 
-  // ======================= MARKET MOGUL =======================
-  // Stock market for grades 4+: read the news, think ahead, manage risk.
-  function startMarket() {
-    const grade = (State.me.kid && State.me.kid.grade) || 4;
-    const senior = grade >= 9;            // high-schoolers get a deeper, longer market
-    const ALL_STOCKS = [
-      { id: 'hay', name: 'HayGrain Farms', short: 'HayGrain', emoji: '🌾', price: 20, wild: 0.05, color: '#4c9f45' },
-      { id: 'sun', name: 'SunVolt Energy', short: 'SunVolt', emoji: '☀️', price: 30, wild: 0.10, color: '#C9A84C' },
-      { id: 'pix', name: 'PixelPlay Games', short: 'PixelPlay', emoji: '🎮', price: 15, wild: 0.14, color: '#8e5cf7' },
-      { id: 'nova', name: 'Nova Rockets', short: 'Nova', emoji: '🚀', price: 50, wild: 0.22, color: '#eb5757' },
-      // extra sectors unlocked for older investors — a steady blue-chip bank and a
-      // high-risk biotech — so diversification actually matters.
-      { id: 'vault', name: 'Vault Bank', short: 'Vault', emoji: '🏦', price: 40, wild: 0.07, color: '#4aa3c7' },
-      { id: 'geno', name: 'GenoMed Labs', short: 'GenoMed', emoji: '🧬', price: 25, wild: 0.28, color: '#d6559b' }
-    ];
-    const STOCKS = senior ? ALL_STOCKS : ALL_STOCKS.slice(0, 4);
-    STOCKS.forEach(s => { s.hist = [s.price]; });
-    const NEWS = {
-      hay: { good: ['HayGrain wins a huge grocery contract 🌾', 'Perfect growing season boosts HayGrain harvests'], bad: ['Drought hits HayGrain\'s biggest fields', 'HayGrain recalls a shipment of oats'] },
-      sun: { good: ['New law rewards clean energy, SunVolt cheers ☀️', 'SunVolt\'s new panel breaks an efficiency record'], bad: ['Cheap imported panels undercut SunVolt', 'Cloudy quarter dims SunVolt\'s earnings'] },
-      pix: { good: ['PixelPlay\'s new game hits #1 in downloads 🎮', 'PixelPlay announces a huge esports league'], bad: ['PixelPlay delays its biggest game launch', 'Players quit PixelPlay\'s buggy update'] },
-      nova: { good: ['Nova Rockets lands a satellite mega-contract 🚀', 'Nova\'s reusable rocket sticks the landing'], bad: ['Nova launch scrubbed, investors nervous', 'Nova loses a contract to a rival'] },
-      vault: { good: ['Vault Bank raises its dividend as profits climb 🏦', 'Rising interest rates fatten Vault Bank\'s margins'], bad: ['Loan defaults tick up at Vault Bank', 'A rival fintech pulls customers from Vault Bank'] },
-      geno: { good: ['GenoMed\'s new therapy aces its big trial 🧬', 'GenoMed wins fast-track approval from regulators'], bad: ['GenoMed\'s lead drug fails a key study', 'GenoMed burns cash as trials drag on'] }
-    };
-    const ROUNDS = senior ? 12 : 8, START = senior ? 2000 : 1000;
-    const LOTS = senior ? [1, 5, 10] : [1, 5];   // trade multiple shares at once
-    let lot = 1;
-    let round = 1, cash = START, last = {}, headline = makeNews();
-    const owned = {}; STOCKS.forEach(s => owned[s.id] = 0);
-    const $$ = n => '$' + n.toFixed(2);
-    function makeNews() {
-      const s = STOCKS[Math.floor(Math.random() * STOCKS.length)];
+  // ======================= MARKET MOGUL — INVESTING CAREER =======================
+  // A full, level-based investing game (grades 4+). Progress is saved on the server, so a
+  // learner resumes their career across sessions and devices. Each level teaches ONE real
+  // investing idea, gates advancement behind a profit target, and switches on a new market
+  // variable so the game gets steadily trickier. Clear all ten to graduate a Gallop Investor.
+  const MM_STOCKS = {
+    hay:  { name: 'HayGrain Farms', short: 'HayGrain', emoji: '🌾', price: 20, wild: .05, color: '#4c9f45', sector: 'Food',    div: .06, rate: 0 },
+    brew: { name: 'DailyBrew Coffee', short: 'DailyBrew', emoji: '☕', price: 18, wild: .06, color: '#9c6b3f', sector: 'Staples', div: .05, rate: 0 },
+    sun:  { name: 'SunVolt Energy', short: 'SunVolt', emoji: '☀️', price: 30, wild: .10, color: '#C9A84C', sector: 'Energy',  div: .03, rate: 0 },
+    pix:  { name: 'PixelPlay Games', short: 'PixelPlay', emoji: '🎮', price: 15, wild: .14, color: '#8e5cf7', sector: 'Games',   div: 0,   rate: -1 },
+    cloud:{ name: 'CloudNine Tech', short: 'CloudNine', emoji: '☁️', price: 35, wild: .16, color: '#4a90d9', sector: 'Tech',    div: 0,   rate: -1 },
+    vault:{ name: 'Vault Bank', short: 'Vault', emoji: '🏦', price: 40, wild: .07, color: '#4aa3c7', sector: 'Finance', div: .10, rate: 1 },
+    nova: { name: 'Nova Rockets', short: 'Nova', emoji: '🚀', price: 50, wild: .22, color: '#eb5757', sector: 'Space',   div: 0,   rate: -1 },
+    geno: { name: 'GenoMed Labs', short: 'GenoMed', emoji: '🧬', price: 25, wild: .28, color: '#d6559b', sector: 'Biotech', div: 0,  rate: 0 }
+  };
+  const MM_NEWS = {
+    hay:  { good: ['HayGrain wins a huge grocery contract 🌾', 'Perfect growing season boosts HayGrain harvests'], bad: ['Drought hits HayGrain\'s biggest fields', 'HayGrain recalls a shipment of oats'] },
+    brew: { good: ['DailyBrew opens 200 new cafés ☕', 'A viral drink sends DailyBrew sales soaring'], bad: ['Coffee-bean prices spike, squeezing DailyBrew', 'DailyBrew closes underperforming stores'] },
+    sun:  { good: ['New law rewards clean energy, SunVolt cheers ☀️', 'SunVolt\'s new panel breaks an efficiency record'], bad: ['Cheap imported panels undercut SunVolt', 'Cloudy quarter dims SunVolt\'s earnings'] },
+    pix:  { good: ['PixelPlay\'s new game hits #1 in downloads 🎮', 'PixelPlay announces a huge esports league'], bad: ['PixelPlay delays its biggest game launch', 'Players quit PixelPlay\'s buggy update'] },
+    cloud:{ good: ['CloudNine signs a giant enterprise deal ☁️', 'CloudNine\'s AI tools win rave reviews'], bad: ['A cloud outage frustrates CloudNine\'s customers', 'A rival undercuts CloudNine on price'] },
+    vault:{ good: ['Vault Bank raises its dividend as profits climb 🏦', 'Rising rates fatten Vault Bank\'s margins'], bad: ['Loan defaults tick up at Vault Bank', 'A fintech pulls customers from Vault Bank'] },
+    nova: { good: ['Nova Rockets lands a satellite mega-contract 🚀', 'Nova\'s reusable rocket sticks the landing'], bad: ['Nova launch scrubbed, investors nervous', 'Nova loses a contract to a rival'] },
+    geno: { good: ['GenoMed\'s new therapy aces its big trial 🧬', 'GenoMed wins fast-track approval'], bad: ['GenoMed\'s lead drug fails a key study', 'GenoMed burns cash as trials drag on'] }
+  };
+  // Ten levels. Each: a concept to teach, a profit target to clear, and the market variables
+  // (flags) that turn on. Difficulty rises via bigger targets, wilder stocks, and new forces.
+  const MM_LEVELS = [
+    { n: 1, emoji: '🌱', name: 'First Trades', concept: 'Diversification',
+      intro: 'Welcome to the Gallop Stock Exchange! A share is a tiny piece of a real company — buy it low, and if the company grows, so does your money. The first rule the pros live by: never put all your money in ONE stock. Spread it across several so a single bad day can\'t sink you.',
+      tip: 'Spread your cash across all three stocks — that\'s diversification.',
+      days: 8, start: 1000, targetPct: 12, stocks: ['hay', 'sun', 'pix'], flags: {} },
+    { n: 2, emoji: '📰', name: 'Reading the News', concept: 'News moves markets',
+      intro: 'Every trading day a headline drops. Good news usually lifts a stock and bad news usually drops it — but not always! Markets surprise everyone. Use the news as a clue about tomorrow, never as a sure thing, and never bet everything on one headline.',
+      tip: 'The news hints at tomorrow\'s move — but surprises happen. Stay diversified.',
+      days: 8, start: 1000, targetPct: 18, stocks: ['hay', 'sun', 'pix', 'nova'], flags: { news: true } },
+    { n: 3, emoji: '🔁', name: 'Steady Wins', concept: 'Dollar-Cost Averaging',
+      intro: 'Nobody can buy at the exact bottom every time. So the pros use DOLLAR-COST AVERAGING: invest the same amount on a schedule, no matter the price. You automatically buy more shares when they\'re cheap and fewer when they\'re pricey — which keeps your average cost low. Flip on Auto-Invest and watch your average cost work for you.',
+      tip: 'Turn on 🔁 Auto-Invest to buy a set amount every day — that is dollar-cost averaging.',
+      days: 10, start: 1000, targetPct: 20, stocks: ['hay', 'sun', 'pix', 'nova'], flags: { news: true, dca: true } },
+    { n: 4, emoji: '⚖️', name: 'Risk & Reward', concept: 'Risk vs reward',
+      intro: 'Meet GenoMed — a biotech that can rocket OR crater. Wild stocks offer the biggest gains and the biggest losses. Calmer stocks grow slowly but steadily. A smart portfolio holds some of each, so you get real growth without betting the farm.',
+      tip: 'Balance a wild stock (🧬🚀) with steady ones (🌾☀️). High reward always rides with high risk.',
+      days: 8, start: 1200, targetPct: 25, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true } },
+    { n: 5, emoji: '📉', name: 'The Crash', concept: 'Don\'t panic-sell',
+      intro: 'Sooner or later, the whole market drops at once — a crash. It feels scary, but here\'s the secret the best investors know: crashes are temporary, and selling in a panic locks in your losses. Downturns are actually when stocks go ON SALE. Hold steady, and if you\'re brave, buy the dip.',
+      tip: 'If a crash hits, DON\'T panic-sell. Markets recover — a dip can be a discount.',
+      days: 10, start: 1500, targetPct: 10, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, crash: true } },
+    { n: 6, emoji: '💸', name: 'Fees & Patience', concept: 'Costs of over-trading',
+      intro: 'From now on, every trade costs a small $1 fee — just like the real world. Traders who buy and sell constantly bleed money on fees and often do WORSE than someone who picks well and waits. Patience is a strategy. Trade with purpose, not every single day.',
+      tip: 'Each trade now costs $1. Don\'t over-trade — patience beats churning.',
+      days: 10, start: 1500, targetPct: 22, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true } },
+    { n: 7, emoji: '💰', name: 'Dividends', concept: 'Income & compounding',
+      intro: 'Some companies share their profits with owners every day you hold them — that\'s a DIVIDEND. Even if the price barely moves, dividends quietly pay you just for holding. Reinvest them to buy more shares, and your money starts growing on its own growth. That snowball is called compounding.',
+      tip: 'Hold 🏦🌾☕ to collect daily dividends, then reinvest them — that\'s compounding.',
+      days: 12, start: 2000, targetPct: 25, stocks: ['hay', 'brew', 'sun', 'vault', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true } },
+    { n: 8, emoji: '📊', name: 'Rates & Sectors', concept: 'Interest rates rotate sectors',
+      intro: 'A central bank sets interest rates, and rates quietly push whole sectors up or down. When rates RISE, banks (🏦) tend to win while fast-growing tech (☁️🎮🚀) feels a headwind. When rates FALL, growth stocks catch fire. Watch the rate meter and tilt toward whatever the winds favor.',
+      tip: 'Rates rising? Banks 🏦 like it, growth 🎮☁️🚀 struggles. Falling? The opposite. Watch the meter.',
+      days: 12, start: 2000, targetPct: 28, stocks: ['brew', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true } },
+    { n: 9, emoji: '🐂', name: 'Bull & Bear', concept: 'Market cycles',
+      intro: 'Markets move in cycles: a BULL run when almost everything rises, then a BEAR stretch when it all sags. Nobody can predict the exact turn, so the winning move is to stay invested through both, keep dollar-cost averaging, and let the long climb carry you. Time IN the market beats timing the market.',
+      tip: 'Ride the cycle — keep investing through bull AND bear. Time in beats timing.',
+      days: 14, start: 2500, targetPct: 32, stocks: ['brew', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true, crash: true } },
+    { n: 10, emoji: '👑', name: 'Portfolio Manager', concept: 'Put it all together',
+      intro: 'Graduation day. Every force is live at once — news, fees, dividends, interest rates, and the risk of a crash — across the full market. Use everything you\'ve learned: diversify, dollar-cost average, stay calm in a dip, mind your fees, collect dividends, and read the rate winds. Hit the target and you\'re a Certified Gallop Investor.',
+      tip: 'Everything is on. Diversify, DCA, hold through dips, watch fees & rates. You\'ve got this.',
+      days: 16, start: 3000, targetPct: 40, stocks: ['hay', 'brew', 'sun', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true, crash: true } }
+  ];
+  const MM_GLOSSARY = [
+    ['Share / Stock', 'A tiny piece of ownership in a company. Owning shares means you own a slice of that business.'],
+    ['Diversification', 'Spreading your money across many investments so one bad one can\'t hurt you much.'],
+    ['Dollar-Cost Averaging', 'Investing a fixed amount on a regular schedule, which keeps your average buy price low.'],
+    ['Risk vs Reward', 'Investments that can gain the most can also lose the most. Balance bold picks with steady ones.'],
+    ['Dividend', 'A share of a company\'s profits paid to shareholders, often regularly, just for holding the stock.'],
+    ['Compounding', 'When your earnings start earning too — growth on top of growth. It snowballs over time.'],
+    ['Bull Market', 'A stretch when prices are generally rising and optimism is high.'],
+    ['Bear Market', 'A stretch when prices are generally falling. Historically, markets have always recovered eventually.'],
+    ['Interest Rates', 'The cost of borrowing money, set by a central bank. Rate changes push sectors up or down.'],
+    ['Buy the Dip', 'Buying good stocks after a drop, when they\'re effectively on sale — the opposite of panic-selling.']
+  ];
+
+  const MM_BLANK = { unlocked: 1, cleared: {}, best: {}, careerProfit: 0, graduated: false };
+  async function mmLoadProgress() {
+    try {
+      const r = await api(`/play/${kidId()}/game-state/market`);
+      const s = r && r.state;
+      if (s && typeof s === 'object') return Object.assign({}, MM_BLANK, s, { cleared: s.cleared || {}, best: s.best || {} });
+    } catch (e) {}
+    return Object.assign({}, MM_BLANK, { cleared: {}, best: {} });
+  }
+  async function mmSaveProgress(p) {
+    try { await api(`/play/${kidId()}/game-state/market`, { method: 'POST', body: { state: p } }); } catch (e) {}
+  }
+  const $$ = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const mmStars = s => '★★★☆☆☆'.slice(3 - s, 6 - s); // s in 0..3 -> filled then hollow, length 3
+
+  // ---- the career hub / level select (free to browse; a level costs 1 token to play) ----
+  async function startMarketHub() {
+    const progress = await mmLoadProgress();
+    const total = MM_LEVELS.length;
+    const clearedCount = Object.keys(progress.cleared).length;
+    const starTotal = Object.values(progress.cleared).reduce((a, b) => a + b, 0);
+    const current = Math.min(progress.unlocked, total);
+    const cur = MM_LEVELS[current - 1];
+    app().innerHTML = topbar(`<div class="container" style="max-width:720px">
+      <div class="kid-header" style="margin-bottom:10px">
+        <div><h1 style="margin:0">📈 Market Mogul</h1>
+          <div class="muted" style="font-size:.9rem">Your investing career — learn to grow real money, one level at a time.</div>
+        </div>
+        <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#play'">← Play Zone</button></div>
+      </div>
+      <div class="mm-career">
+        <div class="mm-cstat"><div class="n">${progress.graduated ? '🎓' : current}</div><div>${progress.graduated ? 'Graduate' : 'Current level'}</div></div>
+        <div class="mm-cstat"><div class="n">${starTotal}<span style="color:#f4b740">★</span></div><div>Stars earned</div></div>
+        <div class="mm-cstat"><div class="n">${clearedCount}/${total}</div><div>Levels cleared</div></div>
+        <div class="mm-cstat"><div class="n">${'$' + Math.round(progress.careerProfit).toLocaleString()}</div><div>Career profit</div></div>
+      </div>
+      ${progress.graduated ? `<div class="mm-grad-banner">🎓 You\'re a Certified Gallop Investor! Replay any level to beat your stars, or keep sharpening your skills.</div>` : `
+      <button class="btn green mm-continue" id="mm-continue">▶ ${clearedCount >= current ? 'Replay' : 'Continue'} — Level ${current}: ${cur.emoji} ${esc(cur.name)} <span class="mm-cost">1 🎟️</span></button>`}
+      <div class="mm-levels">
+        ${MM_LEVELS.map(L => {
+          const stars = progress.cleared[L.n] || 0;
+          const locked = L.n > progress.unlocked;
+          return `<div class="mm-level-card${locked ? ' mm-locked' : ''}${stars ? ' mm-done' : ''}" data-lvl="${L.n}">
+            <div class="mm-lvl-top"><span class="mm-lvl-num">${locked ? '🔒' : L.emoji}</span><span class="mm-lvl-stars">${stars ? `<span style="color:#f4b740">${mmStars(stars)}</span>` : (locked ? '' : '· · ·')}</span></div>
+            <div class="mm-lvl-name">Lv ${L.n}: ${esc(L.name)}</div>
+            <div class="mm-lvl-concept">${esc(L.concept)}</div>
+            <div class="mm-lvl-goal">${locked ? 'Locked' : `🎯 +${L.targetPct}% in ${L.days} days`}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="center" style="margin-top:14px">
+        <button class="btn" id="mm-notebook">📓 Investor's Notebook</button>
+      </div>
+      <p class="game-hint" style="font-size:.85rem;margin-top:10px">Each level costs 1 🎟️ to play. Hit the profit target to clear it and unlock the next. Your progress saves automatically.</p>
+    </div>`);
+    wireChrome();
+    const cont = $('#mm-continue'); if (cont) cont.onclick = () => mmPlayLevel(current, progress);
+    document.querySelectorAll('.mm-level-card').forEach(el => el.onclick = () => {
+      const n = Number(el.dataset.lvl);
+      if (n > progress.unlocked) { toast('Clear the level before it to unlock this one! 🔒'); return; }
+      mmPlayLevel(n, progress);
+    });
+    $('#mm-notebook').onclick = () => mmNotebook(progress);
+  }
+
+  function mmNotebook(progress) {
+    const learned = MM_LEVELS.filter(L => progress.cleared[L.n]);
+    app().innerHTML = topbar(`<div class="container" style="max-width:680px">
+      <div class="lesson-top"><b>📓 Investor's Notebook</b><button class="btn ghost small" id="nb-back">← Back</button></div>
+      <div class="card" style="padding:16px">
+        <h3 style="margin-top:0">💡 Ideas you've learned</h3>
+        ${learned.length ? learned.map(L => `<div class="nb-concept"><b>${L.emoji} ${esc(L.concept)}</b><p class="muted" style="margin:4px 0 0">${esc(L.tip)}</p></div>`).join('') : '<p class="muted">Clear levels to unlock the big investing ideas here — one per level.</p>'}
+      </div>
+      <div class="card" style="padding:16px;margin-top:12px">
+        <h3 style="margin-top:0">📖 Glossary</h3>
+        ${MM_GLOSSARY.map(([t, d]) => `<div class="nb-term"><b>${esc(t)}</b> — <span class="muted">${esc(d)}</span></div>`).join('')}
+      </div>
+    </div>`);
+    wireChrome();
+    $('#nb-back').onclick = () => startMarketHub();
+  }
+
+  // Spend a token, then run the chosen level. Friendly paywall if out of tokens.
+  async function mmPlayLevel(n, progress) {
+    try {
+      const r = await api(`/play/${kidId()}/spend-token`, { method: 'POST', body: { game: 'market' } });
+      Sound.badge();
+      _curBest = r.best || 0;
+      mmRunLevel(MM_LEVELS[n - 1], progress);
+    } catch (e) {
+      app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="card center">
+        <div class="big-emoji">🎟️</div><h2>You need a Play Token!</h2>
+        <p class="muted" style="margin:10px 0 18px">${esc(e.data && e.data.message || 'Answer 5 questions correctly in any subject to earn one!')}</p>
+        <button class="btn green" onclick="location.hash='#home'">Go Learn & Earn →</button>
+        <button class="btn ghost small" style="margin-left:8px" id="mm-broke-back">Back</button>
+      </div></div>`);
+      wireChrome();
+      const b = $('#mm-broke-back'); if (b) b.onclick = () => startMarketHub();
+    }
+  }
+
+  // ---- concept card (the mini-lesson shown before each level) ----
+  function mmRunLevel(L, progress) {
+    app().innerHTML = topbar(`<div class="container" style="max-width:620px">
+      <div class="mm-concept-card">
+        <div class="mm-concept-emoji">${L.emoji}</div>
+        <div class="mm-concept-kicker">Level ${L.n} · ${esc(L.concept)}</div>
+        <h2 style="margin:.2em 0">${esc(L.name)}</h2>
+        <p class="mm-concept-body">${esc(L.intro)}</p>
+        <div class="mm-goal-box">🎯 Goal: turn <b>${$$(L.start)}</b> into <b>${$$(L.start * (1 + L.targetPct / 100))}</b> (+${L.targetPct}%) within <b>${L.days} days</b>.</div>
+        <button class="btn green" id="mm-begin">Start Trading →</button>
+      </div>
+    </div>`);
+    wireChrome();
+    $('#mm-begin').onclick = () => mmPlay(L, progress);
+  }
+
+  // ---- the actual level play loop ----
+  function mmPlay(L, progress) {
+    const F = L.flags;
+    const stocks = L.stocks.map(id => Object.assign({}, MM_STOCKS[id], { id, hist: [MM_STOCKS[id].price] }));
+    const target = L.start * (1 + L.targetPct / 100);
+    let day = 1, cash = L.start;
+    const shares = {}, spent = {}; stocks.forEach(s => { shares[s.id] = 0; spent[s.id] = 0; });
+    let last = {}, headline = F.news ? mmNews() : null;
+    let dcaOn = false, dcaPick = stocks[0].id;
+    const dcaAmt = Math.max(20, Math.round(L.start / 25));
+    let rate = 'steady', crashed = false, recover = 0, trades = 0, fees = 0, divTotal = 0;
+    const feeAmt = F.fee ? 1 : 0;
+    let tradesToday = 0;
+
+    function mmNews() {
+      const s = stocks[Math.floor(Math.random() * stocks.length)];
       const up = Math.random() < 0.5;
-      const list = NEWS[s.id][up ? 'good' : 'bad'];
+      const list = MM_NEWS[s.id][up ? 'good' : 'bad'];
       return { stock: s.id, up, text: list[Math.floor(Math.random() * list.length)] };
     }
-    function netWorth() { return cash + STOCKS.reduce((t, s) => t + owned[s.id] * s.price, 0); }
+    function netWorth() { return cash + stocks.reduce((t, s) => t + shares[s.id] * s.price, 0); }
+    function avgCost(id) { return shares[id] > 0 ? spent[id] / shares[id] : 0; }
 
-    // 16-bit trading-terminal price chart, drawn on a low-res pixel canvas.
     function chart() { return `<div class="mm-chart px-stage"><canvas id="mm-canvas" width="240" height="118"></canvas><span class="mm-ax mm-axhi" id="mm-hi"></span><span class="mm-ax mm-axlo" id="mm-lo"></span></div>`; }
-    function drawMMChart() {
+    function drawChart() {
       const cv = $('#mm-canvas'); if (!cv) return;
       const ctx = pixelCtx(cv);
       const W = 240, H = 118, mL = 4, mR = 6, mT = 11, mB = 11;
-      const days = STOCKS[0].hist.length;
-      const all = STOCKS.flatMap(s => s.hist);
+      const days = stocks[0].hist.length;
+      const all = stocks.flatMap(s => s.hist);
       let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * 0.14 || 4; lo = Math.max(0, lo - pad); hi = hi + pad;
       const X = i => mL + (days <= 1 ? 0 : i / (days - 1) * (W - mL - mR));
       const Y = v => mT + (1 - (v - lo) / ((hi - lo) || 1)) * (H - mT - mB);
       PX.r(ctx, 0, 0, W, H, '#0e2c1c');
       PX.r(ctx, 0, 0, W, 1, '#2ea060'); PX.r(ctx, 0, H - 1, W, 1, '#124a2c');
       for (const f of [0, 0.5, 1]) { const y = Math.round(mT + f * (H - mT - mB)); for (let x = mL; x < W - mR; x += 4) PX.r(ctx, x, y, 2, 1, 'rgba(120,200,150,.16)'); }
-      STOCKS.forEach(s => {
+      stocks.forEach(s => {
         ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.beginPath();
         s.hist.forEach((p, i) => { const x = X(i), y = Y(p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
         ctx.stroke();
         const lx = X(days - 1), ly = Y(s.hist[days - 1]); PX.r(ctx, lx - 2, ly - 2, 5, 5, s.color); PX.r(ctx, lx - 1, ly - 1, 3, 3, '#fff');
       });
-      // Axis price labels render as crisp HTML overlaid on the chart corners — pixel
-      // font baked into the up-scaled low-res canvas blurred badly at this zoom.
       const hiEl = $('#mm-hi'), loEl = $('#mm-lo');
       if (hiEl) hiEl.textContent = $$(hi);
       if (loEl) loEl.textContent = $$(lo);
     }
 
-    function render(flash, animate) {
-      const nw = netWorth(), gain = nw - START;
+    function render(flash) {
+      const nw = netWorth(), gain = nw - L.start;
+      const pctToTarget = Math.max(0, Math.min(100, Math.round((nw - L.start) / (target - L.start) * 100)));
+      const rateBadge = F.rates ? `<span class="mm-rate mm-rate-${rate}">${rate === 'rising' ? '📈 Rates rising' : rate === 'falling' ? '📉 Rates falling' : '➖ Rates steady'}</span>` : '';
       app().innerHTML = topbar(`<div class="container" style="max-width:680px">
-        <div class="lesson-top"><b>📈 Market Mogul — Day ${round}/${ROUNDS}${_curBest ? `<span class="hs-target">🏅 Best: ${_curBest}</span>` : ''}</b><b class="${gain >= 0 ? 'up' : 'down'}">${$$(nw)} ${gain >= 0 ? '▲' : '▼'} ${$$(Math.abs(gain))}</b></div>
+        <div class="lesson-top"><b>${L.emoji} Lv ${L.n} · Day ${day}/${L.days}</b><b class="${gain >= 0 ? 'up' : 'down'}">${$$(nw)} ${gain >= 0 ? '▲' : '▼'} ${$$(Math.abs(gain))}</b></div>
+        <div class="mm-target-wrap"><div class="mm-target-bar"><div class="mm-target-fill" style="width:${pctToTarget}%"></div></div><span class="mm-target-label">🎯 ${pctToTarget}% to goal (${$$(target)})</span></div>
         ${chart()}
-        <div class="mm-legend">${STOCKS.map(s => `<span><i style="background:${s.color}"></i>${s.emoji} ${$$(s.price)}</span>`).join('')}</div>
-        <div class="mm-lots">Trade size: ${LOTS.map(n => `<button class="mm-lot ${lot === n ? 'on' : ''}" data-lot="${n}">×${n}</button>`).join('')}</div>
+        <div class="mm-legend">${stocks.map(s => `<span><i style="background:${s.color}"></i>${s.emoji} ${$$(s.price)}</span>`).join('')} ${rateBadge}</div>
         ${flash ? `<div class="news-flash mm-surprise">${flash}</div>` : ''}
-        <div class="news-flash">📰 <b>MARKET NEWS:</b> ${headline.text}<br><span style="font-weight:500;font-size:.9rem">Think ahead: what might this do to the price tomorrow?</span></div>
+        ${headline ? `<div class="news-flash">📰 <b>MARKET NEWS:</b> ${headline.text}<br><span style="font-weight:500;font-size:.9rem">Think ahead: what might this do tomorrow?</span></div>` : ''}
+        ${F.dca ? `<div class="mm-dca ${dcaOn ? 'on' : ''}">
+          <button class="mm-dca-toggle ${dcaOn ? 'on' : ''}" id="dca-toggle">🔁 Auto-Invest ${dcaOn ? 'ON' : 'OFF'}</button>
+          <span class="mm-dca-desc">Buys <b>${$$(dcaAmt)}</b> of <select id="dca-pick">${stocks.map(s => `<option value="${s.id}" ${dcaPick === s.id ? 'selected' : ''}>${s.emoji} ${s.short}</option>`).join('')}</select> each day — that's dollar-cost averaging.</span>
+        </div>` : ''}
         <div class="card" style="padding:12px">
-          ${STOCKS.map(s => {
-            const chg = last[s.id]; const val = owned[s.id] * s.price;
-            return `<div class="stock-row${s.id === headline.stock ? ' mm-hot' : ''}">
+          ${stocks.map(s => {
+            const chg = last[s.id]; const val = shares[s.id] * s.price; const ac = avgCost(s.id);
+            return `<div class="stock-row${headline && s.id === headline.stock ? ' mm-hot' : ''}">
               <span class="mm-dot" style="background:${s.color}"></span>
-              <b class="mm-name">${s.emoji} ${s.short}</b>
+              <b class="mm-name">${s.emoji} ${s.short}${F.dividends && s.div ? ' <span class="mm-divtag" title="Pays a dividend">💰</span>' : ''}</b>
               <span class="mm-price">${$$(s.price)}</span>
               ${chg != null ? `<span class="${chg >= 0 ? 'up' : 'down'} mm-chg">${chg >= 0 ? '▲' : '▼'}${Math.abs(chg).toFixed(1)}%</span>` : '<span class="muted mm-chg">new</span>'}
-              <span class="mm-hold">${owned[s.id] ? `×${owned[s.id]}` : ''}</span>
+              <span class="mm-hold">${shares[s.id] ? `×${shares[s.id]}${ac ? `<span class="mm-avg">avg ${$$(ac)}</span>` : ''}` : ''}</span>
               <span class="mm-actions">
-                <button class="btn small green" data-buy="${s.id}" ${cash < s.price ? 'disabled' : ''}>Buy</button>
-                <button class="btn small coral" data-sell="${s.id}" ${owned[s.id] < 1 ? 'disabled' : ''}>Sell</button>
+                <button class="btn small green" data-buy="${s.id}" ${cash < s.price + feeAmt ? 'disabled' : ''}>Buy</button>
+                <button class="btn small coral" data-sell="${s.id}" ${shares[s.id] < 1 ? 'disabled' : ''}>Sell</button>
               </span>
             </div>`;
           }).join('')}
           <div class="mm-foot">
             <span>💵 Cash <b>${$$(cash)}</b></span><span>📊 Stocks <b>${$$(nw - cash)}</b></span>
-            <button class="btn sun small" id="next-day">${round === ROUNDS ? 'Close the Market 🔔' : 'Next Day →'}</button>
+            <button class="btn sun small" id="next-day">${day === L.days ? 'Close the Market 🔔' : 'Next Day →'}</button>
           </div>
         </div>
-        <p class="game-hint" style="font-size:.9rem">💡 Steady stocks (🌾) drift a little; wild ones (🚀) can rocket or crash. Spreading your money across several is how real investors survive a bad day.</p>
+        ${feeAmt ? `<p class="game-hint" style="font-size:.82rem">💸 Each trade costs ${$$(feeAmt)}. Trades so far: ${trades} · Fees paid: ${$$(fees)}. Don't over-trade!</p>` : ''}
+        <p class="game-hint" style="font-size:.88rem">💡 ${esc(L.tip)}</p>
       </div>`);
       wireChrome();
-      drawMMChart();
-      document.querySelectorAll('[data-lot]').forEach(b => b.onclick = () => { lot = Number(b.dataset.lot); Sound.click(); render(flash, false); });
+      drawChart();
+      const dt = $('#dca-toggle'); if (dt) dt.onclick = () => { dcaOn = !dcaOn; Sound.click(); render(flash); };
+      const dp = $('#dca-pick'); if (dp) dp.onchange = () => { dcaPick = dp.value; };
       document.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => {
-        const s = STOCKS.find(x => x.id === b.dataset.buy);
-        const n = Math.min(lot, Math.floor(cash / s.price));   // buy up to `lot`, capped by cash
-        if (n > 0) { cash -= n * s.price; owned[s.id] += n; Sound.click(); render(flash, false); }
+        const s = stocks.find(x => x.id === b.dataset.buy);
+        if (cash >= s.price + feeAmt) { cash -= s.price + feeAmt; shares[s.id] += 1; spent[s.id] += s.price; if (feeAmt) { fees += feeAmt; } trades++; Sound.click(); render(flash); }
       });
       document.querySelectorAll('[data-sell]').forEach(b => b.onclick = () => {
-        const s = STOCKS.find(x => x.id === b.dataset.sell);
-        const n = Math.min(lot, owned[s.id]);                  // sell up to `lot`, capped by holdings
-        if (n > 0) { cash += n * s.price; owned[s.id] -= n; Sound.click(); render(flash, false); }
+        const s = stocks.find(x => x.id === b.dataset.sell);
+        // Proceeds (price - fee) are always >= 0 since price >= 1 >= fee, so no up-front cash needed.
+        if (shares[s.id] >= 1) { cash += s.price - feeAmt; spent[s.id] -= avgCost(s.id); shares[s.id] -= 1; if (feeAmt) { fees += feeAmt; } trades++; Sound.click(); render(flash); }
       });
       $('#next-day').onclick = advance;
     }
+
     function advance() {
+      // dividends first (paid on shares held at the start of the day's close)
+      if (F.dividends) {
+        let paid = 0;
+        stocks.forEach(s => { if (s.div && shares[s.id]) paid += shares[s.id] * s.div; });
+        if (paid > 0) { cash += paid; divTotal += paid; }
+      }
+      // dollar-cost averaging: auto-buy a fixed dollar amount of the picked stock
+      if (F.dca && dcaOn) {
+        const s = stocks.find(x => x.id === dcaPick);
+        const n = Math.floor(dcaAmt / (s.price + feeAmt));
+        // Fee is per share, matching the manual buy path — so auto-investing doesn't dodge
+        // trading costs (that would undercut the "fees hurt / don't over-trade" lesson).
+        if (n > 0 && cash >= n * (s.price + feeAmt)) {
+          cash -= n * (s.price + feeAmt); shares[s.id] += n; spent[s.id] += n * s.price; if (feeAmt) { fees += n * feeAmt; trades += n; }
+        }
+      }
+      // interest-rate regime can shift
+      if (F.rates && Math.random() < 0.30) { rate = ['rising', 'falling', 'steady'][Math.floor(Math.random() * 3)]; }
       const follows = Math.random() < 0.85;
       let flash = null;
-      for (const s of STOCKS) {
+      // crash trigger (once per level, in the middle stretch)
+      let crashing = false;
+      if (F.crash && !crashed && day >= 3 && day <= L.days - 2 && Math.random() < 0.28) {
+        crashing = true; crashed = true; recover = 3;
+        flash = '📉 CRASH! The whole market is tumbling. Don\'t panic — downturns recover, and dips can be discounts. Hold steady (or buy the dip).';
+      }
+      for (const s of stocks) {
         let move = (Math.random() * 2 - 1) * s.wild;
-        if (s.id === headline.stock) {
+        if (headline && s.id === headline.stock) {
           const dir = headline.up === follows ? 1 : -1;
           move = dir * (0.08 + Math.random() * 0.14);
-          if (!follows) flash = '😮 Surprise! The market did not react the way the news suggested. That happens for real, never bet everything on one headline.';
+          if (!follows && !flash) flash = '😮 Surprise! The market didn\'t react the way the news suggested. That happens for real — never bet everything on one headline.';
         }
+        if (F.rates && s.rate) {
+          const push = rate === 'rising' ? s.rate : rate === 'falling' ? -s.rate : 0;
+          move += push * (0.015 + Math.random() * 0.03);
+        }
+        if (crashing) { move = -(0.14 + Math.random() * 0.20); }
+        else if (recover > 0) { move += 0.01 + Math.random() * 0.035; }
         last[s.id] = move * 100;
         s.price = Math.max(1, Math.round(s.price * (1 + move) * 100) / 100);
         s.hist.push(s.price);
       }
-      if (round === ROUNDS) {
-        const nw = netWorth();
-        const gain = nw - START;
-        const pct = Math.round((gain / START) * 100);
-        const score = Math.max(10, Math.round(nw / 10));
-        finishGame('market', score, gain >= 0 ? `Portfolio: ${$$(nw)} — up ${pct}%! 📈` : `Portfolio: ${$$(nw)} — down ${Math.abs(pct)}% 📉`,
-          gain >= 0 ? 'You read the news, spread your risk, and grew your money. That is investing, and you just did it for real.'
-            : 'Losses teach the best lessons: diversify, do not chase one hot stock, and think a day ahead. Even the pros have red days!');
-        return;
-      }
-      round++; headline = makeNews();
+      if (recover > 0 && !crashing) recover--;
+      if (day === L.days) return finish();
+      day++; if (F.news) headline = mmNews();
       Sound.badge();
-      render(flash, true);
+      render(flash);
     }
-    render(null, true);
-  }
 
+    function finish() {
+      const nw = netWorth(), gain = nw - L.start, pct = Math.round(gain / L.start * 100);
+      const cleared = nw >= target;
+      let stars = 0;
+      if (cleared) stars = nw >= L.start * (1 + L.targetPct * 2 / 100) ? 3 : nw >= L.start * (1 + L.targetPct * 1.5 / 100) ? 2 : 1;
+      const prevStars = progress.cleared[L.n] || 0;
+      const firstClear = cleared && prevStars === 0;
+      // update saved progress
+      if (cleared) {
+        progress.cleared[L.n] = Math.max(prevStars, stars);
+        if (L.n === progress.unlocked && L.n < MM_LEVELS.length) progress.unlocked = L.n + 1;
+        if (firstClear) progress.careerProfit = (progress.careerProfit || 0) + Math.max(0, Math.round(gain));
+        if (Object.keys(progress.cleared).length >= MM_LEVELS.length) progress.graduated = true;
+      }
+      progress.best[L.n] = Math.max(progress.best[L.n] || 0, Math.round(nw));
+      mmSaveProgress(progress);
+      // record a high-score run too (coins, buddy challenges, best) — score = portfolio/10
+      const score = Math.max(10, Math.round(nw / 10));
+      api(`/play/${kidId()}/score`, { method: 'POST', body: { game: 'market', score } }).then(r => {
+        if (r && r.coinsEarned) toast(`+${r.coinsEarned} 🪙`);
+      }).catch(() => {});
+      Confetti.burst(cleared ? 220 : 90); Sound.levelup();
+      const nextL = MM_LEVELS[L.n]; // may be undefined at level 10
+      const justGraduated = cleared && progress.graduated;
+      app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
+        <div class="big-emoji">${justGraduated ? '🎓' : cleared ? '🏆' : '📊'}</div>
+        <h2>${justGraduated ? 'You\'re a Certified Gallop Investor!' : cleared ? `Level ${L.n} cleared!` : 'So close — try again!'}</h2>
+        ${cleared ? `<div class="mm-star-row">${'★'.repeat(stars)}<span class="mm-star-empty">${'★'.repeat(3 - stars)}</span></div>` : ''}
+        <div class="summary-stats">
+          <div class="sstat"><div class="n">${$$(nw)}</div>portfolio</div>
+          <div class="sstat"><div class="n ${gain >= 0 ? 'up' : 'down'}">${gain >= 0 ? '+' : ''}${pct}%</div>return</div>
+          ${F.dividends && divTotal ? `<div class="sstat"><div class="n">${$$(divTotal)}</div>💰 dividends</div>` : ''}
+        </div>
+        <div class="hs-banner ${cleared ? 'hs-new' : ''}">${cleared
+          ? (justGraduated ? 'You cleared every level and mastered the market. Incredible work! 🎉' : `You beat the +${L.targetPct}% goal. ${nextL ? `Level ${nextL.n}: ${esc(nextL.name)} is unlocked!` : ''}`)
+          : `You reached ${$$(nw)} — the goal was ${$$(target)}. Every pro has red days. Adjust your strategy and give it another go!`}</div>
+        <p class="muted">${esc(cleared ? L.tip : L.intro.split('. ')[0] + '.')}</p>
+        <div style="margin-top:14px">
+          ${cleared && nextL ? `<button class="btn green" id="mm-next">Next Level →</button>` : ''}
+          ${!cleared ? `<button class="btn green" id="mm-retry">Try Again (1 🎟️)</button>` : ''}
+          <button class="btn" style="margin-left:8px" id="mm-hub">Market Hub</button>
+        </div>
+      </div></div>`);
+      wireChrome();
+      const nx = $('#mm-next'); if (nx) nx.onclick = () => mmPlayLevel(nextL.n, progress);
+      const rt = $('#mm-retry'); if (rt) rt.onclick = () => mmPlayLevel(L.n, progress);
+      $('#mm-hub').onclick = () => startMarketHub();
+    }
+
+    render(null);
+  }
   // ======================= BAKERY QUEST =======================
   // "Why do I need this?" answered by DOING it: you run a real bakery for a day, and every
   // real task (batching, scaling a recipe, pricing, making change, counting profit) is solved

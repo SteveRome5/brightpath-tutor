@@ -920,7 +920,7 @@ route('landing', async () => {
         <p>Every 5 correct answers earns a play token — and the games aren't a break from learning, they're learning in disguise. Retro 16-bit games our team built from scratch, teaching skills most kids never get in school.</p>
       </div>
       <div class="ab-grid">
-        <div class="ab-card"><span class="ab-emoji">📈</span><b>Market Mogul</b><p>Grow $1,000 on the Gallop Stock Exchange — read the news, weigh risk, learn how investing actually works.</p><span class="ab-tag">real-world money</span></div>
+        <div class="ab-card ab-feature"><span class="ab-emoji">📈</span><b>Market Mogul</b><p>A full 10-level investing career that saves your progress and levels up as you master real strategies — diversification, dollar-cost averaging, dividends, riding out a crash. The kind of financial literacy most adults never learn, built to keep older students hooked.</p><span class="ab-tag">investing · grades 4–12</span></div>
         <div class="ab-card"><span class="ab-emoji">🍋</span><b>Lemonade Tycoon</b><p>Buy smart, price right, watch the weather. Revenue, cost, and profit — a first business before age 10.</p><span class="ab-tag">entrepreneurship</span></div>
         <div class="ab-card"><span class="ab-emoji">🧁</span><b>Bakery Quest</b><p>Run a bakery for a day: batches, pricing, making change. Math with money on the line.</p><span class="ab-tag">business math</span></div>
         <div class="ab-card"><span class="ab-emoji">🤖</span><b>Code Quest</b><p>Program a robot step by step to reach the star — first coding logic, no typing needed.</p><span class="ab-tag">coding</span></div>

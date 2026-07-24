@@ -1684,3 +1684,57 @@ body[data-theme="academy"] .lw-passage { background: #2a2921; border-color: #4a4
   .btn, .zone-card, .q-card { transition: none; }
   .choice.correct, .choice.wrong, .hero-logo, .big-emoji { animation: none; }
 }
+
+/* ===================== Market Mogul — investing career ===================== */
+.mm-career { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.mm-cstat { flex: 1 1 0; min-width: 118px; background: var(--soft-bg); border: 1.5px solid var(--card-border); border-radius: 14px; padding: 12px 10px; text-align: center; }
+.mm-cstat .n { font-family: var(--font-display); font-size: 1.35rem; color: var(--brand); line-height: 1.1; }
+body[data-theme="academy"] .mm-cstat .n { color: var(--accent); }
+.mm-cstat > div:last-child { font-size: .74rem; color: var(--chrome-sub); margin-top: 3px; }
+.mm-continue { width: 100%; font-size: 1.05rem; padding: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 14px; }
+.mm-cost { background: rgba(255,255,255,.28); border-radius: 999px; padding: 2px 10px; font-size: .82rem; }
+.mm-grad-banner { background: linear-gradient(90deg, #fff2c9, #ffe08a); border: 1.5px solid #e0b93c; color: #7a5a12; font-weight: 700; border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; text-align: center; }
+.mm-levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.mm-level-card { background: var(--soft-bg); border: 1.5px solid var(--card-border); border-radius: 14px; padding: 12px; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+.mm-level-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.mm-level-card.mm-locked { opacity: .55; cursor: not-allowed; filter: grayscale(.4); }
+.mm-level-card.mm-locked:hover { transform: none; box-shadow: none; }
+.mm-level-card.mm-done { border-color: #e0b93c; background: linear-gradient(180deg, rgba(255,224,138,.18), var(--soft-bg)); }
+.mm-lvl-top { display: flex; justify-content: space-between; align-items: center; }
+.mm-lvl-num { font-size: 1.5rem; }
+.mm-lvl-stars { font-size: .9rem; letter-spacing: 1px; color: var(--chrome-sub); }
+.mm-lvl-name { font-weight: 800; margin-top: 6px; font-size: .95rem; }
+.mm-lvl-concept { font-size: .82rem; color: var(--chrome-sub); }
+.mm-lvl-goal { font-size: .8rem; font-weight: 700; color: var(--brand); margin-top: 6px; }
+body[data-theme="academy"] .mm-lvl-goal { color: var(--accent); }
+.nb-concept { padding: 10px 0; border-bottom: 1px solid var(--card-border); }
+.nb-concept:last-child { border-bottom: none; }
+.nb-term { padding: 7px 0; font-size: .92rem; border-bottom: 1px solid var(--card-border); }
+.nb-term:last-child { border-bottom: none; }
+.mm-concept-card { background: var(--soft-bg); border: 1.5px solid var(--card-border); border-radius: 18px; padding: 24px; text-align: center; max-width: 560px; margin: 8px auto; animation: pop .3s ease; }
+.mm-concept-emoji { font-size: 3.4rem; }
+.mm-concept-kicker { text-transform: uppercase; letter-spacing: .08em; font-size: .76rem; font-weight: 800; color: var(--brand); }
+body[data-theme="academy"] .mm-concept-kicker { color: var(--accent); }
+.mm-concept-body { font-size: 1rem; line-height: 1.55; color: var(--chrome-sub); text-align: left; margin: 12px 0; }
+.mm-goal-box { background: var(--accent-soft); border-radius: 12px; padding: 12px 14px; font-weight: 600; margin: 12px 0 18px; text-align: left; }
+body[data-theme="academy"] .mm-goal-box { background: #33301f; color: #e6d9a8; }
+.mm-target-wrap { display: flex; align-items: center; gap: 10px; margin: 6px 0 8px; }
+.mm-target-bar { flex: 1; height: 12px; border-radius: 999px; background: var(--soft-bg); border: 1.5px solid var(--card-border); overflow: hidden; }
+.mm-target-fill { height: 100%; background: linear-gradient(90deg, #3ca03c, #2ea060); transition: width .4s ease; }
+.mm-target-label { font-size: .78rem; font-weight: 700; color: var(--chrome-sub); white-space: nowrap; }
+.mm-rate { font-size: .8rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+.mm-rate-rising { background: #e6f6ec; color: #0c8a5f; }
+.mm-rate-falling { background: #fde8e8; color: #c0392b; }
+.mm-rate-steady { background: rgba(0,0,0,.06); color: var(--chrome-sub); }
+.mm-dca { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--soft-bg); border: 1.5px dashed var(--card-border); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
+.mm-dca.on { border-style: solid; border-color: #3ca03c; background: rgba(60,160,60,.08); }
+.mm-dca-toggle { font: inherit; font-weight: 800; border: none; border-radius: 999px; padding: 6px 14px; cursor: pointer; background: rgba(0,0,0,.08); color: var(--chrome-sub); }
+.mm-dca-toggle.on { background: #3ca03c; color: #fff; }
+.mm-dca-desc { font-size: .85rem; color: var(--chrome-sub); flex: 1 1 200px; }
+.mm-dca-desc select { font: inherit; font-weight: 700; border-radius: 8px; padding: 2px 6px; border: 1.5px solid var(--card-border); background: var(--card-bg, #fff); color: inherit; }
+.mm-divtag { font-size: .8rem; }
+.mm-avg { display: block; font-size: .66rem; font-weight: 600; color: var(--chrome-sub); opacity: .85; }
+.mm-star-row { font-size: 1.8rem; color: #f4b740; letter-spacing: 4px; margin: 6px 0; }
+.mm-star-empty { color: rgba(0,0,0,.15); }
+body[data-theme="academy"] .mm-star-empty { color: rgba(255,255,255,.16); }
+.ab-card.ab-feature { border-color: #C9A84C; box-shadow: 0 0 0 1px #C9A84C33, 0 8px 24px -12px #C9A84C88; background: linear-gradient(180deg, rgba(201,168,76,.12), rgba(255,255,255,.04)); }

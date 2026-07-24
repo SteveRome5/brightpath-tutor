@@ -323,6 +323,33 @@ router.post('/play/:kidId/score', auth.requireKid, (req, res) => {
   res.json({ ok: true, coinsEarned: coins, challengesWon: beaten, best: Math.max(prevBest, s), prevBest, isRecord, firstPlay: !hadPlays });
 });
 
+// ---------- persistent per-game progress (e.g. Market Mogul career) ----------
+// A small owner-scoped save slot so a level-based game can remember where a learner left
+// off, across sessions and devices. One row per (kid, game). The blob is opaque game state
+// (level reached, stars, career stats) — capped hard so it can never be used as storage.
+const GAME_STATE_MAX = 8000; // characters of JSON — generous for progress, far too small to abuse
+router.get('/play/:kidId/game-state/:game', auth.requireKid, (req, res) => {
+  const game = String(req.params.game || '');
+  if (!GAMES.includes(game)) return res.status(400).json({ error: 'Unknown game' });
+  const row = db.prepare('SELECT data, updated_at FROM game_progress WHERE kid_id=? AND game=?').get(req.kid.id, game);
+  if (!row) return res.json({ state: null });
+  let state = null; try { state = JSON.parse(row.data); } catch (e) { state = null; }
+  res.json({ state, updatedAt: row.updated_at });
+});
+router.post('/play/:kidId/game-state/:game', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const game = String(req.params.game || '');
+  if (!GAMES.includes(game)) return res.status(400).json({ error: 'Unknown game' });
+  const state = (req.body || {}).state;
+  if (state == null || typeof state !== 'object') return res.status(400).json({ error: 'Bad state' });
+  let json;
+  try { json = JSON.stringify(state); } catch (e) { return res.status(400).json({ error: 'Bad state' }); }
+  if (json.length > GAME_STATE_MAX) return res.status(413).json({ error: 'Progress too large' });
+  db.prepare(`INSERT INTO game_progress (kid_id, game, data, updated_at) VALUES (?,?,?, datetime('now'))
+              ON CONFLICT(kid_id, game) DO UPDATE SET data=excluded.data, updated_at=datetime('now')`)
+    .run(req.kid.id, game, json);
+  res.json({ ok: true });
+});
+
 // ---------- buddy challenges (safe, async, no chat) ----------
 router.post('/buddies/:kidId/challenge', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { toKid, game } = req.body || {};

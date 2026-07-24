@@ -271,6 +271,14 @@ CREATE TABLE IF NOT EXISTS pin_lockouts (
   first_fail INTEGER,             -- epoch ms of the first fail in this window
   locked_until INTEGER DEFAULT 0  -- epoch ms; if > now, PIN login is locked for this child
 );
+
+CREATE TABLE IF NOT EXISTS game_progress (
+  kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+  game TEXT NOT NULL,              -- which game this save-slot belongs to (e.g. 'market')
+  data TEXT NOT NULL,             -- small JSON blob: level reached, stars, career stats, badges
+  updated_at TEXT DEFAULT (datetime('now')),
+  PRIMARY KEY (kid_id, game)
+);
 `);
 
 // Column migrations for existing databases (safe to re-run)
