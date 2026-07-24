@@ -1,10 +1,6 @@
 /* Gallop Learning Academy — Curriculum spine (scope & sequence).
    Auto-generated: do not hand-edit. Every subject is organized into ordered
-   grade Units (K-12); each Unit lists its lessons (by skillId) in the exact
-   order they should be taught, so lessons read like a textbook and every quiz
-   skill maps to the lesson that teaches it. Chapter numbers are derived at
-   render time (unit.n "." chapter index). Alias/themed practice banks fold into
-   the lesson that teaches the same concept, so each concept appears once here. */
+   grade Units (K-12); each Unit lists its lessons (by skillId). */
 "use strict";
 window.GALLOP_CURRICULUM = {
   "math": [
@@ -19,7 +15,9 @@ window.GALLOP_CURRICULUM = {
         "m.k.compare",
         "m.k.add5",
         "m.k.shapes",
-        "m.k.numbonds"
+        "m.k.numbonds",
+        "m.k.teen",
+        "m.k.measure"
       ]
     },
     {
@@ -33,7 +31,8 @@ window.GALLOP_CURRICULUM = {
         "m.1.add20",
         "m.1.sub20",
         "m.1.time",
-        "m.1.coins"
+        "m.1.coins",
+        "m.1.shapes"
       ]
     },
     {
@@ -48,7 +47,8 @@ window.GALLOP_CURRICULUM = {
         "m.2.skip",
         "m.2.groups",
         "m.2.change",
-        "m.2.measure"
+        "m.2.measure",
+        "m.2.shapes"
       ]
     },
     {
@@ -62,7 +62,9 @@ window.GALLOP_CURRICULUM = {
         "m.3.div",
         "m.3.area",
         "m.3.frac",
-        "m.3.word"
+        "m.3.word",
+        "m.3.nbt",
+        "m.3.shapes"
       ]
     },
     {
@@ -76,7 +78,9 @@ window.GALLOP_CURRICULUM = {
         "m.4.longdiv",
         "m.4.factors",
         "m.4.equivfrac",
-        "m.4.decimals"
+        "m.4.decimals",
+        "m.4.geometry",
+        "m.4.measurement"
       ]
     },
     {
@@ -89,7 +93,8 @@ window.GALLOP_CURRICULUM = {
         "m.5.fracops",
         "m.5.decops",
         "m.5.oop",
-        "m.5.volume"
+        "m.5.volume",
+        "m.5.coordinate"
       ]
     },
     {
@@ -102,7 +107,9 @@ window.GALLOP_CURRICULUM = {
         "m.6.integers",
         "m.6.ratio",
         "m.6.percent",
-        "m.6.expr"
+        "m.6.expr",
+        "m.6.geometry",
+        "m.6.statistics"
       ]
     },
     {
@@ -115,7 +122,8 @@ window.GALLOP_CURRICULUM = {
         "m.7.rational",
         "m.7.proportion",
         "m.7.equation",
-        "m.7.prob"
+        "m.7.prob",
+        "m.7.geometry"
       ]
     },
     {
@@ -128,7 +136,9 @@ window.GALLOP_CURRICULUM = {
         "m.8.expon",
         "m.8.linear",
         "m.8.slope",
-        "m.8.pythag"
+        "m.8.pythag",
+        "m.8.numbersystem",
+        "m.8.scatter"
       ]
     },
     {
@@ -155,7 +165,8 @@ window.GALLOP_CURRICULUM = {
         "m.10.angles",
         "m.10.triangles",
         "m.10.similar",
-        "m.10.circles"
+        "m.10.circles",
+        "m.10.probability"
       ]
     },
     {
@@ -210,7 +221,8 @@ window.GALLOP_CURRICULUM = {
         "e.1.vowels",
         "e.1.sentence",
         "e.1.reading",
-        "e.1.story"
+        "e.1.story",
+        "e.1.write"
       ]
     },
     {
@@ -224,7 +236,9 @@ window.GALLOP_CURRICULUM = {
         "e.2.contractions",
         "e.2.vocab",
         "e.2.reading",
-        "e.2.stories"
+        "e.2.stories",
+        "e.2.decode",
+        "e.2.write"
       ]
     },
     {
@@ -238,7 +252,9 @@ window.GALLOP_CURRICULUM = {
         "e.3.synant",
         "e.3.homophones",
         "e.3.reading",
-        "e.3.passages"
+        "e.3.passages",
+        "e.3.fluency",
+        "e.3.write"
       ]
     },
     {
@@ -252,7 +268,8 @@ window.GALLOP_CURRICULUM = {
         "e.4.mainidea",
         "e.4.figurative",
         "e.4.grammar",
-        "e.4.genres"
+        "e.4.genres",
+        "e.4.write"
       ]
     },
     {
@@ -265,7 +282,9 @@ window.GALLOP_CURRICULUM = {
         "e.5.grammar",
         "e.5.idioms",
         "e.5.pov",
-        "e.5.reading"
+        "e.5.reading",
+        "e.5.write",
+        "e.5.speaking"
       ]
     },
     {
@@ -279,7 +298,8 @@ window.GALLOP_CURRICULUM = {
         "e.6.commas",
         "e.6.theme",
         "e.6.authorpov",
-        "e.6.evidence"
+        "e.6.evidence",
+        "e.6.write"
       ]
     },
     {
@@ -305,7 +325,9 @@ window.GALLOP_CURRICULUM = {
         "e.8.voice",
         "e.8.reading",
         "e.8.argument",
-        "e.8.evidence"
+        "e.8.evidence",
+        "e.8.write",
+        "e.8.speaking"
       ]
     },
     {
@@ -333,7 +355,8 @@ window.GALLOP_CURRICULUM = {
         "e.10.reading",
         "e.10.rhetoric",
         "e.10.tonemood",
-        "e.10.poetry"
+        "e.10.poetry",
+        "e.10.write"
       ]
     },
     {
@@ -403,7 +426,8 @@ window.GALLOP_CURRICULUM = {
         "s.2.habitats",
         "s.2.lifecycle",
         "s.2.forces",
-        "s.2.landwater"
+        "s.2.landwater",
+        "s.2.engineering"
       ]
     },
     {
@@ -430,7 +454,8 @@ window.GALLOP_CURRICULUM = {
         "s.4.matter",
         "s.4.space",
         "s.4.energy",
-        "s.4.rocks"
+        "s.4.rocks",
+        "s.4.engineering"
       ]
     },
     {
@@ -471,7 +496,8 @@ window.GALLOP_CURRICULUM = {
         "s.7.chemistry",
         "s.7.earth",
         "s.7.bodysystems",
-        "s.7.ecology"
+        "s.7.ecology",
+        "s.7.engineering"
       ]
     },
     {
@@ -497,7 +523,8 @@ window.GALLOP_CURRICULUM = {
         "s.9.biology",
         "s.9.chem",
         "s.9.cells",
-        "s.9.photresp"
+        "s.9.photresp",
+        "s.9.earthsystems"
       ]
     },
     {
@@ -511,7 +538,8 @@ window.GALLOP_CURRICULUM = {
         "s.10.chem2",
         "s.10.atoms",
         "s.10.bonding",
-        "s.10.dnagenetics"
+        "s.10.dnagenetics",
+        "s.10.climate"
       ]
     },
     {
@@ -524,7 +552,8 @@ window.GALLOP_CURRICULUM = {
         "s.11.chem",
         "s.11.physics2",
         "s.11.motion",
-        "s.11.circuits"
+        "s.11.circuits",
+        "s.11.ecology"
       ]
     },
     {
@@ -594,7 +623,8 @@ window.GALLOP_CURRICULUM = {
         "sp.3.ser",
         "sp.3.ar",
         "sp.3.cuerpo",
-        "sp.3.hora"
+        "sp.3.hora",
+        "sp.3.comunidad"
       ]
     },
     {
@@ -608,7 +638,8 @@ window.GALLOP_CURRICULUM = {
         "sp.4.gustar",
         "sp.4.comida",
         "sp.4.numeros",
-        "sp.4.escuela"
+        "sp.4.escuela",
+        "sp.4.connections"
       ]
     },
     {
@@ -621,7 +652,8 @@ window.GALLOP_CURRICULUM = {
         "sp.5.eri",
         "sp.5.daily",
         "sp.5.gustar",
-        "sp.5.tiempo"
+        "sp.5.tiempo",
+        "sp.5.fiestas"
       ]
     },
     {
@@ -634,7 +666,8 @@ window.GALLOP_CURRICULUM = {
         "sp.6.adjectives",
         "sp.6.commands",
         "sp.6.lugares",
-        "sp.6.stemchange"
+        "sp.6.stemchange",
+        "sp.6.mercado"
       ]
     },
     {
@@ -648,7 +681,8 @@ window.GALLOP_CURRICULUM = {
         "sp.7.places",
         "sp.7.objetos",
         "sp.7.comparativos",
-        "sp.7.progressive"
+        "sp.7.progressive",
+        "sp.7.connections"
       ]
     },
     {
@@ -675,7 +709,8 @@ window.GALLOP_CURRICULUM = {
         "sp.9.conditional",
         "sp.9.imperfect",
         "sp.9.porpara",
-        "sp.9.relatives"
+        "sp.9.relatives",
+        "sp.9.musica"
       ]
     },
     {
@@ -702,7 +737,8 @@ window.GALLOP_CURRICULUM = {
         "sp.11.professional",
         "sp.11.futcond",
         "sp.11.perfect",
-        "sp.11.pasiva"
+        "sp.11.pasiva",
+        "sp.11.trabajo"
       ]
     },
     {

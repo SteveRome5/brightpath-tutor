@@ -772,9 +772,9 @@ route('landing', async () => {
     <div class="statband reveal">
       <div><b>K–12</b><span>Every grade level</span></div>
       <div><b>4</b><span>Core subjects</span></div>
-      <div><b>260+</b><span>Skill areas</span></div>
+      <div><b>300+</b><span>Skill areas</span></div>
       <div><b>156</b><span>Guided lessons</span></div>
-      <div><b>3,400+</b><span>Accuracy-checked questions</span></div>
+      <div><b>5,000+</b><span>Accuracy-checked questions</span></div>
     </div>
     <div class="showcase reveal">
       <h2 class="section-title" style="margin-bottom:4px">See it in action</h2>
@@ -2794,7 +2794,8 @@ route('standards', async () => {
         ${badge('ACTFL · Spanish', actfl, '#E17055')}
         ${adv ? badge('AP / Advanced', adv, '#b8860b') : ''}
       </div>
-      <p class="muted" style="font-size:.8rem;margin-top:16px">Frameworks: ${Object.values(fw).map(f => esc(f.short)).join(' · ')}. Common Core — or state standards built on it, as in New York and Nevada — is used across most of the country; NGSS is the most widely adopted next-generation science standard, and ACTFL sets the national standard for world-language learning. Standard codes are shown here for educators — students simply see the lesson and practice.</p>
+      <p style="max-width:660px;margin:14px auto 2px;font-weight:600">Coverage spans <b>every Common Core math and ELA domain</b>, <b>all four NGSS science disciplines</b> — including Engineering Design — and <b>all five ACTFL goal areas</b> (the "5 C's"), Kindergarten through Grade 12.</p>
+      <p class="muted" style="font-size:.8rem;margin-top:12px">Frameworks: ${Object.values(fw).map(f => esc(f.short)).join(' · ')}. Common Core — or state standards built on it, as in New York and Nevada — is used across most of the country; NGSS is the most widely adopted next-generation science standard, and ACTFL sets the national standard for world-language learning. Standard codes are shown here for educators — students simply see the lesson and practice.</p>
       <div style="margin-top:12px"><button class="btn ghost small" style="color:var(--brand);border-color:var(--brand)" onclick="window.print()">🖨️ Print / save this map</button></div>
     </div>
     ${subjSections}
