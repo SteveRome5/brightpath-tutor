@@ -64,6 +64,9 @@ async function createCheckout(parent, plan, origin) {
     customer: customerId,
     mode: 'subscription',
     line_items: [{ price: p.envPrice, quantity: 1 }],
+    // Show the "Add promotion code" field on the checkout page so launch
+    // codes (e.g. LIN) created in the Stripe dashboard can be redeemed.
+    allow_promotion_codes: true,
     success_url: origin + '/?billing=success',
     cancel_url: origin + '/?billing=canceled',
     metadata: { parent_id: String(parent.id), plan }
