@@ -278,7 +278,7 @@ router.get('/auth/me', (req, res) => {
 
 function publicKid(k) {
   let cfg = null; try { cfg = k.avatar_config ? JSON.parse(k.avatar_config) : null; } catch (e) {}
-  return { id: k.id, name: k.name, avatar: k.avatar, avatar_config: cfg, avatar_img: k.avatar_img || null, grade: k.grade, xp: k.xp, coins: k.coins, streak: k.streak, play_tokens: k.play_tokens || 0, calendar_mode: k.calendar_mode, weekly_goal: k.weekly_goal };
+  return { id: k.id, name: k.name, avatar: k.avatar, avatar_config: cfg, avatar_img: k.avatar_img || null, grade: k.grade, xp: k.xp, coins: k.coins, streak: k.streak, play_tokens: k.play_tokens || 0, calendar_mode: k.calendar_mode, weekly_goal: k.weekly_goal, show_level: k.show_level || 0 };
 }
 
 // ---------- kid management (parent) ----------
@@ -304,15 +304,18 @@ router.post('/kids', auth.requireParent, (req, res) => {
 router.patch('/kids/:kidId', auth.requireParent, (req, res) => {
   const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
   if (!kid) return res.status(404).json({ error: 'Learner not found.' });
-  const { name, grade, pin, avatar, calendar_mode, weekly_goal } = req.body || {};
+  const { name, grade, pin, avatar, calendar_mode, weekly_goal, show_level } = req.body || {};
   if (pin != null && pin !== '' && !/^\d{4}$/.test(String(pin))) return res.status(400).json({ error: 'PIN must be 4 digits.' });
   const gradeVal = grade != null && Number.isFinite(Number(grade)) ? Math.max(0, Math.min(12, Math.round(Number(grade)))) : null;
   // Validate avatar against the allow-list and bound the weekly goal (matches POST /kids).
   const avatarVal = AVATARS.includes(avatar) ? avatar : null;
   const goalVal = weekly_goal != null && Number.isFinite(Number(weekly_goal)) ? Math.max(10, Math.min(500, Math.round(Number(weekly_goal)))) : null;
+  // Parent choice: whether the child sees their own grade-level placement (default hidden, so a
+  // child who places below grade never has it shown to them). null = leave unchanged.
+  const showLevelVal = show_level == null ? null : (show_level ? 1 : 0);
   db.prepare(`UPDATE kids SET name=COALESCE(?,name), grade=COALESCE(?,grade), pin=COALESCE(?,pin),
-              avatar=COALESCE(?,avatar), calendar_mode=COALESCE(?,calendar_mode), weekly_goal=COALESCE(?,weekly_goal) WHERE id=?`)
-    .run(name ? String(name).trim().slice(0, 40) : null, gradeVal, pin ? auth.hashPin(String(pin)) : null, avatarVal, calendar_mode || null, goalVal, kid.id);
+              avatar=COALESCE(?,avatar), calendar_mode=COALESCE(?,calendar_mode), weekly_goal=COALESCE(?,weekly_goal), show_level=COALESCE(?,show_level) WHERE id=?`)
+    .run(name ? String(name).trim().slice(0, 40) : null, gradeVal, pin ? auth.hashPin(String(pin)) : null, avatarVal, calendar_mode || null, goalVal, showLevelVal, kid.id);
   res.json({ ok: true });
 });
 

@@ -261,6 +261,10 @@ function applyTheme() {
   document.body.dataset.theme = State.me.role === 'kid' ? themeForGrade(State.me.kid.grade) : 'pro';
 }
 function playful() { const t = document.body.dataset.theme; return t === 'junior' || t === 'explorer'; }
+// Whether to reveal the child's grade-level placement TO THE CHILD. Off by default so a kid who
+// places below their grade never sees it; the parent opts in per learner. Parents always see the
+// real level in the report — this only governs what the child themselves is shown.
+function showLevel() { try { return !!(State.me && State.me.kid && State.me.kid.show_level); } catch (e) { return false; } }
 
 // ======================= sound engine =======================
 const Sound = (() => {
@@ -1395,7 +1399,7 @@ route('home', async () => {
           <div class="blob"></div>
           <div class="semoji">${s.emoji}</div>
           <h3>${esc(s.label)}</h3>
-          <div class="lvl">${s.placed ? (playful() ? '📍 ' : 'Working at ') + esc(s.levelName) : (playful() ? '✨ Take placement quiz!' : 'Placement assessment needed')}</div>
+          <div class="lvl">${s.placed ? (showLevel() ? (playful() ? '📍 ' : 'Working at ') + esc(s.levelName) : (playful() ? '📍 Ready to learn!' : 'Placed — ready to go')) : (playful() ? '✨ Take placement quiz!' : 'Placement assessment needed')}</div>
           <button class="btn sun small" style="margin-top:14px" tabindex="-1" aria-hidden="true">${s.placed ? (playful() ? 'Play →' : 'Continue →') : 'Find my level →'}</button>
         </div>`).join('')}
     </div>
@@ -1552,9 +1556,12 @@ route('placement', async (subject) => {
   }
   function finish(data) {
     Sound.levelup(); Confetti.burst(160);
+    // Only name the grade level to the child if the parent has opted to reveal it — otherwise a
+    // child who placed below their grade would see it here. The engine still works at the real level.
+    const heading = showLevel() ? `Level found: ${esc(data.levelName)}!` : `You're all set! 🎉`;
     app().innerHTML = topbar(`<div class="container lesson-wrap"><div class="card center">
       <div class="big-emoji">🎯</div>
-      <h2>Level found: ${esc(data.levelName)}!</h2>
+      <h2>${heading}</h2>
       <p class="muted" style="margin:10px 0 20px">We watched how you answered and picked the spot that fits you best in ${esc(subject)}. Not too easy, not too hard, just right. You'll move up as soon as you show you're ready.</p>
       <button class="btn green" onclick="location.hash='#lesson/${subject}'">Start Learning →</button>
       <button class="btn ghost small" style="color:var(--brand);border-color:var(--brand);margin-left:8px" onclick="location.hash='#home'">Back Home</button>
@@ -1728,9 +1735,10 @@ route('lesson', async (subject, mode, anchor) => {
       btn.textContent = playful() ? (down ? '🐴 One sec…' : '🚀 One sec…') : 'Adjusting…';
       try {
         const r = await api(`/learn/${kidId}/level-shift/${subject}`, { method: 'POST', body: { delta } });
-        const msg = playful()
-          ? (down ? `🌈 Okay! Easier ${r.levelName} questions coming up.` : `🚀 Nice! Stepping up to ${r.levelName} questions.`)
-          : `Level set to ${r.levelName}.`;
+        // Keep the grade name out of the child's view unless the parent chose to reveal it.
+        const msg = showLevel()
+          ? (playful() ? (down ? `🌈 Okay! Easier ${r.levelName} questions coming up.` : `🚀 Nice! Stepping up to ${r.levelName} questions.`) : `Level set to ${r.levelName}.`)
+          : (playful() ? (down ? `🌈 Okay! Easier questions coming up.` : `🚀 Nice! Stepping it up!`) : (down ? `Easing the difficulty.` : `Raising the difficulty.`));
         toastAction(msg, playful() ? '↩︎ Undo' : 'Undo', () => levelShift(-delta));
         nextQuestion();
       } catch (e) {
@@ -2500,6 +2508,9 @@ route('parent', async () => {
                 <div><label>Weekly goal</label><select class="ke-goal">${[6, 9, 12, 15, 20].map(g => `<option value="${g}" ${(k.weekly_goal || 12) === g ? 'selected' : ''}>${g * 10} answers/wk</option>`).join('')}</select></div>
                 <div><label>Schedule</label><select class="ke-cal">${['traditional', 'yearround', 'homeschool'].map(c => `<option value="${c}" ${k.calendar_mode === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
               </div>
+              <label class="ke-showlevel"><input type="checkbox" class="ke-showlevel-cb" ${k.show_level ? 'checked' : ''}>
+                <span><b>Show ${esc(k.name.split(' ')[0])} their grade level</b><br><span class="muted" style="font-size:.83rem">Off by default. We adapt to your child's real level in each subject, but we keep the grade number between you and us — so a child who's working below their grade never sees it and feels discouraged. You'll always see it in the report. Flip this on when you'd like to share it with ${esc(k.name.split(' ')[0])}.</span></span>
+              </label>
               <div class="error-msg ke-err"></div>
               <button class="btn small green" data-save-edit="${k.id}" style="margin-top:8px">Save ✓</button>
               <button class="btn ghost small" data-cancel-edit="${k.id}" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px;margin-top:8px">Cancel</button>
@@ -2685,7 +2696,8 @@ route('parent', async () => {
       name: box.querySelector('.ke-name').value.trim(),
       grade: Number(box.querySelector('.ke-grade').value),
       weekly_goal: Number(box.querySelector('.ke-goal').value),
-      calendar_mode: box.querySelector('.ke-cal').value
+      calendar_mode: box.querySelector('.ke-cal').value,
+      show_level: box.querySelector('.ke-showlevel-cb') && box.querySelector('.ke-showlevel-cb').checked ? 1 : 0
     };
     const pin = box.querySelector('.ke-pin').value.trim();
     if (pin) body.pin = pin;

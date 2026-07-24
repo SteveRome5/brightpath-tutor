@@ -299,6 +299,10 @@ for (const stmt of [
   "ALTER TABLE kids ADD COLUMN last_nudge_at TEXT",
   // Custom uploaded avatar photo (data URL) for older kids — null = use the built-in avatar
   "ALTER TABLE kids ADD COLUMN avatar_img TEXT",
+  // Parent choice: does the CHILD get to see their own grade-level placement? Default 0 (hidden),
+  // so a child who places below their enrolled grade never has that shown to them. Parents always
+  // see the real level in the report; they flip this on if/when they want to share it with the kid.
+  "ALTER TABLE kids ADD COLUMN show_level INTEGER DEFAULT 0",
   // Concepts the child missed during the placement quiz (JSON array of skill names) so
   // parents can see, in plain language, what to keep an eye on from the assessment.
   "ALTER TABLE subject_state ADD COLUMN placement_missed TEXT"

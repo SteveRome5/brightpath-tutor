@@ -1951,3 +1951,8 @@ body[data-theme="academy"] .rt-n { color: var(--accent); }
 .cx-person-who { font-size: .86rem; color: var(--chrome-sub); line-height: 1.5; margin: 4px 0 8px; }
 .cx-person-link { font-size: .84rem; font-weight: 700; color: var(--cx, var(--brand)); text-decoration: none; }
 .cx-person-link:hover { text-decoration: underline; }
+
+/* Parent 'show level' toggle in the learner-edit panel */
+.ke-showlevel { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding: 12px 14px; background: var(--soft-bg); border: 1px solid var(--card-border); border-radius: 12px; cursor: pointer; }
+.ke-showlevel input { margin-top: 3px; width: 18px; height: 18px; flex: none; cursor: pointer; }
+.ke-showlevel b { color: var(--chrome-ink); }

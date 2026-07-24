@@ -181,7 +181,8 @@ function kidPublic(k) {
   return {
     id: k.id, name: k.name, avatar: k.avatar, avatar_config: safeJson(k.avatar_config),
     avatar_img: k.avatar_img || null,
-    grade: k.grade, xp: k.xp, coins: k.coins, streak: k.streak, play_tokens: k.play_tokens || 0
+    grade: k.grade, xp: k.xp, coins: k.coins, streak: k.streak, play_tokens: k.play_tokens || 0,
+    show_level: k.show_level || 0
   };
 }
 function safeJson(s) { try { return s ? JSON.parse(s) : null; } catch (e) { return null; } }
