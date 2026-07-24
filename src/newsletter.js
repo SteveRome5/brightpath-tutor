@@ -222,11 +222,30 @@ async function ensureDraft(date, { force = false } = {}) {
   return db.prepare('SELECT * FROM newsletters WHERE id=?').get(info.lastInsertRowid);
 }
 
-// The autonomous monthly runner. Idempotent: one newsletter per calendar month.
+// Belt-and-suspenders rate limit. The month_key row is the primary idempotency guard, but
+// if the database ever resets (e.g. a deploy without the persistent disk attached) that row
+// vanishes and the sweep would re-draft on every boot — which is exactly how the admin inbox
+// once got flooded. This second guard reads the email_log instead: if ANY newsletter-related
+// email actually went out in the last MIN_GAP_DAYS, the sweep does nothing. So even in the
+// worst case the newsletter can fire at most once a week, never per-restart.
+const MIN_GAP_DAYS = 7;
+function sentWithinGap() {
+  try {
+    const row = db.prepare(
+      "SELECT 1 FROM email_log WHERE kind IN ('newsletter','newsletter_approval') " +
+      "AND status IN ('sent','queued') AND created_at > datetime('now', ?) LIMIT 1"
+    ).get(`-${MIN_GAP_DAYS} days`);
+    return !!row;
+  } catch (e) { return false; }
+}
+
+// The autonomous monthly runner. Idempotent: one newsletter per calendar month, and never
+// more than one in any MIN_GAP_DAYS window regardless of how often the process restarts.
 // approval mode -> draft + notify admin (no subscriber send). auto mode -> send immediately.
 async function monthlySweep(now = new Date()) {
   try {
     if (!mailer.configured()) return;                       // no provider yet -> do nothing
+    if (sentWithinGap()) return;                            // sent one recently -> hard stop (anti-spam)
     const mk = monthKey(now);
     const existing = db.prepare('SELECT * FROM newsletters WHERE month_key=?').get(mk);
     if (existing) return;                                   // already handled this month

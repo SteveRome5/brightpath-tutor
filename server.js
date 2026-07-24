@@ -81,13 +81,14 @@ if (mailer.configured()) {
   setInterval(() => mailer.trialSweep(), 3 * 60 * 60 * 1000).unref?.();
   setTimeout(() => mailer.trialSweep(), 150 * 1000).unref?.();
 
-  // Monthly newsletter — autonomous & school-year-calendar themed. Checked daily; the
-  // one-row-per-month guard makes it idempotent, so it drafts/sends exactly once a month.
-  // The first NEWSLETTER_APPROVAL_COUNT go to the admin as a draft for approval; then it
-  // sends on its own.
+  // Monthly newsletter — autonomous & school-year-calendar themed. Checked once a day.
+  // Two guards keep it from ever flooding the inbox: a one-row-per-calendar-month guard,
+  // and a hard "at most once every 7 days" guard (see newsletter.js). We deliberately do
+  // NOT run it on boot — a boot-time sweep re-fired on every deploy/restart and, if the DB
+  // guard row didn't survive the restart, drafted a brand-new newsletter each time. The
+  // daily interval below is enough; the admin can also draft/send on demand from /#admin.
   const newsletter = require('./src/newsletter');
   setInterval(() => newsletter.monthlySweep(), 24 * 60 * 60 * 1000).unref?.();
-  setTimeout(() => newsletter.monthlySweep(), 150 * 1000).unref?.();
 }
 
 // Inbound support@ auto-responder — polls the support mailbox over IMAP and answers or
