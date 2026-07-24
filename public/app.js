@@ -2228,6 +2228,15 @@ route('report', async (kidId) => {
             ${isParent ? `<p class="muted" style="margin:2px 0 6px;font-size:.9rem">Working level: <b>${esc(s.levelName)}</b>${s.enrolledGrade != null ? ` · enrolled in <b>${s.enrolledGrade === 0 ? 'Kindergarten' : 'Grade ' + s.enrolledGrade}</b>` : ''} <span class="muted">(a child can work at a different level than their grade — that's the point of adapting)</span></p>` : ''}
             ${isParent && s.placementNote ? `<p class="place-note"><b>Why we started here:</b> ${esc(s.placementNote)}</p>` : ''}
             ${isParent && s.placementMissed && s.placementMissed.length ? `<p class="place-note" style="background:#fff6ec;border-color:#f0d9bd"><b>Missed on the placement quiz:</b> ${s.placementMissed.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')} <span class="muted" style="font-size:.85rem">— these are just the concepts to keep an eye on; ${esc(k.name)} gets extra practice on them automatically.</span></p>` : ''}
+            ${isParent && s.progress ? `
+            <div class="advance-box">
+              <div class="advance-head"><span>📊 Skills at ${esc(s.levelName)}</span><span><b>${s.progress.atLevelMastered}</b> of ${s.progress.atLevelTotal} mastered</span></div>
+              <div class="advance-track"><div class="advance-fill" style="width:${s.progress.atLevelTotal ? Math.round(s.progress.atLevelMastered / s.progress.atLevelTotal * 100) : 0}%"></div></div>
+              ${s.progress.atMaxGrade
+                ? `<p class="advance-note">${esc(k.name)} is at the top grade for ${esc(s.label)} — now deepening mastery across every skill.</p>`
+                : `<p class="advance-note">To advance to <b>${esc(s.nextGradeName || 'the next grade')}</b>, ${esc(k.name)} masters all <b>${s.progress.atLevelTotal}</b> ${esc(s.levelName)} skills at 85%+ accuracy${s.progress.atLevelTotal > 0 && s.progress.atLevelMastered >= s.progress.atLevelTotal ? ' — all mastered, advancement is close! 🎉' : (s.progress.atLevelTotal - s.progress.atLevelMastered) > 0 ? ` — <b>${s.progress.atLevelTotal - s.progress.atLevelMastered}</b> to go.` : '.'}</p>`}
+              <p class="advance-counts"><span class="pill strength">💪 ${s.progress.mastered} mastered</span> <span class="pill inprog">📈 ${s.progress.inProgress} in progress</span> <span class="pill focus">🎯 ${s.progress.toStrengthen} to strengthen</span> <span class="muted" style="font-size:.82rem">· ${s.progress.totalCorrect}/${s.progress.totalAnswered} correct</span></p>
+            </div>` : ''}
             ${s.strengths.length ? `<p>💪 Strengths: ${s.strengths.map(x => `<span class="pill strength">${esc(x)}</span>`).join(' ')}</p>` : ''}
             ${s.focusAreas.length ? `<p style="margin-top:6px">🎯 Focus areas (getting extra help): ${s.focusAreas.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')}</p>` : ''}
             ${isParent && s.skills && s.skills.length ? `
@@ -2246,6 +2255,15 @@ route('report', async (kidId) => {
           ` : `<p class="muted">No placement quiz yet. Jump in to find the right level.</p>`}
         </div>`).join('')}
       </div>
+      ${isParent ? `<details class="method-box">
+        <summary>📋 How these numbers work — and why you can trust them</summary>
+        <div class="method-body">
+          <p><b>Placement is measured, not assumed.</b> Each subject begins with a short adaptive assessment that finds the exact grade level where ${esc(k.name)} is challenged but not overwhelmed. Nothing here is estimated from age or enrolled grade alone — every figure is backed by questions ${esc(k.name)} actually answered.</p>
+          <p><b>Advancement is earned.</b> To move up a grade, ${esc(k.name)} must master <i>every</i> skill at their current grade (80%+ mastery on each) <i>and</i> sustain 85%+ accuracy on recent work — never a lucky streak. The "Skills at [grade]" bar above each subject shows exactly how close they are. If work slips well below grade level, we quietly ease the difficulty and add practice instead of pushing ahead.</p>
+          <p><b>Accuracy &amp; letter grades</b> are simply the percent of grade-level questions answered correctly, on the standard scale (${esc(r.gradeScale)}). "Correct lately" reflects the most recent ~15 answers; the all-time figure is shown alongside when it differs. Optional Advanced Track (AP/honors) practice is kept separate and never affects these.</p>
+          <p><b>The Gallop Score &amp; grade-equivalent</b> are Gallop's own estimate of how much ${esc(k.name)} has demonstrated on the platform — they deepen as skills are practiced and proven. They're a progress measure for tracking growth over time, not a nationally-normed test score.</p>
+        </div>
+      </details>` : ''}
     </div>
     ${isParent && r.career ? renderCareer(r.career, k) : ''}
     ${isParent && r.history ? (() => {

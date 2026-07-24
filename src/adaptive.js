@@ -634,9 +634,9 @@ function careerInsights(kidId) {
     const state = getSubjectState(kidId, sub);
     const rows = db.prepare('SELECT mastery FROM skill_state WHERE kid_id=? AND subject=? AND attempts>0').all(kidId, sub);
     const avg = rows.length ? rows.reduce((a, r) => a + r.mastery, 0) / rows.length : null;
-    const agg = db.prepare('SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND subject=?').get(kidId, sub);
+    const agg = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND subject=? AND skill_id NOT LIKE 'track:%'").get(kidId, sub);
     const acc = agg.n ? agg.c / agg.n : null;
-    // strength score: blend mastery (60%) + accuracy (40%); null if not enough data
+    // strength score: blend mastery (60%) + accuracy (40%); null if not enough data (grade-level only)
     const score = avg == null ? null : Math.max(0, Math.min(1, (avg * 0.6 + (acc == null ? avg : acc) * 0.4)));
     return { subject: sub, label: subjectLabel(sub), placed: !!state.placed, level: Math.round(state.level), answers: agg.n || 0, mastery: avg, accuracy: acc, score };
   });
@@ -698,7 +698,10 @@ function reportCard(kidId) {
     const state = getSubjectState(kidId, sub);
     const rows = db.prepare('SELECT * FROM skill_state WHERE kid_id=? AND subject=? AND attempts>0').all(kidId, sub);
     const avg = rows.length ? rows.reduce((a, r) => a + r.mastery, 0) / rows.length : null;
-    const agg = db.prepare(`SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND subject=?`).get(kidId, sub);
+    // Grade-level accuracy EXCLUDES advanced-track (AP/honors) answers: those are optional,
+    // deliberately hard, and kept separate from grade-level placement & the Gallop Score. A
+    // child grinding AP prep must never see their grade-level accuracy/letter/status drop.
+    const agg = db.prepare(`SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND subject=? AND skill_id NOT LIKE 'track:%'`).get(kidId, sub);
     const strengths = rows.filter(r => r.mastery >= MASTERED).sort((a, b) => b.mastery - a.mastery).slice(0, 3);
     const focus = rows.filter(r => r.mastery < STRUGGLING && r.attempts >= 2).sort((a, b) => a.mastery - b.mastery).slice(0, 3);
     const nameOf = id => { const s = content.getSkill(sub, id); return s ? s.name : id; };
@@ -706,7 +709,7 @@ function reportCard(kidId) {
     // holding steady, or needing extra care right now?
     // Status uses the child's RECENT overall experience in the subject (last ~15
     // answers), stable, and honest to what they've actually been feeling lately.
-    const recentRows = db.prepare('SELECT correct FROM activity_log WHERE kid_id=? AND subject=? ORDER BY id DESC LIMIT 15').all(kidId, sub);
+    const recentRows = db.prepare("SELECT correct FROM activity_log WHERE kid_id=? AND subject=? AND skill_id NOT LIKE 'track:%' ORDER BY id DESC LIMIT 15").all(kidId, sub);
     const MIN_SAMPLE = 8;                        // fewer than this = not enough to judge
     const recentAcc = recentRows.length >= MIN_SAMPLE ? recentRows.filter(r => r.correct).length / recentRows.length : null;
     // Explicit, honest status rules (never a definitive label on a tiny sample):
@@ -728,10 +731,27 @@ function reportCard(kidId) {
     const masteryMap = Object.fromEntries(rows.map(r => [r.skill_id, r.mastery]));
     const gallopScore = rows.length ? gscore.subjectScore(sub, masteryMap, state.placed ? state.level : undefined) : null;
     const gradeEquiv = gallopScore != null ? gscore.gradeEquivalent(sub, gallopScore) : null;
+    // Quantified, defensible skill counts. "At level" mirrors the actual advancement gate:
+    // to move up, EVERY skill at the current grade must be mastered (≥80%) at 85%+ accuracy.
+    const curLvl = Math.round(state.level);
+    const levelDefs = content.skillsForSubject(sub).filter(s => s.grade === curLvl);
+    const rowById = Object.fromEntries(rows.map(r => [r.skill_id, r]));
+    let atLevelMastered = 0, atLevelPracticed = 0;
+    for (const ls of levelDefs) { const r = rowById[ls.id]; if (r) { atLevelPracticed++; if (r.mastery >= MASTERED) atLevelMastered++; } }
+    const progress = {
+      practiced: rows.length,                                             // skills touched (attempts>0)
+      mastered: rows.filter(r => r.mastery >= MASTERED).length,           // ≥80% mastery
+      inProgress: rows.filter(r => r.mastery >= STRUGGLING && r.mastery < MASTERED).length,
+      toStrengthen: rows.filter(r => r.mastery < STRUGGLING).length,
+      atLevelTotal: levelDefs.length, atLevelMastered, atLevelPracticed,
+      totalAnswered: agg.n || 0, totalCorrect: agg.c || 0,
+      atMaxGrade: curLvl >= maxGrade(sub)
+    };
     return {
       subject: sub, label: subjectLabel(sub), level: state.level, levelName: gradeName(Math.round(state.level)),
       placed: !!state.placed, avgMastery: avg, letter: letterGrade(agg.n ? (agg.c / agg.n) : null),
-      gallopScore, gradeEquiv,
+      gallopScore, gradeEquiv, progress,
+      nextGradeName: curLvl < maxGrade(sub) ? gradeName(curLvl + 1) : null,
       questionsAnswered: agg.n || 0, accuracy: agg.n ? (agg.c / agg.n) : null,
       status, recentAccuracy: recentAcc, recentSample: recentRows.length, enrolledGrade: kid.grade || 0,
       placementNote: placementRationale(sub, state, kid),
