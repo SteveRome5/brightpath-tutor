@@ -570,6 +570,13 @@ router.get('/learn/:kidId/report', auth.requireKid, (req, res) => {
   res.json(adaptive.reportCard(req.kid.id));
 });
 
+// Lightweight strengths for the Career Explorer — per-subject strength scores used to match
+// a child to career fields (far cheaper than the full report). Works for a kid or a parent-on-behalf.
+router.get('/learn/:kidId/careers', auth.requireKid, (req, res) => {
+  try { res.json({ career: adaptive.careerInsights(req.kid.id) }); }
+  catch (e) { res.json({ career: null }); }
+});
+
 // ---------- daily quests ----------
 const QUEST_BONUS_COINS = 10;
 function questStatus(kidId) {

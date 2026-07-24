@@ -1923,3 +1923,31 @@ body[data-theme="academy"] .rt-n { color: var(--accent); }
 .rt-cap { font-size: .74rem; color: var(--chrome-sub); margin-top: 3px; }
 .recap-win { margin-top: 12px; font-size: .9rem; color: #1f6b43; background: #eaf6ef; border-radius: 10px; padding: 9px 12px; line-height: 1.5; }
 .recap-badges { margin-top: 8px; font-size: .88rem; color: var(--chrome-sub); }
+
+/* ===================== Career Explorer ===================== */
+.cx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.cx-card { position: relative; border: 1px solid var(--card-border); border-left: 4px solid var(--cx, var(--brand)); border-radius: 12px; padding: 14px 15px; background: var(--card-bg); cursor: pointer; transition: transform var(--dur-fast, .12s) var(--ease-out, ease), box-shadow var(--dur-fast, .12s) var(--ease-out, ease); }
+.cx-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md, 0 8px 24px -12px rgba(0,0,0,.25)); }
+.cx-card.cx-matched { background: color-mix(in srgb, var(--cx) 8%, var(--card-bg)); border-color: color-mix(in srgb, var(--cx) 45%, var(--card-border)); }
+.cx-emoji { font-size: 1.9rem; }
+.cx-title { font-weight: 800; margin-top: 6px; font-size: 1rem; color: var(--chrome-ink); }
+.cx-tag { font-size: .84rem; color: var(--chrome-sub); margin-top: 3px; line-height: 1.35; }
+.cx-fit { display: inline-block; margin-top: 8px; font-size: .72rem; font-weight: 700; color: var(--cx); background: color-mix(in srgb, var(--cx) 14%, transparent); padding: 2px 8px; border-radius: 999px; }
+/* detail */
+.cx-detail { border-top: 4px solid var(--cx, var(--brand)); }
+.cx-hero { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.cx-hero-emoji { font-size: 2.6rem; }
+.cx-hero-tag { margin: 2px 0 0; color: var(--cx); font-weight: 600; font-size: .95rem; }
+.cx-what { font-size: 1.02rem; line-height: 1.6; color: var(--chrome-ink); margin: 6px 0 4px; }
+.cx-block { margin-top: 16px; }
+.cx-block h4 { margin: 0 0 6px; font-size: .95rem; }
+.cx-block p { margin: 0; color: var(--chrome-sub); line-height: 1.6; font-size: .95rem; }
+.cx-hs { background: var(--soft-bg); border-radius: 12px; padding: 12px 14px; }
+.cx-jobs { display: flex; flex-wrap: wrap; gap: 7px; }
+.cx-job { background: var(--soft-bg); border: 1px solid var(--card-border); border-radius: 999px; padding: 5px 12px; font-size: .85rem; font-weight: 600; color: var(--chrome-ink); }
+.cx-people { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.cx-person { border: 1px solid var(--card-border); border-radius: 12px; padding: 12px 14px; background: var(--card-bg); }
+.cx-person-name { font-weight: 800; color: var(--chrome-ink); }
+.cx-person-who { font-size: .86rem; color: var(--chrome-sub); line-height: 1.5; margin: 4px 0 8px; }
+.cx-person-link { font-size: .84rem; font-weight: 700; color: var(--cx, var(--brand)); text-decoration: none; }
+.cx-person-link:hover { text-decoration: underline; }

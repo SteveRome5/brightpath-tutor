@@ -874,12 +874,12 @@ route('landing', async () => {
         </div>
       </div>
       <div class="lp-career-copy">
-        <h3>Strengths, growth areas, and a plan</h3>
-        <p>Every report tells you, in plain language, where your child is doing well and where they could use more practice. Once they reach high school, it starts suggesting career directions that fit how they're actually performing, along with the classes and projects worth pursuing.</p>
+        <h3>Strengths that open doors — meet the Career Explorer</h3>
+        <p>Gallop notices what your child is good at, then opens a window onto where it can lead. The new Career Explorer demystifies real careers — what an architect or an engineer <em>actually does all day</em>, the range of jobs inside each field, and the classes that get you there. Because most kids (and plenty of adults) have no idea these paths even exist.</p>
         <ul class="lp-check">
-          <li>It grows with the student: a light preview for the younger kids, a real plan for teenagers.</li>
-          <li>Fourteen career paths spanning STEM, business, healthcare, law, and the arts.</li>
-          <li>It updates on its own as your child learns, so there's nothing to keep track of.</li>
+          <li>Sixteen fields — from engineering, medicine, and AI to hospitality, the trades, the arts, and law.</li>
+          <li>Real, accomplished role models in every field, each with a short story to read — from Maya Lin to José Andrés to Katherine Johnson.</li>
+          <li>Personalized to your child's strengths, but fully explorable — a door-opener, never a limit. It grows with them from a light preview to a real plan.</li>
         </ul>
       </div>
     </div>
@@ -1406,6 +1406,7 @@ route('home', async () => {
       <div class="zone-card" onclick="location.hash='#snacks'"><span class="zemoji">🍿</span><b>${playful() ? 'Snack Shack' : 'Snack Shack'}</b><span class="muted">${playful() ? 'Spend coins on treats from the vending machine!' : 'Trade coins for snacks & treats'}</span></div>
       <div class="zone-card" onclick="location.hash='#trophies'"><span class="zemoji">🏆</span><b>Trophy Case</b><span class="muted">${playful() ? 'Your badges, trophies & next goals!' : 'Badges, certificates & milestones'}</span></div>
       <div class="zone-card" onclick="location.hash='#buddies'"><span class="zemoji">💌</span><b>Buddies</b><span class="muted">${playful() ? 'Cheer on your friends!' : 'See your crew’s streaks and send props'}</span></div>
+      ${k.grade >= 3 ? `<div class="zone-card" onclick="location.hash='#careers/${k.id}'"><span class="zemoji">🔭</span><b>Explore Futures</b><span class="muted">${playful() ? 'Discover cool jobs & the real people who do them!' : 'Real careers, what they involve, and people who do them'}</span></div>` : ''}
       ${k.grade >= 8 ? `<div class="zone-card exam-zone" onclick="location.hash='#exam'"><span class="zemoji">🎓</span><b>Advanced Track</b><span class="muted">Ahead of your grade? AP, Honors & college-level practice</span></div>` : ''}
     </div>
   </div>`);
@@ -2164,6 +2165,7 @@ function renderCareer(c, k) {
     ${growth}
     <h4 style="margin:18px 0 10px">${c.band === 'pathways' ? 'Pathways that fit these strengths' : 'Where these skills can lead'}</h4>
     <div class="path-grid">${paths}</div>
+    <div class="center" style="margin-top:14px"><button class="btn green small no-print" onclick="location.hash='#careers/${k.id}'">🔭 Open the Career Explorer — real jobs & role models →</button></div>
     <p class="muted" style="font-size:.78rem;margin-top:12px">These suggestions come from ${esc(k.name)}'s skill levels and accuracy across subjects. They sharpen as more work is completed and update automatically as ${esc(k.name)} grows.</p>
   </div>`;
 }
@@ -2902,6 +2904,81 @@ route('standards', async () => {
     </div>
   </div>`);
   wireChrome();
+});
+
+// ======================= Career Explorer =======================
+// A browsable window onto real careers — what they entail, the range of jobs, and real,
+// accomplished people in each field — personalized to a child's strengths but fully explorable.
+route('careers', async (kidId) => {
+  const FIELDS = window.GALLOP_CAREERS || [];
+  let career = null;
+  if (kidId) { try { const r = await api('/learn/' + kidId + '/careers'); career = r.career; } catch (e) {} }
+  const name = (State.me && State.me.kid && State.me.kid.name) || (career && career.name) || 'your learner';
+  const backHash = State.me.role === 'parent' ? (kidId ? '#report/' + kidId : '#parent') : '#home';
+  // Match each field to the child's per-subject strengths (0..1). Null strengths → 0.
+  const strength = {};
+  if (career && career.ranked) career.ranked.forEach(s => { if (s.score != null) strength[s.subject] = s.score; });
+  const haveStrength = Object.keys(strength).length > 0;
+  const scored = FIELDS.map(f => {
+    let num = 0, den = 0;
+    for (const [sub, w] of Object.entries(f.sig || {})) { num += (strength[sub] || 0) * w; den += w; }
+    return { f, match: den ? num / den : 0 };
+  });
+  const top = haveStrength ? scored.slice().sort((a, b) => b.match - a.match).filter(x => x.match >= 0.4).slice(0, 4) : [];
+  const topIds = new Set(top.map(x => x.f.id));
+
+  function fieldCard(f, matched) {
+    return `<div class="cx-card${matched ? ' cx-matched' : ''}" data-field="${f.id}" style="--cx:${f.color}">
+      <div class="cx-emoji">${f.emoji}</div>
+      <div class="cx-title">${esc(f.title)}</div>
+      <div class="cx-tag">${esc(f.tagline)}</div>
+      ${matched ? '<span class="cx-fit">✨ Fits their strengths</span>' : ''}
+    </div>`;
+  }
+  app().innerHTML = topbar(`<div class="container" style="max-width:900px">
+    <div class="lesson-top"><b>🔭 Career Explorer</b><button class="btn ghost small" onclick="location.hash='${backHash}'">← Back</button></div>
+    <div class="card">
+      <h2 style="margin:0 0 4px">Explore what you could become</h2>
+      <p class="muted" style="margin:0">Every field below is a real path — with the jobs inside it, what they actually involve, and real people doing the work. Not sure what an "architect" or an "engineer" even does all day? That's exactly what this is for. Browse freely and see where it leads. 🌟</p>
+    </div>
+    ${top.length ? `<div class="card">
+      <h3 style="margin:0 0 4px">✨ Great fits for ${esc(name.split(' ')[0])}</h3>
+      <p class="muted" style="margin:0 0 12px;font-size:.9rem">Based on the strengths ${esc(name.split(' ')[0])} is showing on Gallop — a starting point to explore together, never a limit.</p>
+      <div class="cx-grid">${top.map(x => fieldCard(x.f, true)).join('')}</div>
+    </div>` : (kidId && !haveStrength ? `<div class="card"><p class="muted" style="margin:0">As ${esc(name.split(' ')[0])} answers more questions, we'll highlight the fields that fit their strengths right here. For now, explore anything that looks interesting!</p></div>` : '')}
+    <div class="card">
+      <h3 style="margin:0 0 12px">${top.length ? 'Explore every field' : 'Explore the fields'}</h3>
+      <div class="cx-grid">${FIELDS.filter(f => !topIds.has(f.id)).map(f => fieldCard(f, false)).join('')}</div>
+    </div>
+  </div>`);
+  wireChrome();
+  document.querySelectorAll('.cx-card').forEach(el => el.onclick = () => showField(el.dataset.field));
+
+  function showField(id) {
+    const f = FIELDS.find(x => x.id === id); if (!f) return;
+    Sound.click();
+    app().innerHTML = topbar(`<div class="container" style="max-width:760px">
+      <div class="lesson-top"><b>${f.emoji} ${esc(f.title)}</b><button class="btn ghost small" id="cx-back">← All fields</button></div>
+      <div class="card cx-detail" style="--cx:${f.color}">
+        <div class="cx-hero"><span class="cx-hero-emoji">${f.emoji}</span><div><h2 style="margin:0">${esc(f.title)}</h2><p class="cx-hero-tag">${esc(f.tagline)}</p></div></div>
+        <p class="cx-what">${esc(f.whatItIs)}</p>
+        <div class="cx-block"><h4>👀 What you'd actually do</h4><p>${esc(f.dayToDay)}</p></div>
+        <div class="cx-block"><h4>💼 Jobs in this field</h4><div class="cx-jobs">${f.jobs.map(j => `<span class="cx-job">${esc(j)}</span>`).join('')}</div></div>
+        <div class="cx-block cx-hs"><h4>🎓 Getting there</h4><p>${esc(f.hs)}</p></div>
+        <div class="cx-block"><h4>🌟 Real people doing this</h4>
+          <div class="cx-people">${f.people.map(p => `
+            <div class="cx-person">
+              <div class="cx-person-name">${esc(p.name)}</div>
+              <div class="cx-person-who">${esc(p.who)}</div>
+              ${p.wiki ? `<a class="cx-person-link" href="https://en.wikipedia.org/wiki/${encodeURIComponent(p.wiki)}" target="_blank" rel="noopener noreferrer">Read their story →</a>` : ''}
+            </div>`).join('')}</div>
+        </div>
+        <p class="muted" style="font-size:.78rem;margin-top:6px">Gallop is here to open doors and spark ideas — every path is worth exploring, and where you focus is always up to you.</p>
+      </div>
+    </div>`);
+    wireChrome();
+    $('#cx-back').onclick = () => { location.hash = kidId ? '#careers/' + kidId : '#careers'; };
+  }
 });
 
 // ======================= help & support (AI assistant) =======================
