@@ -951,7 +951,7 @@ route('landing', async () => {
       <div class="founder-emoji"><img src="/logo-mark.png" alt="" class="founder-horse"></div>
       <div class="founder-body">
         <p>Gallop started at our kitchen table. We've spent our careers building things — restaurants, a marketing agency, teams of people — and we were both shaped by the University of Nevada, Las Vegas: Steve in hospitality, where he went on to teach, and Lin in law. Between us we've opened and run more than a dozen businesses, and if all of that taught us one thing, it's that people rise to the level someone believes they can reach.</p>
-        <p>When it came to our own daughter, Margaux, the tutoring we could buy didn't do that — it was expensive, one-size-fits-all, and honestly a little boring. So we built what we wanted for her: every subject in one place, teaching at her real level, turning practice into something she actually asks to do. There's no faceless edtech company behind Gallop. It's us — two parents and lifelong entrepreneurs who built this to watch our daughter succeed, and who would love to help yours do the same.</p>
+        <p>When it came to our own daughter, Margaux, the tutoring we could buy didn't do that — it was expensive, one-size-fits-all, and honestly a little boring. So we built what we wanted for her: every subject in one place, teaching at her real level, turning practice into something she actually asks to do. There's no faceless edtech company behind Gallop. It's us — two parents and lifelong entrepreneurs who built this to watch our daughter succeed, and who would love to help your child do the same.</p>
         <p class="founder-sign">— Steve &amp; Lin Jerome<br><span>Founders · Gallop Learning Academy</span></p>
       </div>
     </div>
