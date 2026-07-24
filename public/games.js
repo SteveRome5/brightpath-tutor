@@ -960,8 +960,9 @@
     const cur = MM_LEVELS[current - 1];
     app().innerHTML = topbar(`<div class="container" style="max-width:720px">
       <div class="kid-header" style="margin-bottom:10px">
+        <canvas id="mm-hub-hero" width="52" height="46" class="mm-hub-hero"></canvas>
         <div><h1 style="margin:0">📈 Market Mogul</h1>
-          <div class="muted" style="font-size:.9rem">Your investing career — learn to grow real money, one level at a time.</div>
+          <div class="muted" style="font-size:.9rem">Buck's investing career — grow real money, one level at a time.</div>
         </div>
         <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#play'">← Play Zone</button></div>
       </div>
@@ -991,6 +992,7 @@
       <p class="game-hint" style="font-size:.85rem;margin-top:10px">Each level costs 1 🎟️ to play. Hit the profit target to clear it and unlock the next. Your progress saves automatically.</p>
     </div>`);
     wireChrome();
+    mmHeroInto('#mm-hub-hero', 'idle');
     const cont = $('#mm-continue'); if (cont) cont.onclick = () => mmPlayLevel(current, progress);
     document.querySelectorAll('.mm-level-card').forEach(el => el.onclick = () => {
       const n = Number(el.dataset.lvl);
@@ -1040,7 +1042,7 @@
   function mmRunLevel(L, progress) {
     app().innerHTML = topbar(`<div class="container" style="max-width:620px">
       <div class="mm-concept-card">
-        <div class="mm-concept-emoji">${L.emoji}</div>
+        <div class="mm-concept-head"><canvas id="mm-concept-hero" width="52" height="46" class="mm-concept-hero"></canvas><div class="mm-concept-emoji">${L.emoji}</div></div>
         <div class="mm-concept-kicker">Level ${L.n} · ${esc(L.concept)}</div>
         <h2 style="margin:.2em 0">${esc(L.name)}</h2>
         <p class="mm-concept-body">${esc(L.intro)}</p>
@@ -1049,6 +1051,7 @@
       </div>
     </div>`);
     wireChrome();
+    mmHeroInto('#mm-concept-hero', 'idle');
     $('#mm-begin').onclick = () => mmPlay(L, progress);
   }
 
@@ -1225,36 +1228,301 @@
       api(`/play/${kidId()}/score`, { method: 'POST', body: { game: 'market', score } }).then(r => {
         if (r && r.coinsEarned) toast(`+${r.coinsEarned} 🪙`);
       }).catch(() => {});
-      Confetti.burst(cleared ? 220 : 90); Sound.levelup();
       const nextL = MM_LEVELS[L.n]; // may be undefined at level 10
       const justGraduated = cleared && progress.graduated;
-      app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
-        <div class="big-emoji">${justGraduated ? '🎓' : cleared ? '🏆' : '📊'}</div>
-        <h2>${justGraduated ? 'You\'re a Certified Gallop Investor!' : cleared ? `Level ${L.n} cleared!` : 'So close — try again!'}</h2>
-        ${cleared ? `<div class="mm-star-row">${'★'.repeat(stars)}<span class="mm-star-empty">${'★'.repeat(3 - stars)}</span></div>` : ''}
-        <div class="summary-stats">
-          <div class="sstat"><div class="n">${$$(nw)}</div>portfolio</div>
-          <div class="sstat"><div class="n ${gain >= 0 ? 'up' : 'down'}">${gain >= 0 ? '+' : ''}${pct}%</div>return</div>
-          ${F.dividends && divTotal ? `<div class="sstat"><div class="n">${$$(divTotal)}</div>💰 dividends</div>` : ''}
-        </div>
-        <div class="hs-banner ${cleared ? 'hs-new' : ''}">${cleared
-          ? (justGraduated ? 'You cleared every level and mastered the market. Incredible work! 🎉' : `You beat the +${L.targetPct}% goal. ${nextL ? `Level ${nextL.n}: ${esc(nextL.name)} is unlocked!` : ''}`)
-          : `You reached ${$$(nw)} — the goal was ${$$(target)}. Every pro has red days. Adjust your strategy and give it another go!`}</div>
-        <p class="muted">${esc(cleared ? L.tip : L.intro.split('. ')[0] + '.')}</p>
-        <div style="margin-top:14px">
-          ${cleared && nextL ? `<button class="btn green" id="mm-next">Next Level →</button>` : ''}
-          ${!cleared ? `<button class="btn green" id="mm-retry">Try Again (1 🎟️)</button>` : ''}
-          <button class="btn" style="margin-left:8px" id="mm-hub">Market Hub</button>
-        </div>
-      </div></div>`);
-      wireChrome();
-      const nx = $('#mm-next'); if (nx) nx.onclick = () => mmPlayLevel(nextL.n, progress);
-      const rt = $('#mm-retry'); if (rt) rt.onclick = () => mmPlayLevel(L.n, progress);
-      $('#mm-hub').onclick = () => startMarketHub();
+
+      // The results card — shown after the NES interlude on a win, or straight away on a miss.
+      function showResult() {
+        Confetti.burst(cleared ? 160 : 80); Sound.levelup();
+        app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
+          <canvas id="mm-res-hero" width="60" height="52" class="mm-res-hero"></canvas>
+          <h2>${justGraduated ? 'You\'re a Certified Gallop Investor!' : cleared ? `Level ${L.n} cleared!` : 'So close — try again!'}</h2>
+          ${cleared ? `<div class="mm-star-row">${'★'.repeat(stars)}<span class="mm-star-empty">${'★'.repeat(3 - stars)}</span></div>` : ''}
+          <div class="summary-stats">
+            <div class="sstat"><div class="n">${$$(nw)}</div>portfolio</div>
+            <div class="sstat"><div class="n ${gain >= 0 ? 'up' : 'down'}">${gain >= 0 ? '+' : ''}${pct}%</div>return</div>
+            ${F.dividends && divTotal ? `<div class="sstat"><div class="n">${$$(divTotal)}</div>💰 dividends</div>` : ''}
+          </div>
+          <div class="hs-banner ${cleared ? 'hs-new' : ''}">${cleared
+            ? (justGraduated ? 'You cleared every level and mastered the market. Incredible work! 🎉' : `You beat the +${L.targetPct}% goal. ${nextL ? `Level ${nextL.n}: ${esc(nextL.name)} is unlocked!` : ''}`)
+            : `You reached ${$$(nw)} — the goal was ${$$(target)}. Every pro has red days. Adjust your strategy and give it another go!`}</div>
+          <p class="muted">${esc(cleared ? L.tip : L.intro.split('. ')[0] + '.')}</p>
+          <div style="margin-top:14px">
+            ${cleared && nextL ? `<button class="btn green" id="mm-next">Next Level →</button>` : ''}
+            ${!cleared ? `<button class="btn green" id="mm-retry">Try Again (1 🎟️)</button>` : ''}
+            <button class="btn" style="margin-left:8px" id="mm-hub">Market Hub</button>
+          </div>
+        </div></div>`);
+        wireChrome();
+        mmHeroInto('#mm-res-hero', cleared ? 'cheer' : 'idle');
+        const nx = $('#mm-next'); if (nx) nx.onclick = () => mmPlayLevel(nextL.n, progress);
+        const rt = $('#mm-retry'); if (rt) rt.onclick = () => mmPlayLevel(L.n, progress);
+        $('#mm-hub').onclick = () => startMarketHub();
+      }
+
+      // Win → play the Punch-Out!!-style interlude (belt ceremony / themed scene), then the card.
+      if (cleared) mmCutscene(mmSceneForLevel(L.n, justGraduated), showResult);
+      else showResult();
     }
 
     render(null);
   }
+  // ======================= MARKET MOGUL — NES CUTSCENES =======================
+  // Punch-Out!!-style interludes. A little pixel trader ("Buck") climbs a Wall Street
+  // career: every level clear ends with a championship-belt ceremony, and milestone
+  // levels play a themed animated scene (1980s Mac desk → NYSE floor → surviving the
+  // storm → ticker-tape parade → the limo → penthouse legend). Chiptune fanfares play
+  // through the shared Sound engine. All drawn on the shared 16-bit pixel canvas.
+  const SP = {
+    night1: '#0b1030', night2: '#161a44', dusk: '#3a2a5c', beige: '#e8dcc0', beige2: '#d8c8a0',
+    desk: '#8a5a2c', deskDk: '#6a3f18', mac: '#d8d2c0', macDk: '#a89e88', macScr: '#0e2c1c',
+    green: '#2ea060', greenLt: '#5ff0a0', red: '#e05050', redLt: '#ff9090', white: '#f6f7fb',
+    gold: '#f4c020', goldLt: '#ffe98a', goldDk: '#b8890c', sky: '#5c94fc', skyLt: '#8fb8ff',
+    bldg: '#2a3550', bldgLt: '#3a4a70', bldgDay: '#6b7a99', win: '#f4d84a', street: '#20242e',
+    ink: '#141824', cloud: '#8a94a8', cloudDk: '#69728a', sun: '#ffd23a', sunCore: '#fff0a0', col: '#e6e2d4'
+  };
+  const rnd = i => { const x = Math.sin(i * 127.1 + 3.7) * 43758.5453; return x - Math.floor(x); };
+
+  // --- the mascot: a chunky pixel trader in a navy suit & gold tie ---
+  function mmHero(ctx, cx, feetY, s, pose, f) {
+    const P = { suit: '#2a3550', suit2: '#3a4a70', shirt: '#f6f7fb', tie: '#f4c020', skin: '#fcac6c', hair: '#4a2e12', shoe: '#141824', ink: '#141824' };
+    const R = (x, y, w, h, c) => PX.r(ctx, cx + x * s, feetY + y * s, w * s, h * s, c);
+    const step = pose === 'walk' ? Math.floor(f / 8) % 2 : 0;
+    const bob = pose === 'idle' ? (Math.floor(f / 22) % 2) : 0;
+    const yo = -bob;
+    // legs + shoes
+    R(-3, -5 + yo, 2, 5, P.suit); R(1, -5 + yo, 2, 5, P.suit);
+    if (step) { R(-4, -1 + yo, 3, 1, P.shoe); R(1, -1 + yo, 3, 1, P.shoe); }
+    else { R(-3, -1 + yo, 3, 1, P.shoe); R(0, -1 + yo, 3, 1, P.shoe); }
+    // torso
+    R(-4, -12 + yo, 8, 7, P.suit); R(-4, -12 + yo, 8, 1, P.suit2);
+    R(-1, -12 + yo, 2, 5, P.shirt); R(0, -11 + yo, 1, 5, P.tie);
+    // arms
+    if (pose === 'cheer' || pose === 'hold') { R(-6, -18 + yo, 2, 6, P.suit); R(4, -18 + yo, 2, 6, P.suit); R(-6, -19 + yo, 2, 2, P.skin); R(4, -19 + yo, 2, 2, P.skin); }
+    else { R(-6, -12 + yo, 2, 6, P.suit); R(4, -12 + yo, 2, 6, P.suit); R(-6, -7 + yo, 2, 2, P.skin); R(4, -7 + yo, 2, 2, P.skin); }
+    // head
+    R(-3, -19 + yo, 6, 7, P.skin);
+    R(-3, -20 + yo, 6, 2, P.hair); R(-4, -19 + yo, 1, 3, P.hair); R(3, -19 + yo, 1, 3, P.hair);
+    R(-2, -16 + yo, 1, 1, P.ink); R(1, -16 + yo, 1, 1, P.ink);
+    if (pose === 'cheer' || pose === 'hold') R(-1, -14 + yo, 2, 1, P.ink);
+  }
+
+  // --- a championship belt (the "belt on Little Mac" moment) ---
+  function mmBelt(ctx, cx, cy, s, shine) {
+    const R = (x, y, w, h, c) => PX.r(ctx, cx + x * s, cy + y * s, w * s, h * s, c);
+    R(-15, -3, 30, 6, '#3a2a12'); R(-15, -3, 30, 1, '#5a4020');
+    R(-8, -7, 16, 14, SP.goldDk); R(-7, -6, 14, 12, SP.gold); R(-7, -6, 14, 2, SP.goldLt);
+    // star in the plate
+    R(-1, -5, 2, 8, '#fff8d0'); R(-4, -2, 8, 2, '#fff8d0');
+    PX.r(ctx, cx + (-2) * s, cy + (-4) * s, s, s, '#fff8d0'); PX.r(ctx, cx + (1) * s, cy + (-4) * s, s, s, '#fff8d0');
+    PX.r(ctx, cx + (-2) * s, cy + (1) * s, s, s, '#fff8d0'); PX.r(ctx, cx + (1) * s, cy + (1) * s, s, s, '#fff8d0');
+    if (shine != null) { const sx = -15 + Math.round(shine * 30); PX.r(ctx, cx + sx * s, cy - 7 * s, s, 14 * s, 'rgba(255,255,255,.5)'); }
+  }
+
+  function drawTicker(ctx, W, y, t) {
+    PX.r(ctx, 0, y, W, 12, SP.ink); PX.r(ctx, 0, y, W, 1, '#2ea060');
+    const span = W + 40, off = Math.floor(t / 22) % span;
+    for (let i = 0; i < 22; i++) {
+      let x = ((i * 34 - off) % span + span) % span - 20;
+      const up = rnd(i) > .42;
+      PX.r(ctx, x, y + 3, 9, 6, up ? SP.green : SP.red);
+      PX.r(ctx, x + 10, y + 5, 3, 2, up ? SP.greenLt : SP.redLt);
+    }
+  }
+  function drawSkyline(ctx, W, baseY, night) {
+    const cols = [[6, 58], [36, 92], [66, 42], [92, 112], [128, 74], [160, 100], [196, 54], [224, 96]];
+    cols.forEach(([x, h], i) => {
+      PX.r(ctx, x, baseY - h, 26, h, night ? SP.bldg : SP.bldgDay);
+      PX.r(ctx, x, baseY - h, 26, 1, night ? SP.bldgLt : '#8090b0');
+      for (let wy = baseY - h + 6; wy < baseY - 6; wy += 10)
+        for (let wx = x + 4; wx < x + 22; wx += 8)
+          if (rnd(i * 9 + wx + wy) > .35) PX.r(ctx, wx, wy, 4, 5, night ? SP.win : '#cdd8ea');
+    });
+  }
+  function drawConfetti(ctx, W, H, t, n) {
+    const cols = ['#f4c020', '#5ff0a0', '#ff9090', '#8fb8ff', '#f6f7fb', '#d6559b'];
+    for (let i = 0; i < (n || 40); i++) {
+      const x = Math.round(((rnd(i) * W) + Math.sin(t / 600 + i) * 8) % W);
+      const y = Math.round((rnd(i + 99) * H + t / 8 * (0.5 + rnd(i + 5))) % H);
+      PX.r(ctx, x, y, 3, 3, cols[i % cols.length]);
+    }
+  }
+
+  // ---- the six themed scenes + the generic belt ceremony ----
+  const MM_SCENES = {
+    belt: { title: 'LEVEL CLEARED!', dur: 2600, fanfare: () => mmFanfare('level'),
+      draw(ctx, W, H, t) {
+        for (let y = 0; y < H; y++) PX.r(ctx, 0, y, W, 1, y < H * .55 ? SP.night2 : '#0e2c1c');
+        // spotlight
+        ctx.fillStyle = 'rgba(255,240,180,.10)'; ctx.beginPath(); ctx.moveTo(W / 2, 12); ctx.lineTo(W / 2 - 60, H - 24); ctx.lineTo(W / 2 + 60, H - 24); ctx.closePath(); ctx.fill();
+        const f = t / 16, showBelt = t > 700;
+        mmHero(ctx, W / 2, H - 26, 3, t > 1200 ? 'cheer' : 'idle', f);
+        if (showBelt) { const drop = Math.min(1, (t - 700) / 700); const by = 34 + drop * (H - 92); mmBelt(ctx, W / 2, by, 3, (t % 1400) / 1400); }
+        for (let i = 0; i < 6; i++) { if ((t / 300 + i) % 6 < 3) { const a = i / 6 * 6.28; PX.r(ctx, W / 2 + Math.round(Math.cos(a) * 40), 40 + Math.round(Math.sin(a) * 14), 3, 3, SP.gold); } }
+        drawTicker(ctx, W, H - 12, t);
+      } },
+    rookieDesk: { title: 'THE ROOKIE', dur: 3200, fanfare: () => mmFanfare('level'),
+      draw(ctx, W, H, t) {
+        for (let y = 0; y < H; y++) PX.r(ctx, 0, y, W, 1, y < H * .6 ? SP.beige : SP.beige2);
+        PX.r(ctx, 0, H - 34, W, 4, SP.deskDk); PX.r(ctx, 0, H - 30, W, 18, SP.desk);
+        // 1980s beige Macintosh
+        const mx = 40, my = H - 82;
+        PX.r(ctx, mx, my, 46, 50, SP.macDk); PX.r(ctx, mx + 1, my + 1, 44, 48, SP.mac);
+        PX.r(ctx, mx + 6, my + 6, 34, 26, SP.macScr);
+        // rising green line on the screen
+        ctx.strokeStyle = SP.greenLt; ctx.lineWidth = 2; ctx.beginPath();
+        const pts = Math.min(16, Math.floor(t / 120));
+        for (let i = 0; i <= pts; i++) { const x = mx + 7 + i * 2, y = my + 28 - (i * 1.3 + Math.sin(i) * 2); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+        ctx.stroke();
+        PX.r(ctx, mx + 8, my + 36, 30, 3, SP.macDk); // floppy slot
+        if (Math.floor(t / 400) % 2) PX.r(ctx, mx + 38, my + 10, 2, 3, SP.greenLt); // cursor blink
+        mmHero(ctx, mx + 78, H - 30, 3, (Math.floor(t / 500) % 2) ? 'cheer' : 'idle', t / 16);
+        // little rising $ counter
+        PX.text(ctx, '$' + Math.min(999, Math.floor(t / 6)), mx + 60, my + 6, SP.green, 8);
+        drawTicker(ctx, W, H - 12, t);
+      } },
+    tradingFloor: { title: 'THE TRADING FLOOR', dur: 3400, fanfare: () => mmFanfare('level'),
+      draw(ctx, W, H, t) {
+        for (let y = 0; y < H; y++) PX.r(ctx, 0, y, W, 1, y < H * .5 ? SP.night1 : SP.night2);
+        // NYSE columns
+        for (const cx of [16, 210]) { PX.r(ctx, cx, 10, 30, H - 34, SP.col); PX.r(ctx, cx - 4, 6, 38, 5, SP.white); PX.r(ctx, cx - 4, H - 26, 38, 5, SP.white); }
+        // the big board
+        PX.r(ctx, 58, 16, 140, 60, '#05140c'); PX.r(ctx, 58, 16, 140, 2, SP.green);
+        for (let r = 0; r < 4; r++) for (let c = 0; c < 8; c++) {
+          const up = Math.sin(t / 300 + r * 2 + c) > 0;
+          PX.r(ctx, 64 + c * 17, 22 + r * 13, 13, 9, up ? SP.green : SP.red);
+        }
+        // falling ticker tape
+        for (let i = 0; i < 26; i++) { const x = Math.round(rnd(i) * W); const y = Math.round((rnd(i + 7) * H + t / 6) % (H - 20)); PX.r(ctx, x, y, 3, 6, i % 3 ? SP.white : SP.greenLt); }
+        // Buck walks in from the left to center
+        const hx = Math.min(W / 2, 24 + t / 26);
+        mmHero(ctx, hx, H - 24, 3, hx < W / 2 ? 'walk' : 'cheer', t / 16);
+        drawTicker(ctx, W, H - 12, t);
+      } },
+    stormCleared: { title: 'WEATHERED THE STORM', dur: 3400, fanfare: () => mmFanfare('level'),
+      draw(ctx, W, H, t) {
+        const clear = Math.min(1, t / 1800);
+        for (let y = 0; y < H; y++) { const c = y < H * .6 ? mix(SP.dusk, SP.sky, clear) : '#124a2c'; PX.r(ctx, 0, y, W, 1, c); }
+        // sun grows in center
+        const sr = 8 + clear * 14; PX.r(ctx, W / 2 - sr, 26 - sr / 2, sr * 2, sr, SP.sunCore); circle(ctx, W / 2, 30, sr, SP.sun); circle(ctx, W / 2, 30, sr - 3, SP.sunCore);
+        // storm clouds slide off to the sides
+        const off = clear * 90;
+        cloud(ctx, 40 - off, 26); cloud(ctx, 150 + off, 20); cloud(ctx, 210 + off, 40);
+        // recovery chart: dips then rises
+        ctx.strokeStyle = SP.greenLt; ctx.lineWidth = 2; ctx.beginPath();
+        for (let i = 0; i <= 40; i++) { const x = 10 + i * (W - 20) / 40; const dip = Math.sin(i / 40 * 3.14) * 24; const rise = i * 0.5; const y = H - 40 - rise + (i < 20 ? dip : 0); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+        ctx.stroke();
+        mmHero(ctx, W / 2, H - 24, 3, clear > .7 ? 'cheer' : 'idle', t / 16);
+        drawTicker(ctx, W, H - 12, t);
+      } },
+    tickerParade: { title: 'TICKER-TAPE PARADE', dur: 3400, fanfare: () => mmFanfare('level'),
+      draw(ctx, W, H, t) {
+        for (let y = 0; y < H; y++) PX.r(ctx, 0, y, W, 1, y < H * .62 ? SP.skyLt : '#7a869a');
+        drawSkyline(ctx, W, H - 22, false);
+        drawConfetti(ctx, W, H - 20, t, 60);
+        // cheering crowd dots
+        for (let i = 0; i < 22; i++) { const x = 6 + i * 11; const b = Math.sin(t / 200 + i) > 0 ? 0 : 2; PX.r(ctx, x, H - 20 + b, 5, 8, ['#2a3550', '#8a5a2c', '#4a2e12'][i % 3]); PX.r(ctx, x, H - 24 + b, 5, 4, SP.skin); }
+        mmHero(ctx, W / 2, H - 26, 3, 'cheer', t / 16);
+        drawTicker(ctx, W, H - 12, t);
+      } },
+    limo: { title: 'THE BIG LEAGUES', dur: 3600, fanfare: () => mmFanfare('level'),
+      draw(ctx, W, H, t) {
+        for (let y = 0; y < H; y++) PX.r(ctx, 0, y, W, 1, y < H * .5 ? SP.night1 : SP.night2);
+        drawSkyline(ctx, W, H - 24, true);
+        PX.r(ctx, 0, H - 22, W, 22, SP.street); PX.r(ctx, 0, H - 22, W, 1, '#3a4050');
+        // limo drives in from the right to center
+        const lx = Math.max(W / 2 - 6, W - t / 20);
+        const carW = 96;
+        PX.r(ctx, lx, H - 34, carW, 12, SP.ink); PX.r(ctx, lx + 14, H - 44, carW - 40, 10, SP.ink);
+        for (let wx = lx + 18; wx < lx + carW - 24; wx += 12) PX.r(ctx, wx, H - 42, 8, 6, '#3a4a70');
+        PX.r(ctx, lx + carW - 6, H - 30, 4, 3, SP.win); // headlight
+        circle(ctx, lx + 16, H - 22, 5, '#0a0c10'); circle(ctx, lx + carW - 18, H - 22, 5, '#0a0c10');
+        circle(ctx, lx + 16, H - 22, 2, '#555'); circle(ctx, lx + carW - 18, H - 22, 2, '#555');
+        // Buck walks toward the limo
+        const hx = Math.min(W / 2 - 40, 20 + t / 30);
+        mmHero(ctx, hx, H - 22, 3, hx < W / 2 - 40 ? 'walk' : 'idle', t / 16);
+        drawTicker(ctx, W, H - 12, t);
+      } },
+    legend: { title: 'WALL STREET LEGEND', dur: 4200, fanfare: () => mmFanfare('grad'),
+      draw(ctx, W, H, t) {
+        for (let y = 0; y < H; y++) PX.r(ctx, 0, y, W, 1, y < H * .55 ? SP.night1 : SP.night2);
+        drawSkyline(ctx, W, H - 20, true);
+        // fireworks
+        const fw = [[60, 40, '#f4c020'], [130, 28, '#5ff0a0'], [200, 46, '#ff9090']];
+        fw.forEach(([cx, cy, col], k) => { const ph = ((t / 1000 + k * .4) % 1); const r = ph * 20; for (let a = 0; a < 10; a++) { const an = a / 10 * 6.28; PX.r(ctx, cx + Math.round(Math.cos(an) * r), cy + Math.round(Math.sin(an) * r), 2, 2, ph < .85 ? col : SP.night2); } });
+        drawConfetti(ctx, W, H - 18, t, 44);
+        mmHero(ctx, W / 2, H - 24, 3, 'hold', t / 16);
+        mmBelt(ctx, W / 2, H - 60, 3, (t % 1400) / 1400); // held overhead
+        drawTicker(ctx, W, H - 12, t);
+      } }
+  };
+  function mix(a, b, k) { const pa = hx2(a), pb = hx2(b); const r = Math.round(pa[0] + (pb[0] - pa[0]) * k), g = Math.round(pa[1] + (pb[1] - pa[1]) * k), bl = Math.round(pa[2] + (pb[2] - pa[2]) * k); return `rgb(${r},${g},${bl})`; }
+  function hx2(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  function circle(ctx, cx, cy, r, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.29); ctx.fill(); }
+  function cloud(ctx, x, y) { PX.r(ctx, x, y, 30, 10, SP.cloud); PX.r(ctx, x + 6, y - 5, 18, 8, SP.cloud); PX.r(ctx, x, y, 30, 2, SP.cloudDk); }
+
+  // NES chiptune fanfares (square-wave arpeggios) via the shared Sound engine.
+  function mmFanfare(kind) {
+    try {
+      if (Sound.muted) return;
+      const c = Sound.ctx(); let t = c.currentTime;
+      const play = (f, d, g, type) => { if (!f) { t += d; return; } const o = c.createOscillator(), gn = c.createGain(); o.type = type || 'square'; o.frequency.value = f; gn.gain.setValueAtTime(g || .08, t); gn.gain.exponentialRampToValueAtTime(.001, t + d); o.connect(gn).connect(c.destination); o.start(t); o.stop(t + d + .02); t += d; };
+      const N = { G4: 392, C5: 523, E5: 659, G5: 784, A5: 880, B5: 988, C6: 1047, E6: 1319, G6: 1568 };
+      if (kind === 'grad') {
+        [[N.C5, .12], [N.E5, .12], [N.G5, .12], [N.C6, .18], [N.G5, .12], [N.C6, .3], [0, .08], [N.E6, .18], [N.G6, .4]].forEach(([f, d]) => play(f, d, .09));
+      } else {
+        [[N.G4, .1], [N.C5, .1], [N.E5, .1], [N.G5, .16], [N.E5, .1], [N.G5, .34]].forEach(([f, d]) => play(f, d, .08));
+      }
+    } catch (e) {}
+  }
+
+  function mmSceneForLevel(n, graduated) {
+    if (graduated) return 'legend';
+    return ({ 1: 'rookieDesk', 3: 'tradingFloor', 5: 'stormCleared', 7: 'tickerParade', 9: 'limo' })[n] || 'belt';
+  }
+
+  // Play an animated cutscene, then call onDone (which renders the results card).
+  function mmCutscene(sceneId, onDone) {
+    const scene = MM_SCENES[sceneId] || MM_SCENES.belt;
+    app().innerHTML = topbar(`<div class="container" style="max-width:560px">
+      <div class="mm-cutscene">
+        <div class="mm-cut-frame"><canvas id="mm-cut" width="256" height="180"></canvas></div>
+        <div class="mm-cut-title">${scene.title}</div>
+        <div class="mm-cut-btns">
+          <button class="btn green mm-cut-go" id="mm-cut-go" style="visibility:hidden">Continue →</button>
+        </div>
+        <button class="mm-cut-skip" id="mm-cut-skip">Skip ▸</button>
+      </div>
+    </div>`);
+    wireChrome();
+    const cv = $('#mm-cut'); if (!cv) { onDone(); return; }
+    const ctx = pixelCtx(cv);
+    let startTs = null, raf = null, done = false;
+    try { scene.fanfare && scene.fanfare(); } catch (e) {}
+    Confetti.burst(60);
+    function endScene() { if (done) return; done = true; if (raf) cancelAnimationFrame(raf); onDone(); }
+    const go = $('#mm-cut-go'), skip = $('#mm-cut-skip');
+    if (go) go.onclick = () => { Sound.click(); endScene(); };
+    if (skip) skip.onclick = () => { Sound.click(); endScene(); };
+    function frame(ts) {
+      if (!document.body.contains(cv)) return;   // route changed away — stop drawing
+      if (startTs == null) startTs = ts;
+      const t = ts - startTs;
+      try { scene.draw(ctx, 256, 180, t); } catch (e) {}
+      if (t > scene.dur && go && go.style.visibility === 'hidden') { go.style.visibility = 'visible'; go.classList.add('mm-cut-pop'); }
+      if (!done) raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  // Draw a static mascot into a small canvas (hub header, concept card) for continuity.
+  function mmHeroInto(id, pose) {
+    const cv = $(id); if (!cv) return;
+    const ctx = pixelCtx(cv);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    mmHero(ctx, cv.width / 2, cv.height - 4, 2, pose || 'idle', 0);
+  }
+
   // ======================= BAKERY QUEST =======================
   // "Why do I need this?" answered by DOING it: you run a real bakery for a day, and every
   // real task (batching, scaling a recipe, pricing, making change, counting profit) is solved
