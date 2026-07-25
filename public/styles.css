@@ -328,6 +328,16 @@ body[data-theme="academy"] .choice.wrong { background: #3a2226; color: #ff9c9c; 
 body[data-theme="academy"] .feedback.good { background: #16362e; color: #7fe0c0; }
 body[data-theme="academy"] .feedback.bad { background: #3a3222; color: #e6c877; }
 .why-line { margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(0,0,0,.15); font-weight: 500; font-size: .92rem; opacity: .92; }
+/* Second Look re-teach panel — shown on a first miss instead of revealing the answer. */
+.feedback.reteach { display: block; background: #eef4ff; color: #26406b; border: 1px solid #cfe0ff; }
+body[data-theme="academy"] .feedback.reteach { background: #1a2540; color: #b9cdf5; border-color: #2c3d63; }
+.second-look b { display: block; font-size: 1.04rem; margin-bottom: 6px; }
+.second-look .sl-why { margin: 6px 0; font-weight: 500; }
+.second-look .sl-hint { margin: 8px 0; padding: 8px 12px; background: rgba(255,255,255,.6); border-radius: 10px; font-weight: 600; }
+body[data-theme="academy"] .second-look .sl-hint { background: rgba(255,255,255,.08); }
+.second-look .sl-try { margin-top: 10px; font-weight: 700; }
+.sl-note { margin-top: 8px; font-weight: 500; font-size: .92rem; opacity: .9; }
+body[data-theme="junior"] .feedback.reteach, body[data-theme="explorer"] .feedback.reteach { font-size: 1.12rem; line-height: 1.5; }
 .choice.idk { border-style: dashed; opacity: .85; font-size: .95rem; background: transparent; }
 .choice.idk:hover { opacity: 1; }
 .dash-welcome { color: var(--ink); }
@@ -1890,6 +1900,12 @@ body[data-theme="academy"] .badge-item.ws-done { color: #86b8a0; opacity: .8; }
 }
 
 /* ===================== Parent report — advancement tracker & methodology ===================== */
+/* "Do this next" — prescriptive parent action card at the top of the report. */
+.do-next { margin: 14px 0 4px; padding: 16px 18px; border-radius: 16px; background: color-mix(in srgb, var(--brand) 8%, var(--card-bg)); border: 1px solid color-mix(in srgb, var(--brand) 24%, transparent); border-left: 5px solid var(--brand); }
+.do-next .dn-head { font-family: var(--font-display); font-weight: 800; font-size: 1.12rem; color: var(--brand); margin-bottom: 6px; }
+.do-next .dn-focus { margin: 4px 0; font-size: 1.02rem; color: var(--chrome-ink); }
+.do-next .dn-action { margin: 8px 0; color: var(--chrome-ink); line-height: 1.55; }
+.do-next .dn-eta { margin: 8px 0 0; font-size: .92rem; color: var(--chrome-sub); }
 .advance-box { background: var(--soft-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 12px 14px; margin: 10px 0; }
 .advance-head { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: .92rem; color: var(--chrome-ink); }
 .advance-head b { color: var(--brand); font-size: 1.05rem; }
@@ -1950,6 +1966,10 @@ body[data-theme="academy"] .rt-n { color: var(--accent); }
 .cx-what { font-size: 1.02rem; line-height: 1.6; color: var(--chrome-ink); margin: 6px 0 4px; }
 .cx-block { margin-top: 16px; }
 .cx-block h4 { margin: 0 0 6px; font-size: .95rem; }
+/* Career pathway CTA — "start building toward this" practice buttons. */
+.cx-path { margin-top: 18px; padding: 14px 16px; border-radius: 14px; background: color-mix(in srgb, var(--cx, #1A5C38) 8%, var(--card-bg)); border: 1px solid color-mix(in srgb, var(--cx, #1A5C38) 22%, transparent); }
+.cx-path-btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.cx-path-btn { font-weight: 700; }
 .cx-block p { margin: 0; color: var(--chrome-sub); line-height: 1.6; font-size: .95rem; }
 .cx-hs { background: var(--soft-bg); border-radius: 12px; padding: 12px 14px; }
 .cx-jobs { display: flex; flex-wrap: wrap; gap: 7px; }

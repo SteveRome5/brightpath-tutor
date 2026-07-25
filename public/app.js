@@ -850,7 +850,7 @@ route('landing', async () => {
     <p class="section-sub">The same three moves a good teacher makes, built into every session.</p>
     <div class="feature-grid">
       <div class="feature reveal"><div class="fnum">STEP 01 · PLACE</div><h3>Find the true starting line</h3><p>A short assessment measures each subject on its own. A child who reads well but finds math harder starts in the right spot for each, not somewhere in the middle.</p></div>
-      <div class="feature reveal"><div class="fnum">STEP 02 · ADAPT</div><h3>Adjust with every answer</h3><p>Skills a child has down get harder and go deeper. The shaky ones slow down, with easier questions, clearer hints, and more practice. It happens quietly, so nobody feels singled out.</p></div>
+      <div class="feature reveal"><div class="fnum">STEP 02 · ADAPT & RE-TEACH</div><h3>Miss one? We teach it again</h3><p>Skills a child has down get harder and go deeper. And when they miss one, Gallop doesn't just flash the correct answer and move on the way a drill app does — it re-explains the idea a <b>different</b> way and gives them another try. A stumble becomes a teaching moment, not a red X.</p></div>
       <div class="feature reveal"><div class="fnum">STEP 03 · PROGRESS</div><h3>Prove it, then move up</h3><p>A child only advances a grade after showing they can do the whole thing, not after a lucky streak. You see the letter grades, the strengths, and the spots that need work. Certificates mark the real milestones.</p></div>
     </div>
     <h2 class="section-title reveal">Lessons, not just questions</h2>
@@ -944,12 +944,16 @@ route('landing', async () => {
         <figcaption><span class="q-name">Placed per subject</span><span class="q-detail">Math · English · Science · Spanish</span></figcaption>
       </figure>
       <figure class="quote-card reveal">
+        <blockquote>Get one wrong and Gallop re-teaches it a different way, then lets your child try again — most apps just show the answer and move on. It's the difference between drilling and actually learning.</blockquote>
+        <figcaption><span class="q-name">It re-teaches until it clicks</span><span class="q-detail">The "Second Look" difference</span></figcaption>
+      </figure>
+      <figure class="quote-card reveal">
         <blockquote>Coins, badges, an arcade, and a Snack Shack turn practice into something kids come back to, while the real work happens underneath.</blockquote>
         <figcaption><span class="q-name">Built to keep them going</span><span class="q-detail">Play is the reward</span></figcaption>
       </figure>
       <figure class="quote-card reveal">
-        <blockquote>A one-page weekly summary tells you, in plain language, where your child is ahead and where they are stuck, across all four subjects.</blockquote>
-        <figcaption><span class="q-name">You always know how it is going</span><span class="q-detail">Weekly report & progress</span></figcaption>
+        <blockquote>A one-page weekly summary tells you, in plain language, where your child is ahead, where they're stuck, and the one thing to do this week — plus how close they are to the next grade level.</blockquote>
+        <figcaption><span class="q-name">You know exactly what to do next</span><span class="q-detail">Weekly report & "Do this next"</span></figcaption>
       </figure>
     </div>
 
@@ -1683,6 +1687,7 @@ route('lesson', async (subject, mode, anchor) => {
     // Per-question idempotency key so a double-tap / retry can't double-record this answer.
     const answerNonce = Math.random().toString(36).slice(2) + '-' + qStart.toString(36);
     let answered = false;
+    let firstTryWrong = false;   // Second Look: true once a first miss has triggered a re-teach + retry
     // Typed-answer mode: ~30% of numeric math questions (grade 2+) ask the kid
     // to TYPE the answer, recall beats recognition for real mastery.
     const numericQ = qn.choices.every(c => /^-?\d+(\.\d+)?$/.test(String(c).trim()));
@@ -1768,10 +1773,41 @@ route('lesson', async (subject, mode, anchor) => {
       else if (e.key.toLowerCase() === 'h') { const hb = $('#hint-btn'); if (hb) hb.click(); }
     };
 
-    async function settle(correct, chosen) {
+    // Second Look re-teach: does this question carry content we can re-teach with WITHOUT
+    // giving away the answer (a hint or a misconception note)? Almost all do.
+    function canReteach() { return !!(qn.hint || (qn.whyWrong && Object.keys(qn.whyWrong).length)); }
+    // On a first miss: re-explain the idea a different way and let the child try again,
+    // instead of the drill-app move of flashing the answer and moving on.
+    function secondLook(chosen) {
+      Sound.click();   // a gentle nudge, not the harsh "wrong" buzzer — struggle isn't punished
+      const whyW = (qn.whyWrong && chosen != null && qn.whyWrong[String(chosen)]) || '';
+      const hint = qn.hint || '';
+      const fb = $('#feedback');
+      fb.className = 'feedback reteach';
+      fb.innerHTML = `<div class="second-look">
+        <b>👀 ${playful() ? "Not quite — let's look at it another way." : "Not quite — here's another way to see it."}</b>
+        ${whyW ? `<div class="sl-why">${esc(whyW)}</div>` : ''}
+        ${hint ? `<div class="sl-hint">💡 ${esc(hint)}</div>` : ''}
+        <div class="sl-try">${playful() ? "Give it one more try — you've got this! 🌟" : 'Take another look and try once more.'}</div>
+      </div>`;
+      const hb = $('#hint-box'); if (hb) hb.classList.add('show');
+      try { fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
+      if (Voice.auto && playful()) Voice.speak("Not quite. Let's look at it another way. " + (whyW || hint), vlang);
+    }
+
+    async function settle(correct, chosen, wasReteach) {
       const fb = $('#feedback');
       const why = whyLine(subject, qn.skillName);
-      if (correct) {
+      // Mastery honesty: a child who needed the re-teach hasn't shown INDEPENDENT mastery,
+      // so we record the first attempt as the real result even when they nail the retry.
+      // They still get the win, the confetti, and the encouragement.
+      const recordCorrect = correct && !wasReteach;
+      if (correct && wasReteach) {
+        Sound.correct(); Confetti.burst(28);
+        fb.className = 'feedback good';
+        fb.innerHTML = `<b>${playful() ? 'Yes! You got it on your second look 🎉' : 'There it is — got it on the second look.'}</b> ${esc(qn.explain || "")}<div class="sl-note">${playful() ? "That's exactly how learning works — a tricky one, then you nailed it." : 'Working it out after a stumble is real learning.'}</div>${why ? `<div class="why-line">🌍 <b>Real world:</b> ${esc(why)}</div>` : ''}`;
+        if (Voice.auto && playful()) Voice.speak('Yes! You got it on your second look!');
+      } else if (correct) {
         Sound.correct(); Confetti.burst(40);
         const praise = (playful() ? PRAISE : PRAISE_TEEN)[Math.floor(Math.random() * (playful() ? PRAISE : PRAISE_TEEN).length)];
         fb.className = 'feedback good';
@@ -1808,7 +1844,7 @@ route('lesson', async (subject, mode, anchor) => {
       try {
         const res = await api(`/learn/${kidId}/answer`, {
           method: 'POST',
-          body: { subject, skillId: qn.skillId, correct, timeMs: Date.now() - qStart, difficulty: qn.difficulty, nonce: answerNonce }
+          body: { subject, skillId: qn.skillId, correct: recordCorrect, timeMs: Date.now() - qStart, difficulty: qn.difficulty, nonce: answerNonce }
         });
         session.xp += res.xpGained || 0;
         $('#mastery-pct').textContent = Math.round(res.mastery * 100) + '%';
@@ -1832,13 +1868,22 @@ route('lesson', async (subject, mode, anchor) => {
     }
 
     document.querySelectorAll('.choice').forEach(b => b.onclick = () => {
-      if (answered) return; answered = true;
+      if (answered) return;
       const i = Number(b.dataset.i);
       const correct = i === qn.answerIndex;
+      // SECOND LOOK: on the first miss, re-teach the idea a different way and let the child
+      // try again — don't flash the answer and move on. Only a real second attempt settles.
+      if (!correct && !firstTryWrong && canReteach()) {
+        firstTryWrong = true;
+        b.classList.add('wrong'); b.disabled = true;   // dim only the choice they picked
+        secondLook(qn.choices[i]);
+        return;
+      }
+      answered = true;
       document.querySelectorAll('.choice').forEach(x => x.disabled = true);
       b.classList.add(correct ? 'correct' : 'wrong');
       if (!correct) { const _ar = document.querySelectorAll('.choice')[qn.answerIndex]; if (_ar) _ar.classList.add('answer-reveal'); }
-      settle(correct, qn.choices[i]);
+      settle(correct, qn.choices[i], firstTryWrong);
     });
 
     const tgo = $('#typed-go');
@@ -1849,11 +1894,19 @@ route('lesson', async (subject, mode, anchor) => {
         if (answered) return;
         const val = tin.value.trim();
         if (!val) { tin.focus(); return; }
-        answered = true;
         const correct = Number(val) === Number(qn.choices[qn.answerIndex]);
+        // Second Look for typed answers: re-teach, clear the box, and let them type once more.
+        if (!correct && !firstTryWrong && canReteach()) {
+          firstTryWrong = true;
+          tin.classList.add('bad');
+          secondLook(val);
+          setTimeout(() => { tin.classList.remove('bad'); tin.value = ''; tin.disabled = false; tin.focus(); }, 120);
+          return;
+        }
+        answered = true;
         tin.disabled = true; tgo.disabled = true;
         tin.classList.add(correct ? 'good' : 'bad');
-        settle(correct);
+        settle(correct, undefined, firstTryWrong);
       };
     }
   }
@@ -2189,6 +2242,48 @@ function renderCareer(c, k) {
   </div>`;
 }
 
+// "Do This Next" — turn the report data into ONE prescriptive action for the parent:
+// which subject/concept to focus on, a concrete at-home move, and a soft ETA to the next
+// grade level. This is the "here's exactly what your child needs" guidance no rival gives.
+function computeDoNext(r) {
+  const placed = (r.subjects || []).filter(s => s.placed);
+  if (!placed.length) return null;
+  const rank = { 'needs-support': 0, 'developing': 1, 'on-track': 2, 'excelling': 3 };
+  const sorted = placed.slice().sort((a, b) => {
+    const ra = rank[a.status] != null ? rank[a.status] : 2, rb = rank[b.status] != null ? rank[b.status] : 2;
+    if (ra !== rb) return ra - rb;
+    const pa = a.progress && a.progress.atLevelTotal ? a.progress.atLevelMastered / a.progress.atLevelTotal : 1;
+    const pb = b.progress && b.progress.atLevelTotal ? b.progress.atLevelMastered / b.progress.atLevelTotal : 1;
+    return pa - pb;
+  });
+  const s = sorted[0];
+  const concept = (s.focusAreas && s.focusAreas[0]) || (s.strengths && s.strengths[0]) || s.label;
+  const remaining = s.progress ? Math.max(0, s.progress.atLevelTotal - s.progress.atLevelMastered) : 0;
+  // Soft ETA: ~15 answered questions to master a skill, spread across the child's placed
+  // subjects at this week's pace. Deliberately conservative and always framed as an estimate.
+  let eta = null;
+  const perSubjWeekly = (r.weekAnswers || 0) / placed.length;
+  if (remaining > 0 && perSubjWeekly >= 8 && s.progress && !s.progress.atMaxGrade && s.nextGradeName) {
+    const acc = Math.max(s.accuracy || 0.7, 0.4);
+    const skillsPerWeek = Math.max(0.15, (perSubjWeekly * acc) / 15);
+    const wks = Math.round(remaining / skillsPerWeek);
+    if (wks >= 1 && wks <= 40) eta = wks;
+  }
+  return { s, concept, remaining, eta };
+}
+function doNextCard(r, k) {
+  const dn = computeDoNext(r);
+  if (!dn) return '';
+  const { s, concept, remaining, eta } = dn;
+  const conceptLine = concept && concept !== s.label ? `, especially <b>${esc(concept)}</b>` : '';
+  return `<div class="do-next">
+    <div class="dn-head">🧭 Do this next</div>
+    <p class="dn-focus">Put this week's attention on <b>${esc(s.label)}</b>${conceptLine}.</p>
+    <p class="dn-action">At home: ask ${esc(k.name)} to <b>teach you</b> how ${esc(concept)} works. Explaining it out loud is one of the fastest ways to lock a skill in — and it shows you instantly what's clicked and what hasn't.</p>
+    ${remaining > 0 && s.nextGradeName ? `<p class="dn-eta"><b>${remaining}</b> more ${esc(s.levelName)} skill${remaining === 1 ? '' : 's'} to reach <b>${esc(s.nextGradeName)}</b>${eta ? ` — about <b>~${eta} week${eta === 1 ? '' : 's'}</b> at this week's pace` : ''}.</p>` : ''}
+  </div>`;
+}
+
 route('report', async (kidId) => {
   const r = await api(`/learn/${kidId}/report`);
   const k = r.kid;
@@ -2203,6 +2298,7 @@ route('report', async (kidId) => {
         </div>
       </div>
       <p class="muted">${r.pace.summer ? `☀️ ${esc(r.pace.note)}` : `${esc(r.pace.label)} · ${Math.round(r.pace.pctThroughYear * 100)}% through the year`} · ${r.weekAnswers} question${r.weekAnswers === 1 ? '' : 's'} this week (goal: ${k.weekly_goal * 10})</p>
+      ${isParent ? doNextCard(r, k) : ''}
       ${r.gallop && r.gallop.overall != null ? `
       <div class="gallop-hero">
         <div class="gh-num">${r.gallop.overall}</div>
@@ -3000,6 +3096,19 @@ route('careers', async (kidId) => {
               ${p.wiki ? `<a class="cx-person-link" href="https://en.wikipedia.org/wiki/${encodeURIComponent(p.wiki)}" target="_blank" rel="noopener noreferrer">Read their story →</a>` : ''}
             </div>`).join('')}</div>
         </div>
+        ${(() => {
+          // Career PATHWAY: turn "here's a cool job" into "here's how you build toward it."
+          // Rank the subjects that matter most for this field and let the kid jump straight
+          // into practicing one. No competitor connects a school subject to a real future.
+          const sig = f.sig || {};
+          const subs = Object.keys(sig).filter(x => SUBJECT_STYLE[x] && sig[x] >= 0.3).sort((a, b) => sig[b] - sig[a]).slice(0, 2);
+          const isKid = !!(State.me && State.me.kid);
+          if (!isKid || !subs.length) return '';
+          return `<div class="cx-block cx-path"><h4>🚀 Start building toward this</h4>
+            <p class="muted" style="margin:0 0 10px;font-size:.9rem">The subjects that matter most for ${esc(f.title)} — get some practice in right now:</p>
+            <div class="cx-path-btns">${subs.map(sub => `<button class="btn cx-path-btn" style="background:${SUBJECT_STYLE[sub].color};color:#fff;border:none" onclick="location.hash='#lesson/${sub}'">${SUBJECT_STYLE[sub].emoji} Practice ${sub.charAt(0).toUpperCase() + sub.slice(1)} →</button>`).join('')}</div>
+          </div>`;
+        })()}
         <p class="muted" style="font-size:.78rem;margin-top:6px">Gallop is here to open doors and spark ideas — every path is worth exploring, and where you focus is always up to you.</p>
       </div>
     </div>`);
