@@ -23,13 +23,16 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=()');
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
-    // Google Tag Manager + GA4. googletagmanager.com serves the container/library;
-    // *.google-analytics.com / *.analytics.google.com receive the measurement hits.
-    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.googletagmanager.com",
+    // Ad/analytics tags run through GTM (container GTM-N5F65TST):
+    //  - Google Tag Manager + GA4: googletagmanager.com serves the library;
+    //    *.google-analytics.com / *.analytics.google.com receive the hits.
+    //  - Meta (Facebook) Pixel for the paid launch: connect.facebook.net serves
+    //    fbevents.js; facebook.com receives the tracking beacon (/tr).
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.googletagmanager.com https://connect.facebook.net",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: https://www.googletagmanager.com https://*.google-analytics.com https://*.googletagmanager.com",
-    "connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
+    "img-src 'self' data: https://www.googletagmanager.com https://*.google-analytics.com https://*.googletagmanager.com https://www.facebook.com https://*.facebook.com",
+    "connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.facebook.com https://*.facebook.com",
     "frame-src https://www.googletagmanager.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
