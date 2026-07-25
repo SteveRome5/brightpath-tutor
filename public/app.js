@@ -791,6 +791,10 @@ function currentMusicMood() {
 function showError(id, msg) { const el = $(id); if (el) { el.textContent = msg; el.classList.add('show'); } }
 
 // ======================= landing =======================
+// Smooth-scroll the homepage's section nav to a target section. Kept off the hash router
+// (plain scrollIntoView, no location.hash change) so a jump never triggers a route change.
+window.scrollToSection = function (id) { try { const e = document.getElementById(id); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} };
+
 route('landing', async () => {
   if (State.me.role === 'kid') { location.hash = '#home'; return; }
   app().innerHTML = topbar(`
@@ -828,6 +832,21 @@ route('landing', async () => {
       <div><b>300+</b><span>Guided lessons</span></div>
       <div><b>5,000+</b><span>Accuracy-checked questions</span></div>
     </div>
+    <nav class="section-nav" aria-label="Jump to a section">
+      <div class="sn-inner">
+        <button class="sn-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">🐎 Gallop</button>
+        <div class="sn-links">
+          <button class="sn-link" onclick="scrollToSection('s-how')">How it works</button>
+          <button class="sn-link" onclick="scrollToSection('s-realworld')">Real-world</button>
+          <button class="sn-link" onclick="scrollToSection('s-curriculum')">Curriculum</button>
+          <button class="sn-link" onclick="scrollToSection('s-why')">Why Gallop</button>
+          <button class="sn-link" onclick="scrollToSection('s-story')">Our story</button>
+          <button class="sn-link" onclick="scrollToSection('s-pricing')">Pricing</button>
+          <button class="sn-link" onclick="scrollToSection('s-faq')">FAQ</button>
+        </div>
+        <button class="btn sun small sn-cta" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start free trial</button>
+      </div>
+    </nav>
     <div class="showcase reveal">
       <h2 class="section-title" style="margin-bottom:4px">See it in action</h2>
       <p class="section-sub">The real thing — what your child uses, and what you see.</p>
@@ -846,7 +865,7 @@ route('landing', async () => {
         </figure>
       </div>
     </div>
-    <h2 class="section-title reveal">How it works</h2>
+    <h2 id="s-how" class="section-title reveal">How it works</h2>
     <p class="section-sub">The same three moves a good teacher makes, built into every session.</p>
     <div class="feature-grid">
       <div class="feature reveal"><div class="fnum">STEP 01 · PLACE</div><h3>Find the true starting line</h3><p>A short assessment measures each subject on its own. A child who reads well but finds math harder starts in the right spot for each, not somewhere in the middle.</p></div>
@@ -861,7 +880,7 @@ route('landing', async () => {
       <div class="feature reveal"><div class="fnum">DO IT</div><h3>You try it before you move on</h3><p>The lesson will not continue until the child does it themselves: shading a fraction, building a number, sorting the words. Kids who learn by doing finally get to.</p></div>
     </div>
     <p class="section-sub reveal" style="margin-top:6px">Each lesson leans on a comparison a kid already gets, so the idea sticks. Fractions are fair shares. The main idea is the umbrella every sentence hides under. Ser and estar are a name tag versus a mood ring.</p>
-    <h2 class="section-title reveal">We're raising critical thinkers</h2>
+    <h2 id="s-realworld" class="section-title reveal">We're raising critical thinkers</h2>
     <p class="section-sub">Every kid eventually asks "when will I ever use this?" We answer that on the questions themselves, and keep an eye on the adult they're becoming.</p>
     <div class="feature-grid">
       <div class="feature reveal"><div class="fnum">GRADES K–5</div><h3>Little entrepreneurs</h3><p>Second-grade addition turns into running a lemonade stand: buy the supplies, set a price, count what's left over. It stops feeling like a worksheet and starts feeling like the actual world.</p></div>
@@ -903,7 +922,7 @@ route('landing', async () => {
     </div>
     <p class="section-sub reveal" style="margin-top:6px">The Advanced Track is its own space, so working ahead never disturbs a child's grade-level placement or Gallop Score. And the core high-school math ladder now runs pre-algebra, algebra, geometry, trigonometry, pre-calculus, calculus, and statistics.</p>
 
-    <h2 class="section-title reveal">The curriculum</h2>
+    <h2 id="s-curriculum" class="section-title reveal">The curriculum</h2>
     <p class="section-sub">Every idea is taught through something real: money, sports, cooking, travel, and the technology kids already use.</p>
     <div class="subject-strip">
       <div class="sub reveal" style="background:var(--math)"><h4>Mathematics</h4><p>Counting all the way through calculus and statistics, with an advanced track for accelerated students. Lemonade-stand arithmetic, sale-rack percentages, and the functions behind a roller coaster.</p></div>
@@ -936,7 +955,7 @@ route('landing', async () => {
       <p class="ab-more">+ Lightning Round, Word Search, Memory Match & Art Studio — eight games, all earned by learning.</p>
     </div>
 
-    <h2 class="section-title reveal">Why families choose Gallop</h2>
+    <h2 id="s-why" class="section-title reveal">Why families choose Gallop</h2>
     <p class="section-sub">Gallop is newly launched, so we would rather show you what it does than put words in a parent's mouth. Here is what you get from day one.</p>
     <div class="quote-grid">
       <figure class="quote-card reveal">
@@ -957,7 +976,7 @@ route('landing', async () => {
       </figure>
     </div>
 
-    <div class="founder-note reveal">
+    <div id="s-story" class="founder-note reveal">
       <div class="founder-emoji"><img src="/logo-mark.png" alt="" class="founder-horse"></div>
       <div class="founder-body">
         <p>Gallop started at our kitchen table. We've spent our careers building things — restaurants, a marketing agency, teams of people — and we were both shaped by the University of Nevada, Las Vegas: Steve in hospitality, where he went on to teach, and Lin in law. Between us we've opened and run more than a dozen businesses, and if all of that taught us one thing, it's that people rise to the level someone believes they can reach.</p>
@@ -966,7 +985,7 @@ route('landing', async () => {
       </div>
     </div>
 
-    <div class="card reveal" style="margin-top:40px">
+    <div id="s-pricing" class="card reveal" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:6px">Simple plans</h2>
       <p class="center muted" style="margin-bottom:20px">Start with a 7-day free trial. No credit card to begin, and you can cancel anytime.</p>
       <p class="center" style="margin:-8px 0 20px;font-weight:600">A month at a learning center commonly runs $150 to $200 for a single subject, and private tutors often charge $40 to $80 an hour. Gallop covers all four subjects, all year, for less than most families spend on just one subject at a center.</p>
@@ -999,7 +1018,7 @@ route('landing', async () => {
         <p class="muted center" style="font-size:.8rem;margin-top:10px">Learning centers and private tutors meet in person — a different kind of help. This table shows the cost and coverage families weigh when choosing. Pricing reflects commonly published U.S. rates and varies by location.</p>
       </div>
     </div>
-    <div class="card reveal faq" style="margin-top:40px">
+    <div id="s-faq" class="card reveal faq" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:18px">Questions parents ask</h2>
       <details><summary>Do I need a credit card to start?</summary><p>No. Your first 7 days are free, and you can set up your children and use everything without entering any payment details. We only ask for a card if you choose to continue after the trial.</p></details>
       <details><summary>What does it cost after the trial?</summary><p>Solo is $34 a month for one student, and Family is $54 a month for up to four. Both are billed monthly and include all four subjects, the guided lessons, the adaptive tutor, the games, and the parent reports. Nothing is sold as an add-on.</p></details>
