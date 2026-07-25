@@ -819,7 +819,7 @@ route('landing', async () => {
     </div>
     <div class="hero-trust">
       <span>📏 Aligned to Common Core, NGSS &amp; ACTFL</span>
-      <span>🔒 COPPA-safe · no ads · we never sell your data</span>
+      <span>🔒 COPPA-compliant · no ads · we never sell your data</span>
       <span>👨‍👩‍👧 Built by a family, not a faceless edtech company</span>
     </div>
     <div class="hero-journey"><img src="/journey-green.png" alt="" class="journey-img"></div>
@@ -928,7 +928,7 @@ route('landing', async () => {
       <div class="sub reveal" style="background:var(--math)"><h4>Mathematics</h4><p>Counting all the way through calculus and statistics, with an advanced track for accelerated students. Lemonade-stand arithmetic, sale-rack percentages, and the functions behind a roller coaster.</p></div>
       <div class="sub reveal" style="background:var(--english)"><h4>English</h4><p>Phonics through rhetoric and college-level analysis. Reading that builds thinkers and grammar that builds writers.</p></div>
       <div class="sub reveal" style="background:var(--science)"><h4>Science</h4><p>The five senses through chemistry and physics. Why a mirror fogs, why a soda can sweats, and how a vaccine trains the body.</p></div>
-      <div class="sub reveal" style="background:var(--spanish)"><h4>Spanish</h4><p>First greetings toward real fluency. Order in a Madrid café by month two, because conversation comes before conjugation.</p></div>
+      <div class="sub reveal" style="background:var(--spanish)"><h4>Spanish</h4><p>First greetings toward real fluency. The practical Spanish that actually gets used — ordering in a café, greeting a neighbor, getting around — because conversation comes before conjugation.</p></div>
     </div>
     <h2 class="section-title reveal">Built for families</h2>
     <div class="feature-grid">
