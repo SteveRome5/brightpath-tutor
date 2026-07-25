@@ -143,11 +143,26 @@ function requireKid(req, res, next) {
 }
 
 // Single source of truth for "can this account access paid content, and if not, WHY".
+// Comp accounts: emails listed here are PERMANENTLY entitled — never trial-expired, never
+// billed, never lapsed to past_due/canceled. Used for the founders' own family and demo
+// accounts. Managed via the COMP_EMAILS env var (comma-separated) MERGED with a small built-in
+// list, so it works immediately without extra Render config. Match is case-insensitive.
+const COMP_EMAILS = new Set(
+  ['lin@refinedhq.com', 'steve@refinedhq.com']
+    .concat(String(process.env.COMP_EMAILS || '').split(','))
+    .map(e => e.trim().toLowerCase()).filter(Boolean)
+);
+function isComp(parent) {
+  return !!(parent && parent.email && COMP_EMAILS.has(String(parent.email).trim().toLowerCase()));
+}
+
 // Both the API gate (below) and any surface that renders access state should derive
 // from this so the parent dashboard and the child paywall never disagree (a past-due
 // parent must not see the child told "your free trial ended").
 function entitlement(parent) {
   if (!parent) return { ok: false, reason: 'no_account', message: 'No account found.' };
+  // Comp/founder accounts are always entitled, independent of trial or subscription state.
+  if (isComp(parent)) return { ok: true, reason: 'comp', message: '' };
   const trialOk = parent.sub_status === 'trial' && new Date(parent.trial_ends + 'Z') > new Date();
   if (parent.sub_status === 'active' || trialOk) return { ok: true, reason: 'active', message: '' };
   // Not entitled — name the exact reason so every surface can speak to it honestly.
@@ -167,4 +182,4 @@ function requireActiveSub(req, res, next) {
   return res.status(402).json({ error: 'subscription_required', reason: ent.reason, message: ent.message });
 }
 
-module.exports = { createParent, verifyParent, setPassword, hashPin, verifyPin, isLegacyPin, createSession, getSession, destroySession, requireParent, requireKid, requireActiveSub, requireAdmin, syncAdminFlag, entitlement };
+module.exports = { createParent, verifyParent, setPassword, hashPin, verifyPin, isLegacyPin, createSession, getSession, destroySession, requireParent, requireKid, requireActiveSub, requireAdmin, syncAdminFlag, entitlement, isComp };

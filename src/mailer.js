@@ -174,8 +174,10 @@ function sendChildSubscribeRequest(parent, kid) {
 // Idempotent via email_log (each email sent at most once per account) and throttled.
 async function trialSweep() {
   try {
+    const { isComp } = require('./auth');
     const parents = db.prepare("SELECT * FROM parents WHERE sub_status='trial' AND COALESCE(email_opt_out,0)=0 AND trial_ends IS NOT NULL").all();
     for (const p of parents) {
+      if (isComp(p)) continue;   // comp/founder accounts never expire, so never nudge them to subscribe
       let ends;
       try { ends = new Date(p.trial_ends.replace(' ', 'T') + 'Z'); } catch (e) { continue; }
       if (isNaN(ends)) continue;
