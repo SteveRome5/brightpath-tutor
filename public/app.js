@@ -3077,6 +3077,7 @@ route('careers', async (kidId) => {
       ${matched ? '<span class="cx-fit">✨ Fits their strengths</span>' : ''}
     </div>`;
   }
+  function renderGrid() {
   app().innerHTML = topbar(`<div class="container" style="max-width:900px">
     <div class="lesson-top"><b>🔭 Career Explorer</b><button class="btn ghost small" onclick="location.hash='${backHash}'">← Back</button></div>
     <div class="card">
@@ -3095,6 +3096,8 @@ route('careers', async (kidId) => {
   </div>`);
   wireChrome();
   document.querySelectorAll('.cx-card').forEach(el => el.onclick = () => showField(el.dataset.field));
+  }
+  renderGrid();
 
   function showField(id) {
     const f = FIELDS.find(x => x.id === id); if (!f) return;
@@ -3112,7 +3115,6 @@ route('careers', async (kidId) => {
             <div class="cx-person">
               <div class="cx-person-name">${esc(p.name)}</div>
               <div class="cx-person-who">${esc(p.who)}</div>
-              ${p.wiki ? `<a class="cx-person-link" href="https://en.wikipedia.org/wiki/${encodeURIComponent(p.wiki)}" target="_blank" rel="noopener noreferrer">Read their story →</a>` : ''}
             </div>`).join('')}</div>
         </div>
         ${(() => {
@@ -3132,7 +3134,7 @@ route('careers', async (kidId) => {
       </div>
     </div>`);
     wireChrome();
-    $('#cx-back').onclick = () => { location.hash = kidId ? '#careers/' + kidId : '#careers'; };
+    $('#cx-back').onclick = () => { renderGrid(); };
   }
 });
 

@@ -190,7 +190,7 @@ window.GALLOP_CAREERS = [
     tagline: 'Create experiences that make people feel welcome.',
     whatItIs: 'Hospitality is the art of taking care of people — restaurants, hotels, events, travel. It blends creativity, business, and genuine care for others.',
     dayToDay: 'Plan menus or events, lead a team, handle budgets, and make every guest feel special. Fast-paced, creative, and all about people — great for anyone who loves making others happy.',
-    jobs: ['Chef', 'Restaurateur (restaurant owner)', 'Hotel manager', 'Event planner', 'Pastry chef', 'Sommelier (wine & beverage expert)', 'Travel & tourism director'],
+    jobs: ['Chef', 'Restaurateur (restaurant owner)', 'Hotel manager', 'Event planner', 'Pastry chef', 'Travel & tourism director'],
     hs: 'Business, a culinary or nutrition class, and a part-time job in a restaurant or hotel to learn from the inside.',
     people: [
       { name: 'Danny Meyer', who: 'A restaurateur who built beloved New York restaurants and founded Shake Shack, famous for putting genuine hospitality first.', wiki: 'Danny_Meyer' },
