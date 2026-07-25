@@ -305,10 +305,29 @@ for (const stmt of [
   "ALTER TABLE kids ADD COLUMN show_level INTEGER DEFAULT 0",
   // Concepts the child missed during the placement quiz (JSON array of skill names) so
   // parents can see, in plain language, what to keep an eye on from the assessment.
-  "ALTER TABLE subject_state ADD COLUMN placement_missed TEXT"
+  "ALTER TABLE subject_state ADD COLUMN placement_missed TEXT",
+  // The grade the child was actually PLACED at, captured once at placement time and never
+  // rewritten by later promotion/demotion. The parent-facing "Why we started here" note reads
+  // this (not the live, adjusted level) so it can't retroactively invent a false placement story.
+  "ALTER TABLE subject_state ADD COLUMN placed_level REAL",
+  // Highest grade the child has genuinely DEMONSTRATED (cleanly passed in placement, or cleared
+  // via a real promotion). Distinct from the served `level`, which can be floored above true
+  // ability. The Gallop Score credits sub-grade skills only up to this, so the score reflects
+  // demonstrated learning rather than where the child happens to be seated. -1 = nothing cleared.
+  "ALTER TABLE subject_state ADD COLUMN demonstrated_level INTEGER DEFAULT -1"
 ]) {
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }
+
+// One-time backfill of placed_level / demonstrated_level for children placed BEFORE these
+// columns existed. Guarded by "placed_level IS NULL" so it only touches pre-migration rows
+// (every new placement sets placed_level explicitly, so those are never rewritten) — this makes
+// it idempotent and prevents clobbering a legitimately-placed-at-0 learner. We use the child's
+// current working level as the best available proxy for both, so existing Gallop Scores carry
+// over smoothly instead of dropping to the floor on deploy.
+try {
+  db.exec("UPDATE subject_state SET placed_level = level, demonstrated_level = CAST(ROUND(level) AS INTEGER) WHERE placed = 1 AND placed_level IS NULL");
+} catch (e) {}
 
 // Child-privacy: custom avatar PHOTOS were retired in favor of illustrated avatars only.
 // Scrub any previously-stored photo so no child's image remains at rest. Guarded by IS NOT

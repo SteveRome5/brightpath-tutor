@@ -373,7 +373,8 @@ router.get('/learn/:kidId/overview', auth.requireKid, auth.requireActiveSub, (re
     // attempts>0: score only skills the child has actually worked on, so the overview
     // number matches the report card instead of crediting untouched seeded skills.
     const srows = db.prepare('SELECT skill_id, mastery FROM skill_state WHERE kid_id=? AND subject=? AND attempts>0').all(req.kid.id, sub);
-    const gallopScore = srows.length ? gscore.subjectScore(sub, Object.fromEntries(srows.map(r => [r.skill_id, r.mastery])), st.placed ? st.level : undefined) : null;
+    const _demoLvl = Number.isFinite(st.demonstrated_level) ? st.demonstrated_level : -1;
+    const gallopScore = srows.length ? gscore.subjectScore(sub, Object.fromEntries(srows.map(r => [r.skill_id, r.mastery])), st.placed ? _demoLvl : undefined) : null;
     // Recommendation signals (tester finding #2): an unresolved difficulty (a skill tried
     // several times and still stuck) and an overdue retention check should drive "Up Next"
     // ahead of mere daily subject rotation.

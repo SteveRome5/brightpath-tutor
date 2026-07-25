@@ -885,7 +885,7 @@ const skills = [
       { p: 'Which uses the semicolon correctly?', a: 'The storm knocked out power; we played board games by candlelight.', w: ['The storm; knocked out power we played.', 'The storm knocked out; power.', 'We played board games; by candlelight.'], h: 'Semicolons join two complete, related sentences.', e: 'Full sentence ; full sentence, both sides stand alone!' },
       { p: 'Where do the commas go? "My cousin who lives in Denver is visiting" (extra info version)', a: 'My cousin, who lives in Denver, is visiting.', w: ['My cousin who lives, in Denver is visiting.', 'My, cousin who lives in Denver, is visiting.', 'No commas ever needed.'], h: 'Extra, drop-able info gets commas around it.', e: 'The Denver detail is bonus info → set off with commas.' },
       { p: 'Hyphen check! Which is correct?', a: 'a well-known author', w: ['a well known-author', 'a-well known author', 'an author well known-ly'], h: 'The two words team up to describe author.', e: 'Compound describers before a noun get hyphenated.' },
-      { p: 'Which dash usage adds dramatic emphasis correctly?', a: 'She opened the box and found, nothing.', w: ['She, opened the box and found nothing.', 'She opened, the box, and, found nothing.', 'Dashes are never allowed.'], h: 'The dash sets up the reveal.', e: 'A dash before the payoff = drama! 🎭' }
+      { p: 'Which sentence uses a dash for dramatic emphasis correctly?', a: 'She opened the box and found — nothing.', w: ['She opened the box and found, nothing.', 'She, opened the box and found nothing.', 'She opened, the box, and, found nothing.'], h: 'The dash sets up the reveal.', e: 'A dash before the payoff = drama! 🎭' }
     ])
   },
 

@@ -36,12 +36,18 @@ function model(subject) {
 // headline number and the parent-facing grade equivalent wrong for anyone above grade ~1.
 function subjectScore(subject, masteryMap, reachedLevel) {
   const m = model(subject);
+  // reachedLevel is the child's DEMONSTRATED level — the highest grade they actually cleared
+  // in placement or via a real promotion — NOT the grade they merely happen to be seated at.
   const reached = Number.isFinite(reachedLevel) ? Math.round(reachedLevel) : -1;
   const effective = s => {
-    const actual = masteryMap[s.id] || 0;
-    // Grades strictly below the placed grade are treated as cleared (credited at 0.9),
-    // never lowering a child who has since surpassed that mastery on their own.
-    return s.grade < reached ? Math.max(actual, 0.9) : actual;
+    // A skill PRESENT in masteryMap has been genuinely PRACTICED (callers pass only attempts>0
+    // skills), so its real mastery counts — including failures. This is what lets a struggling
+    // child score lower than a mastering one instead of reading an identical rosy number.
+    if (Object.prototype.hasOwnProperty.call(masteryMap, s.id)) return masteryMap[s.id] || 0;
+    // A skill ABSENT was never practiced: credit it (as cleared, 0.9) only if it sits at or
+    // below the child's DEMONSTRATED level — a grade they actually proved they can do. The
+    // score can therefore never fabricate credit for grades a child has not demonstrated.
+    return s.grade <= reached ? 0.9 : 0;
   };
   const earned = m.skills.reduce((a, s) => a + s.w * credit(effective(s)), 0);
   let raw = FLOOR + SPAN * (earned / m.totalW);

@@ -823,7 +823,11 @@ const skills = [
   {
     id: 'm.9.multistep', name: 'Multi-Step Equations', grade: 9,
     gen(d) {
-      const x = rint(2, d > 0.5 ? 10 : 6), a = rint(2, 5), b = rint(1, 9), c = rint(1, 4);
+      const x = rint(2, d > 0.5 ? 10 : 6), a = rint(2, 5), b = rint(1, 9);
+      // c must NOT equal a, or (a - c) = 0 makes the equation the identity 0x = 0 (every
+      // number is a solution) — an unsolvable question with no unique answer. a >= 2, so
+      // c = a - 1 keeps c >= 1 while guaranteeing a distinct, nonzero x-coefficient.
+      let c = rint(1, 4); if (c === a) c = a - 1;
       // a(x + b) = a*x + a*b ... solve a(x+b) - c*x = ...
       const rhs = a * (x + b) - c * x;
       return q({

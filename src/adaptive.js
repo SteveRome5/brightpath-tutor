@@ -62,7 +62,9 @@ function activeSkills(kidId, subject) {
 // miss, and settle at the HIGHEST grade they demonstrably pass, placing them on
 // the correct path with just enough headroom to grow, never bored, never lost.
 const PLACE_PER_GRADE = 2;      // questions asked at each grade before moving on
-const PLACE_MAX = 14;           // hard cap on total placement questions
+const PLACE_MAX = 28;           // safety cap only; large enough to traverse the whole K-12 ladder
+                                // (descend to grade 0 for a very-behind child, or climb 0->12 for a
+                                // fluent one) so a search is never cut off mid-way and mis-settled
 const PLACE_PASS = 0.6;         // ≥60% at a grade = "passes" that grade
 const PLACE_FAIL = 0.5;         // <50% at a grade = "fails" that grade
 
@@ -77,6 +79,20 @@ function gradeTallies(history) {
 function highestPassed(tallies) {
   const g = Object.keys(tallies).map(Number).filter(x => tallies[x].n >= PLACE_PER_GRADE && tallies[x].c / tallies[x].n >= PLACE_PASS);
   return g.length ? Math.max(...g) : -1;
+}
+// Commit a finished placement. Writes the served `level`, the IMMUTABLE `placed_level` (never
+// rewritten by later promotion/demotion, so the parent "Why we started here" note stays true),
+// and `demonstrated_level` = highest grade genuinely cleared (drives the Gallop Score, so it
+// reflects proven mastery rather than where the child is merely seated). Also stamps
+// last_change_aid to the newest logged answer so the promote/demote evidence window starts
+// clean at placement (prevents a first-session demotion off pre-placement rows), and seeds the
+// placed-level skills so the first lessons/report feel alive.
+function commitPlacement(kidId, subject, level, hp) {
+  const demonstrated = Number.isFinite(hp) ? hp : -1;
+  const lastAid = db.prepare('SELECT MAX(id) AS m FROM activity_log WHERE kid_id=? AND subject=?').get(kidId, subject).m || 0;
+  db.prepare('UPDATE subject_state SET level=?, placed=1, placed_level=?, demonstrated_level=?, last_change_aid=? WHERE kid_id=? AND subject=?')
+    .run(level, level, demonstrated, lastAid, kidId, subject);
+  for (const s of content.skillsForSubject(subject).filter(s => s.grade === Math.round(level))) getSkillState(kidId, subject, s.id);
 }
 function placementNext(kidId, subject, history) {
   // history: [{grade, correct}]
@@ -98,13 +114,15 @@ function placementNext(kidId, subject, history) {
   // multiple grades from an honest "not yet." Genuine WRONG answers still place lower (that's
   // real evidence); only idk is floored. (Spanish always starts at 0, so the floor is 0.)
   const lastEntry = history.length ? history[history.length - 1] : null;
-  if (lastEntry && lastEntry.idk) {
-    const floor = subject === 'spanish' ? 0 : Math.max(0, enrolled - 1);
-    let level = Math.max(hp >= 0 ? hp : floor, floor);
-    if (subject !== 'spanish') level = Math.min(level, probeCap);
+  // "I haven't learned this yet" means "this is too high," never "send me down a fixed amount."
+  // If the child has already cleanly PASSED a grade, settle at that best-demonstrated grade; if
+  // they tapped it at Kindergarten (grade 0), settle at 0. Otherwise DON'T stop here — fall
+  // through and descend to find the grade they can actually do. (The old code floored an honest
+  // "not yet" at enrolled-1 with zero evidence, which over-placed behind students by many grades.)
+  if (lastEntry && lastEntry.idk && (hp >= 0 || lastEntry.grade <= 0)) {
+    let level = hp >= 0 ? Math.min(hp, probeCap) : 0;
     level = Math.max(0, Math.min(maxG, level));
-    db.prepare('UPDATE subject_state SET level=?, placed=1 WHERE kid_id=? AND subject=?').run(level, kidId, subject);
-    for (const s of content.skillsForSubject(subject).filter(s => s.grade === Math.round(level))) getSkillState(kidId, subject, s.id);
+    commitPlacement(kidId, subject, level, hp);
     return { done: true, level };
   }
 
@@ -113,16 +131,20 @@ function placementNext(kidId, subject, history) {
   // sink them), instead we push upward to keep finding their true ceiling.
   let probe = start;
   if (history.length) {
-    const lastGrade = history[history.length - 1].grade;
-    const gt = tallies[lastGrade];
-    if (gt.n < PLACE_PER_GRADE) {
-      probe = lastGrade;                                   // finish confirming this grade
-    } else if (gt.c / gt.n >= PLACE_PASS) {
-      probe = Math.min(probeCap, lastGrade + 1);           // passed → climb
-    } else if (hp >= 0 && lastGrade <= hp) {
-      probe = Math.min(probeCap, hp + 1);                  // stray low miss → keep climbing past best pass
+    const lastGrade = lastEntry.grade;
+    if (lastEntry.idk) {
+      probe = Math.max(0, lastGrade - 1);                  // "too high" → descend to find their real level
     } else {
-      probe = Math.max(0, lastGrade - 1);                  // genuine miss above our best → descend
+      const gt = tallies[lastGrade];
+      if (gt.n < PLACE_PER_GRADE) {
+        probe = lastGrade;                                 // finish confirming this grade
+      } else if (gt.c / gt.n >= PLACE_PASS) {
+        probe = Math.min(probeCap, lastGrade + 1);         // passed → climb
+      } else if (hp >= 0 && lastGrade <= hp) {
+        probe = Math.min(probeCap, hp + 1);                // stray low miss → keep climbing past best pass
+      } else {
+        probe = Math.max(0, lastGrade - 1);                // genuine miss above our best → descend
+      }
     }
   }
 
@@ -133,9 +155,7 @@ function placementNext(kidId, subject, history) {
     let level = settleLevel(history, enrolled, maxG);
     if (subject !== 'spanish') level = Math.min(level, probeCap);
     level = Math.max(0, Math.min(maxG, level));
-    db.prepare('UPDATE subject_state SET level=?, placed=1 WHERE kid_id=? AND subject=?').run(level, kidId, subject);
-    // Seed the placed-level skill states so the first lessons + reports feel alive.
-    for (const s of content.skillsForSubject(subject).filter(s => s.grade === Math.round(level))) getSkillState(kidId, subject, s.id);
+    commitPlacement(kidId, subject, level, hp);
     return { done: true, level };
   }
 
@@ -181,15 +201,14 @@ function settleLevel(history, fallback, maxG) {
   const passed = Object.keys(tallies).map(Number)
     .filter(g => tallies[g].n >= PLACE_PER_GRADE && tallies[g].c / tallies[g].n >= PLACE_PASS);
   if (passed.length) return Math.min(maxG, Math.max(...passed));
-  // No grade cleanly passed. If they got some right, sit just below the highest attempt;
-  // if they got nothing right, start at the bottom, support beats overwhelm.
-  const anyCorrect = history.filter(h => h.correct).map(h => h.grade);
-  if (anyCorrect.length) return Math.max(0, Math.min(maxG, Math.max(...anyCorrect) - 1));
-  // Got nothing cleanly right, but do not dump an enrolled older child into Kindergarten
-  // over one bad assessment. Sit them just below their enrolled grade so support still
-  // beats overwhelm, without erasing years of school. (fallback = enrolled grade.)
-  if (Number.isFinite(fallback) && fallback > 0) return Math.max(0, Math.min(maxG, fallback - 1));
-  return 0;
+  // No grade was cleanly passed. Place the child at or BELOW the LOWEST grade actually probed —
+  // never above it, and never anchored on a lucky isolated correct answer or on their enrolled
+  // grade. A child who failed everything they were shown belongs at the bottom of what was
+  // tested (the descent reaches grade 0 for a truly-behind child, so this settles at 0 for them).
+  // This is the fix for behind students being placed many grades too high.
+  const probed = Object.keys(tallies).map(Number);
+  if (!probed.length) return 0;               // only "not yet" answers → start at the beginning
+  return Math.max(0, Math.min(maxG, Math.min(...probed) - 1));
 }
 function maxGrade(subject) {
   const all = content.skillsForSubject(subject);
@@ -413,7 +432,9 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
     const upAcc = recentLevelAccuracy(kidId, subject, lvl, 20, state.last_change_aid || 0, 15);
     const gatesPass = allPracticed && allMastered && totalAtLevel >= Math.max(12, levelSkills.length * 3) && upAcc != null && upAcc >= 0.85;
     if (lvl < climbCeiling && gatesPass) {
-      db.prepare('UPDATE subject_state SET level=?, last_change_aid=? WHERE kid_id=? AND subject=?').run(lvl + 1, latestAid, kidId, subject);
+      // Promoting means the child genuinely CLEARED grade `lvl` — raise their demonstrated_level
+      // high-water mark so the Gallop Score credits that mastery (never lowered by a later demote).
+      db.prepare('UPDATE subject_state SET level=?, last_change_aid=?, demonstrated_level=MAX(COALESCE(demonstrated_level,-1), ?) WHERE kid_id=? AND subject=?').run(lvl + 1, latestAid, lvl, kidId, subject);
       const title = `${subjectLabel(subject)}, ${gradeName(lvl)} Complete!`;
       // Don't mint a duplicate certificate if this level was already completed before
       // (e.g. promote → demote → re-promote); one certificate per level per learner.
@@ -426,6 +447,7 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
       // or their personal advance-cap a few grades above enrollment) earns that grade's
       // certificate too — the finish line must be celebrateable, not a dead end.
       const title = `${subjectLabel(subject)}, ${gradeName(lvl)} Complete!`;
+      db.prepare('UPDATE subject_state SET demonstrated_level=MAX(COALESCE(demonstrated_level,-1), ?) WHERE kid_id=? AND subject=?').run(lvl, kidId, subject);
       const hasCert = db.prepare('SELECT 1 FROM certificates WHERE kid_id=? AND subject=? AND level=?').get(kidId, subject, lvl);
       if (!hasCert) {
         db.prepare('INSERT INTO certificates (kid_id, subject, title, level) VALUES (?,?,?,?)').run(kidId, subject, title, lvl);
@@ -435,8 +457,11 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
       // DEMOTE (support): sustained low accuracy at the level since the last change.
       // Only looks at answers SINCE the change (id > last_change_aid), so a fresh
       // promotion/demotion gets a fair trial on new work and we never cascade multiple
-      // grades down in a row on stale pre-change answers.
-      let downAcc = recentLevelAccuracy(kidId, subject, lvl, 8, state.last_change_aid || 0);
+      // grades down in a row on stale pre-change answers. minRows=10 (was the default 4):
+      // a demote now requires a REAL body of at-level evidence, matching the promote side's
+      // rigor. This stops the promote→demote yo-yo where a just-promoted child was bounced
+      // back on the first 4 misses of brand-new frontier material they had never seen.
+      let downAcc = recentLevelAccuracy(kidId, subject, lvl, 14, state.last_change_aid || 0, 10);
       if (downAcc == null) {
         // A struggling kid is mostly served BELOW-level review, so at-level rows can be
         // too sparse to ever trigger support. Fall back to overall recent accuracy
@@ -677,19 +702,24 @@ function careerInsights(kidId) {
 function placementRationale(sub, state, kid) {
   if (!state.placed) return null;
   const name = kid.name;
-  const lvl = Math.round(state.level);
+  // Describe the ACTUAL placement, from the immutable placed_level captured at assessment time —
+  // never the live/adjusted level. Otherwise a later auto-demotion would rewrite this note to
+  // claim we placed the child below grade "for fundamentals" when we never did (a false, alarming
+  // story to a parent). Falls back to the working level only for legacy rows placed before the
+  // placed_level column existed.
+  const lvl = Math.round(Number.isFinite(state.placed_level) ? state.placed_level : state.level);
   const lvlName = gradeName(lvl);
   if (sub === 'spanish') {
-    return `Spanish starts everyone at the beginning, since it builds from the first words up. ${name} is working at the ${lvlName} stage and will climb as the vocabulary and grammar click.`;
+    return `Spanish starts everyone at the beginning, since it builds from the first words up. ${name} began at the ${lvlName} stage and climbs as the vocabulary and grammar click.`;
   }
   const diff = lvl - (kid.grade || 0);
   if (diff >= 1) {
-    return `${name} is working ${sub} above their enrolled grade, at the ${lvlName} level — placed and paced to match what they've shown they can handle, so the work stays challenging rather than repetitive.`;
+    return `On the placement, ${name} showed ${sub} above their enrolled grade, so we started them at the ${lvlName} level to keep the work challenging rather than repetitive.`;
   }
   if (diff <= -1) {
-    return `We started ${name} a little below their enrolled grade, at ${lvlName}, to make sure the fundamentals are solid first. This is common, and the level rises quickly once they show they've got it.`;
+    return `On the placement, ${name}'s ${sub} was a little below their enrolled grade, so we started at the ${lvlName} level to make the fundamentals solid first. This is common, and the level rises as they show they've got it.`;
   }
-  return `${name} placed right around their enrolled grade in ${sub}, at ${lvlName}. That's the sweet spot: familiar enough to feel confident, with room to stretch.`;
+  return `${name} placed right around their enrolled grade in ${sub}, at the ${lvlName} level. That's the sweet spot: familiar enough to feel confident, with room to stretch.`;
 }
 
 // Store the concepts a child missed on the placement quiz (array of skill names).
@@ -738,7 +768,8 @@ function reportCard(kidId) {
     }
     // Gallop Score, this subject's headline progress number (200–1200).
     const masteryMap = Object.fromEntries(rows.map(r => [r.skill_id, r.mastery]));
-    const gallopScore = rows.length ? gscore.subjectScore(sub, masteryMap, state.placed ? state.level : undefined) : null;
+    const demoLvl = Number.isFinite(state.demonstrated_level) ? state.demonstrated_level : -1;
+    const gallopScore = rows.length ? gscore.subjectScore(sub, masteryMap, state.placed ? demoLvl : undefined) : null;
     const gradeEquiv = gallopScore != null ? gscore.gradeEquivalent(sub, gallopScore) : null;
     // Quantified, defensible skill counts. "At level" mirrors the actual advancement gate:
     // to move up, EVERY skill at the current grade must be mastered (≥80%) at 85%+ accuracy.

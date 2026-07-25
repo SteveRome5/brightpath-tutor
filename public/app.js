@@ -2236,7 +2236,8 @@ function renderCareer(c, k) {
       <span class="str-pct">${Math.round((s.score || 0) * 100)}</span>
     </div>`).join('');
   const strengthChips = c.topStrengths.length
-    ? `<p style="margin:2px 0 0"><b>Excelling in:</b> ${c.topStrengths.map(s => `<span class="pill strength">${esc(s.label)}</span>`).join(' ')}</p>` : '';
+    ? `<p style="margin:2px 0 0"><b>Excelling in:</b> ${c.topStrengths.map(s => `<span class="pill strength">${esc(s.label)}</span>`).join(' ')}</p>`
+    : (c.ranked && c.ranked.length ? `<p style="margin:2px 0 0"><b>Strongest so far:</b> <span class="pill strength">${esc(c.ranked[0].label)}</span></p>` : '');
   const growth = c.growthAreas.length
     ? `<p style="margin:8px 0 0"><b>Room to grow:</b> ${c.growthAreas.map(s => `<span class="pill focus">${esc(s.label)}</span>`).join(' ')} <span class="muted" style="font-size:.85rem">${esc(c.growthAreas[0].why)}</span></p>` : '';
   const paths = c.pathways.map(p => `
@@ -2251,6 +2252,7 @@ function renderCareer(c, k) {
   return `<div class="card career-card">
     <div class="career-head"><h3>${bandTitle}</h3><span class="career-badge">${c.band === 'pathways' ? 'High School' : c.band === 'explore' ? 'Middle Years' : 'Early Years'}</span></div>
     <p class="muted" style="margin:4px 0 14px">${intro}</p>
+    <p class="muted" style="font-size:.82rem;margin:0 0 6px">A relative strength profile across subjects — a guide for spotting directions, measured differently from (and separate to) the Gallop Score on each subject card.</p>
     <div class="strength-panel">${bars}</div>
     ${strengthChips}
     ${growth}
