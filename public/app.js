@@ -873,13 +873,13 @@ route('landing', async () => {
       <div class="feature reveal"><div class="fnum">STEP 03 · PROGRESS</div><h3>Prove it, then move up</h3><p>A child only advances a grade after showing they can do the whole thing, not after a lucky streak. You see the letter grades, the strengths, and the spots that need work. Certificates mark the real milestones.</p></div>
     </div>
     <h2 class="section-title reveal">Lessons, not just questions</h2>
-    <p class="section-sub">Before a child practices a skill, Gallop teaches it — <b>every one of our 300+ skills has its own guided lesson</b>, so there's never a question without a lesson in front of it. And you can search the whole K–12 curriculum to jump to any concept in seconds: when a teacher says <i>"that's on Gallop,"</i> your child goes straight to it and works through it at their own pace.</p>
+    <p class="section-sub">Before a child practices a skill, Gallop teaches it — <b>every one of our 300+ skills has its own guided lesson</b>, so there's never a question without a lesson in front of it. And you can search the whole K–12 curriculum and jump to any concept in seconds — so the moment your child hits something tricky in class, they can pull up that exact lesson and work through it at their own pace.</p>
     <div class="feature-grid">
       <div class="feature reveal"><div class="fnum">SEE IT</div><h3>Pictures do the explaining</h3><p>A pizza sliced into fourths for fractions. Rows and columns for times tables. Earth turning toward the sun for day and night. The idea shows up on the screen, not just in a sentence.</p></div>
       <div class="feature reveal"><div class="fnum">HEAR IT</div><h3>Every lesson reads aloud</h3><p>A child who learns by ear hears the concept and the worked example spoken, at their own pace, as many times as they want. Nobody gets left behind by the reading.</p></div>
       <div class="feature reveal"><div class="fnum">DO IT</div><h3>You try it before you move on</h3><p>The lesson will not continue until the child does it themselves: shading a fraction, building a number, sorting the words. Kids who learn by doing finally get to.</p></div>
     </div>
-    <p class="section-sub reveal" style="margin-top:6px">Each lesson leans on a comparison a kid already gets, so the idea sticks. Fractions are fair shares. The main idea is the umbrella every sentence hides under. Ser and estar are a name tag versus a mood ring.</p>
+    <p class="section-sub reveal" style="margin-top:6px">Each lesson leans on a comparison a kid already gets, so the idea sticks. Fractions are just fair shares. A story's main idea is the umbrella all its details stand under. In Spanish, <i>ser</i> is who you always are and <i>estar</i> is how you feel today.</p>
     <h2 id="s-realworld" class="section-title reveal">We're raising critical thinkers</h2>
     <p class="section-sub">Every kid eventually asks "when will I ever use this?" We answer that on the questions themselves, and keep an eye on the adult they're becoming.</p>
     <div class="feature-grid">
