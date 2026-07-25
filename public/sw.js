@@ -1,7 +1,7 @@
 // Gallop Learning Academy — lightweight service worker
 // Static assets: stale-while-revalidate. API: always network (never cache learning data).
-const CACHE = 'gallop-v98';
-const STATIC = ['/', '/index.html', '/styles.css', '/app.js', '/games.js', '/curriculum.js', '/careers.js', '/lessons.js', '/lessons_patch.js', '/lessons_ext.js', '/manifest.json', '/icon-192.png', '/icon-512.png', '/logo-mark.png', '/logo-roundel.png', '/logo-full.png', '/logo-full-dark.png'];
+const CACHE = 'gallop-v99';
+const STATIC = ['/', '/index.html', '/styles.css', '/app.js', '/games.js', '/curriculum.js', '/careers.js', '/lessons.js', '/lessons_patch.js', '/lessons_ext.js', '/manifest.json', '/icon-192.png', '/icon-512.png', '/logo-mark.png', '/logo-roundel.png', '/logo-full.png', '/logo-full-dark.png', '/favicon-32.png', '/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)).then(() => self.skipWaiting()));
