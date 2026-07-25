@@ -370,6 +370,14 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
   // level change before another, no thrash, no overshooting several grades at once.
   const state = getSubjectState(kidId, subject);
   const lvl = Math.round(state.level);
+  // Guardrail: a child may auto-climb a few grades above their enrolled grade to stay
+  // challenged, but never rocket to the top of the K-12 ladder — a 2nd grader should read as
+  // "working ahead," not "11th grade." Spanish is exempt: everyone starts at zero and it is a
+  // language-proficiency ladder, not a school grade.
+  const _kg = db.prepare('SELECT grade FROM kids WHERE id=?').get(kidId);
+  const enrolledGrade = _kg ? Math.max(0, Math.min(maxGrade(subject), _kg.grade)) : 0;
+  const ADVANCE_CAP = 4;
+  const climbCeiling = subject === 'spanish' ? maxGrade(subject) : Math.min(maxGrade(subject), enrolledGrade + ADVANCE_CAP);
   const latestAid = db.prepare('SELECT MAX(id) AS m FROM activity_log WHERE kid_id=? AND subject=?').get(kidId, subject).m || 0;
   const sinceChange = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND subject=? AND id > ?')
     .get(kidId, subject, state.last_change_aid || 0).n;
@@ -404,7 +412,7 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
     // can't fire the gate anymore.
     const upAcc = recentLevelAccuracy(kidId, subject, lvl, 20, state.last_change_aid || 0, 15);
     const gatesPass = allPracticed && allMastered && totalAtLevel >= Math.max(12, levelSkills.length * 3) && upAcc != null && upAcc >= 0.85;
-    if (lvl < maxGrade(subject) && gatesPass) {
+    if (lvl < climbCeiling && gatesPass) {
       db.prepare('UPDATE subject_state SET level=?, last_change_aid=? WHERE kid_id=? AND subject=?').run(lvl + 1, latestAid, kidId, subject);
       const title = `${subjectLabel(subject)}, ${gradeName(lvl)} Complete!`;
       // Don't mint a duplicate certificate if this level was already completed before
@@ -413,9 +421,10 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
       if (!hasCert) db.prepare('INSERT INTO certificates (kid_id, subject, title, level) VALUES (?,?,?,?)').run(kidId, subject, title, lvl);
       // Only attach the certificate to the celebration when one was actually minted.
       events.push({ type: 'levelup', subject, newLevel: lvl + 1, certificate: hasCert ? null : title });
-    } else if (lvl === maxGrade(subject) && gatesPass) {
-      // TOP OF THE MOUNTAIN: a kid who masters the final grade of a subject earns that
-      // grade's certificate too — the finish line must be celebrateable, not a dead end.
+    } else if (lvl >= climbCeiling && gatesPass) {
+      // AT THEIR CEILING: a kid who masters their top available grade (the K-12 finish line,
+      // or their personal advance-cap a few grades above enrollment) earns that grade's
+      // certificate too — the finish line must be celebrateable, not a dead end.
       const title = `${subjectLabel(subject)}, ${gradeName(lvl)} Complete!`;
       const hasCert = db.prepare('SELECT 1 FROM certificates WHERE kid_id=? AND subject=? AND level=?').get(kidId, subject, lvl);
       if (!hasCert) {
@@ -675,7 +684,7 @@ function placementRationale(sub, state, kid) {
   }
   const diff = lvl - (kid.grade || 0);
   if (diff >= 1) {
-    return `On the assessment, ${name} handled ${sub} above their enrolled grade, so we started at ${lvlName} to keep the work challenging rather than repetitive.`;
+    return `${name} is working ${sub} above their enrolled grade, at the ${lvlName} level — placed and paced to match what they've shown they can handle, so the work stays challenging rather than repetitive.`;
   }
   if (diff <= -1) {
     return `We started ${name} a little below their enrolled grade, at ${lvlName}, to make sure the fundamentals are solid first. This is common, and the level rises quickly once they show they've got it.`;
