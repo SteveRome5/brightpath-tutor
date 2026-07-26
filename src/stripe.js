@@ -64,6 +64,13 @@ async function createCheckout(parent, plan, origin) {
     customer: customerId,
     mode: 'subscription',
     line_items: [{ price: p.envPrice, quantity: 1 }],
+    // Stripe Tax: calculate & collect the correct sales tax at checkout based on the
+    // customer's location, and (critically) monitor economic nexus across states so we're
+    // warned before we ever cross a threshold and owe uncollected tax. Requires a billing
+    // address; customer_update saves it to the Customer so renewal invoices are taxed too.
+    automatic_tax: { enabled: true },
+    billing_address_collection: 'required',
+    customer_update: { address: 'auto', name: 'auto' },
     // Show the "Add promotion code" field on the checkout page so launch
     // codes (e.g. LIN) created in the Stripe dashboard can be redeemed.
     allow_promotion_codes: true,
