@@ -411,6 +411,15 @@ body[data-theme="academy"] .typed-input.bad { background: #3a2226; color: #ff9c9
 .ke-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
 .ke-grid label { margin: 0 0 4px; font-size: .78rem; }
 .ke-levels { margin-top: 14px; border-top: 1px dashed var(--field-border); padding-top: 12px; }
+.btn.games { background: #ede7ff; color: #5b3fd6; border: 1px solid #d6c8ff; }
+.btn.games:hover { background: #e2d8ff; }
+.kid-games { background: #f6f2ff; border: 1px solid #d6c8ff; border-radius: 12px; padding: 14px 16px 16px; margin: -4px 0 12px; }
+.kg-head { font-weight: 800; color: #5b3fd6; font-size: 1.02rem; margin-bottom: 10px; }
+.kg-toggle { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; background: #fff; border: 1px solid #e5dcff; border-radius: 12px; cursor: pointer; }
+.kg-toggle input { margin-top: 3px; width: 20px; height: 20px; flex: none; cursor: pointer; accent-color: #5b3fd6; }
+.kg-toggle b { color: var(--chrome-ink); }
+.kg-sub { margin: 10px 0 0; font-size: .92rem; line-height: 1.6; }
+.kg-sub input { width: 58px; padding: 6px 7px; border: 1px solid #d6c8ff; border-radius: 8px; margin: 0 2px; }
 .lvl-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 .lvl-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .lvl-sub { font-weight: 700; min-width: 76px; font-size: .9rem; }

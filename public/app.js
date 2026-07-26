@@ -2700,6 +2700,7 @@ route('parent', async () => {
               <span class="avatar-sm">${avatarHTML(k)}</span>
               <div style="flex:1"><b>${esc(k.name)}</b><br><span class="muted" style="font-size:.85rem">Grade ${k.grade === 0 ? 'K' : k.grade} · 🔥${k.streak} streak · ⚡${k.xp} XP · ${esc(k.calendar_mode)}</span></div>
               <button class="btn green small" data-start="${k.id}">▶ Start</button>
+              <button class="btn games small" data-games="${k.id}" title="Games settings" aria-label="Games settings for ${esc(k.name)}">🎮 Games${k.games_enabled === 0 ? ' <span style="opacity:.9">· off</span>' : ''}</button>
               <button class="btn small" data-report="${k.id}">📊 Report</button>
               <button class="btn small" data-weekly="${k.id}" title="Printable weekly summary" aria-label="Printable weekly summary for ${esc(k.name)}">📄</button>
               <button class="btn small" data-edit="${k.id}" title="Edit learner" aria-label="Edit ${esc(k.name)}">✏️</button>
@@ -2716,15 +2717,22 @@ route('parent', async () => {
               <label class="ke-showlevel"><input type="checkbox" class="ke-showlevel-cb" ${k.show_level ? 'checked' : ''}>
                 <span><b>Show ${esc(k.name.split(' ')[0])} their grade level</b><br><span class="muted" style="font-size:.83rem">Off by default. We adapt to your child's real level in each subject, but we keep the grade number between you and us — so a child who's working below their grade never sees it and feels discouraged. You'll always see it in the report. Flip this on when you'd like to share it with ${esc(k.name.split(' ')[0])}.</span></span>
               </label>
-              <label class="ke-showlevel"><input type="checkbox" class="ke-games-cb" ${k.games_enabled == null || k.games_enabled ? 'checked' : ''}>
-                <span><b>Play Zone arcade for ${esc(k.name.split(' ')[0])}</b><br><span class="muted" style="font-size:.83rem">The break games. Leave it on for the full experience, or turn it off for a pure-learning setup with no games at all.</span></span>
-              </label>
-              <div class="ke-gamesgate" style="margin:8px 0 2px 27px;font-size:.92rem">🎟️ <b>Earn it:</b> unlock games after <input type="number" class="ke-gamesgate-inp" min="0" max="100" value="${k.games_gate || 0}" style="width:54px;padding:5px 6px;border:1px solid #dfe6e9;border-radius:8px"> questions answered that day <span class="muted" style="font-size:.83rem">— 0 means always available.</span></div>
-              <div class="ke-gamesgate" style="margin:6px 0 2px 27px;font-size:.92rem">⏰ <b>Daily limit:</b> at most <input type="number" class="ke-gamestime-inp" min="0" max="240" value="${k.games_time_limit || 0}" style="width:54px;padding:5px 6px;border:1px solid #dfe6e9;border-radius:8px"> minutes of games per day <span class="muted" style="font-size:.83rem">— 0 means no limit.</span></div>
+              <p class="muted" style="font-size:.83rem;margin:10px 0 0">🎮 Game controls (on/off, earn-it & daily limit) now live on the <b>🎮 Games</b> button above.</p>
               <div class="error-msg ke-err"></div>
               <button class="btn small green" data-save-edit="${k.id}" style="margin-top:8px">Save ✓</button>
               <button class="btn ghost small" data-cancel-edit="${k.id}" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px;margin-top:8px">Cancel</button>
               <div class="ke-levels" id="levels-${k.id}"><p class="muted" style="font-size:.85rem">Loading levels…</p></div>
+            </div>
+            <div class="kid-games" id="games-${k.id}" style="display:none">
+              <div class="kg-head">🎮 Games for ${esc(k.name.split(' ')[0])}</div>
+              <label class="kg-toggle"><input type="checkbox" class="kg-on-cb" ${k.games_enabled == null || k.games_enabled ? 'checked' : ''}>
+                <span><b>Play Zone arcade</b><br><span class="muted" style="font-size:.83rem">The break games. On for the full experience, or off for a pure-learning setup with no games at all.</span></span>
+              </label>
+              <div class="kg-sub">🎟️ <b>Earn it:</b> unlock games after <input type="number" class="kg-gate-inp" min="0" max="100" value="${k.games_gate || 0}"> questions answered that day <span class="muted" style="font-size:.83rem">— 0 = always available.</span></div>
+              <div class="kg-sub">⏰ <b>Daily limit:</b> at most <input type="number" class="kg-time-inp" min="0" max="240" value="${k.games_time_limit || 0}"> minutes of games per day <span class="muted" style="font-size:.83rem">— 0 = no limit. Kids see a countdown while they play.</span></div>
+              <div class="error-msg kg-err"></div>
+              <button class="btn small green" data-save-games="${k.id}" style="margin-top:10px">Save games settings ✓</button>
+              <button class="btn ghost small" data-cancel-games="${k.id}" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px;margin-top:10px">Close</button>
             </div>`).join('') : '<p class="muted">Add your first learner below! 👇</p>'}
         </div>
         <h4 style="margin-top:18px">Add a learner</h4>
@@ -2900,6 +2908,23 @@ route('parent', async () => {
     }
   });
   document.querySelectorAll('[data-cancel-edit]').forEach(b => b.onclick = () => { const el = $('#edit-' + b.dataset.cancelEdit); if (el) el.style.display = 'none'; });
+  document.querySelectorAll('[data-games]').forEach(b => b.onclick = () => {
+    const el = $('#games-' + b.dataset.games);
+    if (el) { el.style.display = el.style.display === 'none' ? 'block' : 'none'; Sound.click(); }
+  });
+  document.querySelectorAll('[data-cancel-games]').forEach(b => b.onclick = () => { const el = $('#games-' + b.dataset.cancelGames); if (el) el.style.display = 'none'; });
+  document.querySelectorAll('[data-save-games]').forEach(b => b.onclick = async () => {
+    const box = $('#games-' + b.dataset.saveGames);
+    const body = {
+      games_enabled: box.querySelector('.kg-on-cb').checked ? 1 : 0,
+      games_gate: Math.max(0, Math.min(100, parseInt(box.querySelector('.kg-gate-inp').value, 10) || 0)),
+      games_time_limit: Math.max(0, Math.min(240, parseInt(box.querySelector('.kg-time-inp').value, 10) || 0))
+    };
+    try {
+      await api('/kids/' + b.dataset.saveGames, { method: 'PATCH', body });
+      Sound.badge(); navigate();
+    } catch (e) { const err = box.querySelector('.kg-err'); err.textContent = e.message; err.classList.add('show'); }
+  });
   document.querySelectorAll('[data-save-edit]').forEach(b => b.onclick = async () => {
     const box = $('#edit-' + b.dataset.saveEdit);
     const body = {
@@ -2907,10 +2932,7 @@ route('parent', async () => {
       grade: Number(box.querySelector('.ke-grade').value),
       weekly_goal: Number(box.querySelector('.ke-goal').value),
       calendar_mode: box.querySelector('.ke-cal').value,
-      show_level: box.querySelector('.ke-showlevel-cb') && box.querySelector('.ke-showlevel-cb').checked ? 1 : 0,
-      games_enabled: box.querySelector('.ke-games-cb') && box.querySelector('.ke-games-cb').checked ? 1 : 0,
-      games_gate: box.querySelector('.ke-gamesgate-inp') ? Math.max(0, Math.min(100, parseInt(box.querySelector('.ke-gamesgate-inp').value, 10) || 0)) : 0,
-      games_time_limit: box.querySelector('.ke-gamestime-inp') ? Math.max(0, Math.min(240, parseInt(box.querySelector('.ke-gamestime-inp').value, 10) || 0)) : 0
+      show_level: box.querySelector('.ke-showlevel-cb') && box.querySelector('.ke-showlevel-cb').checked ? 1 : 0
     };
     const pin = box.querySelector('.ke-pin').value.trim();
     if (pin) body.pin = pin;
