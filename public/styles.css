@@ -420,6 +420,13 @@ body[data-theme="academy"] .typed-input.bad { background: #3a2226; color: #ff9c9
 .kg-toggle b { color: var(--chrome-ink); }
 .kg-sub { margin: 10px 0 0; font-size: .92rem; line-height: 1.6; }
 .kg-sub input { width: 58px; padding: 6px 7px; border: 1px solid #d6c8ff; border-radius: 8px; margin: 0 2px; }
+.pguide { border-top: 1px solid var(--card-border); padding: 2px 0; }
+.pguide:first-of-type { border-top: none; }
+.pguide summary { cursor: pointer; font-weight: 600; color: var(--chrome-ink); padding: 9px 2px; list-style: none; font-size: .92rem; }
+.pguide summary::-webkit-details-marker { display: none; }
+.pguide summary::before { content: '＋'; color: #7f8c9b; font-weight: 700; margin-right: 8px; }
+.pguide[open] summary::before { content: '－'; }
+.pguide p { margin: 0 2px 12px; color: #5f6b7d; font-size: .87rem; line-height: 1.6; }
 .lvl-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 .lvl-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .lvl-sub { font-weight: 700; min-width: 76px; font-size: .9rem; }

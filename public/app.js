@@ -2796,6 +2796,19 @@ route('parent', async () => {
           <p class="muted" style="margin-top:8px;line-height:1.6">1. Go to this site on any PC, Mac, or tablet<br>2. Tap <b>Child Login</b> → enter <b>${esc(p.email)}</b><br>3. They pick their avatar & enter their 4-digit PIN<br><br>That's it, progress syncs everywhere. 🎉</p>
         </div>
         <div class="card">
+          <h3>🧭 A quick guide for parents</h3>
+          <details class="pguide"><summary>How much should my child do?</summary>
+            <p>About <b>15–20 minutes a day</b> is plenty. Short and steady beats one long session — a few days a week keeps skills fresh without burnout. You'll see the day's minutes and questions on each child's card above.</p></details>
+          <details class="pguide"><summary>How does Gallop pick the right level?</summary>
+            <p>Each subject starts with a quick placement, then adapts to your child's <b>real</b> level question by question. If something's too easy it moves up; if it's shaky it slows down and reinforces. So your child is always working right at their edge — challenged, not overwhelmed.</p></details>
+          <details class="pguide"><summary>Why doesn't my child see a grade level?</summary>
+            <p>By default we keep the grade number between you and us. A child working a little below their grade never sees it and never feels discouraged — they just see themselves getting better. You always see the real level in each report, and you can choose to share it with your child anytime from the ✏️ edit panel.</p></details>
+          <details class="pguide"><summary>Can I control the games?</summary>
+            <p>Yes — use the <b>🎮 Games</b> button on each child above. Turn the arcade fully on or off, require a number of questions first ("earn it"), or set a daily time limit. Kids see a friendly countdown so games never cut off without warning.</p></details>
+          <details class="pguide"><summary>Is my child's data safe?</summary>
+            <p>We collect only what's needed to teach — first name, grade, a PIN, and their answers. <b>We never sell children's data or use it for ads</b>, there's no open chat, and no links take kids off the app. You can download or delete everything anytime.</p></details>
+        </div>
+        <div class="card">
           <h3>💌 School Buddies</h3>
           <p class="muted" style="margin-top:8px">Connect your children with friends from school, <b>parent-approved only</b>. Children see each other's streaks & badges and send pre-written cheers. No open chat, ever.</p>
           <label>Create an invite code for</label>
@@ -3034,9 +3047,12 @@ route('parent', async () => {
             <span class="sg-label">🏆 Gallop Score</span>
             <span class="sg-num">${k.gallop}${k.gallopDelta > 0 ? ` <span class="sg-up">▲ +${k.gallopDelta} this week</span>` : ''}</span>
           </div>` : ''}
-          <div style="margin:12px 0 8px">
+          <div style="display:flex;gap:8px;margin:12px 0 2px;flex-wrap:wrap">
+            <span style="background:#eef2f7;color:#41506a;font-size:.78rem;font-weight:600;padding:3px 10px;border-radius:999px">📅 Today: ${k.todayAnswers || 0} question${(k.todayAnswers || 0) === 1 ? '' : 's'}${k.minutesToday ? ` · ⏱ ${k.minutesToday} min` : ''}</span>
+          </div>
+          <div style="margin:8px 0 8px">
             <div style="display:flex;justify-content:space-between;font-size:.8rem;color:#5f6b7d;margin-bottom:4px">
-              <span>This week: <b>${k.weekAnswers}</b> / ${k.weeklyGoal} answers${k.weekAccuracy != null ? ` · ${k.weekAccuracy}% correct` : ''}</span>
+              <span>This week: <b>${k.weekAnswers}</b> / ${k.weeklyGoal} answers${k.weekAccuracy != null ? ` · ${k.weekAccuracy}% correct` : ''}${k.minutesWeek ? ` · ⏱ ${k.minutesWeek} min` : ''}</span>
               <span>${goalPct}%</span>
             </div>
             <div style="height:7px;background:#eef0f2;border-radius:999px;overflow:hidden"><div style="height:100%;width:${goalPct}%;background:${st.color}"></div></div>

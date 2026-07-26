@@ -283,7 +283,17 @@ function publicKid(k) {
   let answeredToday = 0, gameSecondsToday = 0;
   try { answeredToday = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND date(ts)=date('now')").get(k.id).n; } catch (e) {}
   try { const gt = db.prepare("SELECT seconds FROM game_time WHERE kid_id=? AND day=date('now')").get(k.id); gameSecondsToday = gt ? gt.seconds : 0; } catch (e) {}
-  return { id: k.id, name: k.name, avatar: k.avatar, avatar_config: cfg, avatar_img: k.avatar_img || null, grade: k.grade, xp: k.xp, coins: k.coins, streak: k.streak, play_tokens: k.play_tokens || 0, calendar_mode: k.calendar_mode, weekly_goal: k.weekly_goal, show_level: k.show_level || 0, games_enabled: k.games_enabled == null ? 1 : k.games_enabled, games_gate: k.games_gate == null ? 0 : k.games_gate, answered_today: answeredToday, games_time_limit: k.games_time_limit == null ? 0 : k.games_time_limit, game_seconds_today: gameSecondsToday };
+  return { id: k.id, name: k.name, avatar: k.avatar, avatar_config: cfg, avatar_img: k.avatar_img || null, grade: k.grade, xp: k.xp, coins: k.coins, streak: k.streak, play_tokens: k.play_tokens || 0, calendar_mode: k.calendar_mode, weekly_goal: k.weekly_goal, show_level: k.show_level || 0, games_enabled: k.games_enabled == null ? 1 : k.games_enabled, games_gate: k.games_gate == null ? 0 : k.games_gate, answered_today: answeredToday, games_time_limit: k.games_time_limit == null ? 0 : k.games_time_limit, game_seconds_today: gameSecondsToday, learn_minutes_today: learnMinutes(k.id, "date('now')") };
+}
+
+// Honest "time on task" from real answer data: sum each answer's time, capped at 2 minutes
+// per question so an idle/left-open tab can never inflate it. No new writes — pure read of
+// activity_log (which already stores time_ms + ts). sinceExpr is a SQLite datetime/date expr.
+function learnMinutes(kidId, sinceExpr) {
+  try {
+    const row = db.prepare(`SELECT COALESCE(SUM(MIN(COALESCE(time_ms,0),120000)),0) AS ms FROM activity_log WHERE kid_id=? AND ts >= ${sinceExpr}`).get(kidId);
+    return Math.round((row.ms || 0) / 60000);
+  } catch (e) { return 0; }
 }
 
 // ---------- kid management (parent) ----------
@@ -756,10 +766,12 @@ router.get('/family/overview', auth.requireParent, (req, res) => {
       }
       if (card.gallop) { gallop = card.gallop.overall; gallopDelta = (card.gallop.deltas && card.gallop.deltas.overall) || null; }
     } catch (e) {}
+    const todayAns = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND date(ts)=date('now')").get(k.id).n;
     return {
       id: k.id, name: k.name, grade: k.grade, avatar: k.avatar, streak: k.streak, xp: k.xp,
       weekAnswers: w.n || 0, weekAccuracy: wAcc.n ? Math.round((wAcc.c || 0) / wAcc.n * 100) : null,
       weeklyGoal: (k.weekly_goal || 12) * 10, totalAnswers: totalAns, needsSetup: totalAns === 0,
+      todayAnswers: todayAns, minutesToday: learnMinutes(k.id, "date('now')"), minutesWeek: learnMinutes(k.id, "datetime('now','-7 days')"),
       overall, focus, gallop, gallopDelta
     };
   });
