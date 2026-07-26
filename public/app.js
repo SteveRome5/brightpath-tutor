@@ -724,7 +724,7 @@ async function navigate() {
     const emoji = transient ? '🐎' : '🙈';
     const title = transient ? 'Reconnecting…' : 'Oops, something hiccuped!';
     const msg = transient ? 'One moment — getting you back on track.' : "Let's try that again.";
-    app().innerHTML = topbar(`<div class="container"><div class="card center"><div class="big-emoji">${emoji}</div><h2>${title}</h2><p class="muted">${msg}</p><div style="margin-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn green" id="nav-retry">↻ Try Again</button><button class="btn ghost" onclick="location.hash='${goHome}'">🏠 Go Home</button></div></div></div>`);
+    app().innerHTML = topbar(`<div class="container"><div class="card center"><div class="big-emoji">${emoji}</div><h2>${title}</h2><p class="muted">${msg}</p><div style="margin-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn green" id="nav-retry">↻ Try Again</button><button class="btn ghost" style="color:#41506a;border-color:#cfd8e3" onclick="location.hash='${goHome}'">🏠 Go Home</button></div></div></div>`);
     try { wireChrome(); } catch (_) {}
     const rb = document.getElementById('nav-retry'); if (rb) rb.onclick = () => { try { Sound.click(); } catch (_) {} retryNow(); };
     if (transient && _navRetry.n < 3) setTimeout(retryNow, [1500, 3000, 5000][_navRetry.n] || 5000);
@@ -2622,7 +2622,7 @@ function renderPaywall(reason) {
       ? `<button class="btn green" id="sub-family">Family, $54/mo (up to 4 children)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo, $34/mo</button>
          <p class="muted" style="margin-top:12px;font-size:.85rem">Billed monthly and renews automatically until you cancel. Cancel anytime in one click from your dashboard.</p>`
       : `<p><b>Ask your parent to keep it going!</b></p>
-         ${State.me.kid ? `<button class="btn green" id="email-parent">📧 Email my parent to subscribe</button> ` : ''}<button class="btn ghost small" style="margin-left:8px" onclick="location.hash='#login'">Parent Login</button>
+         ${State.me.kid ? `<button class="btn green" id="email-parent">📧 Email my parent to subscribe</button> ` : ''}<button class="btn ghost small" style="margin-left:8px;color:#41506a;border-color:#cfd8e3" onclick="location.hash='#login'">Parent Login</button>
          <p id="ep-done" style="display:none;margin-top:12px;color:var(--brand);font-weight:700"></p>`}
   </div></div>`);
   wireChrome();
