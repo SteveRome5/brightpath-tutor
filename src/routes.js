@@ -278,7 +278,10 @@ router.get('/auth/me', (req, res) => {
 
 function publicKid(k) {
   let cfg = null; try { cfg = k.avatar_config ? JSON.parse(k.avatar_config) : null; } catch (e) {}
-  return { id: k.id, name: k.name, avatar: k.avatar, avatar_config: cfg, avatar_img: k.avatar_img || null, grade: k.grade, xp: k.xp, coins: k.coins, streak: k.streak, play_tokens: k.play_tokens || 0, calendar_mode: k.calendar_mode, weekly_goal: k.weekly_goal, show_level: k.show_level || 0 };
+  // answered_today drives the parent "earn it" games gate (unlock after N questions today).
+  let answeredToday = 0;
+  try { answeredToday = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND date(ts)=date('now')").get(k.id).n; } catch (e) {}
+  return { id: k.id, name: k.name, avatar: k.avatar, avatar_config: cfg, avatar_img: k.avatar_img || null, grade: k.grade, xp: k.xp, coins: k.coins, streak: k.streak, play_tokens: k.play_tokens || 0, calendar_mode: k.calendar_mode, weekly_goal: k.weekly_goal, show_level: k.show_level || 0, games_enabled: k.games_enabled == null ? 1 : k.games_enabled, games_gate: k.games_gate == null ? 0 : k.games_gate, answered_today: answeredToday };
 }
 
 // ---------- kid management (parent) ----------
@@ -304,7 +307,7 @@ router.post('/kids', auth.requireParent, (req, res) => {
 router.patch('/kids/:kidId', auth.requireParent, (req, res) => {
   const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
   if (!kid) return res.status(404).json({ error: 'Learner not found.' });
-  const { name, grade, pin, avatar, calendar_mode, weekly_goal, show_level } = req.body || {};
+  const { name, grade, pin, avatar, calendar_mode, weekly_goal, show_level, games_enabled, games_gate } = req.body || {};
   if (pin != null && pin !== '' && !/^\d{4}$/.test(String(pin))) return res.status(400).json({ error: 'PIN must be 4 digits.' });
   const gradeVal = grade != null && Number.isFinite(Number(grade)) ? Math.max(0, Math.min(12, Math.round(Number(grade)))) : null;
   // Validate avatar against the allow-list and bound the weekly goal (matches POST /kids).
@@ -313,9 +316,13 @@ router.patch('/kids/:kidId', auth.requireParent, (req, res) => {
   // Parent choice: whether the child sees their own grade-level placement (default hidden, so a
   // child who places below grade never has it shown to them). null = leave unchanged.
   const showLevelVal = show_level == null ? null : (show_level ? 1 : 0);
+  // Parent choice: whether the Play Zone arcade is available to this child. null = leave unchanged.
+  const gamesEnabledVal = games_enabled == null ? null : (games_enabled ? 1 : 0);
+  // "Earn it" gate: questions required today before games unlock (0 = none). Bounded 0..100.
+  const gamesGateVal = games_gate == null ? null : Math.max(0, Math.min(100, Math.round(Number(games_gate)) || 0));
   db.prepare(`UPDATE kids SET name=COALESCE(?,name), grade=COALESCE(?,grade), pin=COALESCE(?,pin),
-              avatar=COALESCE(?,avatar), calendar_mode=COALESCE(?,calendar_mode), weekly_goal=COALESCE(?,weekly_goal), show_level=COALESCE(?,show_level) WHERE id=?`)
-    .run(name ? String(name).trim().slice(0, 40) : null, gradeVal, pin ? auth.hashPin(String(pin)) : null, avatarVal, calendar_mode || null, goalVal, showLevelVal, kid.id);
+              avatar=COALESCE(?,avatar), calendar_mode=COALESCE(?,calendar_mode), weekly_goal=COALESCE(?,weekly_goal), show_level=COALESCE(?,show_level), games_enabled=COALESCE(?,games_enabled), games_gate=COALESCE(?,games_gate) WHERE id=?`)
+    .run(name ? String(name).trim().slice(0, 40) : null, gradeVal, pin ? auth.hashPin(String(pin)) : null, avatarVal, calendar_mode || null, goalVal, showLevelVal, gamesEnabledVal, gamesGateVal, kid.id);
   res.json({ ok: true });
 });
 

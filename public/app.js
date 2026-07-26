@@ -265,6 +265,14 @@ function playful() { const t = document.body.dataset.theme; return t === 'junior
 // places below their grade never sees it; the parent opts in per learner. Parents always see the
 // real level in the report — this only governs what the child themselves is shown.
 function showLevel() { try { return !!(State.me && State.me.kid && State.me.kid.show_level); } catch (e) { return false; } }
+// Parent toggle: is the Play Zone arcade available to this child? Defaults ON (only 0 turns it off).
+function gamesOn() { try { return !(State.me && State.me.kid && State.me.kid.games_enabled === 0); } catch (e) { return true; } }
+// Parent "earn it" gate: number of questions the child must answer today before games unlock (0 = none).
+function gamesGate() { try { return Math.max(0, Number((State.me && State.me.kid && State.me.kid.games_gate) || 0)); } catch (e) { return 0; } }
+function gamesAnsweredToday() { try { return Math.max(0, Number((State.me && State.me.kid && State.me.kid.answered_today) || 0)); } catch (e) { return 0; } }
+// Games are actually playable when the arcade is on AND the earn-it gate (if set) is met.
+function gamesUnlocked() { return gamesOn() && (gamesGate() <= 0 || gamesAnsweredToday() >= gamesGate()); }
+function gamesRemaining() { return Math.max(0, gamesGate() - gamesAnsweredToday()); }
 
 // --- Analytics: push funnel events to Google Tag Manager's dataLayer. GTM (container
 // GTM-N5F65TST) picks these up as triggers and forwards them to GA4 (or any tag) as
@@ -1439,7 +1447,9 @@ route('home', async () => {
     </div>
     <div class="zone-row">
       <div class="zone-card" onclick="location.hash='#learn'"><span class="zemoji">📖</span><b>Lessons</b><span class="muted">${playful() ? 'Find any topic and learn it first!' : 'Search or browse any concept — learn it step by step'}</span></div>
-      <div class="zone-card" onclick="location.hash='#play'"><span class="zemoji">🕹️</span><b>${playful() ? 'Play Zone' : 'Arcade'}</b><span class="muted">${playful() ? 'Games cost 1 🎟️, earn tokens by learning!' : 'Break games, 1 token each, earned by correct answers'}</span></div>
+      ${!gamesOn() ? '' : gamesUnlocked()
+        ? `<div class="zone-card" onclick="location.hash='#play'"><span class="zemoji">🕹️</span><b>${playful() ? 'Play Zone' : 'Arcade'}</b><span class="muted">${playful() ? 'Games cost 1 🎟️, earn tokens by learning!' : 'Break games, 1 token each, earned by correct answers'}</span></div>`
+        : `<div class="zone-card locked" onclick="location.hash='#play'"><span class="zemoji">🔒</span><b>${playful() ? 'Play Zone' : 'Arcade'}</b><span class="muted">Answer ${gamesRemaining()} more question${gamesRemaining() === 1 ? '' : 's'} today to unlock the games!</span></div>`}
       <div class="zone-card" onclick="location.hash='#avatar'"><span class="zemoji">🎨</span><b>${playful() ? 'My Avatar' : 'Avatar'}</b><span class="muted">${playful() ? 'Spend coins on hats, pets & worlds' : 'Customize your profile with earned coins'}</span></div>
       <div class="zone-card" onclick="location.hash='#snacks'"><span class="zemoji">🍿</span><b>${playful() ? 'Snack Shack' : 'Snack Shack'}</b><span class="muted">${playful() ? 'Spend coins on treats from the vending machine!' : 'Trade coins for snacks & treats'}</span></div>
       <div class="zone-card" onclick="location.hash='#trophies'"><span class="zemoji">🏆</span><b>Trophy Case</b><span class="muted">${playful() ? 'Your badges, trophies & next goals!' : 'Badges, certificates & milestones'}</span></div>
@@ -1869,7 +1879,7 @@ route('lesson', async (subject, mode, anchor) => {
         $('#mastery-pct').textContent = Math.round(res.mastery * 100) + '%';
         $('#mastery-fill').style.width = (res.mastery * 100) + '%';
         (res.events || []).forEach(ev => session.events.push(ev));
-        const celebration = (res.events || []).find(ev => ev.type === 'levelup' || ev.type === 'badge' || ev.type === 'token');
+        const celebration = (res.events || []).find(ev => ev.type === 'levelup' || ev.type === 'badge' || (ev.type === 'token' && gamesOn()));
         if (celebration) setTimeout(() => celebrate(celebration), 700);
       } catch (e) {
         // Trial/subscription lapsed mid-lesson: send them to the paywall instead of
@@ -2643,6 +2653,10 @@ route('parent', async () => {
               <label class="ke-showlevel"><input type="checkbox" class="ke-showlevel-cb" ${k.show_level ? 'checked' : ''}>
                 <span><b>Show ${esc(k.name.split(' ')[0])} their grade level</b><br><span class="muted" style="font-size:.83rem">Off by default. We adapt to your child's real level in each subject, but we keep the grade number between you and us — so a child who's working below their grade never sees it and feels discouraged. You'll always see it in the report. Flip this on when you'd like to share it with ${esc(k.name.split(' ')[0])}.</span></span>
               </label>
+              <label class="ke-showlevel"><input type="checkbox" class="ke-games-cb" ${k.games_enabled == null || k.games_enabled ? 'checked' : ''}>
+                <span><b>Play Zone arcade for ${esc(k.name.split(' ')[0])}</b><br><span class="muted" style="font-size:.83rem">The break games. Leave it on for the full experience, or turn it off for a pure-learning setup with no games at all.</span></span>
+              </label>
+              <div class="ke-gamesgate" style="margin:8px 0 2px 27px;font-size:.92rem">🎟️ <b>Earn it:</b> unlock games after <input type="number" class="ke-gamesgate-inp" min="0" max="100" value="${k.games_gate || 0}" style="width:54px;padding:5px 6px;border:1px solid #dfe6e9;border-radius:8px"> questions answered that day <span class="muted" style="font-size:.83rem">— 0 means always available.</span></div>
               <div class="error-msg ke-err"></div>
               <button class="btn small green" data-save-edit="${k.id}" style="margin-top:8px">Save ✓</button>
               <button class="btn ghost small" data-cancel-edit="${k.id}" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px;margin-top:8px">Cancel</button>
@@ -2829,7 +2843,9 @@ route('parent', async () => {
       grade: Number(box.querySelector('.ke-grade').value),
       weekly_goal: Number(box.querySelector('.ke-goal').value),
       calendar_mode: box.querySelector('.ke-cal').value,
-      show_level: box.querySelector('.ke-showlevel-cb') && box.querySelector('.ke-showlevel-cb').checked ? 1 : 0
+      show_level: box.querySelector('.ke-showlevel-cb') && box.querySelector('.ke-showlevel-cb').checked ? 1 : 0,
+      games_enabled: box.querySelector('.ke-games-cb') && box.querySelector('.ke-games-cb').checked ? 1 : 0,
+      games_gate: box.querySelector('.ke-gamesgate-inp') ? Math.max(0, Math.min(100, parseInt(box.querySelector('.ke-gamesgate-inp').value, 10) || 0)) : 0
     };
     const pin = box.querySelector('.ke-pin').value.trim();
     if (pin) body.pin = pin;

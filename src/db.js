@@ -303,6 +303,12 @@ for (const stmt of [
   // so a child who places below their enrolled grade never has that shown to them. Parents always
   // see the real level in the report; they flip this on if/when they want to share it with the kid.
   "ALTER TABLE kids ADD COLUMN show_level INTEGER DEFAULT 0",
+  // Parent choice: is the Play Zone arcade available to this child? Default 1 (on). A parent can
+  // switch the games off from the dashboard so the child sees a pure-learning experience.
+  "ALTER TABLE kids ADD COLUMN games_enabled INTEGER DEFAULT 1",
+  // Parent "earn it" gate: number of questions the child must answer TODAY before the Play Zone
+  // unlocks. 0 = no gate (always available when games_enabled). Only applies when games_enabled=1.
+  "ALTER TABLE kids ADD COLUMN games_gate INTEGER DEFAULT 0",
   // Concepts the child missed during the placement quiz (JSON array of skill names) so
   // parents can see, in plain language, what to keep an eye on from the assessment.
   "ALTER TABLE subject_state ADD COLUMN placement_missed TEXT",

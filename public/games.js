@@ -119,6 +119,19 @@
   // ======================= PLAY ZONE HOME =======================
   route('play', async () => {
     if (needKid()) return;
+    await refreshMe();   // fresh settings + answered_today so the parent gate is accurate
+    if (!gamesOn()) { toast('The games are turned off for now.'); location.hash = '#home'; return; }
+    if (!gamesUnlocked()) {
+      const rem = gamesRemaining();
+      app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center" style="padding:28px">
+        <div class="big-emoji">🔒</div>
+        <h2>A little more learning first!</h2>
+        <p class="muted" style="font-size:1.05rem">Answer <b>${rem}</b> more question${rem === 1 ? '' : 's'} today and the Play Zone unlocks. You've got this! 🌟</p>
+        <button class="btn green" style="margin-top:10px" onclick="location.hash='#home'">Let's learn →</button>
+      </div></div>`);
+      wireChrome();
+      return;
+    }
     const s = await api(`/play/${kidId()}/status`);
     const k = s.kid;
     // Every game carries a grade band so the arcade fits the player's age: the
@@ -169,6 +182,8 @@
   // ======================= GAME DISPATCH =======================
   route('game', async (which) => {
     if (needKid()) return;
+    await refreshMe();
+    if (!gamesOn() || !gamesUnlocked()) { location.hash = '#play'; return; }  // respect the parent games toggle/gate
     // Market Mogul is a persistent, level-based career: opening the hub is free (progress
     // resume + level select), and a *token is spent per level* from inside the hub — so it
     // bypasses the one-token-per-open `gated()` wrapper the other arcade games use.
