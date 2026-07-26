@@ -453,8 +453,11 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
         db.prepare('INSERT INTO certificates (kid_id, subject, title, level) VALUES (?,?,?,?)').run(kidId, subject, title, lvl);
         events.push({ type: 'levelup', subject, newLevel: lvl, certificate: title });
       }
-    } else if (lvl > 0) {
+    } else if (lvl > 0 && (lvl - 1) >= (Number.isFinite(state.demonstrated_level) ? Math.max(0, state.demonstrated_level) : 0)) {
       // DEMOTE (support): sustained low accuracy at the level since the last change.
+      // Guard: never demote BELOW the child's demonstrated (proven-cleared) grade — you can't
+      // un-clear a grade, and a working level under the proven level is the contradiction parents
+      // saw ("Working level Grade 1" vs a Grade-3 score). Support review stops at the cleared grade.
       // Only looks at answers SINCE the change (id > last_change_aid), so a fresh
       // promotion/demotion gets a fair trial on new work and we never cascade multiple
       // grades down in a row on stale pre-change answers. minRows=10 (was the default 4):

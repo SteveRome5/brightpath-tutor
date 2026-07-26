@@ -338,6 +338,17 @@ try {
   db.exec("UPDATE subject_state SET placed_level = level, demonstrated_level = CAST(ROUND(level) AS INTEGER) WHERE placed = 1 AND placed_level IS NULL");
 } catch (e) {}
 
+// Self-heal: a child's working `level` must never sit BELOW their demonstrated (proven-cleared)
+// level. That impossible state is what made the report show "Working level: Grade 1" while the
+// Gallop Score and "Why we started here" both said Grade 3 — deeply confusing to parents. It came
+// from an older, over-eager demote that could push the served level below a grade the child had
+// already passed. Raise any such level back up to the proven grade (this only ever RAISES a level,
+// never lowers anyone, and never past what was actually demonstrated). A new guard in adaptive.js
+// stops it ever recurring. Idempotent: once level >= demonstrated_level, this is a no-op.
+try {
+  db.exec("UPDATE subject_state SET level = demonstrated_level WHERE placed = 1 AND demonstrated_level IS NOT NULL AND demonstrated_level >= 0 AND level < demonstrated_level");
+} catch (e) {}
+
 // Per-day game-time tracking (seconds), for the parent daily time cap. One row per child per
 // UTC day; the kid client ticks elapsed game seconds here while a game is open.
 try {
