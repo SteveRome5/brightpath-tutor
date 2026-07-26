@@ -270,9 +270,40 @@ function gamesOn() { try { return !(State.me && State.me.kid && State.me.kid.gam
 // Parent "earn it" gate: number of questions the child must answer today before games unlock (0 = none).
 function gamesGate() { try { return Math.max(0, Number((State.me && State.me.kid && State.me.kid.games_gate) || 0)); } catch (e) { return 0; } }
 function gamesAnsweredToday() { try { return Math.max(0, Number((State.me && State.me.kid && State.me.kid.answered_today) || 0)); } catch (e) { return 0; } }
-// Games are actually playable when the arcade is on AND the earn-it gate (if set) is met.
-function gamesUnlocked() { return gamesOn() && (gamesGate() <= 0 || gamesAnsweredToday() >= gamesGate()); }
+// Parent daily time cap (minutes). game_seconds_today is how much game time was tracked today.
+function gamesTimeLimitMin() { try { return Math.max(0, Number((State.me && State.me.kid && State.me.kid.games_time_limit) || 0)); } catch (e) { return 0; } }
+function gameSecondsToday() { try { return Math.max(0, Number((State.me && State.me.kid && State.me.kid.game_seconds_today) || 0)); } catch (e) { return 0; } }
+function gamesTimeExhausted() { return gamesTimeLimitMin() > 0 && gameSecondsToday() >= gamesTimeLimitMin() * 60; }
+// Games are actually playable when the arcade is on, the earn-it gate (if set) is met, AND the
+// daily time cap (if set) has not been reached.
+function gamesUnlocked() { return gamesOn() && (gamesGate() <= 0 || gamesAnsweredToday() >= gamesGate()) && !gamesTimeExhausted(); }
 function gamesRemaining() { return Math.max(0, gamesGate() - gamesAnsweredToday()); }
+
+// ---- game-time clock: accrue seconds while a game is open, for the parent daily cap ----
+let _gameClock = null, _gameClockLast = 0;
+function startGameClock() {
+  if (_gameClock) return;
+  _gameClockLast = Date.now();
+  _gameClock = setInterval(_gameClockTick, 30000);
+}
+async function _gameClockTick(final) {
+  const now = Date.now();
+  const secs = Math.max(0, Math.round((now - _gameClockLast) / 1000));
+  _gameClockLast = now;
+  if (secs <= 0 || !kidId()) return;
+  try {
+    const r = await api(`/play/${kidId()}/tick`, { method: 'POST', body: { seconds: secs } });
+    if (r && State.me && State.me.kid) State.me.kid.game_seconds_today = r.seconds_today;
+    if (r && r.over && !final) { stopGameClock(); if ((location.hash || '').startsWith('#game')) location.hash = '#play'; }
+  } catch (e) {}
+}
+function stopGameClock() {
+  if (!_gameClock) return;
+  clearInterval(_gameClock); _gameClock = null;
+  _gameClockTick(true);   // best-effort final partial tick
+}
+// Leaving any game screen stops the clock (time only accrues inside #game/...).
+window.addEventListener('hashchange', () => { if (!(location.hash || '').startsWith('#game')) stopGameClock(); });
 
 // --- Analytics: push funnel events to Google Tag Manager's dataLayer. GTM (container
 // GTM-N5F65TST) picks these up as triggers and forwards them to GA4 (or any tag) as
@@ -1449,7 +1480,9 @@ route('home', async () => {
       <div class="zone-card" onclick="location.hash='#learn'"><span class="zemoji">📖</span><b>Lessons</b><span class="muted">${playful() ? 'Find any topic and learn it first!' : 'Search or browse any concept — learn it step by step'}</span></div>
       ${!gamesOn() ? '' : gamesUnlocked()
         ? `<div class="zone-card" onclick="location.hash='#play'"><span class="zemoji">🕹️</span><b>${playful() ? 'Play Zone' : 'Arcade'}</b><span class="muted">${playful() ? 'Games cost 1 🎟️, earn tokens by learning!' : 'Break games, 1 token each, earned by correct answers'}</span></div>`
-        : `<div class="zone-card locked" onclick="location.hash='#play'"><span class="zemoji">🔒</span><b>${playful() ? 'Play Zone' : 'Arcade'}</b><span class="muted">Answer ${gamesRemaining()} more question${gamesRemaining() === 1 ? '' : 's'} today to unlock the games!</span></div>`}
+        : gamesTimeExhausted()
+          ? `<div class="zone-card locked" onclick="location.hash='#play'"><span class="zemoji">⏰</span><b>${playful() ? 'Play Zone' : 'Arcade'}</b><span class="muted">Game time's up for today — back tomorrow!</span></div>`
+          : `<div class="zone-card locked" onclick="location.hash='#play'"><span class="zemoji">🔒</span><b>${playful() ? 'Play Zone' : 'Arcade'}</b><span class="muted">Answer ${gamesRemaining()} more question${gamesRemaining() === 1 ? '' : 's'} today to unlock the games!</span></div>`}
       <div class="zone-card" onclick="location.hash='#avatar'"><span class="zemoji">🎨</span><b>${playful() ? 'My Avatar' : 'Avatar'}</b><span class="muted">${playful() ? 'Spend coins on hats, pets & worlds' : 'Customize your profile with earned coins'}</span></div>
       <div class="zone-card" onclick="location.hash='#snacks'"><span class="zemoji">🍿</span><b>${playful() ? 'Snack Shack' : 'Snack Shack'}</b><span class="muted">${playful() ? 'Spend coins on treats from the vending machine!' : 'Trade coins for snacks & treats'}</span></div>
       <div class="zone-card" onclick="location.hash='#trophies'"><span class="zemoji">🏆</span><b>Trophy Case</b><span class="muted">${playful() ? 'Your badges, trophies & next goals!' : 'Badges, certificates & milestones'}</span></div>
@@ -2657,6 +2690,7 @@ route('parent', async () => {
                 <span><b>Play Zone arcade for ${esc(k.name.split(' ')[0])}</b><br><span class="muted" style="font-size:.83rem">The break games. Leave it on for the full experience, or turn it off for a pure-learning setup with no games at all.</span></span>
               </label>
               <div class="ke-gamesgate" style="margin:8px 0 2px 27px;font-size:.92rem">🎟️ <b>Earn it:</b> unlock games after <input type="number" class="ke-gamesgate-inp" min="0" max="100" value="${k.games_gate || 0}" style="width:54px;padding:5px 6px;border:1px solid #dfe6e9;border-radius:8px"> questions answered that day <span class="muted" style="font-size:.83rem">— 0 means always available.</span></div>
+              <div class="ke-gamesgate" style="margin:6px 0 2px 27px;font-size:.92rem">⏰ <b>Daily limit:</b> at most <input type="number" class="ke-gamestime-inp" min="0" max="240" value="${k.games_time_limit || 0}" style="width:54px;padding:5px 6px;border:1px solid #dfe6e9;border-radius:8px"> minutes of games per day <span class="muted" style="font-size:.83rem">— 0 means no limit.</span></div>
               <div class="error-msg ke-err"></div>
               <button class="btn small green" data-save-edit="${k.id}" style="margin-top:8px">Save ✓</button>
               <button class="btn ghost small" data-cancel-edit="${k.id}" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px;margin-top:8px">Cancel</button>
@@ -2845,7 +2879,8 @@ route('parent', async () => {
       calendar_mode: box.querySelector('.ke-cal').value,
       show_level: box.querySelector('.ke-showlevel-cb') && box.querySelector('.ke-showlevel-cb').checked ? 1 : 0,
       games_enabled: box.querySelector('.ke-games-cb') && box.querySelector('.ke-games-cb').checked ? 1 : 0,
-      games_gate: box.querySelector('.ke-gamesgate-inp') ? Math.max(0, Math.min(100, parseInt(box.querySelector('.ke-gamesgate-inp').value, 10) || 0)) : 0
+      games_gate: box.querySelector('.ke-gamesgate-inp') ? Math.max(0, Math.min(100, parseInt(box.querySelector('.ke-gamesgate-inp').value, 10) || 0)) : 0,
+      games_time_limit: box.querySelector('.ke-gamestime-inp') ? Math.max(0, Math.min(240, parseInt(box.querySelector('.ke-gamestime-inp').value, 10) || 0)) : 0
     };
     const pin = box.querySelector('.ke-pin').value.trim();
     if (pin) body.pin = pin;

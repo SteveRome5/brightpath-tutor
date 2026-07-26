@@ -273,6 +273,24 @@ router.get('/play/:kidId/status', auth.requireKid, (req, res) => {
   res.json({ kid: kidPublic(kid), best, correctSinceToken: kid.correct_since_token || 0 });
 });
 
+// Accrue game time for the parent daily time cap. The kid client posts elapsed seconds while a
+// game is open; we clamp each tick (a single tick can never add more than ~2 min) and accumulate
+// per UTC day. Returns today's total and whether the daily limit is now reached.
+router.post('/play/:kidId/tick', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const secs = Math.max(0, Math.min(120, Math.round(Number((req.body || {}).seconds) || 0)));
+  const kid = db.prepare('SELECT games_time_limit FROM kids WHERE id=?').get(req.kid.id);
+  if (secs > 0) {
+    db.prepare(`INSERT INTO game_time (kid_id, day, seconds) VALUES (?, date('now'), ?)
+                ON CONFLICT(kid_id, day) DO UPDATE SET seconds = seconds + excluded.seconds`)
+      .run(req.kid.id, secs);
+  }
+  const today = db.prepare("SELECT seconds FROM game_time WHERE kid_id=? AND day=date('now')").get(req.kid.id);
+  const secondsToday = today ? today.seconds : 0;
+  const limitMin = kid && kid.games_time_limit ? kid.games_time_limit : 0;
+  const limitSeconds = limitMin * 60;
+  res.json({ seconds_today: secondsToday, limit_seconds: limitSeconds, over: limitSeconds > 0 && secondsToday >= limitSeconds });
+});
+
 // A finish-coin credit exists only for games that were actually STARTED with a token —
 // stops scripted /score spam from minting coins without playing.
 const _openPlays = new Map(); // `${kidId}:${game}` -> count of un-scored token spends

@@ -119,9 +119,19 @@
   // ======================= PLAY ZONE HOME =======================
   route('play', async () => {
     if (needKid()) return;
-    await refreshMe();   // fresh settings + answered_today so the parent gate is accurate
+    await refreshMe();   // fresh settings + answered_today + game_seconds_today so the gate is accurate
     if (!gamesOn()) { toast('The games are turned off for now.'); location.hash = '#home'; return; }
-    if (!gamesUnlocked()) {
+    if (gamesTimeExhausted()) {
+      app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center" style="padding:28px">
+        <div class="big-emoji">⏰</div>
+        <h2>That's your game time for today!</h2>
+        <p class="muted" style="font-size:1.05rem">You've used your ${gamesTimeLimitMin()} minutes of games today. Come back tomorrow — the lessons are always open! 🌟</p>
+        <button class="btn green" style="margin-top:10px" onclick="location.hash='#home'">Back to learning →</button>
+      </div></div>`);
+      wireChrome();
+      return;
+    }
+    if (gamesGate() > 0 && gamesAnsweredToday() < gamesGate()) {
       const rem = gamesRemaining();
       app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center" style="padding:28px">
         <div class="big-emoji">🔒</div>
@@ -183,7 +193,8 @@
   route('game', async (which) => {
     if (needKid()) return;
     await refreshMe();
-    if (!gamesOn() || !gamesUnlocked()) { location.hash = '#play'; return; }  // respect the parent games toggle/gate
+    if (!gamesOn() || !gamesUnlocked()) { location.hash = '#play'; return; }  // respect the parent games toggle/gate/time-cap
+    startGameClock();   // begin accruing game time toward the daily cap
     // Market Mogul is a persistent, level-based career: opening the hub is free (progress
     // resume + level select), and a *token is spent per level* from inside the hub — so it
     // bypasses the one-token-per-open `gated()` wrapper the other arcade games use.

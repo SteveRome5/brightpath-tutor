@@ -309,6 +309,9 @@ for (const stmt of [
   // Parent "earn it" gate: number of questions the child must answer TODAY before the Play Zone
   // unlocks. 0 = no gate (always available when games_enabled). Only applies when games_enabled=1.
   "ALTER TABLE kids ADD COLUMN games_gate INTEGER DEFAULT 0",
+  // Parent daily time cap for games, in MINUTES. 0 = no limit. When today's tracked game time
+  // reaches this, the Play Zone locks until the next day.
+  "ALTER TABLE kids ADD COLUMN games_time_limit INTEGER DEFAULT 0",
   // Concepts the child missed during the placement quiz (JSON array of skill names) so
   // parents can see, in plain language, what to keep an eye on from the assessment.
   "ALTER TABLE subject_state ADD COLUMN placement_missed TEXT",
@@ -333,6 +336,17 @@ for (const stmt of [
 // over smoothly instead of dropping to the floor on deploy.
 try {
   db.exec("UPDATE subject_state SET placed_level = level, demonstrated_level = CAST(ROUND(level) AS INTEGER) WHERE placed = 1 AND placed_level IS NULL");
+} catch (e) {}
+
+// Per-day game-time tracking (seconds), for the parent daily time cap. One row per child per
+// UTC day; the kid client ticks elapsed game seconds here while a game is open.
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS game_time (
+    kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+    day TEXT NOT NULL,                 -- YYYY-MM-DD (UTC)
+    seconds INTEGER DEFAULT 0,
+    PRIMARY KEY (kid_id, day)
+  )`);
 } catch (e) {}
 
 // Child-privacy: custom avatar PHOTOS were retired in favor of illustrated avatars only.
