@@ -2417,12 +2417,13 @@ route('report', async (kidId) => {
             <div class="subj-score">
               <div class="ss-num" style="color:${SUBJECT_STYLE[s.subject].color}">${s.gallopScore != null ? s.gallopScore : '—'}</div>
               <div class="ss-cap">Gallop Score${s.gallopScore != null && r.gallop.deltas && r.gallop.deltas[s.subject] > 0 ? ` · <span class="gs-up">+${r.gallop.deltas[s.subject]}</span>` : ''}</div>
-              ${isParent && s.gradeEquiv ? `<div class="ss-grade">≈ ${esc(s.gradeEquiv.label)}${s.letter && s.letter !== '—' ? ` · ${esc(s.letter)}` : ''}</div>` : ''}
+              ${isParent && s.gradeEquiv ? `<div class="ss-grade" title="The grade level of mastery ${esc(k.name)} has proven so far — it climbs as they practice. This is different from their Working level (where they're learning right now), shown just below.">≈ ${esc(s.gradeEquiv.label)}${s.letter && s.letter !== '—' ? ` · ${esc(s.letter)}` : ''} <span class="muted" style="font-weight:400">proven</span></div>` : ''}
             </div>
           </div>
           ${s.placed ? `
             <p class="muted" style="margin:6px 0">${isParent ? `${accuracyLine(s)}${statusNote(s)}` : `${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} done. Keep it up, you're growing!`}</p>
-            ${isParent ? `<p class="muted" style="margin:2px 0 6px;font-size:.9rem">Working level: <b>${esc(s.levelName)}</b>${s.enrolledGrade != null ? ` · enrolled in <b>${s.enrolledGrade === 0 ? 'Kindergarten' : 'Grade ' + s.enrolledGrade}</b>` : ''} <span class="muted">(a child can work at a different level than their grade — that's the point of adapting)</span></p>` : ''}
+            ${isParent ? `<p class="muted" style="margin:2px 0 2px;font-size:.9rem">Working level: <b>${esc(s.levelName)}</b>${s.enrolledGrade != null ? ` · enrolled in <b>${s.enrolledGrade === 0 ? 'Kindergarten' : 'Grade ' + s.enrolledGrade}</b>` : ''} <span class="muted">(a child can work at a different level than their grade — that's the point of adapting)</span></p>
+            <p class="muted" style="margin:0 0 8px;font-size:.82rem;line-height:1.5">💡 <b>Two numbers, two meanings:</b> <b>Working level</b> is where ${esc(k.name)} is practicing right now; the <b>Gallop Score</b> above (“≈ ${s.gradeEquiv ? esc(s.gradeEquiv.label) : 'a grade level'}”) is the mastery they've <i>proven</i> so far. Early on the score sits a little lower and rises to meet their working level as they master each skill.</p>` : ''}
             ${isParent && s.placementNote ? `<p class="place-note"><b>Why we started here:</b> ${esc(s.placementNote)}</p>` : ''}
             ${isParent && s.placementMissed && s.placementMissed.length ? `<p class="place-note" style="background:#fff6ec;border-color:#f0d9bd"><b>Missed on the placement quiz:</b> ${s.placementMissed.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')} <span class="muted" style="font-size:.85rem">— these are just the concepts to keep an eye on; ${esc(k.name)} gets extra practice on them automatically.</span></p>` : ''}
             ${isParent && s.progress ? `
