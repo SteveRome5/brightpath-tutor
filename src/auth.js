@@ -148,7 +148,7 @@ function requireKid(req, res, next) {
 // accounts. Managed via the COMP_EMAILS env var (comma-separated) MERGED with a small built-in
 // list, so it works immediately without extra Render config. Match is case-insensitive.
 const COMP_EMAILS = new Set(
-  ['lin@refinedhq.com', 'steve@refinedhq.com']
+  ['lin@refinedhq.com', 'steve@refinedhq.com', 'lolatmitchell@gmail.com']
     .concat(String(process.env.COMP_EMAILS || '').split(','))
     .map(e => e.trim().toLowerCase()).filter(Boolean)
 );
