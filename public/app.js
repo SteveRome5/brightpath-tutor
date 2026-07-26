@@ -279,29 +279,59 @@ function gamesTimeExhausted() { return gamesTimeLimitMin() > 0 && gameSecondsTod
 function gamesUnlocked() { return gamesOn() && (gamesGate() <= 0 || gamesAnsweredToday() >= gamesGate()) && !gamesTimeExhausted(); }
 function gamesRemaining() { return Math.max(0, gamesGate() - gamesAnsweredToday()); }
 
-// ---- game-time clock: accrue seconds while a game is open, for the parent daily cap ----
-let _gameClock = null, _gameClockLast = 0;
+// ---- game-time clock: a VISIBLE countdown while a game is open, with heads-up warnings, plus
+// server persistence for the parent daily cap. Only shows when a daily limit is actually set, so
+// nothing ever shuts off without the child watching it come. ----
+let _gameClock = null, _gameAccum = 0, _gameRemaining = null, _gameWarned = {};
 function startGameClock() {
   if (_gameClock) return;
-  _gameClockLast = Date.now();
-  _gameClock = setInterval(_gameClockTick, 30000);
+  const limitS = gamesTimeLimitMin() * 60;
+  _gameRemaining = limitS > 0 ? Math.max(0, limitS - gameSecondsToday()) : null;  // null = no cap → no countdown
+  _gameAccum = 0; _gameWarned = {};
+  _renderGameClock();
+  _gameClock = setInterval(_gameClockSecond, 1000);
 }
-async function _gameClockTick(final) {
-  const now = Date.now();
-  const secs = Math.max(0, Math.round((now - _gameClockLast) / 1000));
-  _gameClockLast = now;
+async function _gameClockSecond() {
+  // Persist the seconds actually played to the server every 30s (so closing/reopening keeps count).
+  _gameAccum++;
+  if (_gameAccum >= 30) { _postGameSeconds(_gameAccum); _gameAccum = 0; }
+  if (_gameRemaining == null) return;                       // no cap → just persist, no visible clock
+  _gameRemaining = Math.max(0, _gameRemaining - 1);
+  _updateGameClock();
+  // Gentle, escalating heads-up so it's never a surprise.
+  if (_gameRemaining === 300 && !_gameWarned[300]) { _gameWarned[300] = 1; toast('⏰ 5 minutes of game time left today!'); }
+  if (_gameRemaining === 60  && !_gameWarned[60])  { _gameWarned[60]  = 1; toast('⏰ 1 minute left — find a good stopping point!'); }
+  if (_gameRemaining === 30  && !_gameWarned[30])  { _gameWarned[30]  = 1; toast('⏰ 30 seconds of game time left!'); }
+  if (_gameRemaining <= 0) {
+    if (_gameClock) { clearInterval(_gameClock); _gameClock = null; }
+    _removeGameClock();
+    await _postGameSeconds(_gameAccum); _gameAccum = 0;     // make the server total reflect the full time BEFORE we leave/refresh
+    if (State.me && State.me.kid) State.me.kid.game_seconds_today = Math.max(gameSecondsToday(), gamesTimeLimitMin() * 60);
+    if ((location.hash || '').startsWith('#game')) location.hash = '#play';  // #play shows the friendly "that's your game time for today" screen
+  }
+}
+async function _postGameSeconds(secs) {
   if (secs <= 0 || !kidId()) return;
-  try {
-    const r = await api(`/play/${kidId()}/tick`, { method: 'POST', body: { seconds: secs } });
-    if (r && State.me && State.me.kid) State.me.kid.game_seconds_today = r.seconds_today;
-    if (r && r.over && !final) { stopGameClock(); if ((location.hash || '').startsWith('#game')) location.hash = '#play'; }
-  } catch (e) {}
+  try { const r = await api(`/play/${kidId()}/tick`, { method: 'POST', body: { seconds: secs } }); if (r && State.me && State.me.kid) State.me.kid.game_seconds_today = r.seconds_today; } catch (e) {}
 }
 function stopGameClock() {
   if (!_gameClock) return;
   clearInterval(_gameClock); _gameClock = null;
-  _gameClockTick(true);   // best-effort final partial tick
+  _postGameSeconds(_gameAccum); _gameAccum = 0;             // best-effort final partial persist
+  _removeGameClock();
 }
+function _renderGameClock() {
+  if (_gameRemaining == null) { _removeGameClock(); return; }
+  if (!document.getElementById('game-clock')) { const el = document.createElement('div'); el.id = 'game-clock'; document.body.appendChild(el); }
+  _updateGameClock();
+}
+function _updateGameClock() {
+  const el = document.getElementById('game-clock'); if (!el || _gameRemaining == null) return;
+  const m = Math.floor(_gameRemaining / 60), s = _gameRemaining % 60;
+  el.textContent = '⏰ ' + m + ':' + String(s).padStart(2, '0');
+  el.className = _gameRemaining <= 60 ? 'gclock danger' : _gameRemaining <= 300 ? 'gclock warn' : 'gclock';
+}
+function _removeGameClock() { const el = document.getElementById('game-clock'); if (el) el.remove(); }
 // Leaving any game screen stops the clock (time only accrues inside #game/...).
 window.addEventListener('hashchange', () => { if (!(location.hash || '').startsWith('#game')) stopGameClock(); });
 
