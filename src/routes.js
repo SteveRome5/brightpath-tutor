@@ -352,6 +352,23 @@ router.delete('/kids/:kidId', auth.requireParent, (req, res) => {
   res.json({ ok: true });
 });
 
+// Start fresh: wipe a learner's LEARNING progress (levels, skills, answers, badges, certificates,
+// scores, quests) and zero their counters, so their next session begins with a clean placement.
+// Keeps the child's profile (name, grade, PIN, avatar & purchased cosmetics) and the consent trail.
+router.post('/kids/:kidId/reset', auth.requireParent, (req, res) => {
+  const kidId = Number(req.params.kidId);
+  const kid = db.prepare('SELECT id FROM kids WHERE id=? AND parent_id=?').get(kidId, req.parent.id);
+  if (!kid) return res.status(404).json({ error: 'Learner not found.' });
+  const wipe = ['activity_log', 'skill_state', 'subject_state', 'badges', 'certificates', 'game_scores', 'daily_quests', 'score_snapshots', 'game_progress', 'game_time'];
+  const tx = db.transaction(() => {
+    for (const t of wipe) { try { db.prepare(`DELETE FROM ${t} WHERE kid_id=?`).run(kidId); } catch (e) { /* table/column may not exist in older schemas */ } }
+    try { db.prepare('UPDATE kids SET xp=0, coins=0, streak=0, play_tokens=0, last_active_day=NULL WHERE id=?').run(kidId); } catch (e) {}
+  });
+  tx();
+  try { db.recordConsent({ parentId: req.parent.id, parentEmail: req.parent.email, kidId, method: 'checkbox', detail: 'progress-reset (start fresh)' }); } catch (e) {}
+  res.json({ ok: true });
+});
+
 // ---------- parent data-control (COPPA: review, export, withdraw) ----------
 // A parent can see exactly what's collected about their children and their consent history.
 router.get('/privacy/summary', auth.requireParent, (req, res) => {

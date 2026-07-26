@@ -2722,6 +2722,10 @@ route('parent', async () => {
               <button class="btn small green" data-save-edit="${k.id}" style="margin-top:8px">Save ✓</button>
               <button class="btn ghost small" data-cancel-edit="${k.id}" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px;margin-top:8px">Cancel</button>
               <div class="ke-levels" id="levels-${k.id}"><p class="muted" style="font-size:.85rem">Loading levels…</p></div>
+              <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #dfe6e9">
+                <button class="btn ghost small" data-reset="${k.id}" style="color:#b0532f;border-color:#ecccc0">🔄 Start ${esc(k.name.split(' ')[0])} fresh</button>
+                <span class="muted" style="font-size:.8rem;margin-left:8px">Clears all progress and re-takes placement. Keeps their name, PIN & avatar.</span>
+              </div>
             </div>
             <div class="kid-games" id="games-${k.id}" style="display:none">
               <div class="kg-head">🎮 Games for ${esc(k.name.split(' ')[0])}</div>
@@ -2959,6 +2963,13 @@ route('parent', async () => {
   document.querySelectorAll('[data-weekly]').forEach(b => b.onclick = () => location.hash = '#weekly/' + b.dataset.weekly);
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
     if (confirm('Remove this learner and all their progress?')) { await api('/kids/' + b.dataset.del, { method: 'DELETE' }); navigate(); }
+  });
+  document.querySelectorAll('[data-reset]').forEach(b => b.onclick = async () => {
+    if (confirm('Start this learner fresh? This clears all lessons, levels, scores, badges and certificates and re-takes placement. Their name, PIN and avatar are kept. This cannot be undone.')) {
+      b.disabled = true; b.textContent = 'Resetting…';
+      try { await api('/kids/' + b.dataset.reset + '/reset', { method: 'POST' }); toast('Fresh start ready — next session begins with a new placement.'); navigate(); }
+      catch (e) { b.disabled = false; toast((e && e.message) || 'Could not reset right now.'); }
+    }
   });
   const tbf = $('#tb-family'), tbs = $('#tb-solo'), tbp = $('#tb-portal');
   if (tbf) tbf.onclick = () => checkout('family');
