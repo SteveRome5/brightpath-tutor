@@ -2074,8 +2074,8 @@ body[data-theme="academy"] .rt-n { color: var(--accent); }
 .cx-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md, 0 8px 24px -12px rgba(0,0,0,.25)); }
 .cx-card.cx-matched { background: color-mix(in srgb, var(--cx) 8%, var(--card-bg)); border-color: color-mix(in srgb, var(--cx) 45%, var(--card-border)); }
 .cx-emoji { font-size: 1.9rem; }
-.cx-title { font-weight: 800; margin-top: 6px; font-size: 1rem; color: var(--chrome-ink); }
-.cx-tag { font-size: .84rem; color: var(--chrome-sub); margin-top: 3px; line-height: 1.35; }
+.cx-title { font-weight: 800; margin-top: 6px; font-size: 1rem; color: var(--ink); }
+.cx-tag { font-size: .84rem; color: color-mix(in srgb, var(--ink) 60%, transparent); margin-top: 3px; line-height: 1.35; }
 .cx-fit { display: inline-block; margin-top: 8px; font-size: .72rem; font-weight: 700; color: var(--cx); background: color-mix(in srgb, var(--cx) 14%, transparent); padding: 2px 8px; border-radius: 999px; }
 /* detail */
 .cx-detail { border-top: 4px solid var(--cx, var(--brand)); }

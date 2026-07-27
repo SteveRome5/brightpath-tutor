@@ -950,16 +950,7 @@ route('landing', async () => {
           <div class="tour-slide active" data-step="0"><img src="/shots/lesson-live.webp" alt="A Gallop guided lesson teaching a concept before practice, showing the re-teach after a wrong answer" loading="lazy"></div>
           <div class="tour-slide" data-step="1"><img src="/shots/student-home.webp" alt="A student's Gallop home base with score, streak and next lesson" loading="lazy"></div>
           <div class="tour-slide" data-step="2"><img src="/shots/play-zone.webp" alt="The Gallop Play Zone arcade — Market Mogul, Lemonade Tycoon, Bakery Quest, Code Quest and more" loading="lazy"></div>
-          <div class="tour-slide" data-step="3">
-            <div class="tmock tmock-career">
-              <div class="tm-head">🧭 Career Center <span class="tm-pill">strengths → paths</span></div>
-              <div class="tm-bar"><span>🔬 Science</span><i style="width:82%;background:#2f78c2"></i><b>82</b></div>
-              <div class="tm-bar"><span>🔢 Math</span><i style="width:76%;background:#5b5bd6"></i><b>76</b></div>
-              <div class="tm-bar"><span>📚 English</span><i style="width:61%;background:#0f9d76"></i><b>61</b></div>
-              <div class="tm-paths"><span>⚙️ Engineering</span><span>🩺 Medicine</span><span>💻 AI &amp; CS</span></div>
-              <div class="tm-foot">16 fields · real role models · a plan that grows with them</div>
-            </div>
-          </div>
+          <div class="tour-slide" data-step="3"><img src="/shots/career-explorer.webp" alt="The Gallop Career Explorer — 16 real fields from Engineering and Medicine to Entrepreneurship and the Trades" loading="lazy"></div>
           <div class="tour-slide" data-step="4"><img src="/shots/market-mogul.webp" alt="Market Mogul — a 12-level investing career teaching diversification, dollar-cost averaging, dividends and more" loading="lazy"></div>
           <div class="tour-slide" data-step="5"><img src="/shots/parent-dashboard.webp" alt="A parent dashboard showing each child's progress and where they need help" loading="lazy"></div>
         </div>
