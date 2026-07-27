@@ -504,7 +504,16 @@
     { name: 'Cute Cat', emoji: '🐱', steps: ['Draw a big circle for the head', 'Add two triangle ears on top', 'Two big round eyes + tiny nose', 'Whiskers — 3 on each side!', 'Draw a smile & color it in!'] },
     { name: 'Happy Cupcake', emoji: '🧁', steps: ['Draw a wide cup shape (trapezoid)', 'Add vertical lines on the cup', 'Big fluffy cloud of frosting on top', 'Cherry + sprinkles!', 'Give it a smiley face!'] },
     { name: 'Rocket Ship', emoji: '🚀', steps: ['Tall oval body', 'Pointy triangle nose cone', 'Two fins at the bottom', 'Round window in the middle', 'Fire & stars behind it!'] },
-    { name: 'Magic Flower', emoji: '🌸', steps: ['Small circle in the center', '5 big petals around it', 'Long stem going down', 'Two leaves on the stem', 'Add a ladybug friend!'] }
+    { name: 'Magic Flower', emoji: '🌸', steps: ['Small circle in the center', '5 big petals around it', 'Long stem going down', 'Two leaves on the stem', 'Add a ladybug friend!'] },
+    { name: 'Puppy Dog', emoji: '🐶', steps: ['Draw a big rounded head', 'Two floppy ears hanging down', 'Big friendly eyes + an oval nose', 'A happy smile with the tongue out', 'Add a collar & color your pup!'] },
+    { name: 'Friendly Tree', emoji: '🌳', steps: ['Two lines going up for the trunk', 'A big fluffy cloud shape on top', 'A few branches peeking out', 'Dot on little leaves for texture', 'Grass below & an apple or two!'] },
+    { name: 'Juicy Apple', emoji: '🍎', steps: ['Draw a round apple shape', 'A little dip at the very top', 'A short stem in the dip', 'One leaf next to the stem', 'Shade one side darker so it shines!'] },
+    { name: 'Bright Eye', emoji: '👁️', steps: ['Draw a long almond shape', 'A big circle inside for the iris', 'A smaller filled circle (the pupil)', 'A tiny white dot for a sparkle', 'Add eyelashes & soft shading!'] },
+    { name: 'Calm Mandala', emoji: '🌀', steps: ['A dot right in the center', 'A small circle around the dot', 'Add petals all the way around', 'A bigger ring of shapes outside', 'Repeat the patterns & color it in!'] },
+    { name: 'Fluffy Cloud', emoji: '☁️', steps: ['A wide bumpy top, like bubbles', 'Flatten the bottom into a line', 'Add a couple of smaller puffs', 'Soft, light strokes on the inside', 'A sun peeking out behind it!'] },
+    { name: 'Cozy House', emoji: '🏠', steps: ['A big square for the walls', 'A triangle roof on top', 'A door and two windows', 'A chimney with a little smoke', 'Add a path, grass & a bright sun!'] },
+    { name: 'Silly Robot', emoji: '🤖', steps: ['A box for the head', 'Two antennae with round tips', 'Big square eyes & a grid mouth', 'A rectangle body with buttons', 'Bolt on arms, legs & color it!'] },
+    { name: 'Coffee Mug', emoji: '☕', steps: ['A tall rounded cup shape', 'A curved handle on one side', 'An oval rim across the top', 'Squiggly steam lines rising up', 'A heart on the front & color it!'] }
   ];
   function startArt() {
     let guide = null, color = '#e43b44', size = 2, drawing = false, last = null;
