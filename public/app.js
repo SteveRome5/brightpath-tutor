@@ -880,7 +880,7 @@ route('landing', async () => {
         <button class="btn hero-primary" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start my free trial →</button>
         <button class="btn sun hero-secondary" onclick="window.__subscribeIntent=1;location.hash='#signup'">Subscribe now</button>
       </div>
-      <p class="hero-cta-note muted">Free for 7 days · No credit card to start · All 4 subjects · Cancel anytime</p>`}
+      <p class="hero-cta-note muted">Free for 7 days · No card to start · All 4 subjects · From under $1/day on the annual plan</p>`}
       <div class="hero-cta-row">
         <button class="btn ghost" onclick="location.hash='#demo'">Try a sample lesson — no signup</button>
         <button class="btn ghost" onclick="location.hash='#kid-login'">Student sign-in</button>
@@ -947,22 +947,9 @@ route('landing', async () => {
       </div>
       <div class="tour-stage">
         <div class="tour-frame">
-          <div class="tour-slide active" data-step="0"><img src="/shots/lesson.webp" alt="A Gallop guided lesson teaching a concept before practice" loading="lazy"></div>
+          <div class="tour-slide active" data-step="0"><img src="/shots/lesson-live.webp" alt="A Gallop guided lesson teaching a concept before practice, showing the re-teach after a wrong answer" loading="lazy"></div>
           <div class="tour-slide" data-step="1"><img src="/shots/student-home.webp" alt="A student's Gallop home base with score, streak and next lesson" loading="lazy"></div>
-          <div class="tour-slide" data-step="2">
-            <div class="tmock tmock-games">
-              <div class="tm-head">🎮 Play Zone <span class="tm-pill">🎟️ 3 tokens</span></div>
-              <div class="tm-grid">
-                <div class="tm-card">🧠<span>Memory Match</span></div>
-                <div class="tm-card">⚡<span>Math Sprint</span></div>
-                <div class="tm-card">🔤<span>Word Builder</span></div>
-                <div class="tm-card">🎯<span>Fraction Toss</span></div>
-                <div class="tm-card">🐍<span>Number Snake</span></div>
-                <div class="tm-card">🧩<span>Logic Puzzles</span></div>
-              </div>
-              <div class="tm-foot">Earned by learning · Parent controls on/off &amp; daily time</div>
-            </div>
-          </div>
+          <div class="tour-slide" data-step="2"><img src="/shots/play-zone.webp" alt="The Gallop Play Zone arcade — Market Mogul, Lemonade Tycoon, Bakery Quest, Code Quest and more" loading="lazy"></div>
           <div class="tour-slide" data-step="3">
             <div class="tmock tmock-career">
               <div class="tm-head">🧭 Career Center <span class="tm-pill">strengths → paths</span></div>
@@ -973,18 +960,7 @@ route('landing', async () => {
               <div class="tm-foot">16 fields · real role models · a plan that grows with them</div>
             </div>
           </div>
-          <div class="tour-slide" data-step="4">
-            <div class="tmock tmock-invest">
-              <div class="tm-head">📈 Investor's Notebook <span class="tm-pill up">Portfolio ▲ 6.4%</span></div>
-              <div class="tm-holds">
-                <div class="tm-hold"><b>APPL</b><span class="up">$188 ▲1.2%</span></div>
-                <div class="tm-hold"><b>NIKE</b><span class="dn">$94 ▼0.6%</span></div>
-                <div class="tm-hold"><b>DIS</b><span class="up">$112 ▲2.1%</span></div>
-              </div>
-              <div class="tm-chart"><i style="height:38%"></i><i style="height:52%"></i><i style="height:44%"></i><i style="height:66%"></i><i style="height:60%"></i><i style="height:78%"></i></div>
-              <div class="tm-foot">Real tickers, pretend money — kids learn risk, patience &amp; compounding</div>
-            </div>
-          </div>
+          <div class="tour-slide" data-step="4"><img src="/shots/market-mogul.webp" alt="Market Mogul — a 12-level investing career teaching diversification, dollar-cost averaging, dividends and more" loading="lazy"></div>
           <div class="tour-slide" data-step="5"><img src="/shots/parent-dashboard.webp" alt="A parent dashboard showing each child's progress and where they need help" loading="lazy"></div>
         </div>
         <div class="tour-caps">
@@ -1126,7 +1102,10 @@ route('landing', async () => {
         <div class="plan"><h3>Solo</h3><div class="price">$34<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">One student · all four subjects · lessons, adaptive tutor & reports</p><p class="muted" style="margin-top:6px;font-size:.82rem">or <b>$29/mo</b> billed annually ($348/yr — save $60)</p></div>
         <div class="plan hot"><span class="tag">MOST POPULAR</span><h3>Family</h3><div class="price">$54<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">Up to four students · all subjects · lessons, reports, certificates & buddies</p><p class="muted" style="margin-top:6px;font-size:.82rem">or <b>$46/mo</b> billed annually ($552/yr — save $96)</p></div>
       </div>
-      <p class="center" style="margin:14px 0 0;font-weight:600">💛 Go annual and save ~15% — the best value, and it locks in a full year of learning.</p>
+      <div class="save-callout">
+        <div class="sc-big">Less than <b>$1 a day.</b></div>
+        <p>On the annual plan, all four subjects, the tutor, the games, and the career center come to <b>under $1 a day</b> for one child — and just <b>~38¢ a day per child</b> on the Family plan (up to four kids). Go annual and save ~15% versus monthly.</p>
+      </div>
       <div class="trust-strip">
         <span>🎁 7 days free, no card to start</span>
         <span>↩️ Cancel anytime in one click</span>
