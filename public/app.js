@@ -903,14 +903,13 @@ route('landing', async () => {
       <div class="ps-col ps-solution">
         <span class="ps-tag sol">THE GALLOP DIFFERENCE</span>
         <h2>We teach the real world — then make kids use it.</h2>
-        <p>An affordable, on-demand tutor for all four subjects that adapts to your child and turns every skill into something real: running a business, investing in a live market, exploring a career. High-value learning they'll actually apply.</p>
+        <p>An affordable, on-demand tutor for all four subjects that adapts to your child — then sends them into <b>The Lab</b>, where every skill becomes something real: running a business, investing in a live market, exploring a career. High-value learning they'll actually apply.</p>
       </div>
     </div>
     <div class="pillars reveal">
-      <div class="pillar"><span class="pi-emoji">🧠</span><b>Real-world lessons</b><p>Money, business, investing &amp; careers woven right into Math, English, Science &amp; Spanish.</p></div>
-      <div class="pillar"><span class="pi-emoji">🎮</span><b>They apply it</b><p>Purpose-built games, projects &amp; a stock-market simulator turn skills into practice — never worksheets.</p></div>
-      <div class="pillar"><span class="pi-emoji">🧭</span><b>Career center</b><p>Strengths become real career directions — 16 fields, real role models, and a plan that grows with them.</p></div>
-      <div class="pillar"><span class="pi-emoji">📊</span><b>Parent portal</b><p>See exactly where each child is ahead and where they need a hand — updated automatically.</p></div>
+      <div class="pillar"><span class="pi-emoji">📚</span><b>1 · Learn it</b><p>Adaptive real-world lessons that find your child's level and teach through Math, English, Science &amp; Spanish.</p></div>
+      <div class="pillar pillar-lab"><span class="pi-emoji">🔬</span><b>2 · Apply it in The Lab</b><p>The arcade games, investment challenges &amp; career center — where skills become real. This is what makes Gallop different.</p></div>
+      <div class="pillar"><span class="pi-emoji">📊</span><b>3 · See it</b><p>The Parent Portal shows exactly where each child is ahead and where they need a hand — updated automatically.</p></div>
     </div>
     <div class="statband reveal">
       <div><b>K–12</b><span>Every grade level</span></div>
@@ -924,7 +923,7 @@ route('landing', async () => {
         <button class="sn-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top"><img src="/logo-mark.png" alt="" class="sn-logo-img">Gallop</button>
         <div class="sn-links">
           <button class="sn-link" onclick="scrollToSection('s-how')">How it works</button>
-          <button class="sn-link" onclick="scrollToSection('s-realworld')">Real-world</button>
+          <button class="sn-link" onclick="scrollToSection('s-lab')">The Lab</button>
           <button class="sn-link" onclick="scrollToSection('s-curriculum')">Curriculum</button>
           <button class="sn-link" onclick="scrollToSection('s-why')">Why Gallop</button>
           <button class="sn-link" onclick="scrollToSection('s-story')">Our story</button>
@@ -936,7 +935,7 @@ route('landing', async () => {
     </nav>
     <div class="tour reveal" id="tour">
       <h2 class="section-title" style="margin-bottom:4px">See everything that makes us different</h2>
-      <p class="section-sub">A 60-second tour — the lessons, the kids' world, the games, the career center, the investing sim, and your parent portal.</p>
+      <p class="section-sub">A 60-second tour — the lessons and the kids' world, everything inside <b>The Lab</b> (the arcade, investing &amp; career center), and your parent portal.</p>
       <div class="tour-tabs" role="tablist">
         <button class="tour-tab active" data-step="0">📖 Lessons</button>
         <button class="tour-tab" data-step="1">🎒 Kids' world</button>
@@ -965,6 +964,32 @@ route('landing', async () => {
       </div>
       <div class="tour-progress"><i id="tour-bar"></i></div>
     </div>
+
+    <div class="lab-section reveal" id="s-lab">
+      <div class="lab-band">
+        <span class="lab-eyebrow">🔬 Inside the Academy</span>
+        <h2>The Lab — where learning meets the real world</h2>
+        <p>This is what no other app has. Once your child learns a skill, they head into <b>The Lab</b> to actually <b>use</b> it — running businesses, investing in a live-feeling market, and discovering who they could become.</p>
+      </div>
+      <div class="lab-grid">
+        <div class="lab-card">
+          <div class="lab-shot"><img src="/shots/play-zone.webp" alt="The Gallop arcade" loading="lazy"></div>
+          <h3>🎮 The Arcade</h3>
+          <p>Games earned by learning — Lemonade Tycoon, Bakery Quest, Code Quest and more. Every one sneaks in real math, logic, and money skills. Parents control when they're on.</p>
+        </div>
+        <div class="lab-card">
+          <div class="lab-shot"><img src="/shots/market-mogul.webp" alt="Market Mogul investing game" loading="lazy"></div>
+          <h3>📈 Investment Challenges</h3>
+          <p>A 12-level investing career on a market that feels alive — kids learn diversification, dollar-cost averaging, dividends, and patience, all with pretend money.</p>
+        </div>
+        <div class="lab-card">
+          <div class="lab-shot"><img src="/shots/career-explorer.webp" alt="The Career Explorer" loading="lazy"></div>
+          <h3>🧭 The Career Center</h3>
+          <p>16 real fields, real role models, and a plan that grows with them — turning today's strengths into a sense of where they could be headed.</p>
+        </div>
+      </div>
+    </div>
+
     <h2 id="s-how" class="section-title reveal">How it works</h2>
     <p class="section-sub">The same three moves a good teacher makes, built into every session.</p>
     <div class="feature-grid">
