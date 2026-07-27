@@ -1156,7 +1156,7 @@ route('landing', async () => {
       <details><summary>What about kids who are ahead of grade level?</summary><p>They get a separate Advanced Track. Once a student has mastered their grade, they can practice college-level and honors material — AP-style sets in Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English, and Spanish, honors courses, and state test prep built on rigorous state standards (great preparation whatever state you're in). It's kept separate from grade-level work, so working ahead never changes a child's placement.</p></details>
       <details><summary>What if my child doesn't like it?</summary><p>The first 7 days are completely free and need no card, so you can let your child try the real thing before you ever pay. If it isn't a fit, do nothing and the trial simply ends — you're never charged. If you've already subscribed, cancel in one click and you keep access through the time you've paid for.</p></details>
       <details><summary>Are there real, human tutors?</summary><p>No — and that's the point. Gallop is self-paced adaptive software your child uses on their own, so there's nothing to schedule and no hourly rate. It teaches each concept with a short guided lesson, then adjusts every question to your child, which is how it covers all four subjects for a fraction of what a tutoring center charges for a single subject. Think of it as extra practice and support that reinforces what your child learns in the classroom — not a replacement for their teacher.</p></details>
-      <details><summary>Can I cancel anytime?</summary><p>Yes, in one click from your parent dashboard. Cancelling stops any future charges, and your child keeps access through the time you have already paid for.</p></details>
+      <details><summary>Can I cancel anytime?</summary><p>Monthly plans, yes — cancel in one click from your parent dashboard, which stops any future charges while your child keeps access through the month you've paid for. Annual plans are different: because they're offered at a discount, they're a <b>12-month commitment, billed once and non-refundable</b>. You can switch off auto-renewal anytime so the plan won't renew for another year, but the current annual term isn't refunded. Full details are in our <a href="/terms" target="_blank" rel="noopener">Terms of Service</a>.</p></details>
       <details><summary>Is my child safe, and is our data private?</summary><p>Yes. There are no ads and we never sell your data. Children connect only with buddies you approve, and they can send only pre-written cheers, so there is no open chat and no way for strangers to reach them. Payments run through Stripe, so we never see or store your card number.</p></details>
       <details><summary>What devices does it work on?</summary><p>Any device with a web browser: phone, tablet, laptop, or desktop. There is nothing to install, and progress syncs automatically across devices.</p></details>
       <details><summary>How is this different from a worksheet app or a tutoring center?</summary><p>Gallop teaches each concept with a short guided lesson before the practice, then adapts every question to your child, across all four subjects, for a small fraction of what a tutoring center charges per subject.</p></details>
@@ -1369,7 +1369,8 @@ route('subscribe', async () => {
       </div>
       <label class="ar-row"><input type="checkbox" id="ar-check" checked>
         <span><b>Auto-renew</b> so your child's learning never gets interrupted. Uncheck for a one-time term that <b>won't</b> renew automatically — you'll keep full access through the period you pay for.</span></label>
-      <p class="muted center" style="margin-top:14px;font-size:.85rem">🔒 Secure checkout through Stripe — we never see your card number.</p>
+      <p class="muted center" style="margin-top:12px;font-size:.8rem;line-height:1.5">Monthly plans can be canceled anytime. <b>Annual plans are a discounted 12-month commitment — billed once and non-refundable;</b> you can switch off auto-renewal anytime so it won't renew for another year.</p>
+      <p class="muted center" style="margin-top:10px;font-size:.85rem">🔒 Secure checkout through Stripe — we never see your card number.</p>
       <p class="muted center" style="margin-top:10px;font-size:.85rem">Want to try before you buy? <a href="#parent">Start with a free 7-day trial instead</a> — no card required, and you're only charged if you choose to subscribe.</p>
     </div></div>`);
   wireChrome();
@@ -2720,7 +2721,7 @@ function renderPaywall(reason) {
       ? `<button class="btn green" id="sub-family">Family — $54/mo (up to 4 children)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo — $34/mo</button>
          <p class="muted" style="margin:14px 0 6px;font-size:.85rem">💛 Or save ~15% with an annual plan:</p>
          <button class="btn sun small" id="sub-family-yr">Family Annual — $46/mo ($552/yr)</button> <button class="btn ghost small" style="margin-left:8px;color:#41506a;border-color:#cfd8e3" id="sub-solo-yr">Solo Annual — $29/mo ($348/yr)</button>
-         <p class="muted" style="margin-top:12px;font-size:.85rem">Auto-renews until you cancel. Cancel anytime in one click from your dashboard.</p>`
+         <p class="muted" style="margin-top:12px;font-size:.85rem">Auto-renews until you cancel. Monthly cancels anytime; annual is a discounted, non-refundable 12-month plan (you can still turn off its renewal).</p>`
       : `<p><b>Ask your parent to keep it going!</b></p>
          ${State.me.kid ? `<button class="btn green" id="email-parent">📧 Email my parent to subscribe</button> ` : ''}<button class="btn ghost small" style="margin-left:8px;color:#41506a;border-color:#cfd8e3" onclick="location.hash='#login'">Parent Login</button>
          <p id="ep-done" style="display:none;margin-top:12px;color:var(--brand);font-weight:700"></p>`}
@@ -2887,7 +2888,7 @@ route('parent', async () => {
             <p class="muted center" style="margin:12px 0 6px;font-size:.82rem">💛 Save ~15% with annual billing:</p>
             <button class="btn sun" style="width:100%" id="sub-family-yr">Family Annual — $46/mo ($552/yr, save $96)</button>
             <button class="btn ghost small" style="width:100%;margin-top:8px;color:#41506a;border-color:#cfd8e3" id="sub-solo-yr">Solo Annual — $29/mo ($348/yr, save $60)</button>
-            <p class="muted center" style="margin-top:10px;font-size:.8rem">Auto-renews until canceled. Cancel anytime in one click.</p>`}
+            <p class="muted center" style="margin-top:10px;font-size:.8rem">Auto-renews until canceled. Monthly cancels anytime; annual is a discounted, non-refundable 12-month plan (renewal can still be turned off).</p>`}
           <p class="muted center" style="margin-top:10px;font-size:.85rem">${me.billingMode === 'stripe' ? '🔒 Payments powered by Stripe' : me.billingMode === 'demo' ? 'Demo mode: subscribe activates instantly, no card needed.' : '🔒 Payments powered by Stripe'}</p>
         </div>
         <div class="card">
