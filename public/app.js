@@ -339,7 +339,7 @@ window.addEventListener('hashchange', () => { if (!(location.hash || '').startsW
 // GTM-N5F65TST) picks these up as triggers and forwards them to GA4 (or any tag) as
 // conversions. Fully guarded: if GTM/dataLayer isn't present, these are harmless no-ops.
 function gtmPush(obj) { try { window.dataLayer = window.dataLayer || []; window.dataLayer.push(obj); } catch (e) {} }
-const PLAN_PRICE = { solo: 34, family: 54 };
+const PLAN_PRICE = { solo: 34, family: 54, solo_annual: 348, family_annual: 552 };
 
 // ======================= sound engine =======================
 const Sound = (() => {
@@ -1123,9 +1123,10 @@ route('landing', async () => {
       <p class="center muted" style="margin-bottom:20px">Start with a 7-day free trial. No credit card to begin, and you can cancel anytime.</p>
       <p class="center" style="margin:-8px 0 20px;font-weight:600">A month at a learning center commonly runs $150 to $200 for a single subject, and private tutors often charge $40 to $80 an hour. Gallop covers all four subjects, all year, for less than most families spend on just one subject at a center.</p>
       <div class="plans">
-        <div class="plan"><h3>Solo</h3><div class="price">$34<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">One student · all four subjects · lessons, adaptive tutor & reports</p></div>
-        <div class="plan hot"><span class="tag">MOST POPULAR</span><h3>Family</h3><div class="price">$54<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">Up to four students · all subjects · lessons, reports, certificates & buddies</p></div>
+        <div class="plan"><h3>Solo</h3><div class="price">$34<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">One student · all four subjects · lessons, adaptive tutor & reports</p><p class="muted" style="margin-top:6px;font-size:.82rem">or <b>$29/mo</b> billed annually ($348/yr — save $60)</p></div>
+        <div class="plan hot"><span class="tag">MOST POPULAR</span><h3>Family</h3><div class="price">$54<span style="font-size:1rem;font-family:var(--font-body)">/mo</span></div><p class="muted">Up to four students · all subjects · lessons, reports, certificates & buddies</p><p class="muted" style="margin-top:6px;font-size:.82rem">or <b>$46/mo</b> billed annually ($552/yr — save $96)</p></div>
       </div>
+      <p class="center" style="margin:14px 0 0;font-weight:600">💛 Go annual and save ~15% — the best value, and it locks in a full year of learning.</p>
       <div class="trust-strip">
         <span>🎁 7 days free, no card to start</span>
         <span>↩️ Cancel anytime in one click</span>
@@ -1154,7 +1155,7 @@ route('landing', async () => {
     <div id="s-faq" class="card reveal faq" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:18px">Questions parents ask</h2>
       <details><summary>Do I need a credit card to start?</summary><p>No. Your first 7 days are free, and you can set up your children and use everything without entering any payment details. We only ask for a card if you choose to continue after the trial.</p></details>
-      <details><summary>What does it cost after the trial?</summary><p>Solo is $34 a month for one student, and Family is $54 a month for up to four. Both are billed monthly and include all four subjects, the guided lessons, the adaptive tutor, the games, and the parent reports. Nothing is sold as an add-on.</p></details>
+      <details><summary>What does it cost after the trial?</summary><p>Solo is $34 a month for one student, and Family is $54 a month for up to four. Prefer to save? Go annual for about 15% less — Solo is $348 a year (works out to $29/mo) and Family is $552 a year ($46/mo). Every plan includes all four subjects, the guided lessons, the adaptive tutor, the games, the career center, and the parent reports. Nothing is sold as an add-on.</p></details>
       <details><summary>What ages and subjects does it cover?</summary><p>Every grade from kindergarten through 12th, in Math, English, Science, and Spanish. Each child is placed at their real level in each subject, so a strong reader who finds math harder starts in the right spot for both. High-school math runs all the way through calculus and statistics.</p></details>
       <details><summary>Is it aligned to academic standards?</summary><p>Yes. Every skill is mapped to a recognized standard: Common Core for Math and English, NGSS for Science, and ACTFL for Spanish — the same frameworks most states, including New York and Nevada, build their standards on. It's built to <b>supplement and reinforce</b> what's taught in the classroom — added practice and support alongside a teacher's instruction, not a replacement for it. Educators and administrators can see the full, skill-by-skill coverage map on our <a href="#standards">Standards Alignment</a> page. Students just see the lesson and practice; the standard codes are there for schools.</p></details>
       <details><summary>What about kids who are ahead of grade level?</summary><p>They get a separate Advanced Track. Once a student has mastered their grade, they can practice college-level and honors material — AP-style sets in Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English, and Spanish, honors courses, and state test prep built on rigorous state standards (great preparation whatever state you're in). It's kept separate from grade-level work, so working ahead never changes a child's placement.</p></details>
@@ -1349,17 +1350,25 @@ route('subscribe', async () => {
       <img src="/logo-roundel.png" alt="" style="width:76px;height:76px">
       <h2 style="margin-top:8px">Choose your plan</h2>
       <p class="muted" style="margin:8px auto 14px;max-width:30rem">Full access to all four subjects, the adaptive tutor, the games arcade, and weekly parent reports.</p>
-      <p class="muted center" style="margin:0 auto 18px;font-size:.82rem;max-width:34rem">Both plans are recurring subscriptions that <b>automatically renew each month</b> until you cancel. You can cancel anytime in one click from your Parent Dashboard — cancellation stops future charges and you keep access through the period you've paid for.</p>
+      <p class="muted center" style="margin:0 auto 16px;font-size:.82rem;max-width:34rem">Recurring subscriptions that <b>auto-renew</b> (monthly or annually — your choice) until you cancel. Cancel anytime in one click from your Parent Dashboard — future charges stop and you keep access through the period you've paid for.</p>
+      <div class="bp-toggle" id="bp-toggle">
+        <button class="bp-opt active" data-bp="month">Monthly</button>
+        <button class="bp-opt" data-bp="year">Annual <span class="bp-save">save ~15%</span></button>
+      </div>
       <div class="plan-grid">
         <div class="plan-card featured">
           <div class="plan-badge">Most popular</div>
-          <h3>Family</h3><div class="plan-price">$54<span>/mo</span></div>
-          <p class="muted">Up to 4 children · auto-renews monthly</p>
+          <h3>Family</h3>
+          <div class="plan-price"><span class="pp-month">$54<span>/mo</span></span><span class="pp-year" style="display:none">$46<span>/mo</span></span></div>
+          <p class="muted pp-note-month">Up to 4 children · auto-renews monthly</p>
+          <p class="muted pp-note-year" style="display:none">Up to 4 children · $552/yr billed once · <b>save $96</b></p>
           <button class="btn green" style="width:100%;margin-top:10px" id="sub-family">Subscribe →</button>
         </div>
         <div class="plan-card">
-          <h3>Solo</h3><div class="plan-price">$34<span>/mo</span></div>
-          <p class="muted">1 child · auto-renews monthly</p>
+          <h3>Solo</h3>
+          <div class="plan-price"><span class="pp-month">$34<span>/mo</span></span><span class="pp-year" style="display:none">$29<span>/mo</span></span></div>
+          <p class="muted pp-note-month">1 child · auto-renews monthly</p>
+          <p class="muted pp-note-year" style="display:none">1 child · $348/yr billed once · <b>save $60</b></p>
           <button class="btn" style="width:100%;margin-top:10px" id="sub-solo">Subscribe →</button>
         </div>
       </div>
@@ -1367,9 +1376,19 @@ route('subscribe', async () => {
       <p class="muted center" style="margin-top:10px;font-size:.85rem">Want to try before you buy? <a href="#parent">Start with a free 7-day trial instead</a> — no card required, and you're only charged if you choose to subscribe.</p>
     </div></div>`);
   wireChrome();
+  let period = 'month';
+  document.querySelectorAll('#bp-toggle .bp-opt').forEach(o => o.onclick = () => {
+    period = o.dataset.bp;
+    document.querySelectorAll('#bp-toggle .bp-opt').forEach(x => x.classList.toggle('active', x === o));
+    const yr = period === 'year';
+    document.querySelectorAll('.pp-month').forEach(e => e.style.display = yr ? 'none' : '');
+    document.querySelectorAll('.pp-year').forEach(e => e.style.display = yr ? '' : 'none');
+    document.querySelectorAll('.pp-note-month').forEach(e => e.style.display = yr ? 'none' : '');
+    document.querySelectorAll('.pp-note-year').forEach(e => e.style.display = yr ? '' : 'none');
+  });
   const fam = $('#sub-family'), solo = $('#sub-solo');
-  if (fam) fam.onclick = () => checkout('family');
-  if (solo) solo.onclick = () => checkout('solo');
+  if (fam) fam.onclick = () => checkout(period === 'year' ? 'family_annual' : 'family');
+  if (solo) solo.onclick = () => checkout(period === 'year' ? 'solo_annual' : 'solo');
 });
 
 route('login', async () => {
@@ -2701,8 +2720,10 @@ function renderPaywall(reason) {
     <p class="muted" style="margin:10px 0 4px"><b>Everything is saved</b>, streaks, skill levels, badges, and certificates are waiting exactly where you left off.</p>
     <p class="muted" style="margin:0 0 16px">Keep all four subjects, the adaptive tutor, the games arcade, buddies, and weekly parent reports, for a fraction of what a tutoring center charges for a single subject.</p>
     ${State.me.role === 'parent'
-      ? `<button class="btn green" id="sub-family">Family, $54/mo (up to 4 children)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo, $34/mo</button>
-         <p class="muted" style="margin-top:12px;font-size:.85rem">Billed monthly and renews automatically until you cancel. Cancel anytime in one click from your dashboard.</p>`
+      ? `<button class="btn green" id="sub-family">Family — $54/mo (up to 4 children)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo — $34/mo</button>
+         <p class="muted" style="margin:14px 0 6px;font-size:.85rem">💛 Or save ~15% with an annual plan:</p>
+         <button class="btn sun small" id="sub-family-yr">Family Annual — $46/mo ($552/yr)</button> <button class="btn ghost small" style="margin-left:8px;color:#41506a;border-color:#cfd8e3" id="sub-solo-yr">Solo Annual — $29/mo ($348/yr)</button>
+         <p class="muted" style="margin-top:12px;font-size:.85rem">Auto-renews until you cancel. Cancel anytime in one click from your dashboard.</p>`
       : `<p><b>Ask your parent to keep it going!</b></p>
          ${State.me.kid ? `<button class="btn green" id="email-parent">📧 Email my parent to subscribe</button> ` : ''}<button class="btn ghost small" style="margin-left:8px;color:#41506a;border-color:#cfd8e3" onclick="location.hash='#login'">Parent Login</button>
          <p id="ep-done" style="display:none;margin-top:12px;color:var(--brand);font-weight:700"></p>`}
@@ -2711,6 +2732,9 @@ function renderPaywall(reason) {
   const fam = $('#sub-family'), solo = $('#sub-solo');
   if (fam) fam.onclick = () => checkout('family');
   if (solo) solo.onclick = () => checkout('solo');
+  const famYr = $('#sub-family-yr'), soloYr = $('#sub-solo-yr');
+  if (famYr) famYr.onclick = () => checkout('family_annual');
+  if (soloYr) soloYr.onclick = () => checkout('solo_annual');
   const ep = $('#email-parent');
   if (ep) ep.onclick = async () => {
     ep.disabled = true; ep.textContent = 'Sending…';
@@ -2855,9 +2879,12 @@ route('parent', async () => {
             <p class="muted" style="margin:0 0 12px">Your last payment didn't go through. Update your card to keep your subscription — you won't be charged twice.</p>
             <button class="btn green" style="width:100%" id="sub-portal">Update payment method</button>`
           : `
-            <button class="btn green" style="width:100%" id="sub-family">Family, $54/mo (up to 4 children)</button>
-            <button class="btn" style="width:100%;margin-top:8px" id="sub-solo">Solo, $34/mo (1 child)</button>
-            <p class="muted center" style="margin-top:8px;font-size:.8rem">Billed monthly, renews automatically until canceled. Cancel anytime in one click.</p>`}
+            <button class="btn green" style="width:100%" id="sub-family">Family — $54/mo (up to 4 children)</button>
+            <button class="btn" style="width:100%;margin-top:8px" id="sub-solo">Solo — $34/mo (1 child)</button>
+            <p class="muted center" style="margin:12px 0 6px;font-size:.82rem">💛 Save ~15% with annual billing:</p>
+            <button class="btn sun" style="width:100%" id="sub-family-yr">Family Annual — $46/mo ($552/yr, save $96)</button>
+            <button class="btn ghost small" style="width:100%;margin-top:8px;color:#41506a;border-color:#cfd8e3" id="sub-solo-yr">Solo Annual — $29/mo ($348/yr, save $60)</button>
+            <p class="muted center" style="margin-top:10px;font-size:.8rem">Auto-renews until canceled. Cancel anytime in one click.</p>`}
           <p class="muted center" style="margin-top:10px;font-size:.85rem">${me.billingMode === 'stripe' ? '🔒 Payments powered by Stripe' : me.billingMode === 'demo' ? 'Demo mode: subscribe activates instantly, no card needed.' : '🔒 Payments powered by Stripe'}</p>
         </div>
         <div class="card">
@@ -3085,6 +3112,9 @@ route('parent', async () => {
   const fam = $('#sub-family'), solo = $('#sub-solo'), portal = $('#sub-portal');
   if (fam) fam.onclick = () => checkout('family');
   if (solo) solo.onclick = () => checkout('solo');
+  const famYr2 = $('#sub-family-yr'), soloYr2 = $('#sub-solo-yr');
+  if (famYr2) famYr2.onclick = () => checkout('family_annual');
+  if (soloYr2) soloYr2.onclick = () => checkout('solo_annual');
   if (portal) portal.onclick = async () => {
     try { const o = await api('/billing/portal', { method: 'POST' }); if (o && o.url) location.href = o.url; else toast('Could not open billing.'); }
     catch (e) { toast(e.message || 'Could not open billing right now. Please try again in a moment.'); }

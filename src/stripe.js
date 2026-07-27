@@ -23,8 +23,13 @@ if (stripe && !process.env.STRIPE_WEBHOOK_SECRET) {
 // so a tier never shows a "Subscribe" button it can't actually check out. Existing subscribers keep
 // whatever Stripe price their subscription was created with; new prices only affect new checkouts.
 const PLANS = {
-  solo:   { name: 'Solo',   priceMonthly: 34, kids: 1, envPrice: process.env.STRIPE_PRICE_SOLO },
-  family: { name: 'Family', priceMonthly: 54, kids: 4, envPrice: process.env.STRIPE_PRICE_FAMILY }
+  solo:          { name: 'Solo',            priceMonthly: 34, kids: 1, interval: 'month', envPrice: process.env.STRIPE_PRICE_SOLO },
+  family:        { name: 'Family',          priceMonthly: 54, kids: 4, interval: 'month', envPrice: process.env.STRIPE_PRICE_FAMILY },
+  // Annual plans (~15% off vs paying monthly): Solo $348/yr ($29/mo equiv), Family $552/yr ($46/mo equiv).
+  // priceMonthly is the monthly-EQUIVALENT so admin MRR still counts these fairly. Live Price IDs are
+  // baked in as defaults so annual works immediately; a Render env var still overrides if ever needed.
+  solo_annual:   { name: 'Solo · Annual',   priceMonthly: 29, priceAnnual: 348, kids: 1, interval: 'year', envPrice: process.env.STRIPE_PRICE_SOLO_ANNUAL   || 'price_1TxwcxRDbctetFgv7NOOdJ6H' },
+  family_annual: { name: 'Family · Annual', priceMonthly: 46, priceAnnual: 552, kids: 4, interval: 'year', envPrice: process.env.STRIPE_PRICE_FAMILY_ANNUAL || 'price_1Txwd8RDbctetFgvDpYVsgcK' }
 };
 // Attach availability (computed once at load).
 for (const key of Object.keys(PLANS)) PLANS[key].available = !KEY || !!PLANS[key].envPrice;

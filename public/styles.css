@@ -1764,6 +1764,11 @@ body[data-theme="academy"] .lw-passage { background: #2a2921; border-color: #4a4
   .site-footer { padding-bottom: 84px; }
 }
 /* Plan chooser (skip-the-trial subscribe path) */
+.bp-toggle { display: inline-flex; gap: 4px; padding: 4px; background: var(--soft-bg); border: 1px solid var(--card-border); border-radius: 999px; margin: 0 auto 18px; }
+.bp-opt { border: none; background: transparent; font-weight: 700; font-size: .9rem; color: var(--chrome-sub); padding: 8px 16px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.bp-opt.active { background: var(--brand); color: #fff; }
+.bp-save { font-size: .7rem; font-weight: 800; background: #ffd76b; color: #5a4300; padding: 2px 7px; border-radius: 999px; }
+.bp-opt.active .bp-save { background: #ffe393; }
 .plan-grid { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
 .plan-card { position: relative; border: 2px solid var(--card-border); border-radius: 16px; padding: 22px 26px; min-width: 190px; background: var(--soft-bg); text-align: center; }
 .plan-card.featured { border-color: var(--brand); box-shadow: 0 8px 26px -12px rgba(26,92,56,.4); }
