@@ -1692,6 +1692,68 @@ body[data-theme="academy"] .lw-passage { background: #2a2921; border-color: #4a4
 .shot figcaption { font-size: .92rem; color: var(--chrome-sub); margin-top: 12px; line-height: 1.5; }
 .shot figcaption b { color: var(--ink); }
 @media (max-width: 820px) { .showcase-grid { grid-template-columns: 1fr; gap: 26px; max-width: 460px; margin: 20px auto 0; } }
+
+/* ---- Problem / Solution band + differentiator pillars ---- */
+.ps-band { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 8px auto 20px; max-width: 1000px; }
+.ps-col { padding: 22px 24px; border-radius: 16px; border: 1px solid var(--card-border); }
+.ps-problem { background: #f6f2ec; }
+.ps-solution { background: linear-gradient(160deg, var(--brand), var(--brand-2)); color: #fff; }
+.ps-tag { display: inline-block; font-size: .72rem; font-weight: 800; letter-spacing: .08em; padding: 4px 10px; border-radius: 999px; background: #e4dccb; color: #7a6a45; margin-bottom: 10px; }
+.ps-tag.sol { background: rgba(255,255,255,.22); color: #fff; }
+.ps-col h2 { font-size: 1.32rem; line-height: 1.25; margin: 0 0 10px; }
+.ps-col p { margin: 0; font-size: .98rem; line-height: 1.55; opacity: .95; }
+.ps-problem p { color: #5f6b7d; }
+.pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 0 auto 34px; max-width: 1000px; }
+.pillar { background: #fff; border: 1px solid var(--card-border); border-radius: 14px; padding: 18px 16px; text-align: center; box-shadow: 0 10px 26px -20px rgba(0,0,0,.35); }
+.pillar .pi-emoji { font-size: 1.9rem; display: block; margin-bottom: 8px; }
+.pillar b { display: block; font-size: 1.02rem; margin-bottom: 5px; color: var(--ink); }
+.pillar p { margin: 0; font-size: .85rem; line-height: 1.5; color: #5f6b7d; }
+@media (max-width: 820px) { .ps-band { grid-template-columns: 1fr; max-width: 480px; } .pillars { grid-template-columns: 1fr 1fr; max-width: 480px; } }
+
+/* ---- Interactive product tour ---- */
+.tour { margin: 6px auto 40px; max-width: 1000px; }
+.tour-tabs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 16px 0 18px; }
+.tour-tab { border: 1px solid var(--card-border); background: #fff; color: var(--chrome-sub); font-weight: 700; font-size: .86rem; padding: 8px 14px; border-radius: 999px; cursor: pointer; transition: all .15s; }
+.tour-tab:hover { border-color: var(--brand); }
+.tour-tab.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+.tour-stage { display: grid; grid-template-columns: 1.25fr 1fr; gap: 22px; align-items: center; }
+.tour-frame { position: relative; aspect-ratio: 13 / 10; border-radius: 16px; border: 1px solid var(--card-border); background: #fff; box-shadow: 0 20px 48px -22px rgba(0,0,0,.45); overflow: hidden; }
+.tour-slide { position: absolute; inset: 0; opacity: 0; transform: scale(1.02); transition: opacity .5s, transform .5s; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+.tour-slide.active { opacity: 1; transform: none; }
+.tour-slide img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+.tour-caps { position: relative; min-height: 130px; }
+.tour-cap { position: absolute; inset: 0; opacity: 0; transform: translateY(8px); transition: opacity .45s, transform .45s; font-size: 1.02rem; line-height: 1.6; color: #5f6b7d; }
+.tour-cap.active { opacity: 1; transform: none; }
+.tour-cap b { color: var(--ink); }
+.tour-progress { height: 4px; background: #eceadf; border-radius: 999px; margin: 18px auto 0; max-width: 620px; overflow: hidden; }
+.tour-progress i { display: block; height: 100%; width: 0; background: var(--brand); }
+@media (max-width: 820px) { .tour-stage { grid-template-columns: 1fr; gap: 16px; } .tour-caps { min-height: 0; position: static; } .tour-cap { position: static; display: none; } .tour-cap.active { display: block; } }
+
+/* Mock screens inside the tour (games / career / investing) */
+.tmock { width: 100%; height: 100%; padding: 18px; display: flex; flex-direction: column; gap: 10px; font-family: var(--font-body); }
+.tmock-games { background: linear-gradient(160deg, #eaf4ff, #f4ecff); }
+.tmock-career { background: linear-gradient(160deg, #eefaf3, #eaf2fb); }
+.tmock-invest { background: linear-gradient(160deg, #f2f7ee, #fef6e7); }
+.tm-head { display: flex; align-items: center; justify-content: space-between; font-weight: 800; color: var(--ink); font-size: 1.02rem; }
+.tm-pill { font-size: .74rem; font-weight: 700; background: #fff; color: var(--brand); border-radius: 999px; padding: 3px 10px; }
+.tm-pill.up { color: #1f8a5f; }
+.tm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tm-card { background: #fff; border-radius: 12px; padding: 12px 6px; text-align: center; font-size: 1.5rem; box-shadow: 0 6px 16px -12px rgba(0,0,0,.4); }
+.tm-card span { display: block; font-size: .7rem; font-weight: 700; color: #5f6b7d; margin-top: 4px; }
+.tm-bar { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 10px; padding: 8px 12px; font-size: .82rem; font-weight: 700; color: var(--ink); }
+.tm-bar span { min-width: 88px; }
+.tm-bar i { flex: 1; height: 9px; border-radius: 999px; display: block; }
+.tm-paths { display: flex; gap: 6px; flex-wrap: wrap; }
+.tm-paths span { background: #fff; border-radius: 999px; padding: 5px 11px; font-size: .78rem; font-weight: 700; color: var(--ink); }
+.tm-holds { display: flex; flex-direction: column; gap: 6px; }
+.tm-hold { display: flex; justify-content: space-between; background: #fff; border-radius: 10px; padding: 8px 12px; font-size: .85rem; }
+.tm-hold b { color: var(--ink); }
+.tm-hold .up { color: #1f8a5f; font-weight: 700; }
+.tm-hold .dn { color: #d0553a; font-weight: 700; }
+.tm-chart { display: flex; align-items: flex-end; gap: 6px; height: 60px; background: #fff; border-radius: 10px; padding: 8px 12px; }
+.tm-chart i { flex: 1; background: linear-gradient(#3fae6f, #1f8a5f); border-radius: 4px 4px 0 0; display: block; }
+.tm-foot { margin-top: auto; font-size: .78rem; font-weight: 700; color: #5f6b7d; }
+
 /* Mobile sticky call-to-action — always one tap from signing up */
 .sticky-cta { display: none; }
 @media (max-width: 600px) {

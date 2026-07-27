@@ -869,10 +869,10 @@ route('landing', async () => {
   app().innerHTML = topbar(`
   <div class="hero">
     <img src="/logo-full.png" alt="Gallop Learning Academy" class="hero-logo">
-    <div class="eyebrow">Adaptive K–12 Tutoring · Math · English · Science · Spanish</div>
-    <h1>A personal tutor for every child, at every level.</h1>
-    <p class="hero-tagline">Every child has a pace. Gallop finds it.</p>
-    <p>Self-paced lessons in Math, English, Science &amp; Spanish that find your child's real level and adapt to every answer — on any device, no scheduling.</p>
+    <div class="eyebrow">The real-world approach to K–12 tutoring · Math · English · Science · Spanish</div>
+    <h1>The tutor that teaches your child the real world — and how to use it.</h1>
+    <p class="hero-tagline">Most apps just place, drill, and advance. Gallop teaches real skills — then has kids <b>apply</b> them.</p>
+    <p>An affordable, on-demand tutor that finds your child's real level and weaves money, business, investing, and careers right into the core subjects — then makes them <b>use</b> it through games, projects, and a real stock-market simulator. Learning they'll actually reach for in real life.</p>
     <div class="hero-cta">
       ${State.me.role === 'parent'
         ? `<button class="btn hero-primary" onclick="location.hash='#parent'">Go to my dashboard →</button>`
@@ -894,6 +894,24 @@ route('landing', async () => {
     <div class="hero-journey"><img src="/journey-green.png" alt="" class="journey-img"></div>
   </div>
   <div class="container">
+    <div class="ps-band reveal">
+      <div class="ps-col ps-problem">
+        <span class="ps-tag">THE PROBLEM</span>
+        <h2>Kids memorize facts they forget — and grow up never learning how money, work, and the real world actually function.</h2>
+        <p>Tutoring centers cost a fortune for a single subject. Most apps just place a child, drill them, and push them ahead. Nothing connects what they learn to the life they're growing into.</p>
+      </div>
+      <div class="ps-col ps-solution">
+        <span class="ps-tag sol">THE GALLOP DIFFERENCE</span>
+        <h2>We teach the real world — then make kids use it.</h2>
+        <p>An affordable, on-demand tutor for all four subjects that adapts to your child and turns every skill into something real: running a business, investing in a live market, exploring a career. High-value learning they'll actually apply.</p>
+      </div>
+    </div>
+    <div class="pillars reveal">
+      <div class="pillar"><span class="pi-emoji">🧠</span><b>Real-world lessons</b><p>Money, business, investing &amp; careers woven right into Math, English, Science &amp; Spanish.</p></div>
+      <div class="pillar"><span class="pi-emoji">🎮</span><b>They apply it</b><p>Purpose-built games, projects &amp; a stock-market simulator turn skills into practice — never worksheets.</p></div>
+      <div class="pillar"><span class="pi-emoji">🧭</span><b>Career center</b><p>Strengths become real career directions — 16 fields, real role models, and a plan that grows with them.</p></div>
+      <div class="pillar"><span class="pi-emoji">📊</span><b>Parent portal</b><p>See exactly where each child is ahead and where they need a hand — updated automatically.</p></div>
+    </div>
     <div class="statband reveal">
       <div><b>K–12</b><span>Every grade level</span></div>
       <div><b>4</b><span>Core subjects</span></div>
@@ -916,23 +934,69 @@ route('landing', async () => {
         <button class="btn sun small sn-cta" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start free trial</button>
       </div>
     </nav>
-    <div class="showcase reveal">
-      <h2 class="section-title" style="margin-bottom:4px">See it in action</h2>
-      <p class="section-sub">The real thing — what your child uses, and what you see.</p>
-      <div class="showcase-grid">
-        <figure class="shot">
-          <img src="/shots/student-home.webp" alt="A student's Gallop home screen with their score, streak, daily goals, and next lesson" loading="lazy" width="1200" height="923">
-          <figcaption><b>The student's home base.</b> Streaks, daily goals, and their next lesson — ready the moment they log in.</figcaption>
-        </figure>
-        <figure class="shot">
-          <img src="/shots/lesson.webp" alt="A Gallop lesson question teaching money math with multiple-choice answers" loading="lazy" width="1200" height="923">
-          <figcaption><b>Taught, then practiced.</b> Every skill is explained first, then the questions adapt to each answer.</figcaption>
-        </figure>
-        <figure class="shot">
-          <img src="/shots/parent-dashboard.webp" alt="A parent dashboard showing a child's weekly progress and where they need help" loading="lazy" width="1200" height="923">
-          <figcaption><b>Your view.</b> Exactly where each child is ahead, and where they need a hand — updated automatically.</figcaption>
-        </figure>
+    <div class="tour reveal" id="tour">
+      <h2 class="section-title" style="margin-bottom:4px">See everything that makes us different</h2>
+      <p class="section-sub">A 60-second tour — the lessons, the kids' world, the games, the career center, the investing sim, and your parent portal.</p>
+      <div class="tour-tabs" role="tablist">
+        <button class="tour-tab active" data-step="0">📖 Lessons</button>
+        <button class="tour-tab" data-step="1">🎒 Kids' world</button>
+        <button class="tour-tab" data-step="2">🎮 Games</button>
+        <button class="tour-tab" data-step="3">🧭 Career center</button>
+        <button class="tour-tab" data-step="4">📈 Investing sim</button>
+        <button class="tour-tab" data-step="5">📊 Parent portal</button>
       </div>
+      <div class="tour-stage">
+        <div class="tour-frame">
+          <div class="tour-slide active" data-step="0"><img src="/shots/lesson.webp" alt="A Gallop guided lesson teaching a concept before practice" loading="lazy"></div>
+          <div class="tour-slide" data-step="1"><img src="/shots/student-home.webp" alt="A student's Gallop home base with score, streak and next lesson" loading="lazy"></div>
+          <div class="tour-slide" data-step="2">
+            <div class="tmock tmock-games">
+              <div class="tm-head">🎮 Play Zone <span class="tm-pill">🎟️ 3 tokens</span></div>
+              <div class="tm-grid">
+                <div class="tm-card">🧠<span>Memory Match</span></div>
+                <div class="tm-card">⚡<span>Math Sprint</span></div>
+                <div class="tm-card">🔤<span>Word Builder</span></div>
+                <div class="tm-card">🎯<span>Fraction Toss</span></div>
+                <div class="tm-card">🐍<span>Number Snake</span></div>
+                <div class="tm-card">🧩<span>Logic Puzzles</span></div>
+              </div>
+              <div class="tm-foot">Earned by learning · Parent controls on/off &amp; daily time</div>
+            </div>
+          </div>
+          <div class="tour-slide" data-step="3">
+            <div class="tmock tmock-career">
+              <div class="tm-head">🧭 Career Center <span class="tm-pill">strengths → paths</span></div>
+              <div class="tm-bar"><span>🔬 Science</span><i style="width:82%;background:#2f78c2"></i><b>82</b></div>
+              <div class="tm-bar"><span>🔢 Math</span><i style="width:76%;background:#5b5bd6"></i><b>76</b></div>
+              <div class="tm-bar"><span>📚 English</span><i style="width:61%;background:#0f9d76"></i><b>61</b></div>
+              <div class="tm-paths"><span>⚙️ Engineering</span><span>🩺 Medicine</span><span>💻 AI &amp; CS</span></div>
+              <div class="tm-foot">16 fields · real role models · a plan that grows with them</div>
+            </div>
+          </div>
+          <div class="tour-slide" data-step="4">
+            <div class="tmock tmock-invest">
+              <div class="tm-head">📈 Investor's Notebook <span class="tm-pill up">Portfolio ▲ 6.4%</span></div>
+              <div class="tm-holds">
+                <div class="tm-hold"><b>APPL</b><span class="up">$188 ▲1.2%</span></div>
+                <div class="tm-hold"><b>NIKE</b><span class="dn">$94 ▼0.6%</span></div>
+                <div class="tm-hold"><b>DIS</b><span class="up">$112 ▲2.1%</span></div>
+              </div>
+              <div class="tm-chart"><i style="height:38%"></i><i style="height:52%"></i><i style="height:44%"></i><i style="height:66%"></i><i style="height:60%"></i><i style="height:78%"></i></div>
+              <div class="tm-foot">Real tickers, pretend money — kids learn risk, patience &amp; compounding</div>
+            </div>
+          </div>
+          <div class="tour-slide" data-step="5"><img src="/shots/parent-dashboard.webp" alt="A parent dashboard showing each child's progress and where they need help" loading="lazy"></div>
+        </div>
+        <div class="tour-caps">
+          <div class="tour-cap active" data-step="0"><b>Taught, then practiced.</b> Every skill gets a guided lesson first — see it, hear it, do it — then the questions adapt to each answer. Never a question without a lesson in front of it.</div>
+          <div class="tour-cap" data-step="1"><b>A world kids want to come back to.</b> Streaks, an avatar they build, daily goals, and their next lesson — all waiting the moment they log in.</div>
+          <div class="tour-cap" data-step="2"><b>Games with a purpose.</b> Break games are earned by learning, not handed out — and you decide whether they're on and for how long, with a visible countdown so it's never a surprise.</div>
+          <div class="tour-cap" data-step="3"><b>Strengths that open doors.</b> Gallop turns what your child is good at into real career directions — 16 fields, real role models, and the classes that get them there.</div>
+          <div class="tour-cap" data-step="4"><b>They invest for real (with pretend money).</b> Teens run a live-market portfolio, follow the news, and weigh risk — the math behind a margin, made real.</div>
+          <div class="tour-cap" data-step="5"><b>Your command center.</b> Exactly where each child is ahead and where they need a hand, time on task, and one-tap controls — updated automatically.</div>
+        </div>
+      </div>
+      <div class="tour-progress"><i id="tour-bar"></i></div>
     </div>
     <h2 id="s-how" class="section-title reveal">How it works</h2>
     <p class="section-sub">The same three moves a good teacher makes, built into every session.</p>
@@ -1115,6 +1179,24 @@ route('landing', async () => {
   </div>
   ${State.me.role !== 'parent' && State.me.role !== 'kid' ? `<div class="sticky-cta"><button class="btn" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start free trial — no card →</button></div>` : ''}`);
   wireChrome();
+  // Interactive product tour: auto-advance through the six views, pause on hover, tabs jump.
+  (function initTour() {
+    const tour = document.getElementById('tour'); if (!tour) return;
+    const STEPS = 6, DWELL = 4800; let cur = 0, timer = null, paused = false;
+    const bar = document.getElementById('tour-bar');
+    const show = (n) => {
+      cur = (n + STEPS) % STEPS;
+      tour.querySelectorAll('.tour-slide').forEach(el => el.classList.toggle('active', +el.dataset.step === cur));
+      tour.querySelectorAll('.tour-cap').forEach(el => el.classList.toggle('active', +el.dataset.step === cur));
+      tour.querySelectorAll('.tour-tab').forEach(el => el.classList.toggle('active', +el.dataset.step === cur));
+      if (bar) { bar.style.transition = 'none'; bar.style.width = '0%'; requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.transition = `width ${DWELL}ms linear`; bar.style.width = '100%'; })); }
+    };
+    const start = () => { clearInterval(timer); timer = setInterval(() => { if (!paused) show(cur + 1); }, DWELL); };
+    tour.querySelectorAll('.tour-tab').forEach(tab => tab.onclick = () => { show(+tab.dataset.step); start(); });
+    tour.addEventListener('mouseenter', () => { paused = true; });
+    tour.addEventListener('mouseleave', () => { paused = false; });
+    show(0); start();
+  })();
   const nlF = $('#nl-form');
   if (nlF) nlF.onsubmit = async (e) => {
     e.preventDefault();
