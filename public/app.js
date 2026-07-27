@@ -1350,33 +1350,35 @@ route('subscribe', async () => {
       <img src="/logo-roundel.png" alt="" style="width:76px;height:76px">
       <h2 style="margin-top:8px">Choose your plan</h2>
       <p class="muted" style="margin:8px auto 14px;max-width:30rem">Full access to all four subjects, the adaptive tutor, the games arcade, and weekly parent reports.</p>
-      <p class="muted center" style="margin:0 auto 16px;font-size:.82rem;max-width:34rem">Recurring subscriptions that <b>auto-renew</b> (monthly or annually — your choice) until you cancel. Cancel anytime in one click from your Parent Dashboard — future charges stop and you keep access through the period you've paid for.</p>
+      <p class="muted center" style="margin:0 auto 16px;font-size:.82rem;max-width:34rem">Plans <b>auto-renew</b> by default (you can turn that off below) until you cancel. Cancel anytime in one click from your Parent Dashboard — future charges stop and you keep access through the period you've paid for.</p>
       <div class="bp-toggle" id="bp-toggle">
-        <button class="bp-opt active" data-bp="month">Monthly</button>
-        <button class="bp-opt" data-bp="year">Annual <span class="bp-save">save ~15%</span></button>
+        <button class="bp-opt" data-bp="month">Monthly</button>
+        <button class="bp-opt active" data-bp="year">Annual <span class="bp-save">save ~15%</span></button>
       </div>
       <div class="plan-grid">
         <div class="plan-card featured">
-          <div class="plan-badge">Most popular</div>
+          <div class="plan-badge">Best value</div>
           <h3>Family</h3>
-          <div class="plan-price"><span class="pp-month">$54<span>/mo</span></span><span class="pp-year" style="display:none">$46<span>/mo</span></span></div>
-          <p class="muted pp-note-month">Up to 4 children · auto-renews monthly</p>
-          <p class="muted pp-note-year" style="display:none">Up to 4 children · $552/yr billed once · <b>save $96</b></p>
+          <div class="plan-price"><span class="pp-month" style="display:none">$54<span>/mo</span></span><span class="pp-year">$46<span>/mo</span></span></div>
+          <p class="muted pp-note-month" style="display:none">Up to 4 children · billed monthly</p>
+          <p class="muted pp-note-year">Up to 4 children · $552/yr billed once · <b>save $96</b></p>
           <button class="btn green" style="width:100%;margin-top:10px" id="sub-family">Subscribe →</button>
         </div>
         <div class="plan-card">
           <h3>Solo</h3>
-          <div class="plan-price"><span class="pp-month">$34<span>/mo</span></span><span class="pp-year" style="display:none">$29<span>/mo</span></span></div>
-          <p class="muted pp-note-month">1 child · auto-renews monthly</p>
-          <p class="muted pp-note-year" style="display:none">1 child · $348/yr billed once · <b>save $60</b></p>
+          <div class="plan-price"><span class="pp-month" style="display:none">$34<span>/mo</span></span><span class="pp-year">$29<span>/mo</span></span></div>
+          <p class="muted pp-note-month" style="display:none">1 child · billed monthly</p>
+          <p class="muted pp-note-year">1 child · $348/yr billed once · <b>save $60</b></p>
           <button class="btn" style="width:100%;margin-top:10px" id="sub-solo">Subscribe →</button>
         </div>
       </div>
-      <p class="muted center" style="margin-top:16px;font-size:.85rem">🔒 Secure checkout through Stripe — we never see your card number.</p>
+      <label class="ar-row"><input type="checkbox" id="ar-check" checked>
+        <span><b>Auto-renew</b> so your child's learning never gets interrupted. Uncheck for a one-time term that <b>won't</b> renew automatically — you'll keep full access through the period you pay for.</span></label>
+      <p class="muted center" style="margin-top:14px;font-size:.85rem">🔒 Secure checkout through Stripe — we never see your card number.</p>
       <p class="muted center" style="margin-top:10px;font-size:.85rem">Want to try before you buy? <a href="#parent">Start with a free 7-day trial instead</a> — no card required, and you're only charged if you choose to subscribe.</p>
     </div></div>`);
   wireChrome();
-  let period = 'month';
+  let period = 'year';
   document.querySelectorAll('#bp-toggle .bp-opt').forEach(o => o.onclick = () => {
     period = o.dataset.bp;
     document.querySelectorAll('#bp-toggle .bp-opt').forEach(x => x.classList.toggle('active', x === o));
@@ -2745,9 +2747,15 @@ function renderPaywall(reason) {
     } catch (e) { ep.disabled = false; ep.textContent = '📧 Email my parent to subscribe'; toast((e && e.message) || 'Could not send right now.'); }
   };
 }
-async function checkout(plan) {
+async function checkout(plan, autorenew) {
   try {
-    const out = await api('/billing/checkout', { method: 'POST', body: { plan } });
+    // Auto-renew defaults ON. Honor an explicit page toggle if present; otherwise read the
+    // subscribe-page checkbox if it's on screen; otherwise default to true.
+    if (autorenew === undefined) {
+      const cb = document.getElementById('ar-check');
+      autorenew = cb ? cb.checked : true;
+    }
+    const out = await api('/billing/checkout', { method: 'POST', body: { plan, autorenew } });
     if (out.error) { toast(out.error); return; }
     const value = PLAN_PRICE[plan] || 0;
     gtmPush({ event: 'begin_checkout', currency: 'USD', value, plan });

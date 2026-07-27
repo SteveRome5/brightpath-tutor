@@ -42,9 +42,10 @@ for (const key of Object.keys(PLANS)) PLANS[key].available = !KEY || !!PLANS[key
 // copy instead of leaking "demo billing / Set STRIPE_SECRET_KEY".
 function billingMode() { return stripe ? 'stripe' : (DEMO_BILLING_OK ? 'demo' : 'disabled'); }
 
-async function createCheckout(parent, plan, origin) {
+async function createCheckout(parent, plan, origin, autoRenew = true) {
   const planKey = PLANS[plan] ? plan : 'family';
   const p = PLANS[planKey];
+  const arFlag = autoRenew ? '1' : '0';
   if (!stripe) {
     if (!DEMO_BILLING_OK) {
       return { error: 'Payments are not available right now. Please contact support@learnwithgallop.com.' };
@@ -79,9 +80,13 @@ async function createCheckout(parent, plan, origin) {
     // Show the "Add promotion code" field on the checkout page so launch
     // codes (e.g. LIN) created in the Stripe dashboard can be redeemed.
     allow_promotion_codes: true,
+    // Auto-renew choice: default on (recurring). If the customer opted out, we flag it here and
+    // the webhook sets the subscription to cancel at period end — they get the full term they paid
+    // for, with no surprise renewal. The flag rides on the subscription too so the webhook is robust.
+    subscription_data: { metadata: { autorenew: arFlag } },
     success_url: origin + '/?billing=success',
     cancel_url: origin + '/?billing=canceled',
-    metadata: { parent_id: String(parent.id), plan }
+    metadata: { parent_id: String(parent.id), plan, autorenew: arFlag }
   });
   return { url: session.url };
 }
@@ -126,6 +131,12 @@ function webhookHandler(req, res) {
   switch (event.type) {
     case 'checkout.session.completed': {
       setStatus(data.customer, 'active', data.metadata && data.metadata.plan);
+      // Auto-renew opt-out: if the customer unchecked auto-renew, schedule the subscription to end
+      // at the close of the term they paid for (no surprise renewal). Fire-and-forget; only ever
+      // acts when the flag is an explicit '0', so a normal (auto-renewing) checkout is untouched.
+      if (data.metadata && data.metadata.autorenew === '0' && data.subscription) {
+        stripe.subscriptions.update(data.subscription, { cancel_at_period_end: true }).catch(() => {});
+      }
       // The completed card transaction stands as verifiable parental consent (an FTC-approved
       // method). Record it against the account so consent is backed by more than a checkbox.
       try {

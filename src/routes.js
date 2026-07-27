@@ -829,7 +829,8 @@ router.post('/billing/checkout', auth.requireParent, async (req, res) => {
   try {
     const origin = `${req.protocol}://${req.get('host')}`;
     const plan = billing.PLANS[req.body.plan] ? req.body.plan : 'family';
-    const out = await billing.createCheckout(req.parent, plan, origin);
+    const autoRenew = !(req.body.autorenew === false || req.body.autorenew === '0'); // default ON
+    const out = await billing.createCheckout(req.parent, plan, origin, autoRenew);
     res.json(out);
   } catch (e) { res.status(500).json({ error: 'Billing error: ' + e.message }); }
 });
