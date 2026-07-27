@@ -101,7 +101,7 @@ window.GALLOP_CAREERS = [
     whatItIs: 'People in finance help individuals, families, and companies make smart decisions about money — saving, investing, budgeting, and growing wealth.',
     dayToDay: 'Analyze numbers, spot trends, weigh risks, and advise people on how to use their money wisely. Perfect for anyone who loves numbers and figuring out how things really work.',
     jobs: ['Financial analyst', 'Accountant', 'Investor / portfolio manager', 'Economist', 'Financial advisor', 'Actuary (measures risk)'],
-    hs: 'Economics, statistics, and a school investing or business club. (Market Mogul in Gallop is a head start!)',
+    hs: 'Economics, statistics, and a school investing or business club. (Stable Street in Gallop is a head start!)',
     people: [
       { name: 'Warren Buffett', who: 'One of history’s most successful investors, he built his fortune through patience — buying good companies and holding them for decades. Famous for living simply in a house he bought long ago, he has pledged to give away almost all of his wealth. People call him the “Oracle of Omaha.”', wiki: 'Warren_Buffett' },
       { name: 'Mellody Hobson', who: 'She grew up with very little money and learned early to ask smart questions about it. She rose to become co-CEO of a major investment firm and now teaches families to be “financially fluent.” She has also chaired the boards of well-known companies.', wiki: 'Mellody_Hobson' },

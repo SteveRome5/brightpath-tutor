@@ -146,18 +146,18 @@
     const k = s.kid;
     // Every game carries a grade band so the arcade fits the player's age: the
     // youngest get playful money/drawing games; high-schoolers get the strategy and
-    // speed games (Market Mogul, Lightning Round, Code Quest) instead of Lemonade or
+    // speed games (Stable Street, Gallop Sprint, Robo Logic) instead of Lemonade or
     // the cupcake bakery. min/max are inclusive grade numbers (0 = Kindergarten).
     const grade = k.grade || 0;
     const CATALOG = [
-      { id: 'market', emoji: '📈', name: 'Market Mogul', desc: 'A 12-level investing career — level up by hitting profit targets while you master diversification, dollar-cost averaging, dividends & more. Progress saves.', min: 4, max: 12 },
-      { id: 'blitz', emoji: '⚡', name: 'Lightning Round', desc: '60 seconds. Rapid-fire questions. Build a combo — beat your best!', min: 0, max: 12 },
-      { id: 'code', emoji: '🤖', name: 'Code Quest', desc: 'Program Robo the robot to reach the star — a fresh puzzle set every time.', min: 0, max: 12 },
-      { id: 'wordsearch', emoji: '🔍', name: 'Word Search', desc: 'Hunt hidden words in the letter jungle.', min: 0, max: 12 },
-      { id: 'memory', emoji: '🃏', name: 'Memory Match', desc: 'Flip cards, match pairs — Spanish words, math facts & more!', min: 0, max: 12 },
-      { id: 'bakery', emoji: '🧁', name: 'Bakery Quest', desc: 'Run the Gallop Bakery for a day — use real math to bake, price, and bank a profit!', min: 0, max: 8 },
-      { id: 'lemonade', emoji: '🍋', name: 'Lemonade Tycoon', desc: 'Run your own stand — buy smart, price right, bank the profit!', min: 0, max: 8 },
-      { id: 'art', emoji: '🎨', name: 'Art Studio', desc: 'Draw with step-by-step guides — so cute!', min: 0, max: 6 }
+      { id: 'market', emoji: '📈', name: 'Stable Street', desc: 'A 12-level investing career — level up by hitting profit targets while you master diversification, dollar-cost averaging, dividends & more. Progress saves.', min: 4, max: 12 },
+      { id: 'blitz', emoji: '⚡', name: 'Gallop Sprint', desc: '60 seconds. Rapid-fire questions. Build a combo — beat your best!', min: 0, max: 12 },
+      { id: 'code', emoji: '🤖', name: 'Robo Logic', desc: 'Program Robo the robot to reach the star — a fresh puzzle set every time.', min: 0, max: 12 },
+      { id: 'wordsearch', emoji: '🔍', name: 'Word Roundup', desc: 'Hunt hidden words in the letter jungle.', min: 0, max: 12 },
+      { id: 'memory', emoji: '🃏', name: 'Memory Meadow', desc: 'Flip cards, match pairs — Spanish words, math facts & more!', min: 0, max: 12 },
+      { id: 'bakery', emoji: '🧁', name: 'Gallop Bakery', desc: 'Run the Gallop Bakery for a day — use real math to bake, price, and bank a profit!', min: 0, max: 8 },
+      { id: 'lemonade', emoji: '🍋', name: "Sunny's Lemonade Stand", desc: 'Run your own stand — buy smart, price right, bank the profit!', min: 0, max: 8 },
+      { id: 'art', emoji: '🎨', name: 'Doodle Barn', desc: 'Draw with step-by-step guides — so cute!', min: 0, max: 6 }
     ];
     const games = CATALOG.filter(g => grade >= g.min && grade <= g.max);
     app().innerHTML = topbar(`<div class="container">
@@ -195,11 +195,11 @@
     await refreshMe();
     if (!gamesOn() || !gamesUnlocked()) { location.hash = '#play'; return; }  // respect the parent games toggle/gate/time-cap
     startGameClock();   // begin accruing game time toward the daily cap
-    // Market Mogul is a persistent, level-based career: opening the hub is free (progress
+    // Stable Street is a persistent, level-based career: opening the hub is free (progress
     // resume + level select), and a *token is spent per level* from inside the hub — so it
     // bypasses the one-token-per-open `gated()` wrapper the other arcade games use.
     if (which === 'market') {
-      if (((State.me.kid && State.me.kid.grade) || 0) < 4) { toast('Market Mogul unlocks in 4th grade! 📈'); location.hash = '#play'; return; }
+      if (((State.me.kid && State.me.kid.grade) || 0) < 4) { toast('Stable Street unlocks in 4th grade! 📈'); location.hash = '#play'; return; }
       await startMarketHub();
       return;
     }
@@ -226,7 +226,7 @@
     function setMoves() { const m = $('#mem-moves'); if (m) m.textContent = moves; }
     function render() {
       app().innerHTML = topbar(`<div class="container" style="max-width:640px">
-        <div class="lesson-top"><b>🃏 Memory Match — ${setLabel}</b><b>Moves: <span id="mem-moves">${moves}</span></b></div>
+        <div class="lesson-top"><b>🃏 Memory Meadow — ${setLabel}</b><b>Moves: <span id="mem-moves">${moves}</span></b></div>
         <div class="mem-grid">
           ${cards.map((c, i) => `
             <button class="mem-card" data-i="${i}" aria-label="card">
@@ -307,7 +307,7 @@
     function render() {
       const justCells = justFound ? wordCells(justFound) : [];
       app().innerHTML = topbar(`<div class="container" style="max-width:640px">
-        <div class="lesson-top"><b>🔍 Word Search ${setName === 'spanish' ? '— 🌎 ¡en español!' : ''}</b><b>${found.size}/${placed.length} found</b></div>
+        <div class="lesson-top"><b>🔍 Word Roundup ${setName === 'spanish' ? '— 🌎 ¡en español!' : ''}</b><b>${found.size}/${placed.length} found</b></div>
         <div class="ws-grid" style="grid-template-columns:repeat(${size},1fr)">
           ${grid.map((row, r) => row.map((ch, c) => {
             const inSel = sel.some(s => s.r === r && s.c === c);
@@ -354,7 +354,7 @@
 
   // ======================= CODE QUEST =======================
   // A POOL of solvable puzzles grouped by tier. Each play draws a fresh set (2 easy,
-  // 2 medium, 2 hard) in a random order within tier, so Code Quest is different every
+  // 2 medium, 2 hard) in a random order within tier, so Robo Logic is different every
   // time instead of the same six levels. Every level here has a verified clear path.
   const CODE_POOL = {
     easy: [
@@ -470,7 +470,7 @@
     function render() {
       const L = lvl();
       app().innerHTML = topbar(`<div class="container" style="max-width:520px">
-        <div class="lesson-top"><b>🤖 Code Quest — Level ${levelIdx + 1}/${CODE_LEVELS.length}${_curBest ? `<span class="hs-target">🏅 Best: ${_curBest}</span>` : ''}</b><b>Score: ${score}</b></div>
+        <div class="lesson-top"><b>🤖 Robo Logic — Level ${levelIdx + 1}/${CODE_LEVELS.length}${_curBest ? `<span class="hs-target">🏅 Best: ${_curBest}</span>` : ''}</b><b>Score: ${score}</b></div>
         <div class="cq-stage px-stage"><canvas id="cq-canvas" width="160" height="160"></canvas></div>
         <div class="cq-pad">
           <span></span><button class="cq-key" data-cmd="up">▲</button><span></span>
@@ -512,7 +512,7 @@
     const COLORS = ['#e43b44', '#f77622', '#feae34', '#63c74d', '#0095e9', '#124e89', '#b55088', '#3a2e4d', '#ffffff', '#181818'];
     function render() {
       app().innerHTML = topbar(`<div class="container" style="max-width:760px">
-        <div class="lesson-top"><b>🎨 Art Studio</b>${guide ? `<b>${guide.emoji} ${guide.name}</b>` : ''}</div>
+        <div class="lesson-top"><b>🎨 Doodle Barn</b>${guide ? `<b>${guide.emoji} ${guide.name}</b>` : ''}</div>
         ${!guide ? `<div class="card"><h3>Pick a drawing guide (or free draw!)</h3>
           <div class="badge-shelf" style="margin-top:12px">
             ${ART_GUIDES.map((g, i) => `<button class="btn small" data-g="${i}">${g.emoji} ${g.name}</button>`).join('')}
@@ -618,7 +618,7 @@
       const ch = choicesFor(qn);
       const hot = timeLeft <= 10;
       app().innerHTML = topbar(`<div class="container" style="max-width:560px">
-        <div class="lesson-top"><b>⚡ Lightning Round${_curBest ? `<span class="hs-target">🏅 Best: ${_curBest}</span>` : ''}</b><b>Score: <span id="bz-score">${score}</span></b></div>
+        <div class="lesson-top"><b>⚡ Gallop Sprint${_curBest ? `<span class="hs-target">🏅 Best: ${_curBest}</span>` : ''}</b><b>Score: <span id="bz-score">${score}</span></b></div>
         <div class="bz-ringwrap">
           <svg class="bz-ring ${hot ? 'hot' : ''}" viewBox="0 0 120 120" width="132" height="132">
             <circle class="bz-ring-bg" cx="60" cy="60" r="52"></circle>
@@ -795,7 +795,7 @@
     // ---------- UI ----------
     function shell(inner) {
       app().innerHTML = topbar(`<div class="container" style="max-width:560px">
-        <div class="lesson-top"><b>🍋 Lemonade Tycoon</b><b>Day ${day}/${DAYS} · 💵 ${$$(cash)}</b></div>
+        <div class="lesson-top"><b>🍋 Sunny's Lemonade Stand</b><b>Day ${day}/${DAYS} · 💵 ${$$(cash)}</b></div>
         <div class="lt-stage px-stage"><canvas id="lt-canvas" width="256" height="160"></canvas></div>
         <div class="card lt-panel">${inner}</div>
       </div>`);
@@ -1022,7 +1022,7 @@
     app().innerHTML = topbar(`<div class="container" style="max-width:720px">
       <div class="kid-header" style="margin-bottom:10px">
         <canvas id="mm-hub-hero" width="52" height="46" class="mm-hub-hero"></canvas>
-        <div><h1 style="margin:0">📈 Market Mogul</h1>
+        <div><h1 style="margin:0">📈 Stable Street</h1>
           <div class="muted" style="font-size:.9rem">${MM_LOOK.name}'s investing career — grow real money, one level at a time.</div>
         </div>
         <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#play'">← Play Zone</button></div>
@@ -1855,7 +1855,7 @@
     function renderSkill(sc, customer) {
       const choices = mc(sc.ans, sc.dis.map(String));
       app().innerHTML = topbar(`<div class="container" style="max-width:640px">
-        <div class="lesson-top"><b>🧁 Bakery Quest — Order ${st.idx + 1} of 5</b><b>💰 ${money(st.seed - st.cost + st.revenue)}</b></div>
+        <div class="lesson-top"><b>🧁 Gallop Bakery — Order ${st.idx + 1} of 5</b><b>💰 ${money(st.seed - st.cost + st.revenue)}</b></div>
         ${stage(sc.cap, customer)}
         <div class="card bq-card">
           <p class="bq-q">${esc(sc.q)}</p>
@@ -1887,7 +1887,7 @@
     function renderPrice() {
       st.cost = ingredientCost; // ingredients are paid for now that the batch is baked
       app().innerHTML = topbar(`<div class="container" style="max-width:640px">
-        <div class="lesson-top"><b>🧁 Bakery Quest — Order 3 of 5</b><b>💰 ${money(st.seed - st.cost)}</b></div>
+        <div class="lesson-top"><b>🧁 Gallop Bakery — Order 3 of 5</b><b>💰 ${money(st.seed - st.cost)}</b></div>
         ${stage(`Your ${st.made} cupcakes are baked and cooling. Ingredients cost you ${money(st.cost)}. Now the big decision every shop owner makes: what do you charge?`, '🧑‍🍳')}
         <div class="card bq-card">
           <p class="bq-q">Pick your price per cupcake. Charge too little and you barely make money, too much and fewer people buy. What's smart?</p>

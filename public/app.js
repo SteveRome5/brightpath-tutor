@@ -948,9 +948,9 @@ route('landing', async () => {
         <div class="tour-frame">
           <div class="tour-slide active" data-step="0"><img src="/shots/lesson-live.webp" alt="A Gallop guided lesson teaching a concept before practice, showing the re-teach after a wrong answer" loading="lazy"></div>
           <div class="tour-slide" data-step="1"><img src="/shots/student-home.webp" alt="A student's Gallop home base with score, streak and next lesson" loading="lazy"></div>
-          <div class="tour-slide" data-step="2"><img src="/shots/play-zone.webp" alt="The Gallop Play Zone arcade — Market Mogul, Lemonade Tycoon, Bakery Quest, Code Quest and more" loading="lazy"></div>
+          <div class="tour-slide" data-step="2"><img src="/shots/play-zone.webp" alt="The Gallop Play Zone arcade — Stable Street, Sunny's Lemonade Stand, Gallop Bakery, Robo Logic and more" loading="lazy"></div>
           <div class="tour-slide" data-step="3"><img src="/shots/career-explorer.webp" alt="The Gallop Career Explorer — 16 real fields from Engineering and Medicine to Entrepreneurship and the Trades" loading="lazy"></div>
-          <div class="tour-slide" data-step="4"><img src="/shots/market-mogul.webp" alt="Market Mogul — a 12-level investing career teaching diversification, dollar-cost averaging, dividends and more" loading="lazy"></div>
+          <div class="tour-slide" data-step="4"><img src="/shots/market-mogul.webp" alt="Stable Street — a 12-level investing career teaching diversification, dollar-cost averaging, dividends and more" loading="lazy"></div>
           <div class="tour-slide" data-step="5"><img src="/shots/parent-dashboard.webp" alt="A parent dashboard showing each child's progress and where they need help" loading="lazy"></div>
         </div>
         <div class="tour-caps">
@@ -975,10 +975,10 @@ route('landing', async () => {
         <div class="lab-card">
           <div class="lab-shot"><img src="/shots/play-zone.webp" alt="The Gallop arcade" loading="lazy"></div>
           <h3>🎮 The Arcade</h3>
-          <p>Games earned by learning — Lemonade Tycoon, Bakery Quest, Code Quest and more. Every one sneaks in real math, logic, and money skills. Parents control when they're on.</p>
+          <p>Games earned by learning — Sunny's Lemonade Stand, Gallop Bakery, Robo Logic and more. Every one sneaks in real math, logic, and money skills. Parents control when they're on.</p>
         </div>
         <div class="lab-card">
-          <div class="lab-shot"><img src="/shots/market-mogul.webp" alt="Market Mogul investing game" loading="lazy"></div>
+          <div class="lab-shot"><img src="/shots/market-mogul.webp" alt="Stable Street investing game" loading="lazy"></div>
           <h3>📈 Investment Challenges</h3>
           <p>A 12-level investing career on a market that feels alive — kids learn diversification, dollar-cost averaging, dividends, and patience, all with pretend money.</p>
         </div>
@@ -1072,12 +1072,12 @@ route('landing', async () => {
         <p>Every 5 correct answers earns a play token — and the games aren't a break from learning, they're learning in disguise. Retro 16-bit games our team built from scratch, teaching skills most kids never get in school.</p>
       </div>
       <div class="ab-grid">
-        <div class="ab-card ab-feature"><span class="ab-emoji">📈</span><b>Market Mogul</b><p>A full 12-level investing career that saves your progress and levels up as you master real strategies — diversification, dollar-cost averaging, dividends, riding out a crash. The kind of financial literacy most adults never learn, built to keep older students hooked.</p><span class="ab-tag">investing · grades 4–12</span></div>
-        <div class="ab-card"><span class="ab-emoji">🍋</span><b>Lemonade Tycoon</b><p>Buy smart, price right, watch the weather. Revenue, cost, and profit — a first business before age 10.</p><span class="ab-tag">entrepreneurship</span></div>
-        <div class="ab-card"><span class="ab-emoji">🧁</span><b>Bakery Quest</b><p>Run a bakery for a day: batches, pricing, making change. Math with money on the line.</p><span class="ab-tag">business math</span></div>
-        <div class="ab-card"><span class="ab-emoji">🤖</span><b>Code Quest</b><p>Program a robot step by step to reach the star — first coding logic, no typing needed.</p><span class="ab-tag">coding</span></div>
+        <div class="ab-card ab-feature"><span class="ab-emoji">📈</span><b>Stable Street</b><p>A full 12-level investing career that saves your progress and levels up as you master real strategies — diversification, dollar-cost averaging, dividends, riding out a crash. The kind of financial literacy most adults never learn, built to keep older students hooked.</p><span class="ab-tag">investing · grades 4–12</span></div>
+        <div class="ab-card"><span class="ab-emoji">🍋</span><b>Sunny's Lemonade Stand</b><p>Buy smart, price right, watch the weather. Revenue, cost, and profit — a first business before age 10.</p><span class="ab-tag">entrepreneurship</span></div>
+        <div class="ab-card"><span class="ab-emoji">🧁</span><b>Gallop Bakery</b><p>Run a bakery for a day: batches, pricing, making change. Math with money on the line.</p><span class="ab-tag">business math</span></div>
+        <div class="ab-card"><span class="ab-emoji">🤖</span><b>Robo Logic</b><p>Program a robot step by step to reach the star — first coding logic, no typing needed.</p><span class="ab-tag">coding</span></div>
       </div>
-      <p class="ab-more">+ Lightning Round, Word Search, Memory Match & Art Studio — eight games, all earned by learning.</p>
+      <p class="ab-more">+ Gallop Sprint, Word Roundup, Memory Meadow & Doodle Barn — eight games, all earned by learning.</p>
     </div>
 
     <h2 id="s-why" class="section-title reveal">Why families choose Gallop</h2>
