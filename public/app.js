@@ -2501,7 +2501,7 @@ route('report', async (kidId) => {
   document.querySelectorAll('[data-cert]').forEach(el => el.onclick = () => { Sound.click(); location.hash = `#certificate/${kidId}/${el.dataset.cert}`; });
   document.querySelectorAll('[data-retake]').forEach(b => b.onclick = async () => {
     const sub = b.dataset.retake;
-    if (!confirm(`Retake the ${sub} placement quiz? ${esc(k.name)} will re-do the short assessment next time they open ${sub}. Progress and badges are kept.`)) return;
+    if (!confirm(`Retake the ${sub} placement quiz? ${esc(k.name)} re-does the short assessment next time they open ${sub} — have them answer carefully and not rush, since it re-checks their starting level. Progress, badges, and any grade they've already mastered are kept.`)) return;
     await api(`/learn/${kidId}/placement/${sub}/retake`, { method: 'POST', body: {} });
     Sound.badge();
     b.textContent = '✅ Placement reset. The quiz runs on the next visit.';
@@ -2897,22 +2897,22 @@ route('parent', async () => {
     if (!box) return;
     try {
       const r = await api('/kids/' + kidId + '/levels');
-      box.innerHTML = `<b style="font-size:.85rem">📚 Working levels <span class="muted" style="font-weight:400">(if a subject feels too hard, lower it, Gallop re-adapts from there)</span></b>
+      box.innerHTML = `<b style="font-size:.85rem">📚 Set working level <span class="muted" style="font-weight:400">— if a subject is placed wrong, pick the right grade here and Gallop locks to it (it won't drift back).</span></b>
         <div class="lvl-rows">${r.levels.map(l => `
           <div class="lvl-row">
             <span class="lvl-sub">${esc(l.label)}</span>
-            <span class="lvl-name muted">${esc(l.levelName)}</span>
-            ${l.placed ? `<button class="btn ghost small lvl-btn" data-lvl-set="${kidId}:${l.subject}:${l.level - 1}" ${l.level <= 0 ? 'disabled' : ''}>− easier</button>
-            <button class="btn ghost small lvl-btn" data-lvl-set="${kidId}:${l.subject}:${l.level + 1}" ${l.level >= l.max ? 'disabled' : ''}>harder +</button>` : ''}
+            ${l.placed ? `<select class="lvl-sel" data-lvl-kid="${kidId}" data-lvl-sub="${l.subject}">
+              ${Array.from({ length: l.max + 1 }, (_, g) => `<option value="${g}" ${g === l.level ? 'selected' : ''}>${g === 0 ? 'Kindergarten' : 'Grade ' + g}</option>`).join('')}
+            </select>` : `<span class="lvl-name muted">${esc(l.levelName)}</span>`}
           </div>`).join('')}</div>`;
-      box.querySelectorAll('[data-lvl-set]').forEach(btn => btn.onclick = async () => {
-        const [kid, subject, level] = btn.dataset.lvlSet.split(':');
-        btn.disabled = true;
+      box.querySelectorAll('.lvl-sel').forEach(sel => sel.onchange = async () => {
+        const kid = sel.dataset.lvlKid, subject = sel.dataset.lvlSub, level = Number(sel.value);
+        sel.disabled = true;
         try {
-          const res = await api('/kids/' + kid + '/level', { method: 'POST', body: { subject, level: Number(level) } });
-          Sound.badge(); toast(`${subject.charAt(0).toUpperCase() + subject.slice(1)} moved to ${res.levelName}.`);
+          const res = await api('/kids/' + kid + '/level', { method: 'POST', body: { subject, level } });
+          Sound.badge(); toast(`${subject.charAt(0).toUpperCase() + subject.slice(1)} set to ${res.levelName}.`);
           loadLevels(Number(kid));
-        } catch (e) { btn.disabled = false; }
+        } catch (e) { sel.disabled = false; }
       });
     } catch (e) { box.innerHTML = ''; }
   }

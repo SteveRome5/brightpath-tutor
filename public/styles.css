@@ -432,6 +432,7 @@ body[data-theme="academy"] .typed-input.bad { background: #3a2226; color: #ff9c9
 .lvl-sub { font-weight: 700; min-width: 76px; font-size: .9rem; }
 .lvl-name { font-size: .85rem; flex: 1; }
 .lvl-btn { padding: 3px 10px; font-size: .78rem; }
+.lvl-sel { padding: 5px 9px; font-size: .88rem; border: 1px solid #cfd8e3; border-radius: 8px; background: #fff; color: var(--ink); cursor: pointer; }
 
 /* Reading passage card */
 .passage-box { background: #fdf9ef; border: 1px solid #ecdfc2; border-left: 5px solid #C9A84C; border-radius: 12px; padding: 16px 18px; margin: 14px 0 4px; font-size: 1.06rem; line-height: 1.65; color: #3d3628; clear: both; }

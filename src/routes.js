@@ -684,7 +684,7 @@ router.post('/kids/:kidId/level', auth.requireParent, (req, res) => {
   if (!kid) return res.status(404).json({ error: 'Learner not found.' });
   const { subject, level } = req.body || {};
   if (!validSubject(subject) || level == null || !Number.isFinite(Number(level))) return res.status(400).json({ error: 'Need a subject and a valid level.' });
-  const newLevel = adaptive.setLevel(kid.id, subject, Number(level));
+  const newLevel = adaptive.setLevel(kid.id, subject, Number(level), { authoritative: true });
   res.json({ ok: true, level: newLevel, levelName: adaptive.gradeName(newLevel) });
 });
 

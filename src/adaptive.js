@@ -90,9 +90,20 @@ function highestPassed(tallies) {
 function commitPlacement(kidId, subject, level, hp) {
   const demonstrated = Number.isFinite(hp) ? hp : -1;
   const lastAid = db.prepare('SELECT MAX(id) AS m FROM activity_log WHERE kid_id=? AND subject=?').get(kidId, subject).m || 0;
+  // demonstrated_level is a HIGH-WATER MARK of proven mastery. A retake the child rushes or
+  // mis-answers must never ERASE a grade they already proved and drop them to Kindergarten:
+  //  • keep the highest demonstrated grade (MAX of prior vs this run), and
+  //  • floor the working level AND the "Why we started here" anchor at that proven grade,
+  //    so nobody is ever placed below what they've genuinely shown — even in the same session,
+  //    without waiting for the boot-time self-heal. (A true Start-Fresh deletes the row first,
+  //    so a deliberate clean slate still re-places from scratch.)
+  const cur = db.prepare('SELECT demonstrated_level FROM subject_state WHERE kid_id=? AND subject=?').get(kidId, subject);
+  const priorDemo = cur && Number.isFinite(cur.demonstrated_level) ? cur.demonstrated_level : -1;
+  const newDemo = Math.max(priorDemo, demonstrated);
+  const effLevel = Math.max(Number(level) || 0, Math.max(0, newDemo));
   db.prepare('UPDATE subject_state SET level=?, placed=1, placed_level=?, demonstrated_level=?, last_change_aid=? WHERE kid_id=? AND subject=?')
-    .run(level, level, demonstrated, lastAid, kidId, subject);
-  for (const s of content.skillsForSubject(subject).filter(s => s.grade === Math.round(level))) getSkillState(kidId, subject, s.id);
+    .run(effLevel, effLevel, newDemo, lastAid, kidId, subject);
+  for (const s of content.skillsForSubject(subject).filter(s => s.grade === Math.round(effLevel))) getSkillState(kidId, subject, s.id);
 }
 function placementNext(kidId, subject, history) {
   // history: [{grade, correct}]
@@ -883,13 +894,22 @@ function pace(kid) {
 }
 
 // Manually shift a kid's level in a subject (kid "too tricky" button / parent control).
-function setLevel(kidId, subject, level) {
+function setLevel(kidId, subject, level, opts = {}) {
   getSubjectState(kidId, subject); // ensure row
   const lv = Math.max(0, Math.min(maxGrade(subject), Number(level)));
   // Reset the hysteresis anchor: a manual level move starts a fresh trial at the new
   // level instead of judging it against stale pre-move history.
   const latestAid = db.prepare('SELECT MAX(id) AS m FROM activity_log WHERE kid_id=? AND subject=?').get(kidId, subject).m || 0;
-  db.prepare('UPDATE subject_state SET level=?, placed=1, last_change_aid=? WHERE kid_id=? AND subject=?').run(lv, latestAid, kidId, subject);
+  if (opts.authoritative) {
+    // A PARENT setting the level is the source of truth. Anchor the whole card to it: placed_level
+    // (the "Why we started here" note) and demonstrated_level (drives the Gallop Score grade AND
+    // the demote floor) both move to the chosen grade. This makes the override coherent and STICKY
+    // — later careless answers or a re-placement can't erode a level the parent explicitly set.
+    db.prepare('UPDATE subject_state SET level=?, placed=1, placed_level=?, demonstrated_level=?, last_change_aid=? WHERE kid_id=? AND subject=?')
+      .run(lv, lv, lv, latestAid, kidId, subject);
+  } else {
+    db.prepare('UPDATE subject_state SET level=?, placed=1, last_change_aid=? WHERE kid_id=? AND subject=?').run(lv, latestAid, kidId, subject);
+  }
   return lv;
 }
 
