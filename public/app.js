@@ -1074,8 +1074,8 @@ route('landing', async () => {
     <h2 class="section-title reveal">A home for accelerated learners</h2>
     <p class="section-sub">The kids who race ahead don't hit a ceiling here. Gallop has a separate Advanced Track that goes past grade level into college-level and honors work — real challenge, on demand, all year long.</p>
     <div class="feature-grid">
-      <div class="feature reveal"><div class="fnum">ADVANCED PLACEMENT</div><h3>College-level AP practice</h3><p>Exam-style sets for AP Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English Language, English Literature, and Spanish.</p></div>
-      <div class="feature reveal"><div class="fnum">HONORS &amp; BEYOND</div><h3>Push past the standard track</h3><p>Honors-level Precalculus, Spanish, and more for students who have already mastered their grade and want to keep climbing.</p></div>
+      <div class="feature reveal"><div class="fnum">ADVANCED PLACEMENT</div><h3>Real AP rigor, not just multiple choice</h3><p>Every AP subject — Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English Language &amp; Literature, and Spanish — now includes <b>free-response questions</b> with worked model solutions and AP-style rubrics, plus a <b>timed exam simulator</b> that gives an estimated 1–5 score.</p></div>
+      <div class="feature reveal"><div class="fnum">HONORS &amp; BEYOND</div><h3>Track your exam readiness</h3><p>Honors Precalculus, Spanish, and state-test prep, plus a per-subject readiness gauge so accelerated students see exactly how close they are to exam-ready — and where to push next.</p></div>
       <div class="feature reveal"><div class="fnum">EXAM READY</div><h3>Aligned to the real tests</h3><p>Practice matched to the tests that count — AP-style sets, honors work, and state test prep in math, science, and English built on rigorous state standards.</p></div>
     </div>
     <p class="section-sub reveal" style="margin-top:6px">The Advanced Track is its own space, so working ahead never disturbs a child's grade-level placement or Gallop Score. And the core high-school math ladder now runs pre-algebra, algebra, geometry, trigonometry, pre-calculus, calculus, and statistics.</p>
@@ -1667,7 +1667,7 @@ route('home', async () => {
       <div class="zone-card" onclick="location.hash='#trophies'"><span class="zemoji">🏆</span><b>Trophy Case</b><span class="muted">${playful() ? 'Your badges, trophies & next goals!' : 'Badges, certificates & milestones'}</span></div>
       <div class="zone-card" onclick="location.hash='#buddies'"><span class="zemoji">💌</span><b>Buddies</b><span class="muted">${playful() ? 'Cheer on your friends!' : 'See your crew’s streaks and send props'}</span></div>
       ${k.grade >= 3 ? `<div class="zone-card" onclick="location.hash='#careers/${k.id}'"><span class="zemoji">🔭</span><b>Explore Futures</b><span class="muted">${playful() ? 'Discover cool jobs & the real people who do them!' : 'Real careers, what they involve, and people who do them'}</span></div>` : ''}
-      ${k.grade >= 8 ? `<div class="zone-card exam-zone" onclick="location.hash='#exam'"><span class="zemoji">🎓</span><b>Advanced Track</b><span class="muted">Ahead of your grade? AP, Honors & college-level practice</span></div>` : ''}
+      ${k.grade >= 8 ? `<div class="zone-card exam-zone" onclick="location.hash='#exam'"><span class="zemoji">🎓</span><b>Advanced Track</b><span class="muted">AP free-response, exam simulator & honors — real challenge</span></div>` : ''}
     </div>
   </div>`);
   wireChrome();
@@ -2213,7 +2213,7 @@ const EXAM_BLURB = {
   AP: 'College-level AP practice',
   Honors: 'Honors-level challenge'
 };
-route('exam', async (trackId) => {
+route('exam', async (trackId, mode, sub) => {
   if (State.me.role !== 'kid') { location.hash = '#kid-login'; return; }
   // Advanced Track is for grade 8+ (same gate as the home tile) — a younger kid
   // deep-linking here goes home instead of into AP calculus.
@@ -2223,6 +2223,9 @@ route('exam', async (trackId) => {
   try { tracks = (await api('/learn/tracks')).tracks || []; } catch (e) { tracks = []; }
 
   if (!trackId) {
+    let prog = {};
+    try { prog = (await api('/learn/' + kidId + '/tracks/progress')).progress || {}; } catch (e) { prog = {}; }
+    window.__examProg = prog;
     if (!tracks.length) {
       app().innerHTML = topbar(`<div class="container" style="max-width:640px"><div class="card center">
         <div class="big-emoji">🎓</div><h2>The Advanced Track is warming up</h2>
@@ -2239,10 +2242,13 @@ route('exam', async (trackId) => {
         <div class="exam-grid">
           ${groups[exam].map(t => {
             const c = (SUBJECT_STYLE[t.subject] || {}).color || '#1A5C38';
+            const p = (window.__examProg || {})[t.id];
+            const badge = p && p.estBand ? `<span class="exam-ready" title="Estimated score from your practice">Est. ${p.estBand}/5</span>` : '';
             return `<button class="exam-card" data-track="${t.id}" style="--tc:${c}">
               <span class="exam-emoji">${t.emoji || '🎓'}</span>
               <b>${esc(t.name)}</b>
-              <span class="exam-count">${t.count} questions</span>
+              <span class="exam-count">${t.count} MCQ${t.frqCount ? ` · ${t.frqCount} FRQ` : ''}</span>
+              ${badge}
             </button>`;
           }).join('')}
         </div>
@@ -2261,9 +2267,14 @@ route('exam', async (trackId) => {
     return;
   }
 
-  // ----- practice a specific track -----
   const track = tracks.find(t => t.id === trackId);
   if (!track) { location.hash = '#exam'; return; }
+  // Mode dispatch: hub (default), MC practice, free-response, exam simulator.
+  if (mode === 'frq') { await examFrq(kidId, track, sub); return; }
+  if (mode === 'sim') { await examSim(kidId, track); return; }
+  if (mode !== 'practice') { await examHub(kidId, track); return; }
+
+  // ----- MC practice a specific track (mode === 'practice') -----
   const style = SUBJECT_STYLE[track.subject] || { color: '#1A5C38', emoji: '🎓' };
   const SESSION_LEN = 12;
   const session = { n: 0, correct: 0, xp: 0, startedAt: Date.now(), qStart: Date.now() };
@@ -2385,8 +2396,8 @@ route('exam', async (trackId) => {
         <div class="sstat"><div class="n">+${session.xp}</div>XP earned</div>
         <div class="sstat"><div class="n">${mins}</div>min${mins > 1 ? 's' : ''}</div>
       </div>
-      <button class="btn green" onclick="location.hash='#exam/${trackId}';location.reload()">Practice again 🔁</button>
-      <button class="btn" style="margin-left:8px" onclick="location.hash='#exam'">Other exams →</button>
+      <button class="btn green" onclick="location.hash='#exam/${trackId}/practice';location.reload()">Practice again 🔁</button>
+      <button class="btn" style="margin-left:8px" onclick="location.hash='#exam/${trackId}'">Back to ${esc(track.name.split(':').pop().trim())} →</button>
       <button class="btn ghost small on-page" style="margin-left:8px" onclick="location.hash='#home'">Home</button>
     </div></div>`);
     wireChrome();
@@ -2394,6 +2405,266 @@ route('exam', async (trackId) => {
 
   await nextQuestion();
 });
+
+// ---- Advanced Track hub: readiness + choose a mode ----
+function bandColor(b) { return b >= 4 ? '#1a7a4a' : b === 3 ? '#2f5fa6' : b ? '#c2661f' : '#8a93a3'; }
+async function examHub(kidId, track) {
+  const style = SUBJECT_STYLE[track.subject] || { color: '#1A5C38' };
+  let p = null;
+  try { p = (await api('/learn/' + kidId + '/track/' + track.id + '/progress')).progress; } catch (e) { p = null; }
+  const ready = p && p.readiness != null;
+  const band = p && p.estBand;
+  app().innerHTML = topbar(`<div class="container" style="max-width:760px">
+    <div class="tcrumb"><a href="#exam">← Advanced Track</a></div>
+    <div class="exam-hub-head" style="--tc:${style.color}">
+      <span class="exam-emoji" style="font-size:2.4rem">${track.emoji || '🎓'}</span>
+      <div style="flex:1"><h1 style="margin:0">${esc(track.name)}</h1>
+        <p class="muted" style="margin:2px 0 0">${esc(track.exam)} · ${track.count} multiple-choice · ${track.frqCount || 0} free-response. Working here never changes your grade level — it's pure challenge.</p></div>
+    </div>
+    <div class="exam-ready-panel">
+      <div class="erp-gauge" style="--c:${bandColor(band)}">
+        <div class="erp-band">${band ? band : '—'}<small>/5</small></div>
+        <div class="erp-label">${band ? 'Estimated score' : 'Not scored yet'}</div>
+      </div>
+      <div class="erp-stats">
+        <div><b>${p && p.readiness != null ? p.readiness + '%' : '—'}</b><span>Exam readiness</span></div>
+        <div><b>${p && p.mcPct != null ? p.mcPct + '%' : '—'}</b><span>MCQ accuracy${p && p.mcAttempts ? ' (' + p.mcAttempts + ')' : ''}</span></div>
+        <div><b>${p && p.frqPct != null ? p.frqPct + '%' : '—'}</b><span>Free-response${p && p.frqAttempts ? ' (' + p.frqAttempts + ')' : ''}</span></div>
+        <div><b>${p && p.bestExamScore ? p.bestExamScore + '/5' : '—'}</b><span>Best exam sim</span></div>
+      </div>
+    </div>
+    <div class="exam-modes">
+      <button class="exam-mode" data-mode="practice">
+        <span class="em-ic">📝</span><b>Multiple-choice practice</b>
+        <span class="em-sub">Adaptive-style MCQ sets with hints and full explanations. Build speed and accuracy.</span>
+      </button>
+      <button class="exam-mode ${track.frqCount ? '' : 'em-disabled'}" data-mode="frq" ${track.frqCount ? '' : 'disabled'}>
+        <span class="em-ic">✍️</span><b>Free-response ${track.frqCount ? `<span class="em-tag">${track.frqCount}</span>` : '<span class="em-soon">soon</span>'}</b>
+        <span class="em-sub">The real AP challenge: multi-part problems you work out, then score against a model solution &amp; rubric.</span>
+      </button>
+      <button class="exam-mode" data-mode="sim">
+        <span class="em-ic">⏱️</span><b>Exam simulator</b>
+        <span class="em-sub">A timed, mixed paper (MCQ + free-response) that gives you an estimated 1–5 score.</span>
+      </button>
+    </div>
+    <p class="muted" style="font-size:.8rem;margin-top:14px">Estimated scores are practice projections from your work here, not official College Board scores.</p>
+  </div>`);
+  wireChrome();
+  document.querySelectorAll('.exam-mode').forEach(b => { if (!b.disabled) b.onclick = () => { Sound.click(); location.hash = '#exam/' + track.id + '/' + b.dataset.mode; }; });
+}
+
+// ---- Free-response: list, then work + reveal model solution + self-score ----
+async function examFrq(kidId, track, frqId) {
+  const style = SUBJECT_STYLE[track.subject] || { color: '#1A5C38' };
+  const vlang = track.subject === 'spanish' ? 'es-ES' : 'en-US';
+  if (!frqId) {
+    let list = [];
+    try { list = (await api('/learn/' + kidId + '/track/' + track.id + '/frqs')).frqs || []; } catch (e) { list = []; }
+    app().innerHTML = topbar(`<div class="container" style="max-width:680px">
+      <div class="tcrumb"><a href="#exam/${track.id}">← ${esc(track.name)}</a></div>
+      <h1 style="margin:6px 0 2px">Free-response</h1>
+      <p class="muted" style="margin:0 0 16px">Pick a problem. Work it fully on paper, then reveal the model solution and score yourself against the AP rubric — that's how strong students prep.</p>
+      ${list.length ? `<div class="frq-list">${list.map(f => `<button class="frq-card" data-id="${f.id}">
+        <div><b>${esc(f.topic)}</b><span class="frq-meta">${f.parts} part${f.parts > 1 ? 's' : ''} · ${f.maxPoints} points${f.essay ? ' · essay + rubric' : ''}${f.calculator === true ? ' · calculator' : f.calculator === false ? ' · no calculator' : ''}</span></div>
+        <span class="frq-go">Start →</span>
+      </button>`).join('')}</div>` : '<div class="card center"><p class="muted">Free-response for this track is coming soon.</p></div>'}
+    </div>`);
+    wireChrome();
+    document.querySelectorAll('.frq-card').forEach(b => b.onclick = () => { Sound.click(); location.hash = '#exam/' + track.id + '/frq/' + b.dataset.id; });
+    return;
+  }
+  let f = null;
+  try { f = (await api('/learn/' + kidId + '/track/' + track.id + '/frq/' + frqId)).frq; } catch (e) { f = null; }
+  if (!f) { location.hash = '#exam/' + track.id + '/frq'; return; }
+  const partsHTML = f.parts.map((pt, i) => `
+    <div class="frq-part">
+      <div class="frq-part-head"><span class="frq-part-label">${esc(pt.label)}</span><span class="frq-part-pts">${pt.points} pt${pt.points > 1 ? 's' : ''}</span></div>
+      <div class="frq-ask">${esc(pt.ask)}</div>
+      <textarea class="frq-work" data-i="${i}" rows="3" placeholder="Work / answer for ${esc(pt.label)}…"></textarea>
+      <div class="frq-solution" id="sol-${i}" hidden>
+        <div class="frq-sol-label">Model solution &amp; rubric</div>
+        <div class="frq-sol-text">${esc(pt.solution)}</div>
+        <div class="frq-score-row">Points you earned:
+          <div class="frq-pts" data-part="${i}" data-max="${pt.points}">
+            ${Array.from({ length: pt.points + 1 }, (_, v) => `<button class="frq-pt" data-v="${v}">${v}</button>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+  app().innerHTML = topbar(`<div class="container" style="max-width:720px">
+    <div class="tcrumb"><a href="#exam/${track.id}/frq">← Free-response</a></div>
+    <div class="frq-head" style="--tc:${style.color}">
+      <span class="q-skill" style="background:${style.color}">${esc(track.exam)} · Free Response</span>
+      <h2 style="margin:8px 0 2px">${esc(f.topic)}</h2>
+      <span class="muted" style="font-size:.85rem">${f.maxPoints} points${f.calculator === true ? ' · calculator allowed' : f.calculator === false ? ' · no calculator' : ''}</span>
+      <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="frq-say">🔊 Read prompt</button>
+    </div>
+    ${f.prompt ? `<div class="frq-prompt">${esc(f.prompt)}</div>` : ''}
+    ${f.note ? `<div class="frq-tip">💡 ${esc(f.note)}</div>` : ''}
+    <div class="frq-parts">${partsHTML}</div>
+    <div class="frq-actions">
+      <button class="btn sun" id="frq-reveal">Reveal model solution &amp; rubric</button>
+      <button class="btn green" id="frq-submit" style="display:none">Save my score →</button>
+    </div>
+    <div class="frq-total" id="frq-total" style="display:none"></div>
+  </div>`);
+  wireChrome();
+  $('#frq-say').onclick = () => Voice.speak(f.prompt || f.topic, vlang);
+  let scores = {};
+  $('#frq-reveal').onclick = () => {
+    Sound.click();
+    f.parts.forEach((_, i) => { const el = $('#sol-' + i); if (el) el.hidden = false; });
+    $('#frq-reveal').style.display = 'none';
+    $('#frq-submit').style.display = 'inline-flex';
+    document.querySelectorAll('.frq-pt').forEach(btn => btn.onclick = () => {
+      const wrap = btn.closest('.frq-pts'); const part = wrap.dataset.part;
+      wrap.querySelectorAll('.frq-pt').forEach(x => x.classList.remove('sel')); btn.classList.add('sel');
+      scores[part] = Number(btn.dataset.v);
+      const total = Object.values(scores).reduce((a, b) => a + b, 0);
+      $('#frq-total').style.display = 'block';
+      $('#frq-total').innerHTML = `Your score: <b>${total} / ${f.maxPoints}</b>`;
+    });
+    $('#frq-total').style.display = 'block';
+    $('#frq-total').innerHTML = `Select the points you earned for each part.`;
+  };
+  $('#frq-submit').onclick = async () => {
+    const earned = Object.values(scores).reduce((a, b) => a + b, 0);
+    try {
+      const r = await api('/learn/' + kidId + '/track/frq/score', { method: 'POST', body: { trackId: track.id, frqId: f.id, pointsEarned: earned } });
+      Confetti.burst(earned >= f.maxPoints * 0.6 ? 160 : 80); Sound.levelup();
+      if (State.me.kid && r.kid) State.me.kid = r.kid;
+      const pct = Math.round(earned / f.maxPoints * 100);
+      app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
+        <div class="big-emoji">${pct >= 80 ? '🌟' : pct >= 55 ? '💪' : '📚'}</div>
+        <h2>${earned} / ${f.maxPoints} points</h2>
+        <p class="muted" style="margin:8px 0 16px">${pct >= 80 ? 'Outstanding — that\'s exam-ready free-response work.' : pct >= 55 ? 'Solid. Review the model solution for the points you missed.' : 'Free-response is the hardest part — reworking the model solution is how you level up.'}</p>
+        <button class="btn green" onclick="location.hash='#exam/${track.id}/frq'">More free-response →</button>
+        <button class="btn" style="margin-left:8px" onclick="location.hash='#exam/${track.id}'">Back to ${esc(track.name.split(':').pop().trim())}</button>
+      </div></div>`);
+      wireChrome();
+    } catch (e) { toast(e.message || 'Could not save your score.'); }
+  };
+}
+
+// ---- Exam simulator: timed MCQ + FRQ → estimated 1–5 score ----
+async function examSim(kidId, track) {
+  const style = SUBJECT_STYLE[track.subject] || { color: '#1A5C38' };
+  let paper = null;
+  try { paper = await api('/learn/' + kidId + '/track/' + track.id + '/exam'); } catch (e) { paper = null; }
+  if (!paper || !paper.mc || !paper.mc.length) { toast('Could not build an exam right now.'); location.hash = '#exam/' + track.id; return; }
+  // Intro screen
+  app().innerHTML = topbar(`<div class="container" style="max-width:600px"><div class="card center">
+    <div class="big-emoji">⏱️</div>
+    <h2>${esc(track.name)} — Exam Simulator</h2>
+    <p class="muted" style="margin:8px 0 6px">${paper.mc.length} multiple-choice question${paper.mc.length > 1 ? 's' : ''}${paper.frq ? ' + 1 free-response' : ''}. Suggested time: <b>${Math.round(paper.timeSuggestSec / 60)} min</b>.</p>
+    <p class="muted" style="font-size:.85rem;margin:0 0 16px">Answer the MCQ section first, then work the free-response and self-score it. You'll get an estimated 1–5 score at the end.</p>
+    <button class="btn green" id="sim-start">Start the exam →</button>
+    <button class="btn ghost small on-page" style="margin-left:8px" onclick="location.hash='#exam/${track.id}'">Cancel</button>
+  </div></div>`);
+  wireChrome();
+  const state = { i: 0, correct: 0, answers: [], startedAt: Date.now(), frqPoints: 0, frqMax: paper.frq ? paper.frq.maxPoints : 0 };
+  const vlang = track.subject === 'spanish' ? 'es-ES' : 'en-US';
+  $('#sim-start').onclick = () => { Sound.click(); mcQ(); };
+
+  function mcQ() {
+    if (state.i >= paper.mc.length) { return paper.frq ? frqSection() : finish(); }
+    const qn = paper.mc[state.i];
+    let answered = false;
+    app().innerHTML = topbar(`<div class="container lesson-wrap">
+      <div class="lesson-top"><b>${track.emoji || '🎓'} Section I · MCQ</b>${gallopTrack(state.i / paper.mc.length * 100)}<b>${state.i + 1}/${paper.mc.length}</b></div>
+      <div class="q-card">
+        <span class="q-skill" style="background:${style.color}">${esc(track.exam)} · exam mode</span>
+        ${qn.passage ? passageHTML(qn.passage, false) : ''}
+        <div class="q-prompt">${esc(qn.prompt)}</div>
+        <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
+        <div class="feedback" id="feedback" aria-live="polite"></div>
+        <div class="lesson-actions"><button class="btn green" id="next-btn" style="display:none">Next →</button></div>
+      </div>
+    </div>`);
+    wireChrome();
+    document.querySelectorAll('.choice').forEach(b => b.onclick = () => {
+      if (answered) return; answered = true;
+      const i = Number(b.dataset.i), correct = i === qn.answerIndex;
+      document.querySelectorAll('.choice').forEach(x => x.disabled = true);
+      b.classList.add(correct ? 'correct' : 'wrong');
+      if (!correct) { const ar = document.querySelectorAll('.choice')[qn.answerIndex]; if (ar) ar.classList.add('answer-reveal'); }
+      if (correct) { state.correct++; Sound.correct(); } else Sound.wrong();
+      state.i++;
+      $('#next-btn').style.display = 'inline-flex';
+      $('#next-btn').onclick = () => { Sound.click(); mcQ(); };
+    });
+  }
+
+  function frqSection() {
+    const f = paper.frq;
+    const partsHTML = f.parts.map((pt, i) => `
+      <div class="frq-part">
+        <div class="frq-part-head"><span class="frq-part-label">${esc(pt.label)}</span><span class="frq-part-pts">${pt.points} pt${pt.points > 1 ? 's' : ''}</span></div>
+        <div class="frq-ask">${esc(pt.ask)}</div>
+        <textarea class="frq-work" rows="3" placeholder="Your work…"></textarea>
+        <div class="frq-solution" id="ssol-${i}" hidden>
+          <div class="frq-sol-label">Model solution &amp; rubric</div>
+          <div class="frq-sol-text">${esc(pt.solution)}</div>
+          <div class="frq-score-row">Points earned:
+            <div class="frq-pts" data-part="${i}">${Array.from({ length: pt.points + 1 }, (_, v) => `<button class="frq-pt" data-v="${v}">${v}</button>`).join('')}</div>
+          </div>
+        </div>
+      </div>`).join('');
+    app().innerHTML = topbar(`<div class="container" style="max-width:720px">
+      <div class="lesson-top"><b>${track.emoji || '🎓'} Section II · Free Response</b><b>${f.maxPoints} pts</b></div>
+      <div class="frq-head" style="--tc:${style.color}"><h2 style="margin:0 0 2px">${esc(f.topic)}</h2></div>
+      ${f.prompt ? `<div class="frq-prompt">${esc(f.prompt)}</div>` : ''}
+      <div class="frq-parts">${partsHTML}</div>
+      <div class="frq-actions">
+        <button class="btn sun" id="ssim-reveal">Reveal solution &amp; score</button>
+        <button class="btn green" id="ssim-finish" style="display:none">Finish exam →</button>
+      </div>
+      <div class="frq-total" id="ssim-total" style="display:none"></div>
+    </div>`);
+    wireChrome();
+    let sc = {};
+    $('#ssim-reveal').onclick = () => {
+      Sound.click();
+      f.parts.forEach((_, i) => { const el = $('#ssol-' + i); if (el) el.hidden = false; });
+      $('#ssim-reveal').style.display = 'none'; $('#ssim-finish').style.display = 'inline-flex';
+      document.querySelectorAll('.frq-pt').forEach(btn => btn.onclick = () => {
+        const wrap = btn.closest('.frq-pts'); wrap.querySelectorAll('.frq-pt').forEach(x => x.classList.remove('sel')); btn.classList.add('sel');
+        sc[wrap.dataset.part] = Number(btn.dataset.v);
+        const total = Object.values(sc).reduce((a, b) => a + b, 0);
+        $('#ssim-total').style.display = 'block'; $('#ssim-total').innerHTML = `Free-response: <b>${total} / ${f.maxPoints}</b>`;
+      });
+    };
+    $('#ssim-finish').onclick = () => { state.frqPoints = Object.values(sc).reduce((a, b) => a + b, 0); finish(); };
+  }
+
+  async function finish() {
+    let r = null;
+    try {
+      r = await api('/learn/' + kidId + '/track/exam/score', { method: 'POST', body: {
+        trackId: track.id, mcCorrect: state.correct, mcTotal: paper.mc.length,
+        frqPoints: state.frqPoints, frqMax: state.frqMax, timeMs: Date.now() - state.startedAt
+      } });
+    } catch (e) { toast(e.message || 'Could not score the exam.'); }
+    if (State.me.kid && r && r.kid) State.me.kid = r.kid;
+    const band = r ? r.band : estBandClient(state);
+    const composite = r ? r.composite : null;
+    Confetti.burst(band >= 4 ? 240 : 120); Sound.levelup();
+    app().innerHTML = topbar(`<div class="container" style="max-width:600px"><div class="card center">
+      <div class="big-emoji">${band >= 4 ? '🏆' : band === 3 ? '🎯' : '📚'}</div>
+      <h2>Estimated score: ${band}/5</h2>
+      <p class="muted" style="margin:6px 0 14px">${band >= 4 ? 'College-ready work — you\'d be in strong shape on exam day.' : band === 3 ? 'A passing estimate — tighten your weak spots and push for a 4–5.' : 'Keep going — every exam sim and free-response makes the next score higher.'}</p>
+      <div class="summary-stats">
+        <div class="sstat"><div class="n">${state.correct}/${paper.mc.length}</div>MCQ</div>
+        ${state.frqMax ? `<div class="sstat"><div class="n">${state.frqPoints}/${state.frqMax}</div>free-response</div>` : ''}
+        ${composite != null ? `<div class="sstat"><div class="n">${composite}%</div>composite</div>` : ''}
+      </div>
+      <button class="btn green" onclick="location.hash='#exam/${track.id}/sim';location.reload()">New exam 🔁</button>
+      <button class="btn" style="margin-left:8px" onclick="location.hash='#exam/${track.id}'">Back to ${esc(track.name.split(':').pop().trim())}</button>
+    </div></div>`);
+    wireChrome();
+  }
+  function estBandClient(s) { const pct = paper.mc.length ? s.correct / paper.mc.length * 100 : 0; return pct >= 75 ? 5 : pct >= 62 ? 4 : pct >= 48 ? 3 : pct >= 33 ? 2 : 1; }
+}
 
 // ======================= report card =======================
 // Per-subject pace status, makes the adaptive guardrails visible to parents.
