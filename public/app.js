@@ -2932,15 +2932,54 @@ function computeDoNext(r) {
   }
   return { s, concept, remaining, eta };
 }
+// A specific, <5-minute, no-materials home activity tied to the actual skill/concept — never the
+// generic "ask them to teach you." Keyword-matched to the focus skill, with a concrete fallback per
+// subject so a parent always gets something usable (PP-102).
+const PARENT_ACTIONS = [
+  // Math
+  { subj: 'math', kw: /fraction|numerator|denominator|equivalent/i, a: n => `Grab food you can split — a sandwich, crackers, an orange. Cut it into equal parts and ask ${n} to name the fraction of one piece ("1 of 4 is one-fourth"). Split a second thing into more pieces and ask if a half is still a half.` },
+  { subj: 'math', kw: /multipl|times|product|array/i, a: n => `Pick a number 2–9 and count up by it together out loud, tapping fingers (3, 6, 9, 12…). Then ask ${n} two facts out of order ("what's 3 × 7?"). Two minutes builds the recall.` },
+  { subj: 'math', kw: /divi|quotient|share/i, a: n => `Deal a pile of small items (coins, grapes) into equal groups and ask ${n} how many are in each. "12 shared by 3 is 4" — division you can see.` },
+  { subj: 'math', kw: /place value|hundred|tens|ones|digit|round/i, a: n => `Say a 3-digit number and ask ${n} which digit is in the tens place, then the hundreds. Ask what the "5" is worth in 350 versus 305.` },
+  { subj: 'math', kw: /percent|discount|tax|tip/i, a: n => `At the next "25% off" sign, ask ${n} what you'd actually pay on a $40 item. Real discounts make percent click.` },
+  { subj: 'math', kw: /decimal|money|dollar/i, a: n => `Use coins: 3 dimes is $0.30, 3 pennies is $0.03. Ask ${n} to build a price and read it aloud.` },
+  { subj: 'math', kw: /add|sum|plus/i, a: n => `Use scores or prices: "you have 8, you get 5 more — how many?" Ask ${n} to count on from the bigger number.` },
+  { subj: 'math', kw: /subtract|minus|difference|takeaway/i, a: n => `Play store: it costs 7, you pay 10 — how much change? Let ${n} count up from 7 to 10.` },
+  { subj: 'math', kw: /geometry|angle|shape|area|perimeter|volume/i, a: n => `Walk a room and spot right angles together. For area, ask ${n} how many floor tiles would cover a rug.` },
+  { subj: 'math', kw: /.*/, a: n => `Ask ${n} to walk you out loud through one problem from today — where they pause is exactly the spot to slow down and try one more together.` },
+  // English
+  { subj: 'english', kw: /vowel|phonic|sound|blend|rhyme|spell/i, a: n => `Say three short words aloud (cat, bed, pig). Ask ${n} for the middle (vowel) sound in each, then to think of one more word with that sound.` },
+  { subj: 'english', kw: /inference|infer|conclusion|clue|predict/i, a: n => `Read a few sentences from any book and ask: "How do you think the character feels — and what clue tells you?" Naming the clue is the whole skill.` },
+  { subj: 'english', kw: /main idea|summar|theme|central/i, a: n => `After a page or a short video, ask ${n} to say what it was mostly about in ONE sentence. Squeezing it small is the skill.` },
+  { subj: 'english', kw: /vocab|synonym|antonym|context|meaning/i, a: n => `Pick one new word ${n} read today. Ask them to use it in a sentence about your family, then name a word that means the opposite.` },
+  { subj: 'english', kw: /figurative|simile|metaphor|hyperbole|idiom/i, a: n => `Say "I'm so hungry I could eat a horse" and ask ${n} if it's literally true — and what it really means. That's figurative language.` },
+  { subj: 'english', kw: /grammar|noun|verb|adjective|sentence|punctuation|tense/i, a: n => `Point at things around you: ask ${n} for a noun (the thing) and a verb (what it does) — "the dog… runs" — then add an adjective ("the fluffy dog").` },
+  { subj: 'english', kw: /.*/, a: n => `Have ${n} read one short paragraph aloud to you, then ask one "why" or "how do you know" question about it. Talking it through is where reading sticks.` },
+  // Science
+  { subj: 'science', kw: /matter|solid|liquid|gas|state|melt|freeze/i, a: n => `Point out water as ice, liquid, and steam around the house. Ask ${n} which is solid, liquid, gas — and what makes it change.` },
+  { subj: 'science', kw: /plant|photosynth|life cycle|animal|habitat|ecosystem/i, a: n => `Look at a plant or pet together and ask ${n} what it needs to live, and one way it fits where it lives.` },
+  { subj: 'science', kw: /force|motion|energy|gravity|friction|magnet/i, a: n => `Roll a toy on carpet, then a smooth floor, and ask ${n} why one stops sooner. That's friction.` },
+  { subj: 'science', kw: /weather|water cycle|climate|rain|cloud/i, a: n => `On the next rainy or sunny day, ask ${n} where rain comes from — trace water from a puddle up to a cloud and back.` },
+  { subj: 'science', kw: /.*/, a: n => `Pick one thing ${n} learned today and go find an example of it in your home or yard. Spotting the science in real life is what makes it stick.` },
+  // Spanish
+  { subj: 'spanish', kw: /.*/, a: n => `Label three things in your home out loud in Spanish with ${n} (la mesa, la silla, la puerta) and use each in a tiny sentence. Five minutes of naming really sticks.` }
+];
+function parentAction(subject, concept, name) {
+  const c = String(concept || '');
+  const hit = PARENT_ACTIONS.find(e => e.subj === subject && e.kw.test(c))
+    || PARENT_ACTIONS.find(e => e.subj === subject && e.kw.source === '.*');
+  return hit ? hit.a(name) : `Ask ${name} to walk you through one problem out loud — where they pause is the spot to practice together.`;
+}
 function doNextCard(r, k) {
   const dn = computeDoNext(r);
   if (!dn) return '';
   const { s, concept, remaining, eta } = dn;
   const conceptLine = concept && concept !== s.label ? `, especially <b>${esc(concept)}</b>` : '';
+  const action = parentAction(s.subject, concept, esc(k.name.split(' ')[0]));
   return `<div class="do-next">
     <div class="dn-head">🧭 Do this next</div>
-    <p class="dn-focus">Put this week's attention on <b>${esc(s.label)}</b>${conceptLine}.</p>
-    <p class="dn-action">At home: ask ${esc(k.name)} to <b>teach you</b> how ${esc(concept)} works. Explaining it out loud is one of the fastest ways to lock a skill in — and it shows you instantly what's clicked and what hasn't.</p>
+    <p class="dn-focus">Put this week's attention on <b>${esc(s.label)}</b>${conceptLine}. <span class="muted" style="font-weight:400">(Chosen because it's ${esc(k.name.split(' ')[0])}'s lowest-mastery focus skill right now.)</span></p>
+    <p class="dn-action"><b>Try this at home (5 min):</b> ${action}</p>
     ${remaining > 0 && s.nextGradeName ? `<p class="dn-eta"><b>${remaining}</b> more ${esc(s.levelName)} skill${remaining === 1 ? '' : 's'} to reach <b>${esc(s.nextGradeName)}</b>${eta ? (eta.lo === eta.hi ? ` — roughly <b>${eta.lo} week${eta.lo === 1 ? '' : 's'}</b> at this week's pace` : ` — roughly <b>${eta.lo}–${eta.hi} weeks</b> at this week's pace`) : ''}.</p>` : ''}
   </div>`;
 }
@@ -4313,6 +4352,7 @@ route('parent', async () => {
           ${f ? `
             <div style="background:#fdeee7;border-radius:10px;padding:10px 12px;margin:10px 0 4px">
               <div style="font-size:.82rem;color:#b0532f"><b>🎯 Needs a hand with:</b> ${esc(f.name)} <span class="muted">(${SUBJ[f.subject] || f.subject})</span></div>
+              <div style="font-size:.8rem;color:#7a5240;margin-top:6px"><b>5-min try:</b> ${parentAction(f.subject, f.name, esc(k.name.split(' ')[0]))}</div>
               <button class="btn coral small snap-focus" data-kid="${k.id}" data-subject="${f.subject}" data-skill="${esc(f.skillId)}" style="margin-top:8px">✨ Practice this together</button>
             </div>` : (k.overall === 'developing' || k.overall === 'needs-support') ? `
             <p class="muted" style="margin:8px 0 4px;font-size:.85rem">🔎 Gallop is still pinpointing the exact skill for ${esc(k.name.split(' ')[0])} — the next session or two will narrow it down.</p>` : `
