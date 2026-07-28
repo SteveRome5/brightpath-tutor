@@ -27,8 +27,36 @@ router.use(play.router);
 const COOKIE_OPTS = { httpOnly: true, sameSite: 'lax', maxAge: 90 * 86400000, secure: process.env.NODE_ENV === 'production' };
 const AVATARS = ['fox', 'panda', 'dragon', 'unicorn', 'robot', 'astronaut', 'tiger', 'octopus'];
 
-// In-memory placement sessions (short-lived)
-const placements = new Map(); // key `${kidId}:${subject}` -> history[]
+// Placement sessions are persisted to SQLite (placement_sessions) so an in-flight placement
+// survives a deploy, restart, reconnect, or device change — the child resumes exactly where
+// they left off instead of losing every answer (the "Quick hiccup!" data-loss bug). A thin
+// Map-like façade keeps the call sites below unchanged.
+const placements = {
+  get(key) {
+    const [kidId, subject] = splitPKey(key);
+    try {
+      const r = db.prepare('SELECT history FROM placement_sessions WHERE kid_id=? AND subject=?').get(kidId, subject);
+      if (!r) return null;
+      const h = JSON.parse(r.history);
+      return Array.isArray(h) ? h : [];
+    } catch (e) { return null; }
+  },
+  set(key, history) {
+    const [kidId, subject] = splitPKey(key);
+    try {
+      db.prepare(`INSERT INTO placement_sessions (kid_id, subject, history, updated_at)
+        VALUES (?,?,?,datetime('now'))
+        ON CONFLICT(kid_id, subject) DO UPDATE SET history=excluded.history, updated_at=datetime('now')`)
+        .run(kidId, subject, JSON.stringify(history || []));
+    } catch (e) { /* best-effort: never break the quiz on a write hiccup */ }
+  },
+  delete(key) {
+    const [kidId, subject] = splitPKey(key);
+    try { db.prepare('DELETE FROM placement_sessions WHERE kid_id=? AND subject=?').run(kidId, subject); } catch (e) {}
+  }
+};
+// keys are `${kidId}:${subject}`; subject never contains a colon (validSubject-gated).
+function splitPKey(key) { const i = String(key).indexOf(':'); return [Number(key.slice(0, i)), key.slice(i + 1)]; }
 
 // Dependency-free rate limiter for auth endpoints: caps attempts per IP+route window to
 // stop password/PIN brute-force and credential stuffing. In-memory (fine for a single

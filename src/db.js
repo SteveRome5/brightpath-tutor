@@ -460,6 +460,20 @@ try {
   )`);
 } catch (e) {}
 
+// Placement sessions persisted server-side so an in-flight placement survives a deploy,
+// restart, reconnect, or device change (was an in-memory Map that vanished on redeploy —
+// the "Quick hiccup! That didn't load" data-loss bug). history is a JSON array of probes;
+// the row is deleted the moment placement completes.
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS placement_sessions (
+    kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+    subject TEXT NOT NULL,
+    history TEXT NOT NULL DEFAULT '[]',
+    updated_at TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY (kid_id, subject)
+  )`);
+} catch (e) {}
+
 // Schools: a group of teacher accounts under a head of school. Members join with the school code.
 try {
   db.exec(`CREATE TABLE IF NOT EXISTS schools (

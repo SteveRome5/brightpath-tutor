@@ -244,6 +244,10 @@ body[data-theme="scholar"] .subject-card .blob, body[data-theme="academy"] .subj
 /* ---------- lesson player ---------- */
 .lesson-wrap { max-width: 720px; margin: 0 auto; }
 .lesson-top { display: flex; align-items: center; justify-content: space-between; color: var(--chrome-ink); margin-bottom: 12px; gap: 10px; flex-wrap: wrap; }
+.place-meta { font-size: .82rem; font-weight: 700; color: var(--chrome-sub); }
+.saved-chip { color: #1e7a45; font-weight: 800; }
+body[data-theme="academy"] .saved-chip { color: #7ee0a8; }
+.place-grade-note { margin-top: 12px; font-size: .82rem; opacity: .85; }
 .progress-track { flex: 1; min-width: 160px; height: 12px; background: rgba(127,127,127,.22); border-radius: 999px; overflow: hidden; }
 body[data-theme="junior"] .progress-track { height: 16px; background: rgba(255,255,255,.25); }
 .progress-fill { height: 100%; border-radius: 999px; background: var(--accent); width: 0%; transition: width .4s ease; }

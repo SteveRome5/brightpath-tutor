@@ -1756,7 +1756,10 @@ route('placement', async (subject) => {
 
   async function step(body) {
     try {
-      const data = await api(`/learn/${kidId}/placement/${subject}`, { method: 'POST', body: body || { reset: current === null } });
+      // Never auto-reset on entry: placement history is persisted server-side, so posting an
+      // empty body RESUMES from the last saved answer (a fresh kid simply has an empty history
+      // and starts at question one). Only the explicit "Retake placement" action clears it.
+      const data = await api(`/learn/${kidId}/placement/${subject}`, { method: 'POST', body: body || {} });
       if (data.done) return finish(data);
       current = data;
       render(data);
@@ -1764,12 +1767,14 @@ route('placement', async (subject) => {
       if (e.status === 402) { renderPaywall(e.data && e.data.reason); return; }
       app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="card center">
         <div class="big-emoji">🐎</div><h2>Quick hiccup!</h2>
-        <p class="muted" style="margin:10px 0 18px">That didn't load. Tap below to continue your placement quiz.</p>
+        <p class="muted" style="margin:10px 0 18px">That didn't load — but don't worry, <b>your progress is saved</b>. Tap below to pick up right where you left off.</p>
         <button class="btn green" id="retry-p">Continue →</button>
         <button class="btn ghost small" style="margin-left:8px" onclick="location.hash='#home'">🏠 Home</button>
       </div></div>`);
       wireChrome();
-      $('#retry-p').onclick = () => { Sound.click(); step(body); };
+      // Resume from saved state (empty body) rather than resubmitting the failed answer — if the
+      // answer never reached the server the child just re-answers the same question; no double-count.
+      $('#retry-p').onclick = () => { Sound.click(); step({}); };
     }
   }
   function render(data) {
@@ -1777,6 +1782,7 @@ route('placement', async (subject) => {
     app().innerHTML = topbar(`<div class="container lesson-wrap">
       <div class="lesson-top">
         <b>${style.emoji} Finding your ${esc(subject)} level…</b>
+        <span class="place-meta">Question ${data.progress + 1}${data.progress > 0 ? ' · <span class="saved-chip">Saved ✓</span>' : ''}</span>
         ${gallopTrack(Math.min(100, data.progress / 8 * 100))}
       </div>
       <div class="q-card">
@@ -1792,6 +1798,7 @@ route('placement', async (subject) => {
           <button class="btn green" id="place-next" disabled style="opacity:.5">Next →</button>
         </div>
         ${data.progress === 0 ? `<p class="muted" style="margin-top:14px">${playful() ? 'No guessing needed! Saying "I haven\'t learned this yet" is a SMART answer, it helps me find lessons that fit you. You can change your pick before Next.' : 'Skip anything you haven\'t covered, honest answers give you an accurate starting level. You can change your answer before pressing Next.'}</p>` : ''}
+        <p class="muted place-grade-note">🔒 This just finds your starting level — it doesn't affect your school grades, and it saves after every answer.</p>
       </div>
     </div>`);
     wireChrome();

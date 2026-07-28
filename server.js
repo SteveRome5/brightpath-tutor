@@ -117,8 +117,29 @@ if (typeof db.backupNow === 'function') {
   setTimeout(() => db.backupNow(), 60 * 1000).unref?.();
 }
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`\n  🐎 Gallop Learning Academy is running!`);
   console.log(`  → http://localhost:${PORT}`);
   console.log(`  Billing mode: ${process.env.STRIPE_SECRET_KEY ? 'Stripe (' + (process.env.STRIPE_SECRET_KEY.startsWith('sk_test') ? 'TEST' : 'LIVE') + ')' : 'demo (no Stripe keys set)'}\n`);
 });
+
+// Graceful shutdown: on a deploy, Render sends SIGTERM before killing the process. Stop taking
+// new connections, let in-flight requests finish (so nobody gets a mid-request 502), take a
+// final DB backup, then exit. Placement state is already persisted per-answer, so a child mid-
+// placement resumes cleanly on the new instance. Hard-exit after 10s so a hung socket can't
+// block the rollover forever.
+let shuttingDown = false;
+function gracefulShutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`\n  ${signal} received — draining in-flight requests…`);
+  const force = setTimeout(() => { console.log('  drain timed out — forcing exit'); process.exit(0); }, 10000);
+  force.unref?.();
+  server.close(() => {
+    try { if (typeof db.backupNow === 'function') db.backupNow(); } catch (e) {}
+    console.log('  drained cleanly — bye 👋');
+    process.exit(0);
+  });
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
