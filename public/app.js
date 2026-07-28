@@ -815,7 +815,15 @@ function wireChrome() {
     if (skip) skip.onclick = (e) => { e.stopPropagation(); if (!Music.on) { Music.toggle(currentMusicMood()); if ($('#music-sw')) $('#music-sw').classList.add('on'); } else { Music.skip(); } };
   }
   const lb = $('#logout-btn');
-  if (lb) lb.onclick = async () => { await api('/auth/logout', { method: 'POST' }); await refreshMe(); location.hash = '#'; };
+  if (lb) lb.onclick = async () => {
+    try { await api('/auth/logout', { method: 'POST' }); } catch (e) { /* clear locally regardless */ }
+    State.me = { role: 'guest' };
+    // Force a re-render to the signed-out state on EVERY route. Setting the hash alone won't fire
+    // hashchange when we're already on the landing route (logging out from the marketing page),
+    // which previously left the signed-in header visible on a shared device (P1.5).
+    try { history.replaceState(null, '', location.pathname + '#'); } catch (e) { location.hash = '#'; }
+    navigate();
+  };
   const xk = $('#exit-kid-btn');
   if (xk) xk.onclick = async () => {
     try { await api('/auth/exit-kid', { method: 'POST' }); await refreshMe(); location.hash = isTeacher() ? '#teacher' : '#parent'; }
@@ -897,7 +905,7 @@ route('landing', async () => {
       </div>
       <p class="hero-cta-note muted">Free for 7 days · No card to start · All 4 subjects · From under $1/day on the annual plan</p>`}
       <div class="hero-cta-row">
-        <button class="btn ghost" onclick="location.hash='#demo'">Try a sample lesson — no signup</button>
+        <button class="btn ghost" onclick="location.hash='#demo'">Try 6 sample questions — no signup</button>
         <button class="btn ghost" onclick="location.hash='#kid-login'">Student sign-in</button>
       </div>
     </div>
@@ -937,7 +945,7 @@ route('landing', async () => {
       <div><b>4</b><span>Core subjects</span></div>
       <div><b>300+</b><span>Skill areas</span></div>
       <div><b>300+</b><span>Guided lessons</span></div>
-      <div><b>5,000+</b><span>Accuracy-checked questions</span></div>
+      <div><b>5,000+</b><span>Standards-aligned questions</span></div>
     </div>
     <div class="diff-callout reveal">
       <div class="dc-media">
@@ -1282,7 +1290,7 @@ route('demo', async () => {
       app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
         <div class="big-emoji">🐎</div>
         <h2>${correct}/${DEMO_QUESTIONS.length}, and that's just a sample!</h2>
-        <p class="muted" style="margin:12px 0 6px">The real tutor goes much further: a placement quiz finds your child's exact level in each subject, every answer adapts what comes next, and correct answers earn tokens for the games arcade.</p>
+        <p class="muted" style="margin:12px 0 6px">These are just sample questions. Inside Gallop, every skill starts with a <b>guided lesson</b> that teaches the concept first, a placement check finds your child's exact level in each subject, every answer adapts what comes next, and a wrong answer is re-taught before another try.</p>
         <p class="muted" style="margin-bottom:18px">All four subjects. Every grade K–12. From $34/month.</p>
         <button class="btn green" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start 7-Day Free Trial →</button>
         <button class="btn sun" style="margin-left:8px" onclick="window.__subscribeIntent=1;location.hash='#signup'">Subscribe now →</button>
@@ -1300,7 +1308,7 @@ route('demo', async () => {
     for (let z = shuffled.length - 1; z > 0; z--) { const j = Math.floor(Math.random() * (z + 1));[shuffled[z], shuffled[j]] = [shuffled[j], shuffled[z]]; }
     const ansIdx = shuffled.indexOf(correctText);
     app().innerHTML = topbar(`<div class="container lesson-wrap">
-      <div class="lesson-top"><b>${qn.emoji} Sample lesson, see how Gallop teaches</b>${gallopTrack(idx / DEMO_QUESTIONS.length * 100)}<b>${idx + 1}/${DEMO_QUESTIONS.length}</b></div>
+      <div class="lesson-top"><b>${qn.emoji} Sample questions — a quick taste</b>${gallopTrack(idx / DEMO_QUESTIONS.length * 100)}<b>${idx + 1}/${DEMO_QUESTIONS.length}</b></div>
       <div class="q-card">
         <span class="q-skill" style="background:${qn.color}">${esc(qn.skill)} · ${esc(qn.grade)}</span>
         <div class="q-prompt">${esc(qn.prompt)}</div>
@@ -3878,12 +3886,24 @@ route('parent', async () => {
     el.classList.add('sel'); avatar = el.dataset.a; Sound.click();
   });
   $('#nk-go').onclick = async () => {
+    // Validate ALL required fields in one pass (P1.6): mark each invalid field with aria-invalid,
+    // summarize every problem at once, focus the first invalid field, and keep entered values.
+    const nameEl = $('#nk-name'), pinEl = $('#nk-pin'), consentEl = $('#nk-consent');
+    [nameEl, pinEl, consentEl].forEach(el => el && (el.removeAttribute('aria-invalid'), el.setAttribute('aria-describedby', 'nk-err')));
+    const kidName = nameEl.value.trim();
+    const errs = [];
+    if (!kidName) errs.push({ el: nameEl, msg: 'Enter your child’s name (first name or nickname).' });
+    if (!/^\d{4}$/.test(pinEl.value.trim())) errs.push({ el: pinEl, msg: 'The PIN must be exactly 4 digits.' });
+    if (consentEl && !consentEl.checked) errs.push({ el: consentEl, msg: 'Check the box to confirm parental consent.' });
+    if (errs.length) {
+      errs.forEach(e => e.el && e.el.setAttribute('aria-invalid', 'true'));
+      showError('#nk-err', errs.length === 1 ? errs[0].msg : 'Please fix the following: ' + errs.map(e => e.msg).join(' '));
+      if (errs[0].el) errs[0].el.focus();
+      return;
+    }
     try {
-      const consentEl = $('#nk-consent');
-      if (consentEl && !consentEl.checked) { showError('#nk-err', 'Please check the box to confirm parental consent.'); return; }
       const wasFirst = me.kids.length === 0;
-      const kidName = $('#nk-name').value.trim();
-      const r = await api('/kids', { method: 'POST', body: { name: kidName, grade: Number($('#nk-grade').value), pin: $('#nk-pin').value, avatar, calendar_mode: $('#nk-cal').value, consent: true } });
+      const r = await api('/kids', { method: 'POST', body: { name: kidName, grade: Number($('#nk-grade').value), pin: pinEl.value.trim(), avatar, calendar_mode: $('#nk-cal').value, consent: true } });
       Sound.badge();
       if (wasFirst) { timeToGallop(r.kidId, kidName); return; }
       navigate();
