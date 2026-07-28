@@ -474,6 +474,20 @@ try {
   )`);
 } catch (e) {}
 
+// First-party product-analytics events. Deliberately IDENTIFIER-FREE: we store only the event
+// name and a timestamp — never a child id, name, or any learner detail. This gives the owner
+// aggregate activation-funnel counts (how many placements start vs. complete, etc.) without any
+// third-party tag and without profiling any child. Learner activation must NOT flow to GTM/GA
+// (COPPA), so it flows here instead.
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    ts TEXT DEFAULT (datetime('now'))
+  )`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_events_name_ts ON events(name, ts)');
+} catch (e) {}
+
 // Schools: a group of teacher accounts under a head of school. Members join with the school code.
 try {
   db.exec(`CREATE TABLE IF NOT EXISTS schools (

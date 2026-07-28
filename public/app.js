@@ -341,6 +341,24 @@ window.addEventListener('hashchange', () => { if (!(location.hash || '').startsW
 // Analytics funnel push. Hard no-op inside a child session (COPPA): no learner action ever
 // reaches marketing analytics. Also guarded if GTM/dataLayer isn't present.
 function gtmPush(obj) { try { if (State.me && State.me.role === 'kid') return; window.dataLayer = window.dataLayer || []; window.dataLayer.push(obj); } catch (e) {} }
+// First-party activation beacon — records an allowlisted event name in OUR database only (no
+// third-party tag, no learner identifier). Safe to call inside a child session; that's the whole
+// point (learner activation can't go to GTM/GA, so it comes here). Fire-and-forget.
+function track(name) { try { api('/ev', { method: 'POST', body: { name } }).catch(() => {}); } catch (e) {} }
+// Expose both to inline handlers (this file is an IIFE, so nothing is global by default).
+window.gEv = gtmPush;
+window.track = track;
+// One-time landing view with campaign attribution, so paid traffic is traceable to purchase.
+let _landingSent = false;
+function fireLandingView() {
+  if (_landingSent) return; _landingSent = true;
+  try {
+    const p = new URLSearchParams(location.search);
+    const utm = {};
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(k => { const v = p.get(k); if (v) utm[k] = v.slice(0, 100); });
+    gtmPush(Object.assign({ event: 'landing_view', landing: (location.hash || '#landing').split('/')[0] }, utm));
+  } catch (e) {}
+}
 const PLAN_PRICE = { solo: 34, family: 54, solo_annual: 348, family_annual: 552 };
 
 // ======================= sound engine =======================
@@ -904,12 +922,12 @@ route('landing', async () => {
       ${State.me.role === 'parent'
         ? `<button class="btn hero-primary" onclick="location.hash='#parent'">Go to my dashboard →</button>`
         : `<div class="hero-cta-main">
-        <button class="btn hero-primary" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start my free trial →</button>
-        <button class="btn sun hero-secondary" onclick="window.__subscribeIntent=1;location.hash='#signup'">Subscribe now</button>
+        <button class="btn hero-primary" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'hero_trial'});window.__subscribeIntent=0;location.hash='#signup'">Start my free trial →</button>
+        <button class="btn sun hero-secondary" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'hero_subscribe'});window.__subscribeIntent=1;location.hash='#signup'">Subscribe now</button>
       </div>
       <p class="hero-cta-note muted">Free for 7 days · No card to start · All 4 subjects · From under $1/day on the annual plan</p>`}
       <div class="hero-cta-row">
-        <button class="btn ghost" onclick="location.hash='#demo'">Try 6 sample questions — no signup</button>
+        <button class="btn ghost" onclick="window.gEv&&window.gEv({event:'demo_cta_click',cta:'hero_demo'});location.hash='#demo'">Try 6 sample questions — no signup</button>
         <button class="btn ghost" onclick="location.hash='#kid-login'">Student sign-in</button>
       </div>
     </div>
@@ -1218,8 +1236,23 @@ route('landing', async () => {
     <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow along on Instagram at @learnwithgallop</a><br>
     <a href="/schools" style="color:inherit;opacity:.8">For Schools</a> · <a href="#standards" style="color:inherit;opacity:.8">Standards Alignment</a> · <a href="#help" style="color:inherit;opacity:.8">Help &amp; Support</a> · <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
   </div>
-  ${State.me.role !== 'parent' && State.me.role !== 'kid' ? `<div class="sticky-cta"><button class="btn" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start free trial — no card →</button></div>` : ''}`);
+  ${State.me.role !== 'parent' && State.me.role !== 'kid' ? `<div class="sticky-cta"><button class="btn" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'sticky'});window.__subscribeIntent=0;location.hash='#signup'">Start free trial — no card →</button></div>` : ''}`);
   wireChrome();
+  // ---- funnel instrumentation (adult/public side → GTM; privacy-safe) ----
+  fireLandingView();
+  // FAQ opens: one event the first time each question is expanded.
+  document.querySelectorAll('.faq-block details, details').forEach(d => {
+    let sent = false;
+    d.addEventListener('toggle', () => { if (d.open && !sent) { sent = true; const q = d.querySelector('summary'); gtmPush({ event: 'faq_open', question: (q ? q.textContent : '').slice(0, 80) }); } });
+  });
+  // Pricing seen: fire once when the pricing section scrolls into view.
+  try {
+    const pricing = document.getElementById('s-pricing');
+    if (pricing && 'IntersectionObserver' in window) {
+      const io = new IntersectionObserver((ents) => { ents.forEach(e => { if (e.isIntersecting) { gtmPush({ event: 'pricing_view' }); io.disconnect(); } }); }, { threshold: 0.4 });
+      io.observe(pricing);
+    }
+  } catch (e) {}
   // Interactive product tour: auto-advance through the six views, pause on hover, tabs jump.
   (function initTour() {
     const tour = document.getElementById('tour'); if (!tour) return;
@@ -1288,16 +1321,18 @@ const DEMO_QUESTIONS = [
 ];
 route('demo', async () => {
   let idx = 0, correct = 0;
+  gtmPush({ event: 'demo_start' }); track('demo_start');
   function render() {
     if (idx >= DEMO_QUESTIONS.length) {
       Confetti.burst(200); Sound.levelup();
+      gtmPush({ event: 'demo_complete', score: correct }); track('demo_complete');
       app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
         <div class="big-emoji">🐎</div>
         <h2>${correct}/${DEMO_QUESTIONS.length}, and that's just a sample!</h2>
         <p class="muted" style="margin:12px 0 6px">These are just sample questions. Inside Gallop, every skill starts with a <b>guided lesson</b> that teaches the concept first, a placement check finds your child's exact level in each subject, every answer adapts what comes next, and a wrong answer is re-taught before another try.</p>
         <p class="muted" style="margin-bottom:18px">All four subjects. Every grade K–12. From $34/month.</p>
-        <button class="btn green" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start 7-Day Free Trial →</button>
-        <button class="btn sun" style="margin-left:8px" onclick="window.__subscribeIntent=1;location.hash='#signup'">Subscribe now →</button>
+        <button class="btn green" onclick="window.gEv&&window.gEv({event:'demo_cta_click',cta:'demo_trial'});window.__subscribeIntent=0;location.hash='#signup'">Start 7-Day Free Trial →</button>
+        <button class="btn sun" style="margin-left:8px" onclick="window.gEv&&window.gEv({event:'demo_cta_click',cta:'demo_subscribe'});window.__subscribeIntent=1;location.hash='#signup'">Subscribe now →</button>
         <p class="muted" style="margin-top:10px;font-size:.82rem">Free for 7 days, or subscribe today and skip the wait. Either way you can cancel anytime.</p>
         <button class="btn ghost small" style="color:var(--brand);border-color:var(--brand);margin-top:8px" onclick="location.hash='#'">Back</button>
       </div></div>`);
@@ -1366,8 +1401,9 @@ route('signup', async () => {
       <p class="muted center" style="margin-top:10px">Already have an account? <a href="#login">Log in</a></p>
     </div></div>`);
   wireChrome();
+  gtmPush({ event: 'signup_start', intent: subscribing ? 'subscribe' : 'trial' });
   $('#f-go').onclick = async () => {
-    if (!$('#f-consent').checked) { showError('#f-err', 'Please confirm you are the parent or guardian and agree to the Terms and Privacy Policy to continue.'); return; }
+    if (!$('#f-consent').checked) { gtmPush({ event: 'signup_error', reason: 'consent' }); showError('#f-err', 'Please confirm you are the parent or guardian and agree to the Terms and Privacy Policy to continue.'); return; }
     try {
       await api('/auth/signup', { method: 'POST', body: { name: $('#f-name').value, email: $('#f-email').value, password: $('#f-pass').value, consent: true } });
       gtmPush({ event: 'sign_up', method: 'email', intent: window.__subscribeIntent ? 'subscribe' : 'trial' });
@@ -1375,7 +1411,7 @@ route('signup', async () => {
       // Came from "Sign up now"? Go straight to plan choice → checkout, skipping the trial.
       if (window.__subscribeIntent) { window.__subscribeIntent = 0; location.hash = '#subscribe'; }
       else location.hash = '#parent';
-    } catch (e) { showError('#f-err', e.message); }
+    } catch (e) { gtmPush({ event: 'signup_error', reason: 'api' }); showError('#f-err', e.message); }
   };
 });
 
@@ -1757,6 +1793,7 @@ route('placement', async (subject) => {
   const kidId = State.me.kid.id;
   const style = SUBJECT_STYLE[subject];
   let current = null;
+  let _placeFirstRender = true;
 
   async function step(body) {
     try {
@@ -1765,6 +1802,9 @@ route('placement', async (subject) => {
       // and starts at question one). Only the explicit "Retake placement" action clears it.
       const data = await api(`/learn/${kidId}/placement/${subject}`, { method: 'POST', body: body || {} });
       if (data.done) return finish(data);
+      // First-party activation beacon (kid session — never GTM): distinguish a fresh start from a
+      // resume of a previously-saved placement.
+      if (_placeFirstRender) { _placeFirstRender = false; track(data.progress > 0 ? 'placement_resume' : 'placement_start'); }
       current = data;
       render(data);
     } catch (e) {
@@ -1835,6 +1875,7 @@ route('placement', async (subject) => {
   }
   function finish(data) {
     Sound.levelup(); Confetti.burst(160);
+    track('placement_complete');
     // Only name the grade level to the child if the parent has opted to reveal it — otherwise a
     // child who placed below their grade would see it here. The engine still works at the real level.
     const heading = showLevel() ? `Level found: ${esc(data.levelName)}!` : `You're all set! 🎉`;
@@ -1864,6 +1905,7 @@ route('lesson', async (subject, mode, anchor) => {
   const FOCUS_MIN = 15;
   const SESSION_LEN = focus ? 9999 : 10;
   const session = { n: 0, correct: 0, xp: 0, startedAt: Date.now(), events: [], endAt: focus ? Date.now() + FOCUS_MIN * 60000 : null, focusSkill: anchorSkill };
+  track('lesson_start');
   let focusTimer = null;
   const fmtLeft = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
   if (focus) {
@@ -2125,6 +2167,7 @@ route('lesson', async (subject, mode, anchor) => {
         if (Voice.auto) Voice.speak(`${diag || ('The answer is ' + qn.choices[qn.answerIndex] + '. ' + (qn.explain || ''))}`, 'en-US');
       }
       session.n++; if (correct) session.correct++;
+      if (correct && !session._firstCorrectSent) { session._firstCorrectSent = true; track('first_correct'); }
       try {
         const res = await api(`/learn/${kidId}/answer`, {
           method: 'POST',
@@ -2220,6 +2263,7 @@ route('lesson', async (subject, mode, anchor) => {
 
   function summary() {
     if (focusTimer) clearInterval(focusTimer);
+    if (session.n > 0) track('lesson_complete');
     const denom = focus ? Math.max(1, session.n) : SESSION_LEN;
     const pct = Math.round(session.correct / denom * 100);
     const mins = Math.max(1, Math.round((Date.now() - session.startedAt) / 60000));
@@ -2879,6 +2923,7 @@ route('report', async (kidId) => {
   const r = await api(`/learn/${kidId}/report`);
   const k = r.kid;
   const isParent = State.me.role === 'parent';
+  if (isParent) { gtmPush({ event: 'parent_report_view' }); track('parent_report_view'); }
   app().innerHTML = topbar(`<div class="container">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
@@ -3100,6 +3145,9 @@ route('certificate', async (kidId, certId) => {
 function renderPaywall(reason) {
   // A wrong-answer teaching overlay must never sit on top of the paywall.
   document.querySelectorAll('.celebrate').forEach(el => el.remove());
+  // Funnel: paywall seen. gtmPush self-limits to non-kid (adult) sessions; the first-party
+  // beacon records both parent- and child-side paywall views for the activation funnel.
+  gtmPush({ event: 'paywall_view', reason: reason || undefined }); track('paywall_view');
   // Speak to the actual account state — a long-paying parent with a declined card
   // should not be told they were "on a free trial". The reason comes from the backend
   // 402 (single source of truth), so the child paywall matches the parent dashboard.
@@ -3973,6 +4021,7 @@ route('parent', async () => {
       const wasFirst = me.kids.length === 0;
       const r = await api('/kids', { method: 'POST', body: { name: kidName, grade: Number($('#nk-grade').value), pin: pinEl.value.trim(), avatar, calendar_mode: $('#nk-cal').value, consent: true } });
       Sound.badge();
+      gtmPush({ event: 'learner_added', first: !!wasFirst }); track('learner_added');
       if (wasFirst) { timeToGallop(r.kidId, kidName); return; }
       navigate();
     } catch (e) { showError('#nk-err', e.message); }

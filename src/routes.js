@@ -113,6 +113,34 @@ router.get('/health', (req, res) => {
   } catch (e) { return res.status(503).json({ ok: false, error: 'db' }); }
 });
 
+// First-party activation beacon. Records ONLY an allowlisted event name + timestamp — no learner
+// identifier of any kind — so learner-side activation (which must never reach GTM/GA under COPPA)
+// is still measurable as an aggregate funnel. Unknown names are silently ignored (anti-bloat).
+const EV_ALLOW = new Set([
+  'demo_start', 'demo_complete', 'placement_start', 'placement_resume', 'placement_complete',
+  'lesson_start', 'lesson_complete', 'first_correct', 'paywall_view', 'parent_report_view', 'learner_added'
+]);
+router.post('/ev', (req, res) => {
+  try {
+    const name = String((req.body && req.body.name) || '').slice(0, 40);
+    if (EV_ALLOW.has(name)) db.prepare('INSERT INTO events (name) VALUES (?)').run(name);
+  } catch (e) { /* analytics must never break a user action */ }
+  res.json({ ok: true });
+});
+
+// Owner view: aggregate activation-funnel counts over the last N days (default 30). Admin-only.
+router.get('/admin/funnel', auth.requireAdmin, (req, res) => {
+  const days = Math.min(365, Math.max(1, parseInt(req.query.days, 10) || 30));
+  try {
+    const rows = db.prepare(
+      `SELECT name, COUNT(*) AS n FROM events WHERE ts >= datetime('now', ?) GROUP BY name`
+    ).all(`-${days} days`);
+    const counts = {};
+    for (const r of rows) counts[r.name] = r.n;
+    res.json({ days, counts });
+  } catch (e) { res.status(500).json({ error: 'funnel' }); }
+});
+
 // Idempotency for answer submission: a double-tap or a network retry must not record the
 // same answer twice (which would double-move mastery / double-mint XP). The client sends a
 // per-question nonce; we remember recently-seen (kid, nonce) pairs and no-op on repeats.
