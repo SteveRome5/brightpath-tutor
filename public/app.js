@@ -1082,8 +1082,8 @@ route('landing', async () => {
     <h2 class="section-title reveal">A home for accelerated learners</h2>
     <p class="section-sub">The kids who race ahead don't hit a ceiling here. Gallop has a separate Advanced Track that goes past grade level into college-level and honors work — real challenge, on demand, all year long.</p>
     <div class="feature-grid">
-      <div class="feature reveal"><div class="fnum">ADVANCED PLACEMENT</div><h3>Real AP rigor, not just multiple choice</h3><p>Every AP subject — Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English Language &amp; Literature, and Spanish — now includes <b>free-response questions</b> with worked model solutions and AP-style rubrics, plus a <b>timed exam simulator</b> that gives an estimated 1–5 score.</p></div>
-      <div class="feature reveal"><div class="fnum">HONORS &amp; BEYOND</div><h3>Track your exam readiness</h3><p>Honors Precalculus, Spanish, and state-test prep, plus a per-subject readiness gauge so accelerated students see exactly how close they are to exam-ready — and where to push next.</p></div>
+      <div class="feature reveal"><div class="fnum">ADVANCED PLACEMENT</div><h3>Beyond multiple choice</h3><p>Every AP subject — Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English Language &amp; Literature, and Spanish — includes AP-style multiple-choice practice plus <b>free-response challenges</b> with worked model solutions and self-scoring rubrics, and a short <b>timed mini-mock</b> readiness check.</p></div>
+      <div class="feature reveal"><div class="fnum">HONORS &amp; BEYOND</div><h3>College-level enrichment</h3><p>Honors Precalculus, Spanish, and state-test prep, plus a per-subject progress gauge so accelerated students can see how their practice is building — all without disturbing their normal grade placement.</p></div>
       <div class="feature reveal"><div class="fnum">EXAM READY</div><h3>Aligned to the real tests</h3><p>Practice matched to the tests that count — AP-style sets, honors work, and state test prep in math, science, and English built on rigorous state standards.</p></div>
     </div>
     <p class="section-sub reveal" style="margin-top:6px">The Advanced Track is its own space, so working ahead never disturbs a child's grade-level placement or Gallop Score. And the core high-school math ladder now runs pre-algebra, algebra, geometry, trigonometry, pre-calculus, calculus, and statistics.</p>
@@ -2238,6 +2238,7 @@ route('lesson', async (subject, mode, anchor) => {
 // ======================= exam prep (AP / Honors / Regents) =======================
 // A separate advanced track. Practice never changes a learner's grade level or
 // mastery — it's exam drilling with explanations. Reuses the lesson q-card look.
+const AP_EXAM_YEAR = 'Prep for the 2026–27 exam';
 const EXAM_ORDER = ['AP', 'Honors', 'Regents'];
 const EXAM_BLURB = {
   Regents: 'State test prep',
@@ -2274,11 +2275,11 @@ route('exam', async (trackId, mode, sub) => {
           ${groups[exam].map(t => {
             const c = (SUBJECT_STYLE[t.subject] || {}).color || '#1A5C38';
             const p = (window.__examProg || {})[t.id];
-            const badge = p && p.estBand ? `<span class="exam-ready" title="Estimated score from your practice">Est. ${p.estBand}/5</span>` : '';
+            const badge = p && p.estBand ? `<span class="exam-ready" title="Estimated score from your practice (low-confidence until you've done more)">Est. ${p.estBand}/5</span>` : '';
             return `<button class="exam-card" data-track="${t.id}" style="--tc:${c}">
               <span class="exam-emoji">${t.emoji || '🎓'}</span>
               <b>${esc(t.name)}</b>
-              <span class="exam-count">${t.count} MCQ${t.frqCount ? ` · ${t.frqCount} FRQ` : ''}</span>
+              <span class="exam-count">${t.count} practice Q${t.frqCount ? ` · ${t.frqCount} free-response` : ''}</span>
               ${badge}
             </button>`;
           }).join('')}
@@ -2443,27 +2444,34 @@ async function examHub(kidId, track) {
   const style = SUBJECT_STYLE[track.subject] || { color: '#1A5C38' };
   let p = null;
   try { p = (await api('/learn/' + kidId + '/track/' + track.id + '/progress')).progress; } catch (e) { p = null; }
-  const ready = p && p.readiness != null;
-  const band = p && p.estBand;
+  const band = p && p.estBand;                 // null until the evidence threshold is met
+  const range = p && p.bandRange;
+  const gaugeText = band ? (range && range[0] !== range[1] ? `${range[0]}–${range[1]}` : `${band}`) : '—';
+  const gaugeLabel = band ? (p.confidence === 'high' ? 'Estimated score' : 'Estimated (low confidence)') : 'Keep practicing';
+  const needLine = (!band && p) ? (p.needFrq && p.needMoreMc > 0
+      ? `Answer ~${p.needMoreMc} more questions and try one free-response to unlock a score estimate.`
+      : p.needMoreMc > 0 ? `About ${p.needMoreMc} more questions to unlock a score estimate.`
+      : p.needFrq ? 'Try one free-response to unlock a score estimate.' : 'Keep practicing to build your estimate.') : '';
   app().innerHTML = topbar(`<div class="container" style="max-width:760px">
     <div class="tcrumb"><a href="#exam">← Advanced Track</a></div>
     <div class="exam-hub-head" style="--tc:${style.color}">
       <span class="exam-emoji" style="font-size:2.4rem">${track.emoji || '🎓'}</span>
       <div style="flex:1"><h1 style="margin:0">${esc(track.name)}</h1>
-        <p class="muted" style="margin:2px 0 0">${esc(track.exam)} · ${track.count} multiple-choice · ${track.frqCount || 0} free-response. Working here never changes your grade level — it's pure challenge.</p></div>
+        <p class="muted" style="margin:2px 0 0">${esc(track.exam)} · ${AP_EXAM_YEAR} · ${track.count} practice MCQ available · ${track.frqCount || 0} free-response. Working here never changes your grade level — it's pure challenge.</p></div>
     </div>
     <div class="exam-ready-panel">
-      <div class="erp-gauge" style="--c:${bandColor(band)}">
-        <div class="erp-band">${band ? band : '—'}<small>/5</small></div>
-        <div class="erp-label">${band ? 'Estimated score' : 'Not scored yet'}</div>
+      <div class="erp-gauge" style="--c:${bandColor(band || 0)}">
+        <div class="erp-band">${gaugeText}${band ? '<small>/5</small>' : ''}</div>
+        <div class="erp-label">${gaugeLabel}</div>
       </div>
       <div class="erp-stats">
-        <div><b>${p && p.readiness != null ? p.readiness + '%' : '—'}</b><span>Exam readiness</span></div>
+        <div><b>${band && p.readiness != null ? p.readiness + '%' : '—'}</b><span>Readiness${band ? '' : ' (locked)'}</span></div>
         <div><b>${p && p.mcPct != null ? p.mcPct + '%' : '—'}</b><span>MCQ accuracy${p && p.mcAttempts ? ' (' + p.mcAttempts + ')' : ''}</span></div>
-        <div><b>${p && p.frqPct != null ? p.frqPct + '%' : '—'}</b><span>Free-response${p && p.frqAttempts ? ' (' + p.frqAttempts + ')' : ''}</span></div>
-        <div><b>${p && p.bestExamScore ? p.bestExamScore + '/5' : '—'}</b><span>Best exam sim</span></div>
+        <div><b>${p && p.frqPct != null ? p.frqPct + '%' : '—'}</b><span>Free-response${p && p.frqAttempts ? ' (' + p.frqAttempts + ')' : ''} · self-scored</span></div>
+        <div><b>${p && p.bestExamScore ? p.bestExamScore + '/5' : '—'}</b><span>Best mini-mock</span></div>
       </div>
     </div>
+    ${needLine ? `<p class="muted" style="margin:-6px 0 14px;font-size:.86rem">🔒 ${needLine}</p>` : ''}
     <div class="exam-modes">
       <button class="exam-mode" data-mode="practice">
         <span class="em-ic">📝</span><b>Multiple-choice practice</b>
@@ -2471,14 +2479,14 @@ async function examHub(kidId, track) {
       </button>
       <button class="exam-mode ${track.frqCount ? '' : 'em-disabled'}" data-mode="frq" ${track.frqCount ? '' : 'disabled'}>
         <span class="em-ic">✍️</span><b>Free-response ${track.frqCount ? `<span class="em-tag">${track.frqCount}</span>` : '<span class="em-soon">soon</span>'}</b>
-        <span class="em-sub">The real AP challenge: multi-part problems you work out, then score against a model solution &amp; rubric.</span>
+        <span class="em-sub">AP-style multi-part problems you work out, then <b>self-score</b> against a model solution &amp; rubric.</span>
       </button>
       <button class="exam-mode" data-mode="sim">
-        <span class="em-ic">⏱️</span><b>Exam simulator</b>
-        <span class="em-sub">A timed, mixed paper (MCQ + free-response) that gives you an estimated 1–5 score.</span>
+        <span class="em-ic">⏱️</span><b>30-minute mini mock</b>
+        <span class="em-sub">A short timed diagnostic (10 MCQ + 1 free-response) — a quick readiness check, not a full-length AP exam.</span>
       </button>
     </div>
-    <p class="muted" style="font-size:.8rem;margin-top:14px">Estimated scores are practice projections from your work here, not official College Board scores.</p>
+    <p class="muted" style="font-size:.8rem;margin-top:14px">Estimates are practice projections from your work here (free-response is self-scored) — not official College Board scores, and not a full-length AP exam.</p>
   </div>`);
   wireChrome();
   document.querySelectorAll('.exam-mode').forEach(b => { if (!b.disabled) b.onclick = () => { Sound.click(); location.hash = '#exam/' + track.id + '/' + b.dataset.mode; }; });
@@ -2567,8 +2575,8 @@ async function examFrq(kidId, track, frqId) {
       const pct = Math.round(earned / f.maxPoints * 100);
       app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
         <div class="big-emoji">${pct >= 80 ? '🌟' : pct >= 55 ? '💪' : '📚'}</div>
-        <h2>${earned} / ${f.maxPoints} points</h2>
-        <p class="muted" style="margin:8px 0 16px">${pct >= 80 ? 'Outstanding — that\'s exam-ready free-response work.' : pct >= 55 ? 'Solid. Review the model solution for the points you missed.' : 'Free-response is the hardest part — reworking the model solution is how you level up.'}</p>
+        <h2>${earned} / ${f.maxPoints} points <span style="font-size:.6em;font-weight:600;color:#8a93a3">· self-scored</span></h2>
+        <p class="muted" style="margin:8px 0 16px">${pct >= 80 ? 'Outstanding free-response work. (You scored this yourself against the rubric — be honest with partial credit.)' : pct >= 55 ? 'Solid. Review the model solution for the points you missed.' : 'Free-response is the hardest part — reworking the model solution is how you level up.'}</p>
         <button class="btn green" onclick="location.hash='#exam/${track.id}/frq'">More free-response →</button>
         <button class="btn" style="margin-left:8px" onclick="location.hash='#exam/${track.id}'">Back to ${esc(track.name.split(':').pop().trim())}</button>
       </div></div>`);
@@ -2577,17 +2585,17 @@ async function examFrq(kidId, track, frqId) {
   };
 }
 
-// ---- Exam simulator: timed MCQ + FRQ → estimated 1–5 score ----
+// ---- 30-minute mini mock: timed MCQ + FRQ → estimated 1–5 (diagnostic, self-scored FRQ) ----
 async function examSim(kidId, track) {
   const style = SUBJECT_STYLE[track.subject] || { color: '#1A5C38' };
   let paper = null;
   try { paper = await api('/learn/' + kidId + '/track/' + track.id + '/exam'); } catch (e) { paper = null; }
-  if (!paper || !paper.mc || !paper.mc.length) { toast('Could not build an exam right now.'); location.hash = '#exam/' + track.id; return; }
+  if (!paper || !paper.mc || !paper.mc.length) { toast('Could not build a mini mock right now.'); location.hash = '#exam/' + track.id; return; }
   // Intro screen
   app().innerHTML = topbar(`<div class="container" style="max-width:600px"><div class="card center">
     <div class="big-emoji">⏱️</div>
-    <h2>${esc(track.name)} — Exam Simulator</h2>
-    <p class="muted" style="margin:8px 0 6px">${paper.mc.length} multiple-choice question${paper.mc.length > 1 ? 's' : ''}${paper.frq ? ' + 1 free-response' : ''}. Suggested time: <b>${Math.round(paper.timeSuggestSec / 60)} min</b>.</p>
+    <h2>${esc(track.name)} — 30-Minute Mini Mock</h2>
+    <p class="muted" style="margin:8px 0 6px">${paper.mc.length} multiple-choice question${paper.mc.length > 1 ? 's' : ''}${paper.frq ? ' + 1 free-response' : ''}. Suggested time: <b>${Math.round(paper.timeSuggestSec / 60)} min</b>. This is a short diagnostic, not a full-length AP exam.</p>
     <p class="muted" style="font-size:.85rem;margin:0 0 16px">Answer the MCQ section first, then work the free-response and self-score it. You'll get an estimated 1–5 score at the end.</p>
     <button class="btn green" id="sim-start">Start the exam →</button>
     <button class="btn ghost small on-page" style="margin-left:8px" onclick="location.hash='#exam/${track.id}'">Cancel</button>
@@ -2680,16 +2688,18 @@ async function examSim(kidId, track) {
     const band = r ? r.band : estBandClient(state);
     const composite = r ? r.composite : null;
     Confetti.burst(band >= 4 ? 240 : 120); Sound.levelup();
+    const lo = Math.max(1, band - 1), hi = Math.min(5, band + 1);
     app().innerHTML = topbar(`<div class="container" style="max-width:600px"><div class="card center">
       <div class="big-emoji">${band >= 4 ? '🏆' : band === 3 ? '🎯' : '📚'}</div>
-      <h2>Estimated score: ${band}/5</h2>
-      <p class="muted" style="margin:6px 0 14px">${band >= 4 ? 'College-ready work — you\'d be in strong shape on exam day.' : band === 3 ? 'A passing estimate — tighten your weak spots and push for a 4–5.' : 'Keep going — every exam sim and free-response makes the next score higher.'}</p>
+      <h2>Mini-mock estimate: ${lo === hi ? band : lo + '–' + hi}/5</h2>
+      <p class="muted" style="margin:6px 0 6px">${band >= 4 ? 'Strong work on this short diagnostic.' : band === 3 ? 'A solid passing range on this short diagnostic.' : 'Good practice — keep working the units and free-response to raise it.'}</p>
+      <p class="muted" style="font-size:.82rem;margin:0 0 14px">This is one 30-minute mini mock (free-response self-scored), not a full-length AP exam — treat it as a rough check, not a prediction.</p>
       <div class="summary-stats">
         <div class="sstat"><div class="n">${state.correct}/${paper.mc.length}</div>MCQ</div>
         ${state.frqMax ? `<div class="sstat"><div class="n">${state.frqPoints}/${state.frqMax}</div>free-response</div>` : ''}
         ${composite != null ? `<div class="sstat"><div class="n">${composite}%</div>composite</div>` : ''}
       </div>
-      <button class="btn green" onclick="location.hash='#exam/${track.id}/sim';location.reload()">New exam 🔁</button>
+      <button class="btn green" onclick="location.hash='#exam/${track.id}/sim';location.reload()">New mini mock 🔁</button>
       <button class="btn" style="margin-left:8px" onclick="location.hash='#exam/${track.id}'">Back to ${esc(track.name.split(':').pop().trim())}</button>
     </div></div>`);
     wireChrome();

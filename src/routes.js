@@ -673,19 +673,35 @@ function trackProgressUpsert(kidId, trackId, mutate) {
 }
 // Estimated AP score band (1..5) from a composite percent — a practice estimate, not official.
 function estBand(pct) { return pct >= 75 ? 5 : pct >= 62 ? 4 : pct >= 48 ? 3 : pct >= 33 ? 2 : 1; }
+// Evidence thresholds before we're willing to show a 1–5 estimate at all. A handful of correct
+// questions from one content slice cannot support a course-wide AP prediction (AP-P0.1), so below
+// the threshold we return estBand=null and the UI says "not enough evidence yet".
+const AP_MIN_MC = 25;         // meaningful multiple-choice sample
+const AP_MIN_FRQ = 1;         // at least one free-response attempt (self-scored)
 function readinessFor(r, trackId) {
   const mcPct = r.mc_attempts >= 1 ? Math.round(r.mc_correct / r.mc_attempts * 100) : null;
   const frqPct = r.frq_max >= 1 ? Math.round(r.frq_points / r.frq_max * 100) : null;
-  // Blend: if both present, 45% MC + 55% FRQ (FRQ is the harder signal); else whichever exists.
+  // Composite for the readiness bar. FRQ is SELF-SCORED, so it is discounted (weighted 0.3, not
+  // 0.55) rather than trusted like objective evidence.
   let composite = null;
-  if (mcPct != null && frqPct != null) composite = Math.round(0.45 * mcPct + 0.55 * frqPct);
+  if (mcPct != null && frqPct != null) composite = Math.round(0.7 * mcPct + 0.3 * frqPct);
   else composite = mcPct != null ? mcPct : frqPct;
+  // Only surface a 1–5 estimate once there's enough objective + constructed-response evidence.
+  const enough = (r.mc_attempts >= AP_MIN_MC) && (r.frq_attempts >= AP_MIN_FRQ);
+  const evidence = (r.mc_attempts || 0) + (r.frq_attempts || 0) * 3;   // FRQ counts as a bigger unit
+  const confidence = !enough ? 'insufficient' : evidence >= 80 ? 'high' : evidence >= 45 ? 'medium' : 'low';
+  const band = enough && composite != null ? estBand(composite) : null;
+  // Low confidence → present a RANGE (±1 band) rather than a single false-precise number.
+  const bandRange = band == null ? null : (confidence === 'high' ? [band, band] : [Math.max(1, band - 1), Math.min(5, band + (confidence === 'low' ? 1 : 0))]);
   return {
     trackId,
     mcPct, mcAttempts: r.mc_attempts,
     frqPct, frqAttempts: r.frq_attempts, frqPoints: r.frq_points, frqMax: r.frq_max,
-    readiness: composite,                          // 0..100 or null
-    estBand: composite != null ? estBand(composite) : null,
+    readiness: enough ? composite : null,          // hide the % until there's enough evidence
+    estBand: band,                                 // null until the evidence threshold is met
+    bandRange, confidence,
+    needMoreMc: Math.max(0, AP_MIN_MC - (r.mc_attempts || 0)),
+    needFrq: r.frq_attempts < AP_MIN_FRQ,
     bestExamScore: r.best_exam_score || null,
     lastExamPct: r.last_exam_pct || null
   };
@@ -768,7 +784,8 @@ router.post('/learn/:kidId/track/exam/score', auth.requireKid, auth.requireActiv
   const mcPct = mcTotal ? mcCorrect / mcTotal * 100 : null;
   const frqPct = frqMax ? frqPoints / frqMax * 100 : null;
   let composite;
-  if (mcPct != null && frqPct != null) composite = Math.round(0.5 * mcPct + 0.5 * frqPct);
+  // FRQ is self-scored, so discount it (0.7 MC / 0.3 FRQ) in the mini-mock result too.
+  if (mcPct != null && frqPct != null) composite = Math.round(0.7 * mcPct + 0.3 * frqPct);
   else composite = Math.round(mcPct != null ? mcPct : (frqPct != null ? frqPct : 0));
   const band = estBand(composite);
   db.prepare('INSERT INTO activity_log (kid_id, subject, skill_id, correct, difficulty, time_ms) VALUES (?,?,?,?,?,?)')
