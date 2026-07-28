@@ -1769,6 +1769,89 @@ body[data-theme="academy"] .lw-passage { background: #2a2921; border-color: #4a4
 .dc-copy p { color: var(--sub, #5b6478); font-size: 1.02rem; line-height: 1.6; margin: 0; }
 @media (max-width: 720px) { .diff-callout { grid-template-columns: 1fr; } .dc-media { min-height: 190px; } .dc-copy { padding: 24px 22px; } }
 
+/* ===================== TEACHER / SCHOOL DASHBOARD ===================== */
+.tdash-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 8px 0 16px; }
+.tdash-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.tcrumb { margin: 6px 0 8px; font-size: .9rem; }
+.tcrumb a { color: var(--brand); text-decoration: none; font-weight: 600; }
+.tsec-head { display: flex; align-items: center; justify-content: space-between; margin: 22px 0 12px; }
+.tsec-head h2 { margin: 0; font-size: 1.25rem; }
+
+.tstat-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 6px 0 4px; }
+.tstat { background: #fff; border: 1px solid #e7e3d8; border-radius: 14px; padding: 14px 12px; text-align: center; box-shadow: 0 8px 22px -18px rgba(0,0,0,.35); }
+.tstat b { display: block; font-size: 1.6rem; font-weight: 800; color: var(--brand); line-height: 1.1; }
+.tstat span { font-size: .78rem; color: #5b6478; font-weight: 600; }
+.tstat.warn b { color: #c76a2f; }
+@media (max-width: 720px) { .tstat-row { grid-template-columns: repeat(2, 1fr); } }
+
+.tclass-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.tclass-card { background: #fff; border: 1px solid #e7e3d8; border-radius: 16px; padding: 18px 18px 16px; cursor: pointer;
+  box-shadow: 0 10px 26px -20px rgba(0,0,0,.4); transition: transform .12s ease, box-shadow .12s ease; }
+.tclass-card:hover { transform: translateY(-3px); box-shadow: 0 16px 32px -20px rgba(0,0,0,.45); }
+.tcc-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.tcc-top h3 { margin: 0; font-size: 1.1rem; }
+.tcc-grade { font-size: .76rem; font-weight: 700; color: var(--brand); background: rgba(26,92,56,.08); padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.tcc-stats { display: flex; gap: 14px; margin: 10px 0 6px; font-size: .86rem; color: #5b6478; font-weight: 600; }
+.tcc-code { font-size: .82rem; color: #7a8494; }
+.tcc-code b { color: #41506a; letter-spacing: .06em; }
+
+/* Roster table */
+.troster-wrap { overflow-x: auto; border: 1px solid #e7e3d8; border-radius: 16px; background: #fff; box-shadow: 0 10px 30px -22px rgba(0,0,0,.4); margin-top: 10px; }
+.troster { width: 100%; border-collapse: collapse; min-width: 720px; }
+.troster thead th { text-align: left; font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: #7a8494; font-weight: 800; padding: 12px 14px; border-bottom: 1px solid #eee7d9; background: #faf8f2; }
+.troster tbody tr { border-bottom: 1px solid #f1ede2; cursor: pointer; transition: background .1s ease; }
+.troster tbody tr:last-child { border-bottom: none; }
+.troster tbody tr:hover { background: #f8f6ef; }
+.troster td { padding: 12px 14px; font-size: .92rem; vertical-align: middle; }
+.tr-name { display: flex; align-items: center; gap: 10px; }
+.tr-name b { display: block; }
+.tr-sub { font-size: .76rem; color: #8a93a3; }
+.tnum { text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+.tlvls { display: flex; gap: 6px; }
+.tlvls span { font-size: .78rem; font-weight: 700; color: #41506a; background: #f0f3f8; border-radius: 6px; padding: 2px 6px; min-width: 26px; text-align: center; }
+.tr-flag { font-size: .8rem; color: #b0532f; font-weight: 600; }
+.tr-act { text-align: right; }
+.btn.xsmall { padding: 5px 12px; font-size: .82rem; border-radius: 9px; }
+
+.ts-pill { font-size: .76rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; display: inline-block; }
+.ts-exc { background: #e6f7ee; color: #1a7a4a; }
+.ts-ok { background: #eaf1fb; color: #2f5fa6; }
+.ts-sup { background: #fdeee2; color: #c2661f; }
+.ts-ina { background: #f0f0f2; color: #6b7280; }
+.ts-new { background: #f4eefb; color: #7a4bb0; }
+
+.tsa-row { margin: 12px 0 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tsa-chip { font-size: .82rem; background: #fff; border: 1px solid #e7e3d8; border-radius: 999px; padding: 4px 12px; color: #41506a; }
+.tsa-chip b { color: var(--brand); }
+
+/* Add-students modal */
+.tadd-overlay { position: fixed; inset: 0; background: rgba(16,24,40,.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+.tadd-modal { background: #fff; border-radius: 18px; padding: 24px; max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 30px 70px -20px rgba(0,0,0,.5); }
+.tadd-tabs { display: flex; gap: 6px; background: #f1ede2; border-radius: 10px; padding: 4px; margin-bottom: 14px; }
+.tadd-tab { flex: 1; border: none; background: transparent; font: inherit; font-weight: 700; font-size: .88rem; padding: 8px; border-radius: 8px; cursor: pointer; color: #5b6478; }
+.tadd-tab.active { background: #fff; color: var(--brand); box-shadow: 0 2px 6px -3px rgba(0,0,0,.3); }
+.tadd-modal label { display: block; font-size: .82rem; font-weight: 700; color: #5b6478; margin: 10px 0 4px; }
+.tadd-modal input, .tadd-modal select, .tadd-modal textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1.5px solid #e2e2e2; border-radius: 10px; }
+.tadd-created { margin-top: 16px; }
+.tadd-created-head { font-weight: 700; color: #1a7a4a; margin-bottom: 8px; font-size: .9rem; }
+.tadd-logins { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.tadd-logins th { text-align: left; color: #7a8494; font-size: .75rem; text-transform: uppercase; padding: 4px 8px; }
+.tadd-logins td { padding: 5px 8px; border-top: 1px solid #f1ede2; }
+.tadd-logins .pin { font-family: ui-monospace, monospace; font-weight: 700; letter-spacing: .1em; color: var(--brand); }
+
+/* Student drill-down */
+.tstudent-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; background: #fff; border: 1px solid #e7e3d8; border-radius: 16px; padding: 18px 20px; }
+.tstudent-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.tss-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.tss-card { background: #fff; border: 1px solid #e7e3d8; border-radius: 14px; padding: 16px; }
+.tss-top { font-weight: 700; font-size: .95rem; }
+.tss-lvl { font-size: 1.15rem; font-weight: 800; color: var(--brand); margin: 6px 0 2px; }
+.tss-acc { font-size: .85rem; color: #5b6478; }
+.tss-status { font-size: .78rem; color: #7a8494; text-transform: capitalize; margin-top: 3px; }
+.tstrug-list { display: flex; flex-direction: column; gap: 8px; }
+.tstrug { display: flex; gap: 10px; align-items: center; background: #fdf3ec; border: 1px solid #f6e2d4; border-radius: 12px; padding: 12px 14px; }
+@media (max-width: 720px) { .tss-grid { grid-template-columns: 1fr 1fr; } }
+
 /* Pulse to draw the eye to the subscribe button after "Subscribe now" */
 @keyframes subpulse { 0%,100%{ box-shadow:0 0 0 0 rgba(201,151,28,.5);} 50%{ box-shadow:0 0 0 10px rgba(201,151,28,0);} }
 .btn.pulse { animation: subpulse 1.2s ease-out 3; }

@@ -163,6 +163,9 @@ function entitlement(parent) {
   if (!parent) return { ok: false, reason: 'no_account', message: 'No account found.' };
   // Comp/founder accounts are always entitled, independent of trial or subscription state.
   if (isComp(parent)) return { ok: true, reason: 'comp', message: '' };
+  // School/teacher accounts are billed separately (custom invoicing / pilots), not through the
+  // self-serve Stripe path — so their students always have access, never a family paywall.
+  if (parent.account_type === 'teacher') return { ok: true, reason: 'school', message: '' };
   const trialOk = parent.sub_status === 'trial' && new Date(parent.trial_ends + 'Z') > new Date();
   if (parent.sub_status === 'active' || trialOk) return { ok: true, reason: 'active', message: '' };
   // Not entitled — name the exact reason so every surface can speak to it honestly.

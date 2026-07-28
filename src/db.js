@@ -327,7 +327,16 @@ for (const stmt of [
   // Family time zone (IANA name, e.g. 'America/Los_Angeles'), captured from the parent's browser.
   // Used so "today"/"this week" counts roll over at the family's local midnight instead of UTC —
   // otherwise an evening-Pacific family sees today's questions drop to 0 once it passes UTC midnight.
-  "ALTER TABLE parents ADD COLUMN tz TEXT"
+  "ALTER TABLE parents ADD COLUMN tz TEXT",
+  // Account type: 'family' (a parent, the default and every existing account) or 'teacher'
+  // (a school/educator account). A teacher account owns students the same way a parent owns
+  // kids, but the UI routes it to the class dashboard and its students are grouped into classes.
+  "ALTER TABLE parents ADD COLUMN account_type TEXT DEFAULT 'family'",
+  // School / organization name, for teacher accounts.
+  "ALTER TABLE parents ADD COLUMN school_name TEXT",
+  // Which class a teacher-created student belongs to (denormalized convenience; the authoritative
+  // mapping is class_members). Null for family kids and unassigned students.
+  "ALTER TABLE kids ADD COLUMN class_id INTEGER"
 ]) {
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }
@@ -373,6 +382,28 @@ try {
     students TEXT, interest TEXT, message TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   )`);
+} catch (e) {}
+
+// Teacher/school dashboard: classes group a teacher account's students. owner_id references the
+// teacher's parents row. class_members is the authoritative student↔class mapping (a student can
+// sit in more than one class — e.g. a homeroom and a subject group).
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS classes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner_id INTEGER NOT NULL REFERENCES parents(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    grade INTEGER,                     -- optional default grade for the class (0=K..12), null = mixed
+    join_code TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`);
+  db.exec(`CREATE TABLE IF NOT EXISTS class_members (
+    class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+    added_at TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY (class_id, kid_id)
+  )`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_classes_owner ON classes(owner_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_class_members_class ON class_members(class_id)');
 } catch (e) {}
 
 // Child-privacy: custom avatar PHOTOS were retired in favor of illustrated avatars only.
