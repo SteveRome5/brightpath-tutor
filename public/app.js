@@ -3189,6 +3189,10 @@ route('parent', async () => {
           <div style="display:flex;gap:8px;margin:12px 0 2px;flex-wrap:wrap">
             <span style="background:#eef2f7;color:#41506a;font-size:.78rem;font-weight:600;padding:3px 10px;border-radius:999px">📅 Today: ${k.todayAnswers || 0} question${(k.todayAnswers || 0) === 1 ? '' : 's'}${k.minutesToday ? ` · ⏱ ${k.minutesToday} min` : ''}</span>
           </div>
+          ${(k.todayBySubject && k.todayBySubject.length) ? `
+          <div style="display:flex;gap:6px;margin:2px 0 2px;flex-wrap:wrap">
+            ${k.todayBySubject.map(t => `<span title="${t.accuracy != null ? t.accuracy + '% correct today' : ''}" style="background:#f3f6fb;color:#4a5876;font-size:.74rem;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid #e4e9f2">${({ math: '🔢 Math', english: '📚 Reading', science: '🔬 Science', spanish: '🌎 Spanish' }[t.subject] || t.subject)}: ${t.count}${t.accuracy != null ? ` · ${t.accuracy}%` : ''}</span>`).join('')}
+          </div>` : ''}
           <div style="margin:8px 0 8px">
             <div style="display:flex;justify-content:space-between;font-size:.8rem;color:#5f6b7d;margin-bottom:4px">
               <span>This week: <b>${k.weekAnswers}</b> / ${k.weeklyGoal} answers${k.weekAccuracy != null ? ` · ${k.weekAccuracy}% correct` : ''}${k.minutesWeek ? ` · ⏱ ${k.minutesWeek} min` : ''}</span>

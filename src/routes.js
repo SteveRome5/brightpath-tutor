@@ -825,11 +825,17 @@ router.get('/family/overview', auth.requireParent, (req, res) => {
       if (card.gallop) { gallop = card.gallop.overall; gallopDelta = (card.gallop.deltas && card.gallop.deltas.overall) || null; }
     } catch (e) {}
     const todayAns = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= ? AND ts < ?').get(k.id, win.todayStart, win.tomorrowStart).n;
+    // Today's work split by subject (with accuracy) so a parent can see WHAT their child
+    // worked on today, not just the total — e.g. "40 Math · 30 Reading · 20 Science".
+    const todayBySubject = db.prepare(
+      'SELECT subject, COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND ts >= ? AND ts < ? GROUP BY subject ORDER BY n DESC'
+    ).all(k.id, win.todayStart, win.tomorrowStart)
+      .map(r => ({ subject: r.subject, count: r.n, accuracy: r.n ? Math.round((r.c || 0) / r.n * 100) : null }));
     return {
       id: k.id, name: k.name, grade: k.grade, avatar: k.avatar, streak: k.streak, xp: k.xp,
       weekAnswers: w.n || 0, weekAccuracy: wAcc.n ? Math.round((wAcc.c || 0) / wAcc.n * 100) : null,
       weeklyGoal: (k.weekly_goal || 12) * 10, totalAnswers: totalAns, needsSetup: totalAns === 0,
-      todayAnswers: todayAns, minutesToday: learnMinutesBetween(k.id, win.todayStart, win.tomorrowStart), minutesWeek: learnMinutesBetween(k.id, win.weekStart),
+      todayAnswers: todayAns, todayBySubject, minutesToday: learnMinutesBetween(k.id, win.todayStart, win.tomorrowStart), minutesWeek: learnMinutesBetween(k.id, win.weekStart),
       overall, focus, gallop, gallopDelta
     };
   });
