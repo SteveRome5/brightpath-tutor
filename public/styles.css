@@ -620,13 +620,16 @@ body[data-theme="junior"] .blitz-q { font-size: clamp(2.8rem, 10vw, 4rem); }
   50% { box-shadow: 0 0 0 14px rgba(255,214,120,.28), 0 10px 30px -6px rgba(0,0,0,.5); } }
 .sb-hear-label { color: #ffd97a; font-weight: 700; font-size: .92rem; }
 .sb-streak { color: #ffcf6b; font-weight: 800; margin: 8px 0; animation: rushPulse .8s ease-in-out infinite; }
-.sb-clues { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 14px 0 8px; }
+.sb-ask { color: #ffd97a; font-weight: 700; font-size: .9rem; margin: 14px 0 6px; }
+.sb-clues { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 4px 0 8px; }
 .sb-clue { cursor: pointer; border: 1.5px solid rgba(255,255,255,.22); background: rgba(255,255,255,.07); color: #f3f6fd;
   font: inherit; font-weight: 700; font-size: .88rem; padding: 8px 14px; border-radius: 999px; transition: background .12s ease, border-color .12s ease; }
 .sb-clue:hover { background: rgba(255,214,120,.16); border-color: #ffd97a; }
 .sb-clue-box { max-width: 480px; margin: 6px auto 4px; background: rgba(255,255,255,.96); color: #17233d;
   border-radius: 14px; padding: 12px 16px; line-height: 1.5; text-align: left; box-shadow: 0 8px 20px -12px rgba(0,0,0,.5); }
 .sb-blank { display: inline-block; letter-spacing: 3px; color: #b08900; font-weight: 800; }
+.sb-tip { margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(0,0,0,.14); color: #6b4a00; font-weight: 600; }
+.sb-reveal-origin { max-width: 460px; margin: -2px auto 16px; color: #ffd97a; font-size: .88rem; line-height: 1.5; }
 .sb-form { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; margin: 16px auto 6px; max-width: 480px; }
 .sb-input { flex: 1 1 240px; min-width: 200px; font-size: 1.5rem; font-weight: 700; text-align: center; letter-spacing: 2px;
   padding: 14px 16px; border-radius: 14px; border: 3px solid #ffd97a; background: #fffdf6; color: #17233d; outline: none; }

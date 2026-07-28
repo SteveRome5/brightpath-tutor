@@ -764,78 +764,81 @@
   // can ask for the definition, part of speech, or a sentence — then types the spelling,
   // exactly like the Scripps National Spelling Bee. Four tiers of difficulty escalate
   // from early-grade words up to genuine championship words. TTS via Voice.speak.
+  // Every entry carries the four things a speller may ask the pronouncer at the real bee:
+  // definition, part of speech, language of ORIGIN (etymology), and use in a sentence.
+  // `tip` is an optional origin-based spelling clue (e.g. Greek 'ph' = f) — real prep strategy.
   const SPELL_BANK = {
     sprout: [ // grades 1–2
-      { w: 'apple', pos: 'noun', def: 'a round fruit with red or green skin that grows on a tree.', sen: 'She packed a shiny apple in her lunchbox.' },
-      { w: 'happy', pos: 'adjective', def: 'feeling or showing joy.', sen: 'The puppy was happy to see us come home.' },
-      { w: 'friend', pos: 'noun', def: 'a person you like and enjoy being with.', sen: 'My best friend sits next to me at school.' },
-      { w: 'water', pos: 'noun', def: 'the clear liquid we drink and that fills rivers and seas.', sen: 'Please pour me a glass of cold water.' },
-      { w: 'school', pos: 'noun', def: 'a place where children go to learn.', sen: 'We ride the bus to school every morning.' },
-      { w: 'yellow', pos: 'adjective', def: 'the color of the sun or a lemon.', sen: 'The baby duck had soft yellow feathers.' },
-      { w: 'garden', pos: 'noun', def: 'a place where flowers or vegetables are grown.', sen: 'Grandma grows tomatoes in her garden.' },
-      { w: 'pencil', pos: 'noun', def: 'a tool you write or draw with.', sen: 'He sharpened his pencil before the test.' },
-      { w: 'family', pos: 'noun', def: 'a group of people who are related to each other.', sen: 'My whole family ate dinner together.' },
-      { w: 'rabbit', pos: 'noun', def: 'a small furry animal with long ears that hops.', sen: 'A white rabbit hopped across the field.' },
-      { w: 'winter', pos: 'noun', def: 'the coldest season of the year.', sen: 'It snowed all day long in the winter.' },
-      { w: 'purple', pos: 'adjective', def: 'a color made by mixing red and blue.', sen: 'She wore a bright purple hat.' },
-      { w: 'basket', pos: 'noun', def: 'a container used to hold or carry things.', sen: 'We filled the basket with fresh berries.' },
-      { w: 'cookie', pos: 'noun', def: 'a small, sweet baked treat.', sen: 'He ate one warm cookie after lunch.' },
-      { w: 'monkey', pos: 'noun', def: 'a furry animal with a long tail that climbs trees.', sen: 'The monkey swung from branch to branch.' },
-      { w: 'window', pos: 'noun', def: 'an opening in a wall, usually filled with glass.', sen: 'Rain tapped softly on the window.' }
+      { w: 'apple', pos: 'noun', origin: 'Old English (from the word aeppel).', def: 'a round fruit with red or green skin that grows on a tree.', sen: 'She packed a shiny apple in her lunchbox.' },
+      { w: 'happy', pos: 'adjective', origin: 'from Middle English, based on the old word hap, meaning luck.', def: 'feeling or showing joy.', sen: 'The puppy was happy to see us come home.', tip: 'Ends with a double p and a y.' },
+      { w: 'friend', pos: 'noun', origin: 'Old English (freond).', def: 'a person you like and enjoy being with.', sen: 'My best friend sits next to me at school.', tip: 'Remember: it has the word end inside it — fri-end.' },
+      { w: 'water', pos: 'noun', origin: 'Old English (waeter).', def: 'the clear liquid we drink and that fills rivers and seas.', sen: 'Please pour me a glass of cold water.' },
+      { w: 'school', pos: 'noun', origin: 'Greek (skhole, meaning leisure), through Latin.', def: 'a place where children go to learn.', sen: 'We ride the bus to school every morning.', tip: 'From Greek, so the k sound is spelled ch: s-c-h.' },
+      { w: 'yellow', pos: 'adjective', origin: 'Old English (geolu).', def: 'the color of the sun or a lemon.', sen: 'The baby duck had soft yellow feathers.', tip: 'Double l in the middle.' },
+      { w: 'garden', pos: 'noun', origin: 'Old French (jardin), with Germanic roots.', def: 'a place where flowers or vegetables are grown.', sen: 'Grandma grows tomatoes in her garden.' },
+      { w: 'pencil', pos: 'noun', origin: 'Latin (penicillus, meaning little brush), through Old French.', def: 'a tool you write or draw with.', sen: 'He sharpened his pencil before the test.', tip: 'Ends in c-i-l, not s-i-l.' },
+      { w: 'family', pos: 'noun', origin: 'Latin (familia).', def: 'a group of people who are related to each other.', sen: 'My whole family ate dinner together.' },
+      { w: 'rabbit', pos: 'noun', origin: 'Middle English, likely from Old French.', def: 'a small furry animal with long ears that hops.', sen: 'A white rabbit hopped across the field.', tip: 'Double b in the middle.' },
+      { w: 'winter', pos: 'noun', origin: 'Old English.', def: 'the coldest season of the year.', sen: 'It snowed all day long in the winter.' },
+      { w: 'purple', pos: 'adjective', origin: 'Latin (purpura), from Greek (porphura, a shellfish dye).', def: 'a color made by mixing red and blue.', sen: 'She wore a bright purple hat.' },
+      { w: 'basket', pos: 'noun', origin: 'Middle English, of uncertain origin.', def: 'a container used to hold or carry things.', sen: 'We filled the basket with fresh berries.' },
+      { w: 'cookie', pos: 'noun', origin: 'Dutch (koekje, meaning little cake).', def: 'a small, sweet baked treat.', sen: 'He ate one warm cookie after lunch.', tip: 'Double o, then k-i-e — from Dutch.' },
+      { w: 'monkey', pos: 'noun', origin: 'uncertain, probably from Low German.', def: 'a furry animal with a long tail that climbs trees.', sen: 'The monkey swung from branch to branch.' },
+      { w: 'window', pos: 'noun', origin: 'Old Norse (vindauga, meaning wind-eye).', def: 'an opening in a wall, usually filled with glass.', sen: 'Rain tapped softly on the window.' }
     ],
     speller: [ // grades 3–5
-      { w: 'because', pos: 'conjunction', def: 'for the reason that.', sen: 'We stayed inside because it was raining.' },
-      { w: 'library', pos: 'noun', def: 'a place where books are kept for reading or borrowing.', sen: 'She returned three books to the library.' },
-      { w: 'beautiful', pos: 'adjective', def: 'very pleasing to look at.', sen: 'The sunset was absolutely beautiful.' },
-      { w: 'chocolate', pos: 'noun', def: 'a sweet brown food made from cacao beans.', sen: 'He melted the chocolate for the cake.' },
-      { w: 'dinosaur', pos: 'noun', def: 'a very large reptile that lived long ago.', sen: 'The museum had a huge dinosaur skeleton.' },
-      { w: 'necessary', pos: 'adjective', def: 'needed; required.', sen: 'It is necessary to wear a helmet when biking.' },
-      { w: 'neighbor', pos: 'noun', def: 'a person who lives near you.', sen: 'Our friendly neighbor watered our plants.' },
-      { w: 'separate', pos: 'verb', def: 'to set or keep apart.', sen: 'Please separate the recycling from the trash.' },
-      { w: 'calendar', pos: 'noun', def: 'a chart showing the days, weeks, and months of a year.', sen: 'She circled her birthday on the calendar.' },
-      { w: 'vegetable', pos: 'noun', def: 'a plant or part of a plant used as food.', sen: 'A carrot is my favorite vegetable.' },
-      { w: 'different', pos: 'adjective', def: 'not the same as another.', sen: 'The twins wore different colored shoes.' },
-      { w: 'favorite', pos: 'adjective', def: 'liked best of all.', sen: 'Blue is my favorite color.' },
-      { w: 'sandwich', pos: 'noun', def: 'food made of filling between two slices of bread.', sen: 'He made a turkey sandwich for lunch.' },
-      { w: 'question', pos: 'noun', def: 'a sentence that asks for information.', sen: 'She raised her hand to ask a question.' },
-      { w: 'remember', pos: 'verb', def: 'to keep something in your mind.', sen: 'Try to remember your locker number.' },
-      { w: 'surprise', pos: 'noun', def: 'something unexpected.', sen: 'The party was a wonderful surprise.' }
+      { w: 'because', pos: 'conjunction', origin: 'Middle English, from the words by and cause.', def: 'for the reason that.', sen: 'We stayed inside because it was raining.', tip: 'It is really by + cause squeezed together.' },
+      { w: 'library', pos: 'noun', origin: 'Latin (librarium, from liber, meaning book).', def: 'a place where books are kept for reading or borrowing.', sen: 'She returned three books to the library.', tip: 'Watch the first r: lib-r-ary.' },
+      { w: 'beautiful', pos: 'adjective', origin: 'Old French (beaute), from Latin (bellus).', def: 'very pleasing to look at.', sen: 'The sunset was absolutely beautiful.', tip: 'From French, so it starts with the tricky b-e-a-u.' },
+      { w: 'chocolate', pos: 'noun', origin: 'Nahuatl (xocolatl), through Spanish.', def: 'a sweet brown food made from cacao beans.', sen: 'He melted the chocolate for the cake.' },
+      { w: 'dinosaur', pos: 'noun', origin: 'Greek (deinos, terrible, plus sauros, lizard).', def: 'a very large reptile that lived long ago.', sen: 'The museum had a huge dinosaur skeleton.', tip: 'The Greek root sauros means lizard — it ends s-a-u-r.' },
+      { w: 'necessary', pos: 'adjective', origin: 'Latin (necessarius).', def: 'needed; required.', sen: 'It is necessary to wear a helmet when biking.', tip: 'One c, then double s: ne-c-ess-ary.' },
+      { w: 'neighbor', pos: 'noun', origin: 'Old English (neahgebur, meaning near dweller).', def: 'a person who lives near you.', sen: 'Our friendly neighbor watered our plants.', tip: 'The e-i-g-h is silent-ish — neigh, like a horse.' },
+      { w: 'separate', pos: 'verb', origin: 'Latin (separare).', def: 'to set or keep apart.', sen: 'Please separate the recycling from the trash.', tip: 'There is a rat in sepa-rat-e — sep-a-r-a-t-e.' },
+      { w: 'calendar', pos: 'noun', origin: 'Latin (calendarium, an account book).', def: 'a chart showing the days, weeks, and months of a year.', sen: 'She circled her birthday on the calendar.', tip: 'Ends in a-r, and has an e in the middle: cal-e-nd-ar.' },
+      { w: 'vegetable', pos: 'noun', origin: 'Latin (vegetabilis).', def: 'a plant or part of a plant used as food.', sen: 'A carrot is my favorite vegetable.', tip: 'Do not forget the quiet middle e: veg-e-table.' },
+      { w: 'different', pos: 'adjective', origin: 'Latin (differre, to carry apart).', def: 'not the same as another.', sen: 'The twins wore different colored shoes.', tip: 'Double f: dif-f-erent.' },
+      { w: 'favorite', pos: 'adjective', origin: 'Italian (favorito), from Latin (favor).', def: 'liked best of all.', sen: 'Blue is my favorite color.' },
+      { w: 'sandwich', pos: 'noun', origin: 'English — named after the Earl of Sandwich.', def: 'food made of filling between two slices of bread.', sen: 'He made a turkey sandwich for lunch.', tip: 'It is a place name, so it keeps the d: sand-wich.' },
+      { w: 'question', pos: 'noun', origin: 'Latin (quaestio).', def: 'a sentence that asks for information.', sen: 'She raised her hand to ask a question.', tip: 'From Latin qu — the ti sounds like ch: ques-ti-on.' },
+      { w: 'remember', pos: 'verb', origin: 'Latin (rememorari), through Old French.', def: 'to keep something in your mind.', sen: 'Try to remember your locker number.' },
+      { w: 'surprise', pos: 'noun', origin: 'Old French (surprendre, to overtake).', def: 'something unexpected.', sen: 'The party was a wonderful surprise.', tip: 'Do not drop the first r: sur-p-rise.' }
     ],
     ace: [ // grades 6–8
-      { w: 'rhythm', pos: 'noun', def: 'a strong, regular repeated pattern of sound or movement.', sen: 'The drummer kept a steady rhythm.' },
-      { w: 'conscience', pos: 'noun', def: 'the inner sense of what is right and wrong.', sen: 'His guilty conscience kept him awake.' },
-      { w: 'silhouette', pos: 'noun', def: 'a dark outline of something against a lighter background.', sen: 'We saw the silhouette of a hawk at dusk.' },
-      { w: 'mischievous', pos: 'adjective', def: 'causing or fond of playful trouble.', sen: 'The mischievous kitten unrolled all the yarn.' },
-      { w: 'exaggerate', pos: 'verb', def: 'to describe something as larger or greater than it really is.', sen: 'Do not exaggerate the size of the fish you caught.' },
-      { w: 'perseverance', pos: 'noun', def: 'steady effort despite difficulty.', sen: 'Her perseverance helped her finish the race.' },
-      { w: 'accommodate', pos: 'verb', def: 'to provide room or make space for.', sen: 'The hall can accommodate five hundred guests.' },
-      { w: 'bureaucracy', pos: 'noun', def: 'a system of government with many offices and rules.', sen: 'The permit was lost in the bureaucracy.' },
-      { w: 'camouflage', pos: 'noun', def: 'coloring or covering that hides something by blending in.', sen: 'The lizard used camouflage to hide on the bark.' },
-      { w: 'connoisseur', pos: 'noun', def: 'an expert judge in matters of taste.', sen: 'She is a connoisseur of fine cheeses.' },
-      { w: 'liaison', pos: 'noun', def: 'a person who helps two groups communicate.', sen: 'He acted as the liaison between the teams.' },
-      { w: 'maneuver', pos: 'noun', def: 'a skillful or clever movement or plan.', sen: 'The pilot performed a tricky maneuver.' },
-      { w: 'privilege', pos: 'noun', def: 'a special right or advantage.', sen: 'Driving is a privilege, not a right.' },
-      { w: 'questionnaire', pos: 'noun', def: 'a set of printed questions used to gather information.', sen: 'Please fill out the questionnaire after the visit.' },
-      { w: 'reminiscent', pos: 'adjective', def: 'reminding you of something.', sen: 'The smell was reminiscent of fresh bread.' },
-      { w: 'vengeance', pos: 'noun', def: 'punishment given in return for a wrong.', sen: 'The hero sought vengeance for the crime.' }
+      { w: 'rhythm', pos: 'noun', origin: 'Greek (rhythmos), through Latin.', def: 'a strong, regular repeated pattern of sound or movement.', sen: 'The drummer kept a steady rhythm.', tip: 'Greek: two h words — r-h-y-t-h-m, and the y is the only vowel.' },
+      { w: 'conscience', pos: 'noun', origin: 'Latin (conscientia, meaning knowing with).', def: 'the inner sense of what is right and wrong.', sen: 'His guilty conscience kept him awake.', tip: 'It hides the word science: con-science.' },
+      { w: 'silhouette', pos: 'noun', origin: 'French — named after Etienne de Silhouette.', def: 'a dark outline of something against a lighter background.', sen: 'We saw the silhouette of a hawk at dusk.', tip: 'French, so silent h and double t: sil-h-ou-ette.' },
+      { w: 'mischievous', pos: 'adjective', origin: 'Old French (meschief, meaning misfortune).', def: 'causing or fond of playful trouble.', sen: 'The mischievous kitten unrolled all the yarn.', tip: 'Only three syllables — mis-chie-vous, no extra i before ous.' },
+      { w: 'exaggerate', pos: 'verb', origin: 'Latin (exaggerare, meaning to heap up).', def: 'to describe something as larger or greater than it really is.', sen: 'Do not exaggerate the size of the fish you caught.', tip: 'Double g: ex-ag-g-erate.' },
+      { w: 'perseverance', pos: 'noun', origin: 'Latin (perseverantia), through French.', def: 'steady effort despite difficulty.', sen: 'Her perseverance helped her finish the race.', tip: 'Ends in a-n-c-e, and there is a sever in the middle.' },
+      { w: 'accommodate', pos: 'verb', origin: 'Latin (accommodare).', def: 'to provide room or make space for.', sen: 'The hall can accommodate five hundred guests.', tip: 'It is big enough to hold double c AND double m.' },
+      { w: 'bureaucracy', pos: 'noun', origin: 'French (bureau, a desk) plus Greek (-cracy, rule).', def: 'a system of government with many offices and rules.', sen: 'The permit was lost in the bureaucracy.', tip: 'French bureau keeps its e-a-u: bur-eau-cracy.' },
+      { w: 'camouflage', pos: 'noun', origin: 'French (camoufler, to disguise).', def: 'coloring or covering that hides something by blending in.', sen: 'The lizard used camouflage to hide on the bark.', tip: 'French, so it hides an o-u and ends in g-e: cam-ou-flage.' },
+      { w: 'connoisseur', pos: 'noun', origin: 'French (from Latin cognoscere, to know).', def: 'an expert judge in matters of taste.', sen: 'She is a connoisseur of fine cheeses.', tip: 'French: double n, double s, ends e-u-r.' },
+      { w: 'liaison', pos: 'noun', origin: 'French (from Latin ligare, to bind).', def: 'a person or link that helps two groups communicate.', sen: 'He acted as the liaison between the teams.', tip: 'Two i sounds: li-ai-son.' },
+      { w: 'maneuver', pos: 'noun', origin: 'French (manoeuvre), from Latin manu operari, to work by hand.', def: 'a skillful or clever movement or plan.', sen: 'The pilot performed a tricky maneuver.', tip: 'The American spelling squeezes it to man-eu-ver.' },
+      { w: 'privilege', pos: 'noun', origin: 'Latin (privilegium, a private law).', def: 'a special right or advantage.', sen: 'Driving is a privilege, not a right.', tip: 'No d — it is all i and e: pri-vi-lege.' },
+      { w: 'questionnaire', pos: 'noun', origin: 'French.', def: 'a set of printed questions used to gather information.', sen: 'Please fill out the questionnaire after the visit.', tip: 'French doubles the n: question-n-aire.' },
+      { w: 'reminiscent', pos: 'adjective', origin: 'Latin (reminisci, to remember).', def: 'reminding you of something.', sen: 'The smell was reminiscent of fresh bread.', tip: 'Ends with the s-c-e-n-t of a scent.' },
+      { w: 'vengeance', pos: 'noun', origin: 'Old French (from Latin vindicare, to avenge).', def: 'punishment given in return for a wrong.', sen: 'The hero sought vengeance for the crime.', tip: 'The g is soft, then e-a-n-c-e: veng-e-ance.' }
     ],
     champion: [ // Scripps-level
-      { w: 'chiaroscuro', pos: 'noun', def: 'the treatment of light and shade in a work of art.', sen: 'The painting used dramatic chiaroscuro to draw the eye.' },
-      { w: 'onomatopoeia', pos: 'noun', def: 'the forming of a word that imitates the sound it names.', sen: 'Buzz and hiss are examples of onomatopoeia.' },
-      { w: 'sesquipedalian', pos: 'adjective', def: 'given to using long words.', sen: 'The professor was famous for his sesquipedalian lectures.' },
-      { w: 'prestidigitation', pos: 'noun', def: 'skillful magic tricks done with the hands; sleight of hand.', sen: 'The magician amazed us with clever prestidigitation.' },
-      { w: 'logorrhea', pos: 'noun', def: 'excessive and often uncontrollable talkativeness.', sen: 'His logorrhea made the meeting run late.' },
-      { w: 'weltschmerz', pos: 'noun', def: 'a feeling of sadness about the state of the world.', sen: 'A wave of weltschmerz washed over the poet.' },
-      { w: 'pochemuchka', pos: 'noun', def: 'a person who asks too many questions.', sen: 'The curious pochemuchka kept the guide busy all day.' },
-      { w: 'scherenschnitte', pos: 'noun', def: 'the art of cutting paper into decorative designs.', sen: 'She framed a delicate piece of scherenschnitte.' },
-      { w: 'appoggiatura', pos: 'noun', def: 'a musical note that delays the main note it precedes.', sen: 'The violinist added a graceful appoggiatura.' },
-      { w: 'nunatak', pos: 'noun', def: 'a hill or mountain peak sticking up through a glacier.', sen: 'The climbers rested on a rocky nunatak.' },
-      { w: 'gesellschaft', pos: 'noun', def: 'a society held together by practical concerns rather than close ties.', sen: 'The city felt like a cold gesellschaft to the newcomer.' },
-      { w: 'cymotrichous', pos: 'adjective', def: 'having wavy hair.', sen: 'The portrait showed a cymotrichous young woman.' },
-      { w: 'guerdon', pos: 'noun', def: 'a reward or payment.', sen: 'The knight received a fine guerdon for his bravery.' },
-      { w: 'feuilleton', pos: 'noun', def: 'a part of a newspaper set aside for light literature or reviews.', sen: 'Her short story appeared in the feuilleton.' },
-      { w: 'bougainvillea', pos: 'noun', def: 'a tropical climbing plant with brightly colored papery bracts.', sen: 'Pink bougainvillea covered the garden wall.' },
-      { w: 'chrematistic', pos: 'adjective', def: 'relating to the making of money.', sen: 'His chrematistic instincts made the shop thrive.' }
+      { w: 'chiaroscuro', pos: 'noun', origin: 'Italian (chiaro, clear, plus oscuro, dark).', def: 'the treatment of light and shade in a work of art.', sen: 'The painting used dramatic chiaroscuro to draw the eye.', tip: 'Italian ch sounds like k: chi-a-ro-s-cur-o.' },
+      { w: 'onomatopoeia', pos: 'noun', origin: 'Greek (onoma, name, plus poiein, to make).', def: 'the forming of a word that imitates the sound it names.', sen: 'Buzz and hiss are examples of onomatopoeia.', tip: 'Greek ending: p-o-e-i-a.' },
+      { w: 'sesquipedalian', pos: 'adjective', origin: 'Latin (sesqui, one and a half, plus pes, foot).', def: 'given to using long words.', sen: 'The professor was famous for his sesquipedalian lectures.', tip: 'Latin ped means foot: sesqui-ped-alian.' },
+      { w: 'prestidigitation', pos: 'noun', origin: 'French (preste, nimble) plus Latin (digitus, finger).', def: 'skillful magic tricks done with the hands; sleight of hand.', sen: 'The magician amazed us with clever prestidigitation.', tip: 'Latin digitus (finger) hides inside: presti-digit-ation.' },
+      { w: 'logorrhea', pos: 'noun', origin: 'Greek (logos, word, plus rhoia, a flow).', def: 'excessive and often uncontrollable talkativeness.', sen: 'His logorrhea made the meeting run late.', tip: 'Greek rhoia gives the double r and h: logo-rrhea.' },
+      { w: 'weltschmerz', pos: 'noun', origin: 'German (Welt, world, plus Schmerz, pain).', def: 'a feeling of sadness about the state of the world.', sen: 'A wave of weltschmerz washed over the poet.', tip: 'German: sch together, ends t-z: welt-schmerz.' },
+      { w: 'pochemuchka', pos: 'noun', origin: 'Russian (from pochemu, meaning why).', def: 'a person who asks too many questions.', sen: 'The curious pochemuchka kept the guide busy all day.', tip: 'Russian ch sounds: poche-much-ka.' },
+      { w: 'scherenschnitte', pos: 'noun', origin: 'German (Scheren, scissors, plus Schnitte, cuts).', def: 'the art of cutting paper into decorative designs.', sen: 'She framed a delicate piece of scherenschnitte.', tip: 'German loves sch — it appears twice, ends double t plus e.' },
+      { w: 'appoggiatura', pos: 'noun', origin: 'Italian (appoggiare, to lean).', def: 'a musical note that delays the main note it precedes.', sen: 'The violinist added a graceful appoggiatura.', tip: 'Italian: double p, then g-g-i: ap-p-og-g-ia-tura.' },
+      { w: 'nunatak', pos: 'noun', origin: 'Inuit (Greenlandic).', def: 'a hill or mountain peak sticking up through a glacier.', sen: 'The climbers rested on a rocky nunatak.', tip: 'Inuit word — spelled just as it sounds: nu-na-tak.' },
+      { w: 'gesellschaft', pos: 'noun', origin: 'German (meaning society or company).', def: 'a society held together by practical concerns rather than close ties.', sen: 'The city felt like a cold gesellschaft to the newcomer.', tip: 'German: double l, then sch: gesel-l-schaft.' },
+      { w: 'cymotrichous', pos: 'adjective', origin: 'Greek (kyma, wave, plus thrix, hair).', def: 'having wavy hair.', sen: 'The portrait showed a cymotrichous young woman.', tip: 'Greek: starts with c-y, and thrix gives t-r-i-ch.' },
+      { w: 'guerdon', pos: 'noun', origin: 'Old French, with Germanic roots.', def: 'a reward or payment.', sen: 'The knight received a fine guerdon for his bravery.', tip: 'French gu keeps a silent u: gu-er-don.' },
+      { w: 'feuilleton', pos: 'noun', origin: 'French (feuillet, a leaf or sheet).', def: 'a part of a newspaper set aside for light literature or reviews.', sen: 'Her short story appeared in the feuilleton.', tip: 'French: e-u-i, double l, ends t-o-n.' },
+      { w: 'bougainvillea', pos: 'noun', origin: 'Modern Latin — named after the explorer Louis de Bougainville.', def: 'a tropical climbing plant with brightly colored papery bracts.', sen: 'Pink bougainvillea covered the garden wall.', tip: 'A name, so it keeps b-o-u-g-a-i-n, then double l.' },
+      { w: 'chrematistic', pos: 'adjective', origin: 'Greek (chrema, meaning money).', def: 'relating to the making of money.', sen: 'His chrematistic instincts made the shop thrive.', tip: 'Greek ch = k sound: ch-re-ma-tis-tic.' }
     ]
   };
   const SB_TIERS = ['sprout', 'speller', 'ace', 'champion'];
@@ -884,7 +887,7 @@
           <div class="sb-lights"></div>
           <div class="sb-bee-hero">🐝</div>
           <h1 class="sb-title">Gallop Spelling Bee</h1>
-          <p class="sb-tagline">Step up to the microphone. Listen to your word, ask for clues, then spell it just like the national stage. 🎤</p>
+          <p class="sb-tagline">Real bee prep. Hear your word, then ask the pronouncer for its definition, part of speech, language of origin, or to use it in a sentence — exactly like the national stage. 🎤</p>
           <p class="sb-pick-label">Pick your starting level:</p>
           <div class="sb-levels">
             ${SB_TIERS.map((t, i) => {
@@ -958,9 +961,11 @@
             </div>
           </div>
           ${streak >= 2 ? `<div class="sb-streak">🔥 ${streak} in a row!</div>` : ''}
+          <p class="sb-ask">🎤 Ask the pronouncer — just like the real bee:</p>
           <div class="sb-clues">
             <button class="sb-clue" id="sb-def">📖 Definition</button>
             <button class="sb-clue" id="sb-pos">🔤 Part of speech</button>
+            <button class="sb-clue" id="sb-origin">🌍 Language of origin</button>
             <button class="sb-clue" id="sb-sen">✍️ In a sentence</button>
           </div>
           <div class="sb-clue-box" id="sb-cluebox" hidden></div>
@@ -980,6 +985,12 @@
       $('#sb-hear').onclick = () => { Sound.click(); say(cur.w); };
       $('#sb-def').onclick = () => { Sound.click(); showClue(`<b>Definition:</b> ${esc(cur.def)}`); say('Definition. ' + cur.def); };
       $('#sb-pos').onclick = () => { Sound.click(); showClue(`<b>Part of speech:</b> ${esc(cur.pos)}`); say(cur.pos); };
+      $('#sb-origin').onclick = () => {
+        Sound.click();
+        const tip = cur.tip ? `<div class="sb-tip">💡 Spelling clue: ${esc(cur.tip)}</div>` : '';
+        showClue(`<b>Language of origin:</b> ${esc(cur.origin)}${tip}`);
+        say('Language of origin. ' + cur.origin + (cur.tip ? ' Spelling clue. ' + cur.tip : ''));
+      };
       $('#sb-sen').onclick = () => { Sound.click(); showClue(`<b>In a sentence:</b> ${blankSentence(cur.w, cur.sen)}`); say(cur.sen); };
       $('#sb-form').onsubmit = (e) => { e.preventDefault(); judge(input.value); };
       // Speak the word automatically when it appears, then focus the box.
@@ -1019,6 +1030,7 @@
           ? `<p class="sb-reveal-sub">+${gain} points${streak >= 2 ? ` · 🔥 ${streak} streak bonus!` : ''}</p>`
           : `<p class="sb-reveal-sub">The word was spelled <b>${esc(cur.w)}</b>. ${done ? 'That was your last bee.' : `You have ${'🐝'.repeat(bees)} left.`}</p>`}
           <div class="sb-reveal-def">${esc(cur.pos)} · ${esc(cur.def)}</div>
+          <div class="sb-reveal-origin">🌍 Origin: ${esc(cur.origin)}${cur.tip ? ` &nbsp;·&nbsp; 💡 ${esc(cur.tip)}` : ''}</div>
           ${done
           ? `<button class="btn sun" id="sb-finish">See your results →</button>`
           : `<button class="btn sun" id="sb-cont">${correct ? 'Next word →' : 'Keep going →'}</button>`}
