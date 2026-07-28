@@ -921,9 +921,9 @@ route('landing', async () => {
   app().innerHTML = topbar(`
   <div class="hero hero-v2">
     <img src="/logo-full.png" alt="Gallop Learning Academy" class="hero-logo">
-    <div class="eyebrow">The only K–12 platform where kids learn it — then live it</div>
+    <div class="eyebrow">The K–12 platform where kids learn it — then live it</div>
     <h1>Ahead in school. <span class="hl-guide">Ready for life.</span></h1>
-    <p class="hero-sub">Gallop meets your child where they are — then takes them further: adaptive lessons in <b>Math, English &amp; Reading, Science, and Spanish</b> · <b>The Lab</b>, where they run businesses and invest · and a <b>Career Center</b> that shows them where it's all heading. Only Gallop puts all three in one place.</p>
+    <p class="hero-sub">Gallop meets your child where they are — then takes them further: adaptive lessons in <b>Math, English &amp; Reading, Science, and Spanish</b> · <b>The Lab</b>, where they run businesses and invest · and a <b>Career Center</b> that shows them where it's all heading. All three in one place.</p>
     <div class="hero-cta">
       ${State.me.role === 'parent'
         ? `<button class="btn hero-primary" onclick="location.hash='#parent'">Go to my dashboard →</button>`
@@ -938,7 +938,7 @@ route('landing', async () => {
         <button class="btn ghost" onclick="location.hash='#kid-login'">Student sign-in</button>
       </div>
     </div>
-    <div class="contrast-strip reveal">Most apps place, drill, and advance. <b>Only Gallop teaches the skill — then hands your child a lemonade stand to run with it.</b></div>
+    <div class="contrast-strip reveal">Most apps place, drill, and advance. <b>Gallop teaches the skill — then hands your child a lemonade stand to run with it.</b></div>
     <div class="hero-showcase reveal">
       <div class="hero-device"><img src="/shots/student-home.webp" alt="A student's Gallop home base — their next lesson, streak, and progress" loading="lazy"></div>
       <div class="gallop-badge">
@@ -967,8 +967,8 @@ route('landing', async () => {
     </div>
     <div class="academy-band reveal">
       <h2>More than a tutor. An academy.</h2>
-      <p>A tutor helps with one subject, one hour at a time. An academy builds the whole kid. Gallop is adaptive lessons that find your child's real level in four subjects — plus <b>The Lab</b>, where skills become businesses, portfolios, and plans — plus a <b>Career Center</b> that turns strengths into direction. One subscription. Under $1 a day.</p>
-      <p class="academy-proof">A private tutor covers one subject for $40–80 an hour. Gallop is a whole academy — <b>under $1 a day</b>.</p>
+      <p>A tutor helps with one subject, one hour at a time. An academy builds the whole kid. Gallop is adaptive lessons that find your child's real level in four subjects — plus <b>The Lab</b>, where skills become businesses, portfolios, and plans — plus a <b>Career Center</b> that turns strengths into direction. One subscription. From under $1 a day on the annual plan.</p>
+      <p class="academy-proof">A private tutor covers one subject for $40–80 an hour. Gallop is a whole academy — <b>from under $1 a day</b> on the annual plan.</p>
     </div>
     <div class="pillars reveal">
       <div class="pillar"><span class="pi-emoji">📚</span><b>1 · Learn it</b><p>Adaptive real-world lessons that find your child's level and teach through Math, English, Science &amp; Spanish.</p></div>
@@ -990,7 +990,7 @@ route('landing', async () => {
       <div class="dc-copy">
         <span class="dc-eyebrow">What makes Gallop different</span>
         <h2>Most apps just place, drill, and advance. Gallop teaches real skills — then has kids <b>apply</b> them.</h2>
-        <p>Every concept becomes something your child <b>does</b> — running a business, investing in a live-feeling market, exploring a career. That's the learning that sticks.</p>
+        <p>Many skills become something your child can <b>do</b> — running a business, investing in a live-feeling market, exploring a career. That's the learning that sticks.</p>
       </div>
     </div>
     <nav class="section-nav" aria-label="Jump to a section">
@@ -1118,7 +1118,7 @@ route('landing', async () => {
     <h2 class="section-title reveal">A home for accelerated learners</h2>
     <p class="section-sub">The kids who race ahead don't hit a ceiling here. Gallop has a separate Advanced Track that goes past grade level into college-level and honors work — real challenge, on demand, all year long.</p>
     <div class="feature-grid">
-      <div class="feature reveal"><div class="fnum">ADVANCED PLACEMENT</div><h3>Beyond multiple choice</h3><p>Every AP subject — Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English Language &amp; Literature, and Spanish — includes AP-style multiple-choice practice plus <b>free-response challenges</b> with worked model solutions and self-scoring rubrics, and a short <b>timed mini-mock</b> readiness check.</p></div>
+      <div class="feature reveal"><div class="fnum">ADVANCED PLACEMENT</div><h3>Beyond multiple choice</h3><p>Nine AP subjects — Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English Language &amp; Literature, and Spanish — plus Honors and state test prep, each with AP-style multiple-choice practice, <b>free-response challenges</b> with worked model solutions and self-scoring rubrics, and a short <b>timed mini-mock</b> readiness check.</p></div>
       <div class="feature reveal"><div class="fnum">HONORS &amp; BEYOND</div><h3>College-level enrichment</h3><p>Honors Precalculus, Spanish, and state-test prep, plus a per-subject progress gauge so accelerated students can see how their practice is building — all without disturbing their normal grade placement.</p></div>
       <div class="feature reveal"><div class="fnum">EXAM READY</div><h3>Aligned to the real tests</h3><p>Practice matched to the tests that count — AP-style sets, honors work, and state test prep in math, science, and English built on rigorous state standards.</p></div>
     </div>
@@ -1154,7 +1154,7 @@ route('landing', async () => {
         <div class="ab-card"><span class="ab-emoji">🧁</span><b>Gallop Bakery</b><p>Run a bakery for a day: batches, pricing, making change. Math with money on the line.</p><span class="ab-tag">business math</span></div>
         <div class="ab-card"><span class="ab-emoji">🤖</span><b>Robo Logic</b><p>Program a robot step by step to reach the star — first coding logic, no typing needed.</p><span class="ab-tag">coding</span></div>
       </div>
-      <p class="ab-more">+ Gallop Sprint, Word Roundup, Memory Meadow & Doodle Barn — eight games, all earned by learning.</p>
+      <p class="ab-more">+ Gallop Sprint, Word Roundup, Memory Meadow, Spelling Bee & Doodle Barn — nine games, all earned by learning.</p>
     </div>
 
     <h2 id="s-why" class="section-title reveal">Why families choose Gallop</h2>
@@ -1165,7 +1165,7 @@ route('landing', async () => {
         <figcaption><span class="q-name">Placed per subject</span><span class="q-detail">Math · English · Science · Spanish</span></figcaption>
       </figure>
       <figure class="quote-card reveal">
-        <blockquote>Get one wrong and Gallop re-teaches it a different way, then lets your child try again — most apps just show the answer and move on. It's the difference between drilling and actually learning.</blockquote>
+        <blockquote>Get one wrong and Gallop gives a hint and a fresh explanation, then lets your child try again — most apps just show the answer and move on. It's the difference between drilling and actually learning.</blockquote>
         <figcaption><span class="q-name">It re-teaches until it clicks</span><span class="q-detail">The "Second Look" difference</span></figcaption>
       </figure>
       <figure class="quote-card reveal">
@@ -1683,7 +1683,7 @@ route('home', async () => {
       <div>
         <h1>${playful() ? `Hi ${esc(k.name)}! Ready to level up? ⚡` : `Welcome back, ${esc(k.name)}.`}</h1>
         <div class="stat-chips" style="margin-top:8px">
-          ${data.gallopOverall != null ? `<span class="chip gscore-chip" title="Your all-subjects Gallop Score — it climbs with everything you truly learn">🏆 Gallop Score <b>${data.gallopOverall}</b></span>` : ''}
+          ${data.gallopOverall != null ? `<span class="chip gscore-chip" title="Your Gallop Score — it grows as you truly learn">🏆 Gallop Score <b>${data.gallopOverall}</b></span>` : ''}
           ${(() => { const r = rankFor(k.xp); return `<span class="chip rank-chip" title="${r.next ? (r.next.at - k.xp) + ' XP to ' + r.next.name : 'Top rank!'}">🏇 ${r.name}</span>`; })()}
           <span class="chip">${playful() ? '🔥 ' : ''}${k.streak}-day streak</span>
           <span class="chip">${playful() ? '⚡ ' : ''}${k.xp} XP</span>
@@ -3030,9 +3030,9 @@ route('report', async (kidId) => {
       </div>
       ${isParent ? `<details class="gs-explain"><summary>What is a Gallop Score, and will it go up? 🐎</summary>
         <div class="gs-explain-body">
-          <p>The Gallop Score is a single number, from <b>200 to 1200</b>, that sums up how much ${esc(k.name)} has truly learned across every subject. Think of it like a credit score for learning: one glanceable number that only moves up when the learning is real.</p>
-          <p><b>Yes — it rises as they progress.</b> Two things push it up: unlocking new skills, and deepening the skills they already have. Harder, higher-grade skills are worth more points, and a skill only pays out its full value once ${esc(k.name)} has genuinely mastered it. That's why it can't be inflated by guessing or racing through — the only way up is understanding that sticks.</p>
-          <p class="muted" style="font-size:.9rem;margin-bottom:0">Rough guide: ~200 is just starting out, ~700 is solid mid-elementary, and 1000+ is high-school-level command. Each subject shows its own score below, plus the school grade it lines up with.</p>
+          <p>The Gallop Score is a single number, from <b>200 to 1200</b>, that summarizes the independent work Gallop has enough evidence to evaluate. It may cover some or all of ${esc(k.name)}'s subjects, and it grows as they learn. Think of it like a credit score for learning — built only from work ${esc(k.name)} does on their own, so activities you do together don't affect it.</p>
+          <p><b>Mostly it rises as they progress.</b> Two things push it up: unlocking new skills, and deepening the skills they already have. Harder, higher-grade skills are worth more points, and a skill only pays out its full value once ${esc(k.name)} has genuinely mastered it — so the score rewards understanding that sticks rather than a lucky streak. Because recent work counts, the score can dip a little if accuracy slips for a while, then climb again as it recovers. That movement is the score staying honest.</p>
+          <p class="muted" style="font-size:.9rem;margin-bottom:0">Rough guide: ~200 is just starting out, ~700 is solid mid-elementary, and 1000+ is high-school-level command — these are Gallop's own progress estimates, not a nationally-normed test score. Each subject shows its own score below, and once there's enough recent evidence, the grade level it lines up with.</p>
         </div>
       </details>` : ''}` : ''}
       ${isParent && r.gradeScale ? `<p class="muted" style="font-size:.8rem;margin-top:8px">Letter grades reflect accuracy · Scale: ${esc(r.gradeScale)}</p>` : ''}
@@ -3084,9 +3084,9 @@ route('report', async (kidId) => {
       ${isParent ? `<details class="method-box">
         <summary>📋 How these numbers work — and why you can trust them</summary>
         <div class="method-body">
-          <p><b>Placement is measured, not assumed.</b> Each subject begins with a short adaptive assessment that finds the exact grade level where ${esc(k.name)} is challenged but not overwhelmed. Nothing here is estimated from age or enrolled grade alone — every figure is backed by questions ${esc(k.name)} actually answered.</p>
+          <p><b>Placement is measured, not assumed.</b> Each subject begins with a short adaptive assessment that finds the right starting level — where ${esc(k.name)} is challenged but not overwhelmed. It's based on the questions ${esc(k.name)} actually answers, not their age or enrolled grade.</p>
           <p><b>Advancement is earned.</b> To move up a grade, ${esc(k.name)} must master <i>every</i> skill at their current grade (80%+ mastery on each) <i>and</i> sustain 85%+ accuracy on recent work — never a lucky streak. The "Skills at [grade]" bar above each subject shows exactly how close they are. If work slips well below grade level, we quietly ease the difficulty and add practice instead of pushing ahead.</p>
-          <p><b>Accuracy &amp; letter grades</b> are simply the percent of grade-level questions answered correctly, on the standard scale (${esc(r.gradeScale)}). "Correct lately" reflects the most recent ~15 answers; the all-time figure is shown alongside when it differs. Optional Advanced Track (AP/honors) practice is kept separate and never affects these.</p>
+          <p><b>Accuracy &amp; letter grades</b> are the percent of questions at ${esc(k.name)}'s working grade level answered correctly, on the standard scale (${esc(r.gradeScale)}). Practice above or below that level still helps them learn, but only grade-level questions count toward the letter grade. "Correct lately" reflects the most recent ~15 answers; the all-time figure is shown alongside when it differs. Optional Advanced Track (AP/honors) practice is kept separate and never affects these.</p>
           <p><b>The Gallop Score &amp; grade-equivalent</b> are Gallop's own estimate of how much ${esc(k.name)} has demonstrated on the platform — they deepen as skills are practiced and proven. They're a progress measure for tracking growth over time, not a nationally-normed test score.</p>
           <p><b>Working level vs. Gallop Score.</b> Working level is where ${esc(k.name)} practices right now; the Gallop Score's grade is the mastery they've proven so far. Early on the score sits a little lower and rises to meet their working level. Similarly, the "Skills at [grade]" bar counts only that grade's skills, so a mastered easier skill can appear under Strengths without counting toward the current grade's total.</p>
         </div>
