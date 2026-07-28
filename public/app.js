@@ -4097,6 +4097,8 @@ route('parent', async () => {
           <select id="bd-kid2">${me.kids.map(k => `<option value="${k.id}">${esc(k.name)}</option>`).join('')}</select>
           <div class="error-msg" id="bd-err"></div>
           <button class="btn green small" style="margin-top:8px" id="bd-accept">Link Buddies ✨</button>
+          <div id="bd-manage" style="margin-top:16px"></div>
+          <p class="muted" style="font-size:.8rem;margin-top:10px">Codes are single-use and expire in 14 days. You can revoke a code or disconnect a buddy anytime below — the connection ends immediately for both children.</p>
         </div>
         <div class="card">
           <h3>🧭 How the tutor works</h3>
@@ -4118,12 +4120,40 @@ route('parent', async () => {
     });
   })();
   const bdc = $('#bd-create'), bda = $('#bd-accept');
+  async function renderBuddyManage() {
+    const box = $('#bd-manage'); if (!box) return;
+    let data; try { data = await api('/buddies/manage'); } catch (e) { return; }
+    const kids = (data && data.kids) || [];
+    const anyBuddies = kids.some(k => k.buddies.length), anyPending = kids.some(k => k.pending.length);
+    if (!anyBuddies && !anyPending) { box.innerHTML = ''; return; }
+    box.innerHTML = kids.filter(k => k.buddies.length || k.pending.length).map(k => `
+      <div class="bd-kidblock">
+        <b>${esc(k.name)}</b>
+        ${k.buddies.map(bd => `<div class="bd-row"><span>🤝 ${esc(bd.buddyName)}</span><button class="btn ghost small bd-disc" data-kid="${k.kidId}" data-buddy="${bd.buddyId}" style="color:#b0532f;border-color:#ecccc0">Disconnect</button></div>`).join('')}
+        ${k.pending.map(p => `<div class="bd-row"><span class="muted">🎫 Code <b>${esc(p.code)}</b> · pending · expires ${esc((p.expires || '').slice(0, 10))}</span><button class="btn ghost small bd-revoke" data-code="${esc(p.code)}" style="color:#7f8c9b;border-color:#dfe6e9">Revoke</button></div>`).join('')}
+      </div>`).join('');
+    box.querySelectorAll('.bd-disc').forEach(btn => btn.onclick = async () => {
+      if (!confirm('Disconnect these buddies? The connection ends immediately for both children, and pending cheers between them are cleared.')) return;
+      try { await api('/buddies/disconnect', { method: 'POST', body: { kidId: Number(btn.dataset.kid), buddyId: Number(btn.dataset.buddy) } }); toast('Buddies disconnected.'); renderBuddyManage(); }
+      catch (e) { toast(e.message || 'Could not disconnect.'); }
+    });
+    box.querySelectorAll('.bd-revoke').forEach(btn => btn.onclick = async () => {
+      try { await api('/buddies/invite/revoke', { method: 'POST', body: { code: btn.dataset.code } }); toast('Code revoked.'); renderBuddyManage(); }
+      catch (e) { toast(e.message || 'Could not revoke.'); }
+    });
+  }
+  renderBuddyManage();
   if (bdc) bdc.onclick = async () => {
-    try { const r = await api('/buddies/invite', { method: 'POST', body: { kidId: Number($('#bd-kid').value) } }); $('#bd-code').textContent = '🎫 ' + r.code; Sound.badge(); }
+    try { const r = await api('/buddies/invite', { method: 'POST', body: { kidId: Number($('#bd-kid').value) } }); $('#bd-code').textContent = '🎫 ' + r.code; Sound.badge(); renderBuddyManage(); }
     catch (e) { showError('#bd-err', e.message); }
   };
   if (bda) bda.onclick = async () => {
-    try { const r = await api('/buddies/accept', { method: 'POST', body: { code: $('#bd-input').value, kidId: Number($('#bd-kid2').value) } }); $('#bd-input').value = ''; Sound.levelup(); Confetti.burst(100); alert('Connected with ' + r.buddyName + '! 🎉'); }
+    const code = ($('#bd-input').value || '').trim().toUpperCase();
+    const kidName = $('#bd-kid2').selectedOptions[0] ? $('#bd-kid2').selectedOptions[0].textContent : 'your child';
+    if (!code) { showError('#bd-err', 'Enter the 6-character code the other family shared with you.'); return; }
+    // Confirmation before linking — a parent-approved connection should be a deliberate action.
+    if (!confirm(`Link ${kidName} as buddies using code ${code}? They'll see each other's streaks and badges and can send pre-written cheers — no open chat. You can disconnect anytime.`)) return;
+    try { const r = await api('/buddies/accept', { method: 'POST', body: { code, kidId: Number($('#bd-kid2').value) } }); $('#bd-input').value = ''; Sound.levelup(); Confetti.burst(100); toast('Connected with ' + r.buddyName + '! 🎉'); renderBuddyManage(); }
     catch (e) { showError('#bd-err', e.message); }
   };
 

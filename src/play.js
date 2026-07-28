@@ -410,6 +410,47 @@ router.post('/buddies/accept', buddyLimiter, auth.requireParent, (req, res) => {
   res.json({ ok: true, buddyName: other ? other.name : 'buddy' });
 });
 
+// ---------- parent buddy management: overview, revoke a pending code, disconnect a buddy ----------
+// A parent must be able to SEE and UNDO their children's connections (PP-111 child-safety).
+router.get('/buddies/manage', auth.requireParent, (req, res) => {
+  const kids = db.prepare('SELECT id, name FROM kids WHERE parent_id=?').all(req.parent.id);
+  const out = kids.map(k => {
+    const pairs = db.prepare('SELECT * FROM buddies WHERE kid_a=? OR kid_b=?').all(k.id, k.id);
+    const buddies = pairs.map(p => {
+      const otherId = p.kid_a === k.id ? p.kid_b : p.kid_a;
+      const o = db.prepare('SELECT name FROM kids WHERE id=?').get(otherId);
+      return { buddyId: otherId, buddyName: o ? o.name : 'buddy', since: p.created_at };
+    });
+    const pending = db.prepare("SELECT code, created_at, datetime(created_at,'+14 days') AS expires FROM buddy_invites WHERE kid_id=? ORDER BY created_at DESC").all(k.id);
+    return { kidId: k.id, name: k.name, buddies, pending };
+  });
+  res.json({ kids: out });
+});
+
+// Parent revokes a pending (unredeemed) invite code for one of their kids.
+router.post('/buddies/invite/revoke', auth.requireParent, (req, res) => {
+  const code = String((req.body || {}).code || '').trim().toUpperCase();
+  const inv = db.prepare('SELECT * FROM buddy_invites WHERE code=?').get(code);
+  if (!inv) return res.status(404).json({ error: 'Code not found (it may have expired or already been used).' });
+  const owns = db.prepare('SELECT 1 FROM kids WHERE id=? AND parent_id=?').get(inv.kid_id, req.parent.id);
+  if (!owns) return res.status(403).json({ error: 'That code is not yours.' });
+  db.prepare('DELETE FROM buddy_invites WHERE code=?').run(code);
+  res.json({ ok: true });
+});
+
+// Parent disconnects two children who are buddies. Only if one side is this parent's kid.
+// Also clears any pending cheers/challenges between them so nothing lingers.
+router.post('/buddies/disconnect', auth.requireParent, (req, res) => {
+  const kidId = Number((req.body || {}).kidId), buddyId = Number((req.body || {}).buddyId);
+  const myKid = db.prepare('SELECT id FROM kids WHERE id=? AND parent_id=?').get(kidId, req.parent.id);
+  if (!myKid) return res.status(403).json({ error: 'Not your learner.' });
+  const [a, b] = [Math.min(kidId, buddyId), Math.max(kidId, buddyId)];
+  db.prepare('DELETE FROM buddies WHERE kid_a=? AND kid_b=?').run(a, b);
+  try { db.prepare('DELETE FROM cheers WHERE (from_kid=? AND to_kid=?) OR (from_kid=? AND to_kid=?)').run(kidId, buddyId, buddyId, kidId); } catch (e) {}
+  try { db.prepare("DELETE FROM challenges WHERE ((from_kid=? AND to_kid=?) OR (from_kid=? AND to_kid=?)) AND status='open'").run(kidId, buddyId, buddyId, kidId); } catch (e) {}
+  res.json({ ok: true });
+});
+
 // ---------- Team Gallop: co-op weekly goal per buddy pair ----------
 const TEAM_GOAL = 100;       // combined answers in the last 7 days
 const TEAM_REWARD = 10;      // coins for EACH kid
