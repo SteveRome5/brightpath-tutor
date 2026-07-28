@@ -767,6 +767,8 @@ body[data-theme="scholar"] .muncher-caption { color: #1d2740 !important; }
 .ws-cell.sel { background: #fcd000; color: #181828; border-color: #c89000; }
 .ws-cell.found { background: #20a050; color: #fff; border-color: #106030; }
 .ws-cell.found.just { animation: wsPop .4s steps(3); }
+.ws-cell.hint { background: #ffe08a; border-color: #e0a300; box-shadow: 0 0 0 3px rgba(255,200,40,.5); animation: hintPulse 1s ease-in-out infinite; }
+@keyframes hintPulse { 0%,100% { box-shadow: 0 0 0 2px rgba(255,200,40,.4); } 50% { box-shadow: 0 0 0 5px rgba(255,200,40,.7); } }
 @keyframes wsPop { 0% { background: #fcd000; color: #181828; } 50% { background: #fce000; color: #181828; } 100% { background: #20a050; color: #fff; } }
 .ws-done { text-decoration: line-through; opacity: .55; color: #1A5C38; font-weight: 700; font-family: 'Press Start 2P', monospace; font-size: .7rem; }
 .badge-shelf .badge-item { font-family: 'Press Start 2P', monospace; font-size: .68rem; }

@@ -302,80 +302,114 @@
   const WS_WORDS = {
     little: ['CAT', 'SUN', 'DOG', 'STAR', 'MOON', 'FISH', 'TREE', 'BIRD', 'CAKE', 'FROG', 'BEAR', 'SHIP'],
     big: ['PLANET', 'ROCKET', 'CASTLE', 'DRAGON', 'GARDEN', 'BRIDGE', 'JUNGLE', 'WIZARD', 'PIRATE', 'VOLCANO'],
-    spanish: ['GATO', 'PERRO', 'AGUA', 'ROJO', 'AZUL', 'CASA', 'LUNA', 'FLOR', 'LECHE', 'VERDE']
+    spanish: ['GATO', 'PERRO', 'AGUA', 'ROJO', 'AZUL', 'CASA', 'LUNA', 'FLOR', 'LECHE', 'VERDE'],
+    animals: ['LION', 'TIGER', 'ZEBRA', 'PANDA', 'KOALA', 'HORSE', 'MOOSE', 'OTTER', 'SNAKE', 'EAGLE'],
+    space: ['STAR', 'COMET', 'ORBIT', 'LUNAR', 'MARS', 'SATURN', 'GALAXY', 'NEBULA', 'ROCKET', 'METEOR'],
+    food: ['PIZZA', 'APPLE', 'MANGO', 'BREAD', 'HONEY', 'GRAPE', 'LEMON', 'PEACH', 'BERRY', 'WAFFLE']
   };
+  const WS_LABELS = { little: '🔤 Starter', big: '🏰 Adventure', spanish: '🌎 ¡en español!', animals: '🦁 Animals', space: '🚀 Space', food: '🍕 Food' };
   function startWordSearch() {
     const grade = State.me.kid.grade || 0;
-    const setName = Math.random() < .34 ? 'spanish' : grade <= 2 ? 'little' : 'big';
-    const size = grade <= 2 ? 8 : 10;
-    const words = WS_WORDS[setName].slice().sort(() => Math.random() - .5).slice(0, 5).filter(w => w.length <= size);
-    const grid = Array.from({ length: size }, () => Array(size).fill(''));
-    const dirs = grade <= 2 ? [[0, 1], [1, 0]] : [[0, 1], [1, 0], [1, 1]];
-    const placed = [];
-    const wordPos = {}; // word -> exact cells recorded AT PLACEMENT (never re-searched)
-    for (const w of words) {
-      for (let tries = 0; tries < 200; tries++) {
-        const [dr, dc] = dirs[Math.floor(Math.random() * dirs.length)];
-        const r0 = Math.floor(Math.random() * (size - (dr ? w.length : 1)));
-        const c0 = Math.floor(Math.random() * (size - (dc ? w.length : 1)));
-        let ok = true;
-        for (let i = 0; i < w.length; i++) { const ch = grid[r0 + dr * i][c0 + dc * i]; if (ch && ch !== w[i]) { ok = false; break; } }
-        if (!ok) continue;
-        for (let i = 0; i < w.length; i++) grid[r0 + dr * i][c0 + dc * i] = w[i];
-        wordPos[w] = Array.from({ length: w.length }, (_, i) => ({ r: r0 + dr * i, c: c0 + dc * i }));
-        placed.push(w); break;
-      }
-    }
-    const AZ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (!grid[r][c]) grid[r][c] = AZ[Math.floor(Math.random() * 26)];
-    let found = new Set(), sel = [], t0 = Date.now(), justFound = null;
-    function cellKey(r, c) { return r + ',' + c; }
-    function render() {
-      const justCells = justFound ? wordCells(justFound) : [];
-      app().innerHTML = topbar(`<div class="container" style="max-width:640px">
-        <div class="lesson-top"><b>🔍 Word Roundup ${setName === 'spanish' ? '— 🌎 ¡en español!' : ''}</b><b>${found.size}/${placed.length} found</b></div>
-        <div class="ws-grid" style="grid-template-columns:repeat(${size},1fr)">
-          ${grid.map((row, r) => row.map((ch, c) => {
-            const inSel = sel.some(s => s.r === r && s.c === c);
-            const inFound = [...found].some(w => wordCells(w).some(x => x.r === r && x.c === c));
-            const isJust = justCells.some(x => x.r === r && x.c === c);
-            return `<button class="ws-cell ${inFound ? 'found' : inSel ? 'sel' : ''}${isJust ? ' just' : ''}" data-r="${r}" data-c="${c}">${ch}</button>`;
-          }).join('')).join('')}
+    function intro() {
+      app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center" style="padding:26px">
+        <div class="big-emoji">🔍</div><h2>Word Roundup</h2>
+        <p class="muted" style="margin:6px 0 4px">Find every hidden word — a surprise theme each round. Stuck? Use a hint!</p>
+        <div class="mem-diffs">
+          <button class="btn green ws-diff" data-d="easy">🌱 Easy<small>8×8 · 5 words</small></button>
+          <button class="btn sun ws-diff" data-d="medium">⭐ Medium<small>10×10 · diagonals</small></button>
+          <button class="btn coral ws-diff" data-d="hard">🔥 Hard<small>12×12 · backwards too!</small></button>
         </div>
-        <div class="badge-shelf" style="justify-content:center;margin-top:14px">
-          ${placed.map(w => `<div class="badge-item ${found.has(w) ? 'ws-done' : ''}">${found.has(w) ? '✓ ' : ''}${w}</div>`).join('')}
-        </div>
-        <p class="game-hint">Tap the FIRST letter, then the LAST letter of a word!</p>
-      </div>`);
+        <button class="btn ghost small" style="margin-top:14px;color:#1A5C38;border-color:#1A5C38" onclick="location.hash='#play'">← Back to Play Zone</button>
+      </div></div>`);
       wireChrome();
-      justFound = null;
-      document.querySelectorAll('.ws-cell').forEach(el => el.onclick = () => pick(Number(el.dataset.r), Number(el.dataset.c)));
+      document.querySelectorAll('.ws-diff').forEach(b => b.onclick = () => { Sound.click(); play(b.dataset.d); });
     }
-    // Use the exact cells recorded when each word was placed — never re-derive from the
-    // grid, or random filler letters could spell a word elsewhere and mark a correct tap wrong.
-    function wordCells(w) { return wordPos[w] || []; }
-    function pick(r, c) {
-      Sound.click();
-      sel.push({ r, c });
-      if (sel.length === 2) {
-        const [a, b] = sel;
-        const hit = placed.find(w => {
-          const cells = wordCells(w);
-          return cells.length && ((cells[0].r === a.r && cells[0].c === a.c && cells[cells.length - 1].r === b.r && cells[cells.length - 1].c === b.c) ||
-            (cells[0].r === b.r && cells[0].c === b.c && cells[cells.length - 1].r === a.r && cells[cells.length - 1].c === a.c));
-        });
-        if (hit && !found.has(hit)) {
-          found.add(hit); justFound = hit; Sound.correct(); Confetti.burst(40);
-          if (found.size === placed.length) {
-            const secs = Math.round((Date.now() - t0) / 1000);
-            setTimeout(() => finishGame('wordsearch', Math.max(20, 300 - secs), 'Every word found! 🔎', `Solved in ${secs} seconds!`), 500);
-          }
-        } else if (!hit) Sound.wrong();
-        sel = [];
+    function play(diff) {
+      const conf = { easy: { size: 8, n: 5, dirs: [[0, 1], [1, 0]], base: 200 }, medium: { size: 10, n: 6, dirs: [[0, 1], [1, 0], [1, 1]], base: 270 }, hard: { size: 12, n: 7, dirs: [[0, 1], [1, 0], [1, 1], [0, -1], [-1, 0]], base: 340 } }[diff];
+      const size = conf.size, dirs = conf.dirs;
+      const pool = grade <= 2 ? ['little', 'animals', 'food', 'spanish'] : ['big', 'animals', 'space', 'food', 'spanish'];
+      const setName = pool[Math.floor(Math.random() * pool.length)];
+      const words = WS_WORDS[setName].slice().sort(() => Math.random() - .5).filter(w => w.length <= size).slice(0, conf.n);
+      const grid = Array.from({ length: size }, () => Array(size).fill(''));
+      const placed = [], wordPos = {};
+      for (const w of words) {
+        for (let tries = 0; tries < 250; tries++) {
+          const [dr, dc] = dirs[Math.floor(Math.random() * dirs.length)];
+          const len = w.length;
+          const rMin = dr < 0 ? len - 1 : 0, rMax = dr > 0 ? size - len : size - 1;
+          const cMin = dc < 0 ? len - 1 : 0, cMax = dc > 0 ? size - len : size - 1;
+          const r0 = rMin + Math.floor(Math.random() * (rMax - rMin + 1));
+          const c0 = cMin + Math.floor(Math.random() * (cMax - cMin + 1));
+          let ok = true;
+          for (let i = 0; i < len; i++) { const rr = r0 + dr * i, cc = c0 + dc * i; if (rr < 0 || cc < 0 || rr >= size || cc >= size) { ok = false; break; } const ch = grid[rr][cc]; if (ch && ch !== w[i]) { ok = false; break; } }
+          if (!ok) continue;
+          for (let i = 0; i < len; i++) grid[r0 + dr * i][c0 + dc * i] = w[i];
+          wordPos[w] = Array.from({ length: len }, (_, i) => ({ r: r0 + dr * i, c: c0 + dc * i }));
+          placed.push(w); break;
+        }
+      }
+      const AZ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (!grid[r][c]) grid[r][c] = AZ[Math.floor(Math.random() * 26)];
+      let found = new Set(), sel = [], t0 = Date.now(), justFound = null, hints = 3, hintsUsed = 0, hintCell = null;
+      function wordCells(w) { return wordPos[w] || []; }
+      function render() {
+        const justCells = justFound ? wordCells(justFound) : [];
+        app().innerHTML = topbar(`<div class="container" style="max-width:640px">
+          <div class="lesson-top"><b>🔍 Word Roundup — ${WS_LABELS[setName]}</b><b>${found.size}/${placed.length} found</b></div>
+          <div class="ws-grid" style="grid-template-columns:repeat(${size},1fr)">
+            ${grid.map((row, r) => row.map((ch, c) => {
+              const inSel = sel.some(s => s.r === r && s.c === c);
+              const inFound = [...found].some(w => wordCells(w).some(x => x.r === r && x.c === c));
+              const isJust = justCells.some(x => x.r === r && x.c === c);
+              const isHint = hintCell && hintCell.r === r && hintCell.c === c && !inFound;
+              return `<button class="ws-cell ${inFound ? 'found' : inSel ? 'sel' : ''}${isJust ? ' just' : ''}${isHint ? ' hint' : ''}" data-r="${r}" data-c="${c}">${ch}</button>`;
+            }).join('')).join('')}
+          </div>
+          <div class="badge-shelf" style="justify-content:center;margin-top:14px">
+            ${placed.map(w => `<div class="badge-item ${found.has(w) ? 'ws-done' : ''}">${found.has(w) ? '✓ ' : ''}${w}</div>`).join('')}
+          </div>
+          <div class="center" style="margin-top:12px"><button class="btn sun small" id="ws-hint" ${hints <= 0 ? 'disabled' : ''}>💡 Hint (${hints} left)</button></div>
+          <p class="game-hint">Tap the FIRST letter, then the LAST letter of a word!</p>
+        </div>`);
+        wireChrome();
+        justFound = null;
+        document.querySelectorAll('.ws-cell').forEach(el => el.onclick = () => pick(Number(el.dataset.r), Number(el.dataset.c)));
+        const hb = $('#ws-hint'); if (hb) hb.onclick = useHint;
+      }
+      function useHint() {
+        if (hints <= 0) return;
+        const remaining = placed.filter(w => !found.has(w));
+        if (!remaining.length) return;
+        hints--; hintsUsed++;
+        const w = remaining[Math.floor(Math.random() * remaining.length)];
+        hintCell = wordCells(w)[0];
+        Sound.correct(); render();
+      }
+      function pick(r, c) {
+        Sound.click();
+        sel.push({ r, c });
+        if (sel.length === 2) {
+          const [a, b] = sel;
+          const hit = placed.find(w => {
+            const cells = wordCells(w);
+            return cells.length && ((cells[0].r === a.r && cells[0].c === a.c && cells[cells.length - 1].r === b.r && cells[cells.length - 1].c === b.c) ||
+              (cells[0].r === b.r && cells[0].c === b.c && cells[cells.length - 1].r === a.r && cells[cells.length - 1].c === a.c));
+          });
+          if (hit && !found.has(hit)) {
+            found.add(hit); justFound = hit; hintCell = null; Sound.correct(); Confetti.burst(40);
+            if (found.size === placed.length) {
+              const secs = Math.round((Date.now() - t0) / 1000);
+              const score = Math.max(20, conf.base + placed.length * 10 - secs - hintsUsed * 20);
+              setTimeout(() => finishGame('wordsearch', score, 'Every word found! 🔎', `${placed.length} words in ${secs}s${hintsUsed ? ` · ${hintsUsed} hint${hintsUsed > 1 ? 's' : ''} used` : ' · no hints — nice!'}. Try Hard for a bigger score!`), 500);
+            }
+          } else if (!hit) Sound.wrong();
+          sel = [];
+        }
+        render();
       }
       render();
     }
-    render();
+    intro();
   }
 
   // ======================= CODE QUEST =======================
@@ -412,7 +446,7 @@
   }
   const CQ_ARROWS = { up: '⬆️', down: '⬇️', left: '⬅️', right: '➡️' };
   function startCode() {
-    let levelIdx = 0, program = [], score = 0;
+    let levelIdx = 0, program = [], score = 0, totalStars = 0;
     const CODE_LEVELS = pickCodeLevels();
     let raf = null, robot = { r: 0, c: 0 }, anim = null, running = false, crashT = 0, winT = 0, particles = [], msg = null, blinkT = 0;
     const lvl = () => CODE_LEVELS[levelIdx];
@@ -486,10 +520,14 @@
       }
       if (robot.r === L.goal[0] && robot.c === L.goal[1]) {
         winT = performance.now(); const bonus = Math.max(15, 70 - program.length * 4); score += bonus;
-        Sound.correct(); Confetti.burst(70); burst(robot.c * cell + cell / 2, robot.r * cell + cell / 2, '#C9A84C', 26);
+        // Efficiency stars: the closer the program is to the shortest possible path, the more stars.
+        const manh = Math.abs(L.goal[0] - L.start[0]) + Math.abs(L.goal[1] - L.start[1]);
+        const stars = program.length <= manh + 2 ? 3 : program.length <= manh + 5 ? 2 : 1;
+        totalStars += stars; const starStr = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+        Sound.correct(); Confetti.burst(stars === 3 ? 110 : 70); burst(robot.c * cell + cell / 2, robot.r * cell + cell / 2, '#C9A84C', 26);
         await wait(750); program = [];
-        if (levelIdx === CODE_LEVELS.length - 1) { finishGame('code', score, 'Every level solved! 🤖', `Shorter programs earn bigger bonuses, just like real code. Final score ${score}!`); return; }
-        levelIdx++; msg = { good: true, text: `⭐ Star reached! +${bonus} points. On to level ${levelIdx + 1}!` }; render();
+        if (levelIdx === CODE_LEVELS.length - 1) { finishGame('code', score, `Every level solved! 🤖`, `${totalStars}/${CODE_LEVELS.length * 3} efficiency stars ⭐ · shorter programs = more stars, just like real code. Final score ${score}!`); return; }
+        levelIdx++; msg = { good: true, text: `${starStr} +${bonus} points! ${stars === 3 ? 'Super efficient!' : 'Fewer steps = more stars.'} On to level ${levelIdx + 1}!` }; render();
       } else { Sound.wrong(); msg = { good: false, text: 'Robo stopped short of the star. Add a few more steps!' }; render(); }
     }
 
