@@ -338,7 +338,9 @@ window.addEventListener('hashchange', () => { if (!(location.hash || '').startsW
 // --- Analytics: push funnel events to Google Tag Manager's dataLayer. GTM (container
 // GTM-N5F65TST) picks these up as triggers and forwards them to GA4 (or any tag) as
 // conversions. Fully guarded: if GTM/dataLayer isn't present, these are harmless no-ops.
-function gtmPush(obj) { try { window.dataLayer = window.dataLayer || []; window.dataLayer.push(obj); } catch (e) {} }
+// Analytics funnel push. Hard no-op inside a child session (COPPA): no learner action ever
+// reaches marketing analytics. Also guarded if GTM/dataLayer isn't present.
+function gtmPush(obj) { try { if (State.me && State.me.role === 'kid') return; window.dataLayer = window.dataLayer || []; window.dataLayer.push(obj); } catch (e) {} }
 const PLAN_PRICE = { solo: 34, family: 54, solo_annual: 348, family_annual: 552 };
 
 // ======================= sound engine =======================
@@ -826,8 +828,10 @@ function wireChrome() {
   };
   const xk = $('#exit-kid-btn');
   if (xk) xk.onclick = async () => {
-    try { await api('/auth/exit-kid', { method: 'POST' }); await refreshMe(); location.hash = isTeacher() ? '#teacher' : '#parent'; }
-    catch (e) { location.hash = '#login'; }
+    // Reload back into the parent session (symmetric with enterKid). The re-boot re-initializes
+    // adult analytics cleanly and guarantees no learner state carries into the parent context.
+    try { await api('/auth/exit-kid', { method: 'POST' }); await refreshMe(); location.hash = isTeacher() ? '#teacher' : '#parent'; location.reload(); }
+    catch (e) { location.hash = '#login'; location.reload(); }
   };
   // Accessibility: the kid nav tiles are <div>s. Make them real buttons for keyboard
   // and screen-reader users (focusable + role + label). Enter/Space is handled globally.
@@ -3975,10 +3979,12 @@ route('parent', async () => {
   };
   async function enterKid(kidId, dest) {
     await api('/auth/enter-kid', { method: 'POST', body: { kidId } });
-    await refreshMe();
     Sound.levelup();
+    // Full reload into the child session. This is the privacy boundary: the learner page re-boots
+    // with role 'kid', so marketing/analytics tags (which may have loaded on the parent page) are
+    // never present in the child experience (COPPA). The reload also clears any adult-side state.
     location.hash = dest || '#home';
-    if (location.hash === (dest || '#home')) navigate();
+    location.reload();
   }
   // "Time to Gallop!", straight from signup into learning, no re-login needed.
   function timeToGallop(kidId, kidName) {
@@ -4611,6 +4617,10 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
 // ======================= boot =======================
 (async function boot() {
   try { await refreshMe(); } catch (e) { /* offline-ish */ }
+  // Analytics gate (COPPA): load marketing tags only for public/parent visitors, NEVER in a child
+  // session. Child entry forces a full reload, so a kid session always boots here as role 'kid'
+  // and GTM is never injected for the learner experience.
+  try { if (!(State.me && State.me.role === 'kid') && window.__gallopInitAnalytics) window.__gallopInitAnalytics(); } catch (e) {}
   // preload speech voices (some browsers lazy-load)
   if ('speechSynthesis' in window) speechSynthesis.getVoices();
   // installable app (iPad home screen, Chromebook, etc.) + nudge to refresh when a new

@@ -3,13 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <!-- Google Tag Manager -->
-  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-N5F65TST');</script>
-  <!-- End Google Tag Manager -->
+  <!-- Analytics (Google Tag Manager) is loaded ONLY for public/parent visitors, and NEVER inside a
+       child session — child-directed product, so no marketing/analytics tags run on learner routes
+       (COPPA). app.js calls window.__gallopInitAnalytics() after it confirms the session is not a kid;
+       entering a child session forces a full reload so this snippet never fires for that page. -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    window.__GTM_ID = 'GTM-N5F65TST';
+    window.__gallopInitAnalytics = function () {
+      if (window.__gallopAnalyticsLoaded) return;
+      // Second line of defense: never load on a learner route even if called by mistake.
+      if (/^#\/?(lesson|teach|placement|exam|play|game|avatar|snacks|buddies|trophies|student|kid)(\/|$)/.test(location.hash || '')) return;
+      window.__gallopAnalyticsLoaded = true;
+      window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+      var f = document.getElementsByTagName('script')[0], j = document.createElement('script');
+      j.async = true; j.src = 'https://www.googletagmanager.com/gtm.js?id=' + window.__GTM_ID;
+      f.parentNode.insertBefore(j, f);
+    };
+  </script>
   <title>Gallop Learning Academy — Where Learning Meets the Real World</title>
   <meta name="description" content="Meet Gallop — your child's affordable, on-demand K-12 learning guide. Adaptive lessons in Math, English, Science & Spanish, then The Lab, where kids apply it: business & investing games and a career center. All four subjects from under $1/day. 7-day free trial.">
   <link rel="canonical" href="https://learnwithgallop.com/">
@@ -70,10 +81,8 @@
   <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
 </head>
 <body>
-  <!-- Google Tag Manager (noscript) -->
-  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-N5F65TST"
-  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-  <!-- End Google Tag Manager (noscript) -->
+  <!-- (No GTM <noscript> iframe: it would load the container unconditionally, including on child
+       routes. The app requires JS anyway, so the fallback served no purpose but the tracking risk.) -->
   <canvas id="confetti-canvas"></canvas>
   <div id="app" role="main" aria-label="Gallop"></div>
   <script src="/app.js"></script>
