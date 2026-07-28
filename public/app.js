@@ -3937,9 +3937,20 @@ route('parent', async () => {
       <span>Update your card to keep your subscription active — you won't be charged twice.</span></div>
       <div style="white-space:nowrap"><button class="btn sun" id="tb-portal">Update payment method</button></div>
     </div>` : ''}
-    <div id="kid-snapshots" style="margin-bottom:16px"></div>
-    <div id="monthly-recap" style="margin-bottom:16px"></div>
-    <div class="dash-grid">
+    <div class="ptabs" role="tablist" aria-label="Parent dashboard sections">
+      <button class="ptab-btn active" data-ptab="today" role="tab" aria-selected="true">📅 Today</button>
+      <button class="ptab-btn" data-ptab="progress" role="tab" aria-selected="false">📈 Progress</button>
+      <button class="ptab-btn" data-ptab="family" role="tab" aria-selected="false">👨‍👩‍👧 Family</button>
+      <button class="ptab-btn" data-ptab="account" role="tab" aria-selected="false">⚙️ Account</button>
+    </div>
+    <div class="ptab-panel" data-ptab="today">
+      <div id="kid-snapshots" style="margin-bottom:16px"></div>
+    </div>
+    <div class="ptab-panel" data-ptab="progress" hidden>
+      <div id="monthly-recap" style="margin-bottom:16px"></div>
+      <p class="muted" style="font-size:.88rem">Open any child's full report or printable weekly summary from their card in <b>Today</b> or <b>Family</b>.</p>
+    </div>
+    <div class="ptab-panel" data-ptab="family" hidden>
       <div class="card">
         <h3>👧 Your Learners</h3>
         <div id="kid-list" style="margin-top:12px">
@@ -3987,7 +3998,7 @@ route('parent', async () => {
               <button class="btn ghost small" data-cancel-games="${k.id}" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px;margin-top:10px">Close</button>
             </div>`).join('') : '<p class="muted">Add your first learner below! 👇</p>'}
         </div>
-        <h4 style="margin-top:18px">Add a learner</h4>
+        <details class="add-learner"${me.kids.length ? '' : ' open'}><summary class="add-learner-sum">➕ Add a learner</summary>
         <label>Name</label><input id="nk-name" placeholder="e.g. Margaux">
         <label>Grade</label><select id="nk-grade">${['K', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((g, i) => `<option value="${i}">${g === 'K' ? 'Kindergarten' : 'Grade ' + g}</option>`).join('')}</select>
         <label>4-digit PIN (their fun password)</label><input id="nk-pin" maxlength="4" inputmode="numeric" placeholder="e.g. 2019">
@@ -4009,8 +4020,10 @@ route('parent', async () => {
         </label>
         <div class="error-msg" id="nk-err"></div>
         <button class="btn green" style="margin-top:14px;width:100%" id="nk-go">Add Learner ✨</button>
+        </details>
       </div>
-      <div>
+    </div>
+    <div class="ptab-panel" data-ptab="account" hidden>
         <div id="family-week"></div>
         <div class="card">
           <h3>💳 Subscription</h3>
@@ -4082,9 +4095,20 @@ route('parent', async () => {
           <p class="muted" style="margin-top:8px;line-height:1.6">Each subject starts with a short <b>placement quiz</b>, so a child can be working at a fourth-grade level in reading and a second-grade level in math at the same time. Every answer updates what we know about their skills. Strong ones move faster; shaky ones get gentler questions, more hints, and extra practice. Finishing a whole grade level earns a <b>certificate</b>. Correct answers also earn <b>play tokens</b> for the arcade, so the learning always comes first.</p>
         </div>
       </div>
-    </div>
   </div>`);
   wireChrome();
+  // Parent dashboard tabs: Today / Progress / Family / Account. Panels are all in the DOM (so the
+  // async snapshot/recap loaders and every button handler keep working); we just toggle visibility.
+  (function initParentTabs() {
+    const btns = document.querySelectorAll('.ptab-btn');
+    const panels = document.querySelectorAll('.ptab-panel');
+    btns.forEach(btn => btn.onclick = () => {
+      const t = btn.dataset.ptab;
+      btns.forEach(b => { const on = b === btn; b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+      panels.forEach(p => { p.hidden = (p.dataset.ptab !== t); });
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
+    });
+  })();
   const bdc = $('#bd-create'), bda = $('#bd-accept');
   if (bdc) bdc.onclick = async () => {
     try { const r = await api('/buddies/invite', { method: 'POST', body: { kidId: Number($('#bd-kid').value) } }); $('#bd-code').textContent = '🎫 ' + r.code; Sound.badge(); }
