@@ -1,6 +1,7 @@
 // Auth — parent accounts (email+password) and kid profiles (avatar + 4-digit PIN)
 const crypto = require('crypto');
 const db = require('./db');
+const timeutil = require('./timeutil');
 
 function hashPassword(password, salt) {
   return crypto.scryptSync(password, salt, 64).toString('hex');
@@ -163,14 +164,18 @@ function isComp(parent) {
 // Canonical trial-expiry timestamp (ms since epoch), used by BOTH the access gate and any
 // surface that renders trial state, so display and enforcement can never disagree.
 // A date-only value (e.g. "2026-07-28", from an old schema default or a QA fixture) is treated
-// as the END of that day in UTC — so a trial "expiring today" grants access through the whole
-// day instead of locking at 00:00. Full "YYYY-MM-DD HH:MM:SS" timestamps are read as UTC.
-function trialEndMs(trialEnds) {
+// as the END of that day in the ACCOUNT'S timezone (tz, default Pacific) — so a trial "expiring
+// today" grants access through 11:59 PM where the family lives, never a surprise mid-afternoon
+// lockout at UTC end-of-day (5 PM Pacific in DST). Full "YYYY-MM-DD HH:MM:SS" timestamps are a
+// precise instant already and are read as UTC.
+function trialEndMs(trialEnds, tz) {
   if (!trialEnds) return 0;
   const s = String(trialEnds).trim();
-  let iso;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) iso = s + 'T23:59:59.999Z';
-  else { iso = s.replace(' ', 'T'); if (!/[zZ]$|[+-]\d\d:?\d\d$/.test(iso)) iso += 'Z'; }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const t = timeutil.endOfLocalDayMs(s, tz);
+    return isNaN(t) ? 0 : t;
+  }
+  let iso = s.replace(' ', 'T'); if (!/[zZ]$|[+-]\d\d:?\d\d$/.test(iso)) iso += 'Z';
   const t = Date.parse(iso);
   return isNaN(t) ? 0 : t;
 }
@@ -182,7 +187,7 @@ function entitlement(parent) {
   // School/teacher accounts are billed separately (custom invoicing / pilots), not through the
   // self-serve Stripe path — so their students always have access, never a family paywall.
   if (parent.account_type === 'teacher') return { ok: true, reason: 'school', message: '' };
-  const trialOk = parent.sub_status === 'trial' && trialEndMs(parent.trial_ends) > Date.now();
+  const trialOk = parent.sub_status === 'trial' && trialEndMs(parent.trial_ends, parent.tz) > Date.now();
   if (parent.sub_status === 'active' || trialOk) return { ok: true, reason: 'active', message: '' };
   // Not entitled — name the exact reason so every surface can speak to it honestly.
   if (parent.sub_status === 'past_due') return { ok: false, reason: 'past_due', message: "There's a problem with the payment on this account. Ask a grown-up to update it to keep learning!" };

@@ -314,7 +314,25 @@ async function _gameClockSecond() {
 async function _postGameSeconds(secs) {
   const kid = curKidId();
   if (secs <= 0 || !kid) return;
-  try { const r = await api(`/play/${kid}/tick`, { method: 'POST', body: { seconds: secs } }); if (r && State.me && State.me.kid) State.me.kid.game_seconds_today = r.seconds_today; } catch (e) {}
+  try {
+    const r = await api(`/play/${kid}/tick`, { method: 'POST', body: { seconds: secs } });
+    if (!r) return;
+    if (State.me && State.me.kid && typeof r.seconds_today === 'number') State.me.kid.game_seconds_today = r.seconds_today;
+    // Server is authoritative. Resync the on-screen countdown to the true remaining so that
+    // two open tabs converge on one shared allowance instead of showing divergent times — and
+    // so a tab notices when another tab has already spent today's game time. (Single-tab: the
+    // tab posts exactly what it counted, so server total == local elapsed → no visible change.)
+    if (_gameClock != null && _gameRemaining != null && typeof r.limit_seconds === 'number' && r.limit_seconds > 0) {
+      _gameRemaining = Math.max(0, r.limit_seconds - (r.seconds_today || 0));
+      _updateGameClock();
+      // The 1s loop enforces _gameRemaining<=0; nudge immediately if another tab used it all up.
+      if (_gameRemaining <= 0 && (location.hash || '').startsWith('#game')) {
+        if (_gameClock) { clearInterval(_gameClock); _gameClock = null; }
+        _removeGameClock();
+        location.hash = '#play';
+      }
+    }
+  } catch (e) {}
 }
 function stopGameClock() {
   if (!_gameClock) return;
@@ -343,6 +361,29 @@ window.addEventListener('hashchange', () => { if (!(location.hash || '').startsW
 // Analytics funnel push. Hard no-op inside a child session (COPPA): no learner action ever
 // reaches marketing analytics. Also guarded if GTM/dataLayer isn't present.
 function gtmPush(obj) { try { if (State.me && State.me.role === 'kid') return; window.dataLayer = window.dataLayer || []; window.dataLayer.push(obj); } catch (e) {} }
+// Surface classification for ad-pixel gating (LAUNCH-003). The GTM container must initialize the
+// Meta base pixel ONLY when surface is 'public_marketing', 'signup', or 'checkout' — and NEVER on
+// 'parent_product' or 'learner' (parent portal, reports, learner pages, lessons, quizzes, AP, games).
+// Purchase attribution after an authenticated checkout return should use a server-side conversion,
+// not a browser pixel firing inside the product.
+function gallopSurface(name) {
+  const role = (State.me && State.me.role) || null;
+  if (role === 'kid') return 'learner';
+  if (/^(home|lesson|teach|placement|exam|track|play|game|avatar|snacks|buddies|trophies|student|kid)/.test(name)) return 'learner';
+  if (/^(signup|get-?started|subscribe|checkout|paywall)/.test(name)) return 'checkout';
+  if (role === 'parent' && /^(parent|report|reports|family|account|billing|settings|learner)/.test(name)) return 'parent_product';
+  return 'public_marketing';
+}
+// Emit AFTER auth state (State.me) and routing (name) have resolved, so the container gates the
+// Meta pixel on a settled surface — never firing on 'All Pages' before we know where we are. Hard
+// no-op in a child session (no analytics ever loads there).
+function emitSurfaceReady(name) {
+  try {
+    if (State.me && State.me.role === 'kid') return;
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ event: 'surface_ready', surface: gallopSurface(name) });
+  } catch (e) {}
+}
 // First-party activation beacon — records an allowlisted event name in OUR database only (no
 // third-party tag, no learner identifier). Safe to call inside a child session; that's the whole
 // point (learner activation can't go to GTM/GA, so it comes here). Fire-and-forget.
@@ -745,7 +786,7 @@ async function navigate() {
   const MUSIC_ZONES = ['play', 'avatar', 'snacks', 'trophies', 'buddies', 'game'];
   if (Music.on && MUSIC_ZONES.includes(name)) Music.start(currentMusicMood()); else Music.stop();
   const fn = routes[name] || routes.landing;
-  try { await fn(...args); _navRetry = null; } catch (e) {
+  try { await fn(...args); _navRetry = null; emitSurfaceReady(name); } catch (e) {
     if (e.status === 401) { location.hash = State.me.role === 'kid' ? '#kid-login' : '#login'; return; }
     if (e.status === 402) { renderPaywall(e.data && e.data.reason); return; }
     // Transient failures — the server restarting during a deploy, or a dropped
@@ -1136,7 +1177,7 @@ route('landing', async () => {
     <div class="feature-grid">
       <div class="feature reveal"><h3>An experience that grows up</h3><p>A first grader gets big friendly type and read-along storytime, where the words light up as they are read out loud. A teenager gets 15-minute focus sessions and quiet background music in a clean study space. It is the same engine underneath, dressed for a different age.</p></div>
       <div class="feature reveal"><h3>A trophy case worth chasing</h3><p>There are 33 badges to collect across six categories, a rank ladder that climbs from Foal to Thoroughbred, and progress bars that always show the next goal. Certificates mark each grade level a child finishes.</p></div>
-      <div class="feature reveal"><h3>Motivation that makes sense</h3><p>Daily quests, streaks, a built-in learning arcade, and a coin-powered Snack Shack where a child's avatar actually eats the treats they buy. There are 48 characters to unlock, from astronauts to unicorns. Play is the reward and learning is what earns it.</p></div>
+      <div class="feature reveal"><h3>Motivation that makes sense</h3><p>Daily quests, streaks, a built-in learning arcade, and a coin-powered Snack Shack where a child's avatar actually eats the treats they buy. There are ${Object.keys(AVATARS).length + Object.keys(ITEM_EMOJI).length} avatars, accessories, scenes, and pets to unlock, from astronauts to unicorns. Play is the reward and learning is what earns it.</p></div>
       <div class="feature reveal"><h3>Sound that was actually made for it</h3><p>Original background music, composed live in the app — warm, melodic tunes with a calmer set for teenagers and brighter ones for the younger kids, and a single tap turns it all off. None of it is stock audio.</p></div>
       <div class="feature reveal"><h3>Safe by design</h3><p>Children can only connect with buddies a parent approves. They send pre-written cheers, race each other's high scores, and team up on weekly goals where both kids win. There is no open chat and no way for strangers to reach them.</p></div>
       <div class="feature reveal"><h3>Proof for the fridge</h3><p>Printable certificates, a one-page weekly summary, a two-week activity chart, per-skill progress bars, a spreadsheet export, and the strengths and career insights. You will always know how it is going.</p></div>
@@ -3916,13 +3957,15 @@ route('parent', async () => {
   // today" (hours remaining) never rounds to a false "Trial ended". The server's access check
   // uses this same timestamp, so client copy and authorization agree. Show the exact local time.
   // Mirror the server's canonical trial-expiry rule (auth.js trialEndMs): a date-only value is
-  // END-of-day UTC, so "expires today" never renders a false "Trial ended" while the day remains.
+  // the END of that day in the parent's own timezone — and the browser's local zone IS the
+  // parent's zone — so `new Date(y,m,d,23,59,59)` (local) matches the server's account-tz cutoff.
+  // "Expires today" then means 11:59 PM local, never a false "Trial ended" earlier in the day.
   const _trialEndMs = (te) => {
     if (!te) return 0;
     const s = String(te).trim();
-    let iso;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) iso = s + 'T23:59:59.999Z';
-    else { iso = s.replace(' ', 'T'); if (!/[zZ]$|[+-]\d\d:?\d\d$/.test(iso)) iso += 'Z'; }
+    const md = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (md) return new Date(+md[1], +md[2] - 1, +md[3], 23, 59, 59, 999).getTime();
+    let iso = s.replace(' ', 'T'); if (!/[zZ]$|[+-]\d\d:?\d\d$/.test(iso)) iso += 'Z';
     const t = Date.parse(iso);
     return isNaN(t) ? 0 : t;
   };

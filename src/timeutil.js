@@ -63,4 +63,18 @@ function dayWindow(tz) {
   };
 }
 
-module.exports = { DEFAULT_TZ, dayWindow, normalizeZone, zoneOffsetMinutes };
+// The UTC instant of 23:59:59.999 *local* time on `dateStr` (YYYY-MM-DD) in zone `tz`.
+// Used to turn a date-only trial expiry into "the end of that day where the family lives"
+// rather than UTC midnight — so a Pacific parent told the trial ends today keeps access
+// until 11:59 PM their time, not 5 PM (UTC end-of-day). DST-correct: we use the zone's
+// actual offset around that evening. Returns NaN if dateStr isn't a bare date.
+function endOfLocalDayMs(dateStr, tz) {
+  const zone = normalizeZone(tz);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateStr || '').trim());
+  if (!m) return NaN;
+  const wallUTC = Date.UTC(+m[1], +m[2] - 1, +m[3], 23, 59, 59, 999); // wall-clock read as UTC
+  const off = zoneOffsetMinutes(zone, new Date(wallUTC));             // minutes east of UTC that evening
+  return wallUTC - off * 60000;                                       // → the real UTC instant
+}
+
+module.exports = { DEFAULT_TZ, dayWindow, normalizeZone, zoneOffsetMinutes, endOfLocalDayMs };
