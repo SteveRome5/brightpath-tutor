@@ -2825,16 +2825,14 @@ function statusNote(s) {
 // must be that same recent figure — otherwise a green "On track" can sit next to a low
 // all-time % and read as a contradiction (a parent-reported confusion we're fixing).
 function accuracyLine(s) {
-  const qn = `${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'}`;
-  if (s.recentAccuracy != null) {
-    const recent = Math.round(s.recentAccuracy * 100);
-    const allTime = s.accuracy != null ? Math.round(s.accuracy * 100) : null;
-    const tail = (allTime != null && Math.abs(recent - allTime) >= 10)
-      ? ` <span class="muted" style="font-size:.85rem">(${allTime}% across all their work)</span>` : '';
-    return `${qn} · ${recent}% correct lately${tail}`;
-  }
-  if (s.accuracy != null) return `${qn} · ${Math.round(s.accuracy * 100)}% accuracy`;
-  return `${qn} · just getting started`;
+  // Every figure is explicitly labelled with its period/source so a parent never has to guess
+  // whether a number is recent or lifetime (PP-103). "Independent" = excludes parent-assisted work.
+  const qn = `${s.questionsAnswered} independent question${s.questionsAnswered === 1 ? '' : 's'}`;
+  const parts = [qn];
+  if (s.recentAccuracy != null) parts.push(`<b title="Their last ~15 independent answers">Recent:</b> ${Math.round(s.recentAccuracy * 100)}%`);
+  if (s.accuracy != null) parts.push(`<b title="Across all their independent work in this subject">All-time:</b> ${Math.round(s.accuracy * 100)}%`);
+  if (s.recentAccuracy == null && s.accuracy == null) parts.push('just getting started');
+  return parts.join(' · ');
 }
 
 // Parent "Strengths & Future Paths" card, grows with the student. Emerging
