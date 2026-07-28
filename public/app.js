@@ -919,9 +919,9 @@ route('landing', async () => {
   app().innerHTML = topbar(`
   <div class="hero hero-v2">
     <img src="/logo-full.png" alt="Gallop Learning Academy" class="hero-logo">
-    <div class="eyebrow">Your child's K–12 learning guide · Math · English · Science · Spanish</div>
-    <h1>Meet Gallop — your child's affordable, on‑demand <span class="hl-guide">learning guide</span>.</h1>
-    <p class="hero-sub">Gallop finds your child's real level, teaches all four subjects, then guides them into the real world — money, business, investing &amp; careers they'll actually use.</p>
+    <div class="eyebrow">The only K–12 platform where kids learn it — then live it</div>
+    <h1>Ahead in school. <span class="hl-guide">Ready for life.</span></h1>
+    <p class="hero-sub">Gallop meets your child where they are — then takes them further: adaptive lessons in <b>Math, English &amp; Reading, Science, and Spanish</b> · <b>The Lab</b>, where they run businesses and invest · and a <b>Career Center</b> that shows them where it's all heading. Only Gallop puts all three in one place.</p>
     <div class="hero-cta">
       ${State.me.role === 'parent'
         ? `<button class="btn hero-primary" onclick="location.hash='#parent'">Go to my dashboard →</button>`
@@ -929,12 +929,14 @@ route('landing', async () => {
         <button class="btn hero-primary" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'hero_trial'});window.__subscribeIntent=0;location.hash='#signup'">Start free — no card →</button>
         <button class="btn sun hero-secondary" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'hero_subscribe'});window.__subscribeIntent=1;location.hash='#signup'">Choose a plan now</button>
       </div>
-      <p class="hero-cta-note muted">Free for 7 days · No card to start · All 4 subjects · From under $1/day on the annual plan</p>`}
+      <p class="hero-cta-note muted">Free for 7 days · No card to start · All 4 subjects · Under $1/day on the annual plan</p>`}
       <div class="hero-cta-row">
-        <button class="btn ghost" onclick="window.gEv&&window.gEv({event:'demo_cta_click',cta:'hero_demo'});location.hash='#demo'">Try 6 sample questions — no signup</button>
+        <button class="btn ghost" onclick="scrollToSection('tour')">▶ See The Lab in 60 seconds</button>
+        <button class="btn ghost" onclick="window.gEv&&window.gEv({event:'demo_cta_click',cta:'hero_demo'});location.hash='#demo'">Try 6 sample questions</button>
         <button class="btn ghost" onclick="location.hash='#kid-login'">Student sign-in</button>
       </div>
     </div>
+    <div class="contrast-strip reveal">Most apps place, drill, and advance. <b>Only Gallop teaches the skill — then hands your child a lemonade stand to run with it.</b></div>
     <div class="hero-showcase reveal">
       <div class="hero-device"><img src="/shots/student-home.webp" alt="A student's Gallop home base — their next lesson, streak, and progress" loading="lazy"></div>
       <div class="gallop-badge">
@@ -945,7 +947,7 @@ route('landing', async () => {
     <div class="hero-trust">
       <span>📏 Aligned to Common Core, NGSS &amp; ACTFL</span>
       <span>🔒 COPPA-compliant · no ads · we never sell your data</span>
-      <span>👨‍👩‍👧 Built by a family, not a faceless edtech company</span>
+      <span class="hero-founder-link" onclick="scrollToSection('s-story')" role="button" tabindex="0" style="cursor:pointer">👨‍👩‍👧 Built by a family, not a faceless edtech company →</span>
     </div>
   </div>
   <div class="container">
@@ -960,6 +962,11 @@ route('landing', async () => {
         <h2>We teach the real world — then make kids use it.</h2>
         <p>Gallop — an affordable, on-demand learning guide for all four subjects that adapts to your child — then sends them into <b>The Lab</b>, where every skill becomes something real: running a business, investing in a live market, exploring a career. High-value learning they'll actually apply.</p>
       </div>
+    </div>
+    <div class="academy-band reveal">
+      <h2>More than a tutor. An academy.</h2>
+      <p>A tutor helps with one subject, one hour at a time. An academy builds the whole kid. Gallop is adaptive lessons that find your child's real level in four subjects — plus <b>The Lab</b>, where skills become businesses, portfolios, and plans — plus a <b>Career Center</b> that turns strengths into direction. One subscription. Under $1 a day.</p>
+      <p class="academy-proof">A private tutor covers one subject for $40–80 an hour. Gallop is a whole academy — <b>under $1 a day</b>.</p>
     </div>
     <div class="pillars reveal">
       <div class="pillar"><span class="pi-emoji">📚</span><b>1 · Learn it</b><p>Adaptive real-world lessons that find your child's level and teach through Math, English, Science &amp; Spanish.</p></div>
@@ -1035,6 +1042,7 @@ route('landing', async () => {
     <div class="lab-section reveal" id="s-lab">
       <div class="lab-band">
         <span class="lab-eyebrow">🔬 Inside the Academy</span>
+        <span class="ab-kicker">ONLY ON GALLOP</span>
         <h2>The Lab — where learning meets the real world</h2>
         <p>This is what no other app has. Once your child learns a skill, they head into <b>The Lab</b> to actually <b>use</b> it — running businesses, investing in a live-feeling market, and discovering who they could become.</p>
       </div>
@@ -1079,11 +1087,11 @@ route('landing', async () => {
       <div class="feature reveal"><div class="fnum">GRADES 6–8</div><h3>Real decisions</h3><p>Percentages show up as sale prices and interest. Reading turns into spotting a shaky argument. Science becomes a habit of testing a claim before believing it.</p></div>
       <div class="feature reveal"><div class="fnum">GRADES 9–12</div><h3>Future founders and investors</h3><p>Teenagers run a pretend portfolio in our stock-market game, follow the news, and weigh risk. Algebra becomes the math behind a margin. An essay becomes a pitch. School starts to feel like a head start.</p></div>
     </div>
-    <h2 class="section-title reveal">See where it's all heading</h2>
+    <h2 class="section-title reveal" style="margin-bottom:6px">The Career Center <span class="ab-kicker">ONLY ON GALLOP</span></h2>
     <p class="section-sub">As your child works, Gallop picks up on what they're good at and shows it to you. By the high school years, those strengths turn into real career directions with a clear sense of what to focus on next.</p>
     <div class="lp-career reveal">
       <div class="lp-career-panel">
-        <div class="lp-career-badge">Career Pathways · illustrative example</div>
+        <div class="lp-career-badge">Career Center · illustrative example</div>
         <div class="lp-strength"><span class="lp-s-name">🔬 Science</span><span class="lp-s-bar"><i style="width:82%;background:#2f78c2"></i></span><b>82</b></div>
         <div class="lp-strength"><span class="lp-s-name">🔢 Math</span><span class="lp-s-bar"><i style="width:76%;background:#5b5bd6"></i></span><b>76</b></div>
         <div class="lp-strength"><span class="lp-s-name">📚 English</span><span class="lp-s-bar"><i style="width:61%;background:#0f9d76"></i></span><b>61</b></div>
@@ -1095,8 +1103,8 @@ route('landing', async () => {
         </div>
       </div>
       <div class="lp-career-copy">
-        <h3>Strengths that open doors — meet the Career Explorer</h3>
-        <p>Gallop notices what your child is good at, then opens a window onto where it can lead. The new Career Explorer demystifies real careers — what an architect or an engineer <em>actually does all day</em>, the range of jobs inside each field, and the classes that get you there. Because most kids (and plenty of adults) have no idea these paths even exist.</p>
+        <h3>Strengths that open doors — the Career Center</h3>
+        <p>Gallop notices what your child is good at, then opens a window onto where it can lead. The Career Center demystifies real careers — what an architect or an engineer <em>actually does all day</em>, the range of jobs inside each field, and the classes that get you there. Because most kids (and plenty of adults) have no idea these paths even exist.</p>
         <ul class="lp-check">
           <li>Sixteen fields — from engineering, medicine, and AI to hospitality, the trades, the arts, and law.</li>
           <li>Real, accomplished role models in every field, each with a short story to read — from Maya Lin to José Andrés to Katherine Johnson.</li>
@@ -1200,6 +1208,7 @@ route('landing', async () => {
         <div class="compare-scroll"><table class="compare-table">
           <thead><tr><th></th><th class="us">Gallop</th><th>Learning centers<br><span>(Kumon, Sylvan, Mathnasium)</span></th><th>Private tutor</th></tr></thead>
           <tbody>
+            <tr><td class="cmp-feat">The Lab — business, investing &amp; career games</td><td class="us" data-label="Gallop"><b>✅ Only on Gallop</b></td><td data-label="Learning centers">❌</td><td data-label="Private tutor">❌</td></tr>
             <tr><td class="cmp-feat">Typical cost</td><td class="us" data-label="Gallop"><b>$34–54 / mo</b></td><td data-label="Learning centers">$150–200 / mo <i>per subject</i></td><td data-label="Private tutor">$40–80 / hour</td></tr>
             <tr><td class="cmp-feat">All 4 subjects included</td><td class="us" data-label="Gallop">✅</td><td data-label="Learning centers">❌ pay per subject</td><td data-label="Private tutor">❌ usually one</td></tr>
             <tr><td class="cmp-feat">Adapts to each child</td><td class="us" data-label="Gallop">✅ every answer</td><td data-label="Learning centers">➖ worksheet levels</td><td data-label="Private tutor">✅ if it's a good one</td></tr>
@@ -1216,6 +1225,7 @@ route('landing', async () => {
     </div>
     <div id="s-faq" class="card reveal faq" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:18px">Questions parents ask</h2>
+      <details><summary>Is Gallop a replacement for school?</summary><p>No — Gallop is the <b>supplement that makes school click</b>. It's aligned to the same standards teachers use (Common Core, NGSS, ACTFL), so it reinforces exactly what your child is learning in class — placing them at their real level in each subject, re-teaching the tricky spots, and letting them get ahead when they're ready. Think of it as the practice, the patient re-explaining, and the real-world application that a busy classroom doesn't always have time for — working alongside your child's teacher, never in place of them.</p></details>
       <details><summary>Do I need a credit card to start?</summary><p>No. Your first 7 days are free, and you can set up your children and use everything without entering any payment details. We only ask for a card if you choose to continue after the trial.</p></details>
       <details><summary>What does it cost after the trial?</summary><p>Solo is $34 a month for one student, and Family is $54 a month for up to four. Prefer to save? Go annual for about 15% less — Solo is $348 a year (works out to $29/mo) and Family is $552 a year ($46/mo). Every plan includes all four subjects, the guided lessons, the adaptive tutor, the games, the career center, and the parent reports. Nothing is sold as an add-on.</p></details>
       <details><summary>What ages and subjects does it cover?</summary><p>Every grade from kindergarten through 12th, in Math, English, Science, and Spanish. Each child is placed at their real level in each subject, so a strong reader who finds math harder starts in the right spot for both. High-school math runs all the way through calculus and statistics.</p></details>

@@ -2557,3 +2557,17 @@ body[data-theme="academy"] .skel-line { background: linear-gradient(90deg, rgba(
 .modal-overlay { position: fixed; inset: 0; background: rgba(20,26,38,.55); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 18px; }
 .modal-card { background: var(--card-bg, #fff); color: var(--chrome-text, #1e2530); border-radius: 16px; padding: 22px 22px 20px; max-width: 440px; width: 100%; box-shadow: 0 20px 60px -20px rgba(0,0,0,.5); }
 body[data-theme="academy"] .modal-card { background: #1e2438; color: #e6ddc4; }
+/* Hero contrast strip + "More than a tutor" academy band + founder link (2026 conversion copy) */
+.contrast-strip { max-width: 760px; margin: 18px auto 0; padding: 12px 20px; border-radius: 14px; background: color-mix(in srgb, var(--brand) 8%, transparent); border: 1.5px solid color-mix(in srgb, var(--brand) 22%, transparent); font-size: 1rem; line-height: 1.5; color: var(--chrome-ink); }
+.contrast-strip b { color: var(--brand); }
+body[data-theme="academy"] .contrast-strip { background: rgba(95,240,160,.08); border-color: rgba(95,240,160,.24); }
+.academy-band { text-align: center; max-width: 780px; margin: 26px auto; padding: 22px 24px; border-radius: 18px; background: var(--soft-bg); border: 1.5px solid var(--card-border); }
+.academy-band h2 { margin: 0 0 8px; }
+.academy-band p { margin: 0 auto; max-width: 640px; line-height: 1.6; color: var(--chrome-sub); }
+.academy-band .academy-proof { margin-top: 12px; font-weight: 600; color: var(--brand); }
+.academy-band .academy-proof b { color: var(--brand); }
+/* ONLY ON GALLOP badge as an inline gold chip when it sits next to a header */
+.lab-band .ab-kicker, .section-title .ab-kicker { display: inline-block; vertical-align: middle; background: #C9A84C; color: #2a2000; padding: 4px 9px; border-radius: 999px; margin-left: 8px; }
+.hero-founder-link { cursor: pointer; }
+.hero-founder-link:hover { color: var(--brand); text-decoration: underline; }
+.hero-founder-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
