@@ -273,6 +273,7 @@ function gamesAnsweredToday() { try { return Math.max(0, Number((State.me && Sta
 // Parent daily time cap (minutes). game_seconds_today is how much game time was tracked today.
 function gamesTimeLimitMin() { try { return Math.max(0, Number((State.me && State.me.kid && State.me.kid.games_time_limit) || 0)); } catch (e) { return 0; } }
 function gameSecondsToday() { try { return Math.max(0, Number((State.me && State.me.kid && State.me.kid.game_seconds_today) || 0)); } catch (e) { return 0; } }
+function curKidId() { try { return (State.me && State.me.kid && State.me.kid.id) || null; } catch (e) { return null; } }
 function gamesTimeExhausted() { return gamesTimeLimitMin() > 0 && gameSecondsToday() >= gamesTimeLimitMin() * 60; }
 // Games are actually playable when the arcade is on, the earn-it gate (if set) is met, AND the
 // daily time cap (if set) has not been reached.
@@ -311,8 +312,9 @@ async function _gameClockSecond() {
   }
 }
 async function _postGameSeconds(secs) {
-  if (secs <= 0 || !kidId()) return;
-  try { const r = await api(`/play/${kidId()}/tick`, { method: 'POST', body: { seconds: secs } }); if (r && State.me && State.me.kid) State.me.kid.game_seconds_today = r.seconds_today; } catch (e) {}
+  const kid = curKidId();
+  if (secs <= 0 || !kid) return;
+  try { const r = await api(`/play/${kid}/tick`, { method: 'POST', body: { seconds: secs } }); if (r && State.me && State.me.kid) State.me.kid.game_seconds_today = r.seconds_today; } catch (e) {}
 }
 function stopGameClock() {
   if (!_gameClock) return;
