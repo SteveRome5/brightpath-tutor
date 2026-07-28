@@ -2315,9 +2315,17 @@ route('exam', async (trackId, mode, sub) => {
   async function nextQuestion() {
     if (session.n >= SESSION_LEN) return summary();
     let data = null;
-    for (let attempt = 0; attempt < 3 && !data; attempt++) {
+    // Retry transient load failures with backoff before the recovery screen, and log context so a
+    // real failure is diagnosable (AP-P0.4 — a Statistics load failure was seen in the premium track).
+    for (let attempt = 0; attempt < 4 && !data; attempt++) {
       try { data = await api(`/learn/${kidId}/track/${trackId}/next`); }
-      catch (e) { if (e.status === 402) return renderPaywall && renderPaywall(e.data && e.data.reason); data = null; await new Promise(r => setTimeout(r, 500)); }
+      catch (e) {
+        if (e.status === 402) return renderPaywall && renderPaywall(e.data && e.data.reason);
+        if (e.status === 401) { toast('Please log back in to keep going!'); location.hash = '#kid-login'; return; }
+        data = null;
+        try { console.warn('[gallop] track-question load failed', { trackId, attempt, status: e.status || 'network', qNum: session.n }); } catch (_) {}
+        await new Promise(r => setTimeout(r, [400, 900, 1800][attempt] || 1800));
+      }
     }
     if (!data || !data.question) {
       app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
@@ -3802,8 +3810,8 @@ route('parent', async () => {
               <label class="kg-toggle"><input type="checkbox" class="kg-on-cb" ${k.games_enabled == null || k.games_enabled ? 'checked' : ''}>
                 <span><b>Play Zone arcade</b><br><span class="muted" style="font-size:.83rem">The break games. On for the full experience, or off for a pure-learning setup with no games at all.</span></span>
               </label>
-              <div class="kg-sub">🎟️ <b>Earn it:</b> unlock games after <input type="number" class="kg-gate-inp" min="0" max="100" value="${k.games_gate || 0}"> questions answered that day <span class="muted" style="font-size:.83rem">— 0 = always available.</span></div>
-              <div class="kg-sub">⏰ <b>Daily limit:</b> at most <input type="number" class="kg-time-inp" min="0" max="240" value="${k.games_time_limit || 0}"> minutes of games per day <span class="muted" style="font-size:.83rem">— 0 = no limit. Kids see a countdown while they play.</span></div>
+              <div class="kg-sub">🎟️ <b>Earn it:</b> unlock games after <input type="number" class="kg-gate-inp" min="0" max="100" value="${k.games_gate || 0}" aria-label="Questions ${esc(k.name)} must answer each day before games unlock (0 for always available)"> questions answered that day <span class="muted" style="font-size:.83rem">— 0 = always available.</span></div>
+              <div class="kg-sub">⏰ <b>Daily limit:</b> at most <input type="number" class="kg-time-inp" min="0" max="240" value="${k.games_time_limit || 0}" aria-label="Daily game-time limit for ${esc(k.name)} in minutes (0 for no limit)"> minutes of games per day <span class="muted" style="font-size:.83rem">— 0 = no limit. Kids see a countdown while they play.</span></div>
               <div class="error-msg kg-err"></div>
               <button class="btn small green" data-save-games="${k.id}" style="margin-top:10px">Save games settings ✓</button>
               <button class="btn ghost small" data-cancel-games="${k.id}" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px;margin-top:10px">Close</button>

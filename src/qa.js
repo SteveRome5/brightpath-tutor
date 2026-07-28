@@ -323,7 +323,7 @@ function buildRouter() {
         <a class="lnk" href="/qa/export/${slug}?key=${k}" target="_blank">Export data</a>
         <a class="lnk danger" href="/qa/delete/${slug}?key=${k}">Delete</a></div>${billing}</div>`;
     };
-    res.set('Content-Type', 'text/html').send(`<!doctype html><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1">
+    res.set('Content-Type', 'text/html').send(`<!doctype html><html lang="en"><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1">
 <title>Gallop QA Launchpad</title><style>
 body{font:16px/1.5 system-ui,sans-serif;max-width:900px;margin:0 auto;padding:24px;background:#0f1420;color:#e8edf4}
 h1{font-size:1.6rem}h3{margin:.2rem 0}a{color:#7db9ff}
