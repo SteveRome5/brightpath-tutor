@@ -1738,6 +1738,37 @@ body[data-theme="academy"] .lw-passage { background: #2a2921; border-color: #4a4
 /* Gallop tagline in the hero */
 .hero-tagline { font-family: var(--font-display); font-size: clamp(1.05rem, 2.4vw, 1.4rem); font-style: italic; color: var(--brand); margin: -6px auto 22px; max-width: 620px; font-weight: 500; }
 
+/* ---- Hero v2: Gallop as the guide ---- */
+.hl-guide { color: var(--brand); position: relative; white-space: nowrap; }
+.hl-guide::after { content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 8px; border-radius: 6px;
+  background: color-mix(in srgb, var(--accent, #C9A84C) 42%, transparent); z-index: -1; }
+.hero-sub { font-size: 1.18rem; max-width: 650px; margin: 0 auto 26px; color: var(--chrome-sub); line-height: 1.6; }
+.hero-showcase { display: flex; align-items: center; justify-content: center; gap: 22px; margin: 32px auto 4px; max-width: 780px; flex-wrap: wrap; }
+.hero-device { flex: 0 1 320px; max-width: 330px; border-radius: 22px; overflow: hidden; background: #fff;
+  box-shadow: 0 26px 60px -26px rgba(0,0,0,.42); border: 1px solid rgba(0,0,0,.06); }
+.hero-device img { display: block; width: 100%; height: auto; }
+.gallop-badge { flex: 0 1 300px; max-width: 320px; display: flex; align-items: center; gap: 14px; text-align: left;
+  background: #fff; border: 1px solid #e7e3d8; border-radius: 18px; padding: 14px 16px; box-shadow: 0 14px 32px -20px rgba(0,0,0,.32); }
+.gb-face { width: 60px; height: 60px; flex: 0 0 auto; border-radius: 50%; padding: 5px;
+  background: color-mix(in srgb, var(--brand) 10%, #fff); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 16%, transparent); }
+.gb-say { font-size: .96rem; line-height: 1.45; color: var(--ink, #16213a); }
+.gb-say b { color: var(--brand); }
+@media (max-width: 640px) { .hero-showcase { gap: 14px; } .gallop-badge { flex-basis: 100%; max-width: 360px; } .hero-device { flex-basis: 260px; } }
+
+/* ---- "The Gallop difference" call-out (image + overlay) ---- */
+.diff-callout { display: grid; grid-template-columns: 1.05fr 1fr; align-items: stretch; margin: 42px 0; border-radius: 22px;
+  overflow: hidden; background: #fff; border: 1px solid #ece8dd; box-shadow: 0 18px 44px -22px rgba(0,0,0,.32); }
+.dc-media { position: relative; min-height: 240px; background: #0e1830; }
+.dc-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dc-badge { position: absolute; left: 14px; top: 14px; background: rgba(255,255,255,.95); color: var(--brand);
+  font-weight: 800; font-size: .8rem; padding: 6px 13px; border-radius: 999px; box-shadow: 0 4px 12px -6px rgba(0,0,0,.4); }
+.dc-copy { padding: 30px 34px; display: flex; flex-direction: column; justify-content: center;
+  background: linear-gradient(180deg, #ffffff, #faf8f2); }
+.dc-eyebrow { text-transform: uppercase; letter-spacing: .16em; font-size: .74rem; font-weight: 800; color: var(--accent, #C9A84C); margin-bottom: 8px; }
+.dc-copy h2 { font-size: clamp(1.4rem, 3vw, 2rem); margin: 0 0 12px; line-height: 1.18; }
+.dc-copy p { color: var(--sub, #5b6478); font-size: 1.02rem; line-height: 1.6; margin: 0; }
+@media (max-width: 720px) { .diff-callout { grid-template-columns: 1fr; } .dc-media { min-height: 190px; } .dc-copy { padding: 24px 22px; } }
+
 /* Pulse to draw the eye to the subscribe button after "Subscribe now" */
 @keyframes subpulse { 0%,100%{ box-shadow:0 0 0 0 rgba(201,151,28,.5);} 50%{ box-shadow:0 0 0 10px rgba(201,151,28,0);} }
 .btn.pulse { animation: subpulse 1.2s ease-out 3; }

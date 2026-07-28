@@ -879,12 +879,11 @@ window.scrollToSection = function (id) { try { const e = document.getElementById
 route('landing', async () => {
   if (State.me.role === 'kid') { location.hash = '#home'; return; }
   app().innerHTML = topbar(`
-  <div class="hero">
+  <div class="hero hero-v2">
     <img src="/logo-full.png" alt="Gallop Learning Academy" class="hero-logo">
-    <div class="eyebrow">The real-world approach to K–12 tutoring · Math · English · Science · Spanish</div>
-    <h1>The tutor that teaches your child the real world — and how to use it.</h1>
-    <p class="hero-tagline">Most apps just place, drill, and advance. Gallop teaches real skills — then has kids <b>apply</b> them.</p>
-    <p>An affordable, on-demand tutor that finds your child's real level and weaves money, business, investing, and careers right into the core subjects — then makes them <b>use</b> it through games, projects, and a real stock-market simulator. Learning they'll actually reach for in real life.</p>
+    <div class="eyebrow">Your child's K–12 learning guide · Math · English · Science · Spanish</div>
+    <h1>Meet Gallop — your child's affordable, on‑demand <span class="hl-guide">learning guide</span>.</h1>
+    <p class="hero-sub">Gallop finds your child's real level, teaches all four subjects, then guides them into the real world — money, business, investing &amp; careers they'll actually use.</p>
     <div class="hero-cta">
       ${State.me.role === 'parent'
         ? `<button class="btn hero-primary" onclick="location.hash='#parent'">Go to my dashboard →</button>`
@@ -898,12 +897,18 @@ route('landing', async () => {
         <button class="btn ghost" onclick="location.hash='#kid-login'">Student sign-in</button>
       </div>
     </div>
+    <div class="hero-showcase reveal">
+      <div class="hero-device"><img src="/shots/student-home.webp" alt="A student's Gallop home base — their next lesson, streak, and progress" loading="lazy"></div>
+      <div class="gallop-badge">
+        <img src="/logo-roundel.png" class="gb-face" alt="Gallop, your child's learning guide">
+        <div class="gb-say"><b>Hi, I'm Gallop.</b> I meet your child exactly where they are — and take them further, every day.</div>
+      </div>
+    </div>
     <div class="hero-trust">
       <span>📏 Aligned to Common Core, NGSS &amp; ACTFL</span>
       <span>🔒 COPPA-compliant · no ads · we never sell your data</span>
       <span>👨‍👩‍👧 Built by a family, not a faceless edtech company</span>
     </div>
-    <div class="hero-journey"><img src="/journey-green.png" alt="" class="journey-img"></div>
   </div>
   <div class="container">
     <div class="ps-band reveal">
@@ -915,7 +920,7 @@ route('landing', async () => {
       <div class="ps-col ps-solution">
         <span class="ps-tag sol">THE GALLOP DIFFERENCE</span>
         <h2>We teach the real world — then make kids use it.</h2>
-        <p>An affordable, on-demand tutor for all four subjects that adapts to your child — then sends them into <b>The Lab</b>, where every skill becomes something real: running a business, investing in a live market, exploring a career. High-value learning they'll actually apply.</p>
+        <p>Gallop — an affordable, on-demand learning guide for all four subjects that adapts to your child — then sends them into <b>The Lab</b>, where every skill becomes something real: running a business, investing in a live market, exploring a career. High-value learning they'll actually apply.</p>
       </div>
     </div>
     <div class="pillars reveal">
@@ -929,6 +934,17 @@ route('landing', async () => {
       <div><b>300+</b><span>Skill areas</span></div>
       <div><b>300+</b><span>Guided lessons</span></div>
       <div><b>5,000+</b><span>Accuracy-checked questions</span></div>
+    </div>
+    <div class="diff-callout reveal">
+      <div class="dc-media">
+        <img src="/shots/lesson-live.webp" alt="A child learning a concept with Gallop before practicing it" loading="lazy">
+        <span class="dc-badge">🐴 The Gallop difference</span>
+      </div>
+      <div class="dc-copy">
+        <span class="dc-eyebrow">What makes Gallop different</span>
+        <h2>Most apps just place, drill, and advance. Gallop teaches real skills — then has kids <b>apply</b> them.</h2>
+        <p>Every concept becomes something your child <b>does</b> — running a business, investing in a live-feeling market, exploring a career. That's the learning that sticks.</p>
+      </div>
     </div>
     <nav class="section-nav" aria-label="Jump to a section">
       <div class="sn-inner">
@@ -1181,7 +1197,7 @@ route('landing', async () => {
     <form class="nl-form" id="nl-form"><input type="email" id="nl-email" placeholder="you@example.com" required aria-label="Email address"><button class="btn green" type="submit">Sign me up</button></form>
     <p id="nl-done" style="display:none;font-weight:700;color:var(--brand);margin-top:8px">🎉 You're on the list!</p>
   </div>
-  <div class="site-footer">© ${new Date().getFullYear()} Lotus Farms LLC · Gallop Learning Academy · Adaptive tutoring for grades K–12<br>
+  <div class="site-footer">© ${new Date().getFullYear()} Lotus Farms LLC · Gallop Learning Academy · Adaptive, real-world learning for grades K–12<br>
     <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow along on Instagram at @learnwithgallop</a><br>
     <a href="#standards" style="color:inherit;opacity:.8">Standards Alignment</a> · <a href="#help" style="color:inherit;opacity:.8">Help &amp; Support</a> · <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
   </div>
@@ -1356,7 +1372,7 @@ route('subscribe', async () => {
     <div class="card center">
       <img src="/logo-roundel.png" alt="" style="width:76px;height:76px">
       <h2 style="margin-top:8px">Choose your plan</h2>
-      <p class="muted" style="margin:8px auto 14px;max-width:30rem">Full access to all four subjects, the adaptive tutor, the games arcade, and weekly parent reports.</p>
+      <p class="muted" style="margin:8px auto 14px;max-width:30rem">Full access to all four subjects, Gallop's adaptive guidance, the games arcade, and weekly parent reports.</p>
       <p class="muted center" style="margin:0 auto 16px;font-size:.82rem;max-width:34rem">Plans <b>auto-renew</b> by default (you can turn that off below) until you cancel. Cancel anytime in one click from your Parent Dashboard — future charges stop and you keep access through the period you've paid for.</p>
       <div class="bp-toggle" id="bp-toggle">
         <button class="bp-opt" data-bp="month">Monthly</button>
@@ -2698,7 +2714,7 @@ route('certificate', async (kidId, certId) => {
         <p class="cert-date">Awarded ${esc(date)}</p>
         <div class="cert-footer">
           <div class="cert-sig"><span class="cert-sigline"></span>Gallop Learning Academy</div>
-          <div class="cert-sig"><span class="cert-sigline"></span>The Tutor That Knows Your Kid</div>
+          <div class="cert-sig"><span class="cert-sigline"></span>Gallop — The Guide That Knows Your Kid</div>
         </div>
       </div>
     </div>
@@ -2728,7 +2744,7 @@ function renderPaywall(reason) {
     <img src="/logo-roundel.png" alt="" style="width:84px;height:84px">
     <h2 style="margin-top:10px">${heading}</h2>
     <p class="muted" style="margin:10px 0 4px"><b>Everything is saved</b>, streaks, skill levels, badges, and certificates are waiting exactly where you left off.</p>
-    <p class="muted" style="margin:0 0 16px">Keep all four subjects, the adaptive tutor, the games arcade, buddies, and weekly parent reports, for a fraction of what a tutoring center charges for a single subject.</p>
+    <p class="muted" style="margin:0 0 16px">Keep all four subjects, Gallop's adaptive guidance, the games arcade, buddies, and weekly parent reports, for a fraction of what a tutoring center charges for a single subject.</p>
     ${State.me.role === 'parent'
       ? `<button class="btn green" id="sub-family">Family — $54/mo (up to 4 children)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo — $34/mo</button>
          <p class="muted" style="margin:14px 0 6px;font-size:.85rem">💛 Or save ~15% with an annual plan:</p>
