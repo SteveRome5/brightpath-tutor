@@ -1474,7 +1474,6 @@ a:focus-visible, button:focus-visible, .zone-card:focus-visible, input:focus-vis
 @media (max-width: 560px) { .founder-note { flex-direction: column; text-align: center; gap: 8px; padding: 20px; } }
 .compare-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .compare-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .92rem; }
-@media (max-width: 560px) { .compare-table { min-width: 460px; } }
 .compare-table th, .compare-table td { padding: 12px 14px; text-align: center; border-bottom: 1px solid color-mix(in srgb, var(--ink) 8%, transparent); }
 .compare-table thead th { font-weight: 700; font-size: .85rem; color: var(--chrome-sub); vertical-align: bottom; }
 .compare-table thead th span { font-weight: 500; font-size: .74rem; opacity: .8; }
@@ -1484,9 +1483,22 @@ a:focus-visible, button:focus-visible, .zone-card:focus-visible, input:focus-vis
 .compare-table tbody tr:last-child td.us { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
 .compare-table td.us { font-weight: 700; }
 body[data-theme="academy"] .compare-table .us { background: rgba(74,128,214,.14); }
+/* Mobile: the wide 4-column table becomes stacked per-feature cards (no more off-screen
+   horizontal scroll). Each row shows the feature as a heading, then Gallop / Learning centers /
+   Private tutor labelled via data-label. */
 @media (max-width: 620px) {
-  .compare-table { font-size: .8rem; }
-  .compare-table th, .compare-table td { padding: 9px 6px; }
+  .compare-scroll { overflow: visible; }
+  .compare-table { min-width: 0; font-size: .9rem; }
+  .compare-table thead { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .compare-table, .compare-table tbody, .compare-table tr, .compare-table td { display: block; width: auto; }
+  .compare-table tr { background: var(--card-bg, #fff); border: 1.5px solid var(--card-border); border-radius: 14px; padding: 10px 14px; margin-bottom: 12px; }
+  body[data-theme="academy"] .compare-table tr { background: rgba(255,255,255,.04); }
+  .compare-table td { text-align: right; border: none; border-bottom: 1px solid color-mix(in srgb, var(--ink) 8%, transparent); padding: 8px 0; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+  .compare-table td:last-child { border-bottom: none; }
+  .compare-table td.cmp-feat { display: block; text-align: left; font-weight: 800; font-size: 1rem; color: var(--brand); border-bottom: 2px solid color-mix(in srgb, var(--brand) 22%, transparent); margin-bottom: 4px; padding: 0 0 6px; }
+  .compare-table td[data-label]::before { content: attr(data-label); font-weight: 600; color: var(--chrome-sub); text-align: left; flex: 0 0 auto; }
+  .compare-table td.us { background: transparent; border-radius: 0; }
+  .compare-table tbody tr:last-child td.us { border-radius: 0; }
 }
 
 /* Per-subject pace status badges (parent report) */
@@ -2164,7 +2176,18 @@ body[data-theme="academy"] .lw-passage { background: #2a2921; border-color: #4a4
 .gscore-chip b { font-family: var(--font-display); font-size: 1.05rem; }
 
 /* new logo placements */
+.rec-note { font-size: .9rem; font-weight: 600; color: var(--brand); }
 .hero-logo { display: block; max-width: min(460px, 82%); height: auto; margin: 4px auto 20px; }
+/* Conversion pass: tighter hero on desktop so the primary CTA and proof note sit above the fold
+   at 1440×800. Shrinks the oversized logo and trims the vertical rhythm; mobile is untouched. */
+@media (min-width: 900px) {
+  .hero { padding-top: 40px; padding-bottom: 26px; }
+  .hero-logo { max-width: 300px; margin: 0 auto 12px; }
+  .hero h1 { margin-bottom: 12px; }
+  .hero-sub { margin: 0 auto 16px; }
+  .hero-showcase { margin-top: 18px; }
+  .hero .eyebrow { margin-bottom: 12px; }
+}
 .logo-img { height: 34px; width: auto; }
 .kid-logout { opacity: .6; font-size: .8rem; }
 

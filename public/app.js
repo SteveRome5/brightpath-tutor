@@ -797,7 +797,7 @@ function topbar(inner = '') {
     const parentBtn = me.parentReturn ? `<button class="btn ghost small" id="exit-kid-btn" title="Back to your parent dashboard">← Parent</button>` : '';
     right = `${exitBtn}${parentBtn}<button class="btn ghost small" onclick="location.hash='#home'">🏠 Home</button><button class="btn ghost small" onclick="location.hash='#kid-login'" title="Switch to another child">👋 Switch</button><button class="btn ghost small kid-logout" id="logout-btn">Log out</button>`;
   }
-  else right = `<button class="btn ghost small" onclick="location.hash='#kid-login'">Child Login</button><button class="btn ghost small" onclick="location.hash='#login'">Parent Login</button><button class="btn sun small" onclick="window.__subscribeIntent=1;location.hash='#signup'">Sign up now</button>`;
+  else right = `<button class="btn ghost small" onclick="location.hash='#kid-login'">Child Login</button><button class="btn ghost small" onclick="location.hash='#login'">Parent Login</button><button class="btn sun small" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'header'});window.__subscribeIntent=0;location.hash='#signup'">Start free — no card</button>`;
   return `
   <div class="topbar">
     <div class="logo" onclick="location.hash='${homeHash}'"><img src="/logo-mark.png" alt="Gallop" class="logo-img"> Gallop</div>
@@ -922,8 +922,8 @@ route('landing', async () => {
       ${State.me.role === 'parent'
         ? `<button class="btn hero-primary" onclick="location.hash='#parent'">Go to my dashboard →</button>`
         : `<div class="hero-cta-main">
-        <button class="btn hero-primary" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'hero_trial'});window.__subscribeIntent=0;location.hash='#signup'">Start my free trial →</button>
-        <button class="btn sun hero-secondary" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'hero_subscribe'});window.__subscribeIntent=1;location.hash='#signup'">Subscribe now</button>
+        <button class="btn hero-primary" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'hero_trial'});window.__subscribeIntent=0;location.hash='#signup'">Start free — no card →</button>
+        <button class="btn sun hero-secondary" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'hero_subscribe'});window.__subscribeIntent=1;location.hash='#signup'">Choose a plan now</button>
       </div>
       <p class="hero-cta-note muted">Free for 7 days · No card to start · All 4 subjects · From under $1/day on the annual plan</p>`}
       <div class="hero-cta-row">
@@ -993,7 +993,7 @@ route('landing', async () => {
           <button class="sn-link" onclick="scrollToSection('s-faq')">FAQ</button>
           <a class="sn-link" href="/schools" style="text-decoration:none;display:inline-flex;align-items:center">For schools 🏫</a>
         </div>
-        <button class="btn sun small sn-cta" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start free trial</button>
+        <button class="btn sun small sn-cta" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'midpage'});window.__subscribeIntent=0;location.hash='#signup'">Start free — no card</button>
       </div>
     </nav>
     <div class="tour reveal" id="tour">
@@ -1196,15 +1196,15 @@ route('landing', async () => {
         <div class="compare-scroll"><table class="compare-table">
           <thead><tr><th></th><th class="us">Gallop</th><th>Learning centers<br><span>(Kumon, Sylvan, Mathnasium)</span></th><th>Private tutor</th></tr></thead>
           <tbody>
-            <tr><td>Typical cost</td><td class="us"><b>$34–54 / mo</b></td><td>$150–200 / mo <i>per subject</i></td><td>$40–80 / hour</td></tr>
-            <tr><td>All 4 subjects included</td><td class="us">✅</td><td>❌ pay per subject</td><td>❌ usually one</td></tr>
-            <tr><td>Adapts to each child</td><td class="us">✅ every answer</td><td>➖ worksheet levels</td><td>✅ if it's a good one</td></tr>
-            <tr><td>Teaches the concept first</td><td class="us">✅ guided lessons</td><td>✅ in person</td><td>✅ in person</td></tr>
-            <tr><td>Learn anytime, any device</td><td class="us">✅ 24/7</td><td>❌ scheduled visits</td><td>❌ booked sessions</td></tr>
-            <tr><td>Progress reports & certificates</td><td class="us">✅ automatic</td><td>➖ periodic</td><td>➖ varies</td></tr>
-            <tr><td>Strengths & career insights</td><td class="us">✅ built in</td><td>❌</td><td>❌</td></tr>
-            <tr><td>Advanced track for accelerated kids</td><td class="us">✅ AP, Honors & exam prep</td><td>➖ extra program</td><td>➖ varies</td></tr>
-            <tr><td>Games, rewards & motivation</td><td class="us">✅ arcade + trophies</td><td>❌</td><td>❌</td></tr>
+            <tr><td class="cmp-feat">Typical cost</td><td class="us" data-label="Gallop"><b>$34–54 / mo</b></td><td data-label="Learning centers">$150–200 / mo <i>per subject</i></td><td data-label="Private tutor">$40–80 / hour</td></tr>
+            <tr><td class="cmp-feat">All 4 subjects included</td><td class="us" data-label="Gallop">✅</td><td data-label="Learning centers">❌ pay per subject</td><td data-label="Private tutor">❌ usually one</td></tr>
+            <tr><td class="cmp-feat">Adapts to each child</td><td class="us" data-label="Gallop">✅ every answer</td><td data-label="Learning centers">➖ worksheet levels</td><td data-label="Private tutor">✅ if it's a good one</td></tr>
+            <tr><td class="cmp-feat">Teaches the concept first</td><td class="us" data-label="Gallop">✅ guided lessons</td><td data-label="Learning centers">✅ in person</td><td data-label="Private tutor">✅ in person</td></tr>
+            <tr><td class="cmp-feat">Learn anytime, any device</td><td class="us" data-label="Gallop">✅ 24/7</td><td data-label="Learning centers">❌ scheduled visits</td><td data-label="Private tutor">❌ booked sessions</td></tr>
+            <tr><td class="cmp-feat">Progress reports & certificates</td><td class="us" data-label="Gallop">✅ automatic</td><td data-label="Learning centers">➖ periodic</td><td data-label="Private tutor">➖ varies</td></tr>
+            <tr><td class="cmp-feat">Strengths & career insights</td><td class="us" data-label="Gallop">✅ built in</td><td data-label="Learning centers">❌</td><td data-label="Private tutor">❌</td></tr>
+            <tr><td class="cmp-feat">Advanced track for accelerated kids</td><td class="us" data-label="Gallop">✅ AP, Honors & exam prep</td><td data-label="Learning centers">➖ extra program</td><td data-label="Private tutor">➖ varies</td></tr>
+            <tr><td class="cmp-feat">Games, rewards & motivation</td><td class="us" data-label="Gallop">✅ arcade + trophies</td><td data-label="Learning centers">❌</td><td data-label="Private tutor">❌</td></tr>
           </tbody>
         </table></div>
         <p class="muted center" style="font-size:.8rem;margin-top:10px">Learning centers and private tutors meet in person — a different kind of help. This table shows the cost and coverage families weigh when choosing. Pricing reflects commonly published U.S. rates and varies by location.</p>
@@ -1236,7 +1236,7 @@ route('landing', async () => {
     <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow along on Instagram at @learnwithgallop</a><br>
     <a href="/schools" style="color:inherit;opacity:.8">For Schools</a> · <a href="#standards" style="color:inherit;opacity:.8">Standards Alignment</a> · <a href="#help" style="color:inherit;opacity:.8">Help &amp; Support</a> · <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
   </div>
-  ${State.me.role !== 'parent' && State.me.role !== 'kid' ? `<div class="sticky-cta"><button class="btn" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'sticky'});window.__subscribeIntent=0;location.hash='#signup'">Start free trial — no card →</button></div>` : ''}`);
+  ${State.me.role !== 'parent' && State.me.role !== 'kid' ? `<div class="sticky-cta"><button class="btn" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'sticky'});window.__subscribeIntent=0;location.hash='#signup'">Start free — no card →</button></div>` : ''}`);
   wireChrome();
   // ---- funnel instrumentation (adult/public side → GTM; privacy-safe) ----
   fireLandingView();
@@ -1331,9 +1331,9 @@ route('demo', async () => {
         <h2>${correct}/${DEMO_QUESTIONS.length}, and that's just a sample!</h2>
         <p class="muted" style="margin:12px 0 6px">These are just sample questions. Inside Gallop, every skill starts with a <b>guided lesson</b> that teaches the concept first, a placement check finds your child's exact level in each subject, every answer adapts what comes next, and a wrong answer is re-taught before another try.</p>
         <p class="muted" style="margin-bottom:18px">All four subjects. Every grade K–12. From $34/month.</p>
-        <button class="btn green" onclick="window.gEv&&window.gEv({event:'demo_cta_click',cta:'demo_trial'});window.__subscribeIntent=0;location.hash='#signup'">Start 7-Day Free Trial →</button>
-        <button class="btn sun" style="margin-left:8px" onclick="window.gEv&&window.gEv({event:'demo_cta_click',cta:'demo_subscribe'});window.__subscribeIntent=1;location.hash='#signup'">Subscribe now →</button>
-        <p class="muted" style="margin-top:10px;font-size:.82rem">Free for 7 days, or subscribe today and skip the wait. Either way you can cancel anytime.</p>
+        <button class="btn green" onclick="window.gEv&&window.gEv({event:'demo_cta_click',cta:'demo_trial'});window.__subscribeIntent=0;location.hash='#signup'">Start free — no card →</button>
+        <button class="btn sun" style="margin-left:8px" onclick="window.gEv&&window.gEv({event:'demo_cta_click',cta:'demo_subscribe'});window.__subscribeIntent=1;location.hash='#signup'">Choose a plan now</button>
+        <p class="muted" style="margin-top:10px;font-size:.82rem">Your first 7 days are free and need no card. Prefer to subscribe now? Choose a plan. Either way, cancel anytime.</p>
         <button class="btn ghost small" style="color:var(--brand);border-color:var(--brand);margin-top:8px" onclick="location.hash='#'">Back</button>
       </div></div>`);
       wireChrome();
@@ -1421,32 +1421,44 @@ route('subscribe', async () => {
   if (State.me.role !== 'parent') { location.hash = '#login'; return; }
   const p = State.me.parent;
   if (p && p.sub_status === 'active') { location.hash = '#parent'; return; } // already subscribed
+  // Recommend the plan that fits THIS account: Solo for one (or zero) learners, Family for two+.
+  // Never steer a one-child family to the pricier Family plan (that reads as an upsell).
+  const learnerCount = (State.me.kids || []).length;
+  const rec = learnerCount >= 2 ? 'family' : 'solo';
+  const recNote = learnerCount >= 2
+    ? `Based on your ${learnerCount} learners, <b>Family</b> is the best fit — but you can choose either.`
+    : learnerCount === 1
+      ? `Based on your 1 learner, <b>Solo</b> is the best fit — add more children anytime and switch to Family.`
+      : `Most families with one child pick <b>Solo</b>; choose <b>Family</b> if you'll add more children (up to 4).`;
+  const familyCard = `<div class="plan-card${rec === 'family' ? ' featured' : ''}">
+          ${rec === 'family' ? '<div class="plan-badge">Best for your account</div>' : ''}
+          <h3>Family</h3>
+          <div class="plan-price"><span class="pp-month" style="display:none">$54<span>/mo</span></span><span class="pp-year">$46<span>/mo</span></span></div>
+          <p class="muted pp-note-month" style="display:none">Up to 4 children · billed monthly</p>
+          <p class="muted pp-note-year">Up to 4 children · $552/yr billed once · <b>save $96</b></p>
+          <button class="btn ${rec === 'family' ? 'green' : ''}" style="width:100%;margin-top:10px" id="sub-family">Subscribe →</button>
+        </div>`;
+  const soloCard = `<div class="plan-card${rec === 'solo' ? ' featured' : ''}">
+          ${rec === 'solo' ? '<div class="plan-badge">Best for your account</div>' : ''}
+          <h3>Solo</h3>
+          <div class="plan-price"><span class="pp-month" style="display:none">$34<span>/mo</span></span><span class="pp-year">$29<span>/mo</span></span></div>
+          <p class="muted pp-note-month" style="display:none">1 child · billed monthly</p>
+          <p class="muted pp-note-year">1 child · $348/yr billed once · <b>save $60</b></p>
+          <button class="btn ${rec === 'solo' ? 'green' : ''}" style="width:100%;margin-top:10px" id="sub-solo">Subscribe →</button>
+        </div>`;
   app().innerHTML = topbar(`<div class="container" style="max-width:560px">
     <div class="card center">
       <img src="/logo-roundel.png" alt="" style="width:76px;height:76px">
       <h2 style="margin-top:8px">Choose your plan</h2>
-      <p class="muted" style="margin:8px auto 14px;max-width:30rem">Full access to all four subjects, Gallop's adaptive guidance, the games arcade, and weekly parent reports.</p>
+      <p class="muted" style="margin:8px auto 6px;max-width:30rem">Full access to all four subjects, Gallop's adaptive guidance, the games arcade, and weekly parent reports.</p>
+      <p class="muted center rec-note" style="margin:0 auto 14px;max-width:32rem">${recNote}</p>
       <p class="muted center" style="margin:0 auto 16px;font-size:.82rem;max-width:34rem">Plans <b>auto-renew</b> by default (you can turn that off below) until you cancel. Cancel anytime in one click from your Parent Dashboard — future charges stop and you keep access through the period you've paid for.</p>
       <div class="bp-toggle" id="bp-toggle">
         <button class="bp-opt" data-bp="month">Monthly</button>
         <button class="bp-opt active" data-bp="year">Annual <span class="bp-save">save ~15%</span></button>
       </div>
       <div class="plan-grid">
-        <div class="plan-card featured">
-          <div class="plan-badge">Best value</div>
-          <h3>Family</h3>
-          <div class="plan-price"><span class="pp-month" style="display:none">$54<span>/mo</span></span><span class="pp-year">$46<span>/mo</span></span></div>
-          <p class="muted pp-note-month" style="display:none">Up to 4 children · billed monthly</p>
-          <p class="muted pp-note-year">Up to 4 children · $552/yr billed once · <b>save $96</b></p>
-          <button class="btn green" style="width:100%;margin-top:10px" id="sub-family">Subscribe →</button>
-        </div>
-        <div class="plan-card">
-          <h3>Solo</h3>
-          <div class="plan-price"><span class="pp-month" style="display:none">$34<span>/mo</span></span><span class="pp-year">$29<span>/mo</span></span></div>
-          <p class="muted pp-note-month" style="display:none">1 child · billed monthly</p>
-          <p class="muted pp-note-year">1 child · $348/yr billed once · <b>save $60</b></p>
-          <button class="btn" style="width:100%;margin-top:10px" id="sub-solo">Subscribe →</button>
-        </div>
+        ${rec === 'solo' ? soloCard + familyCard : familyCard + soloCard}
       </div>
       <label class="ar-row"><input type="checkbox" id="ar-check" checked>
         <span><b>Auto-renew</b> so your child's learning never gets interrupted. Uncheck for a one-time term that <b>won't</b> renew automatically — you'll keep full access through the period you pay for.</span></label>
@@ -3158,15 +3170,29 @@ function renderPaywall(reason) {
     : r === 'canceled' ? 'This subscription is canceled'
     : r === 'no_subscription' ? 'A subscription is needed'
     : 'The free trial has ended';
+  // Recommend the plan that fits the account: Solo for one (or zero) learners, Family for two+.
+  // Show the recommended plan first and as the primary (green) button — never lead a one-child
+  // family with the pricier Family plan.
+  const _lc = (State.me.kids || []).length;
+  const _recPlan = _lc >= 2 ? 'family' : 'solo';
+  const _recLine = _lc >= 1
+    ? `<p class="muted" style="margin:0 0 12px;font-size:.85rem">For your ${_lc >= 2 ? `${_lc} learners, we suggest <b>Family</b>` : `1 learner, we suggest <b>Solo</b>`} — but choose whichever you prefer.</p>`
+    : '';
+  const _monthly = _recPlan === 'solo'
+    ? `<button class="btn green" id="sub-solo">Solo — $34/mo (1 child)</button> <button class="btn" style="margin-left:8px" id="sub-family">Family — $54/mo (up to 4)</button>`
+    : `<button class="btn green" id="sub-family">Family — $54/mo (up to 4 children)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo — $34/mo</button>`;
+  const _annual = _recPlan === 'solo'
+    ? `<button class="btn sun small" id="sub-solo-yr">Solo Annual — $29/mo ($348/yr)</button> <button class="btn ghost small" style="margin-left:8px;color:#41506a;border-color:#cfd8e3" id="sub-family-yr">Family Annual — $46/mo ($552/yr)</button>`
+    : `<button class="btn sun small" id="sub-family-yr">Family Annual — $46/mo ($552/yr)</button> <button class="btn ghost small" style="margin-left:8px;color:#41506a;border-color:#cfd8e3" id="sub-solo-yr">Solo Annual — $29/mo ($348/yr)</button>`;
   app().innerHTML = topbar(`<div class="container" style="max-width:600px"><div class="card center">
     <img src="/logo-roundel.png" alt="" style="width:84px;height:84px">
     <h2 style="margin-top:10px">${heading}</h2>
     <p class="muted" style="margin:10px 0 4px"><b>Everything is saved</b>, streaks, skill levels, badges, and certificates are waiting exactly where you left off.</p>
     <p class="muted" style="margin:0 0 16px">Keep all four subjects, Gallop's adaptive guidance, the games arcade, buddies, and weekly parent reports, for a fraction of what a tutoring center charges for a single subject.</p>
     ${State.me.role === 'parent'
-      ? `<button class="btn green" id="sub-family">Family — $54/mo (up to 4 children)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo — $34/mo</button>
+      ? `${_recLine}${_monthly}
          <p class="muted" style="margin:14px 0 6px;font-size:.85rem">💛 Or save ~15% with an annual plan:</p>
-         <button class="btn sun small" id="sub-family-yr">Family Annual — $46/mo ($552/yr)</button> <button class="btn ghost small" style="margin-left:8px;color:#41506a;border-color:#cfd8e3" id="sub-solo-yr">Solo Annual — $29/mo ($348/yr)</button>
+         ${_annual}
          <p class="muted" style="margin-top:12px;font-size:.85rem">Auto-renews until you cancel. Monthly cancels anytime; annual is a discounted, non-refundable 12-month plan (you can still turn off its renewal).</p>`
       : `<p><b>Ask your parent to keep it going!</b></p>
          ${State.me.kid ? `<button class="btn green" id="email-parent">📧 Email my parent to subscribe</button> ` : ''}<button class="btn ghost small" style="margin-left:8px;color:#41506a;border-color:#cfd8e3" onclick="location.hash='#login'">Parent Login</button>
