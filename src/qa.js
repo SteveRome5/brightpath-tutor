@@ -66,12 +66,21 @@ function setSkill(kidId, subject, skillId, { mastery, attempts, correct, winStre
     .run(kidId, subject, skillId, mastery, attempts, correct, winStreak, isoDaysAgo(lastSeenDays));
 }
 // Spread N answers for a skill across the last `spanDays`, with a given correct-rate.
+// IDEMPOTENT + DETERMINISTIC (P0.2): first delete any prior seeded rows for this kid/skill, then
+// insert a fixed set — no Math.random for correctness, difficulty, or time. Re-running the seed
+// (which happens on every QA persona open) therefore reproduces byte-identical activity and never
+// appends or inflates weekly/30-day counts, scores, or mastery.
 function seedActivity(kidId, subject, skillId, n, correctRate, spanDays) {
+  db.prepare('DELETE FROM activity_log WHERE kid_id=? AND subject=? AND skill_id=?').run(kidId, subject, skillId);
   const ins = db.prepare('INSERT INTO activity_log (kid_id,subject,skill_id,correct,difficulty,time_ms,ts) VALUES (?,?,?,?,?,?,?)');
+  const correctCount = Math.round(n * correctRate);
   for (let i = 0; i < n; i++) {
     const day = Math.floor((i / n) * spanDays);
-    const correct = Math.random() < correctRate ? 1 : 0;
-    ins.run(kidId, subject, skillId, correct, 0.4 + Math.random() * 0.3, 4000 + Math.floor(Math.random() * 9000), isoDaysAgo(spanDays - day));
+    const correct = i < correctCount ? 1 : 0;                // deterministic distribution of correct answers
+    // Stamp each row at local noon of its day so the day-bucket (weekly/30-day) is stable and the
+    // timestamp doesn't drift with wall-clock between reopens on the same day.
+    const ts = isoDaysAgo(spanDays - day).slice(0, 10) + ' 12:00:00';
+    ins.run(kidId, subject, skillId, correct, 0.55, 7000, ts);
   }
 }
 function giveCert(kidId, subject, title, level) {
@@ -88,8 +97,18 @@ function setKidStats(kidId, { xp = 0, coins = 0, streak = 0, activeToday = true,
 // independently). The two PARENT personas are their own accounts.
 const QA_FAMILY_EMAIL = 'qa+students@gallop.test';
 
+// A kid is "already seeded" once it has any activity history. Reopening a persona must NOT
+// reseed (P0.2) — that would append/duplicate history and also clobber any real answers a tester
+// submitted. Seeding happens exactly once (on first open, or after an explicit Reset which wipes
+// activity). Personas with no history (e.g. Kindergarten) are always safe to re-run because their
+// seed touches only idempotent tables.
+function needsSeed(kidId) {
+  return !db.prepare('SELECT 1 FROM activity_log WHERE kid_id=? LIMIT 1').get(kidId);
+}
+
 // rich, weeks-long history used by the "returning" style personas
 function seedReturningKid(kidId, grade, opts = {}) {
+  if (!needsSeed(kidId)) return;   // idempotent: don't re-seed an already-populated persona
   const lvl = opts.levels || { math: grade, english: grade, science: grade, spanish: Math.max(0, grade - 1) };
   setSubjectLevels(kidId, lvl);
   // mastered skills (high mastery, many attempts) — one with an OLD last_seen = retention due
@@ -163,6 +182,7 @@ const PERSONAS = {
     seed() {
       const pid = ensureParent(QA_FAMILY_EMAIL, 'QA Family', { sub_status: 'active' });
       const kid = ensureKid(pid, 'Noah (Gr4)', 4, 'tiger');
+      if (!needsSeed(kid)) return { kind: 'kid', id: kid };
       setSubjectLevels(kid, { math: 3.5, english: 4, science: 4, spanish: 3 });
       // repeated fraction failure
       setSkill(kid, 'math', 'm.4.equivfrac', { mastery: 0.24, attempts: 26, correct: 7, winStreak: 0, lastSeenDays: 0 });
@@ -195,6 +215,7 @@ const PERSONAS = {
     seed() {
       const pid = ensureParent(QA_FAMILY_EMAIL, 'QA Family', { sub_status: 'active' });
       const kid = ensureKid(pid, 'Maya (Gr11)', 11, 'robot');
+      if (!needsSeed(kid)) return { kind: 'kid', id: kid };
       setSubjectLevels(kid, { math: 11, english: 11, science: 11, spanish: 10 });
       setSkill(kid, 'math', 'm.11.functions', { mastery: 0.72, attempts: 20, correct: 15, winStreak: 3, lastSeenDays: 2 });
       setSkill(kid, 'math', 'm.11.exponential', { mastery: 0.58, attempts: 14, correct: 8, winStreak: 1, lastSeenDays: 1 });
@@ -210,6 +231,7 @@ const PERSONAS = {
     seed() {
       const pid = ensureParent(QA_FAMILY_EMAIL, 'QA Family', { sub_status: 'active' });
       const kid = ensureKid(pid, 'Kai (advanced Gr5)', 5, 'dragon');
+      if (!needsSeed(kid)) return { kind: 'kid', id: kid };
       // grade 5 kid working well ABOVE grade level
       setSubjectLevels(kid, { math: 7, english: 7, science: 6.5, spanish: 6 });
       [['math', 'm.5.fracops'], ['math', 'm.6.ratio'], ['math', 'm.6.percent'], ['english', 'e.5.figlang'], ['science', 's.5.body']]
