@@ -1301,51 +1301,51 @@
     { n: 1, emoji: '🌱', name: 'First Trades', concept: 'Diversification',
       intro: 'Welcome to the Gallop Stock Exchange! A share is a tiny piece of a real company — buy it low, and if the company grows, so does your money. Each day a news headline drops that hints at what a stock might do. The first rule the pros live by: never put all your money in ONE stock. Spread it across several so a single bad day can\'t sink you.',
       tip: 'Spread your cash across the stocks — that\'s diversification. Watch the daily news for clues.',
-      days: 12, start: 1000, targetPct: 15, stocks: ['hay', 'sun', 'pix'], flags: { news: true } },
+      days: 12, start: 1000, targetPct: 15, stocks: ['hay', 'sun', 'pix'], flags: { news: true }, demo: 'diversify', goal: 'Stay diversified: hold at least 3 different stocks and never let one stock become most of your money.' },
     { n: 2, emoji: '📰', name: 'Reading the News', concept: 'News moves markets',
       intro: 'Every trading day a headline drops through the newswire, the TV, your phone, or the trading floor. Good news usually lifts a stock and bad news usually drops it — but not always! Markets surprise everyone. Use the news as a clue about tomorrow, never as a sure thing, and never bet everything on one headline.',
       tip: 'The news hints at tomorrow\'s move — but surprises happen. Stay diversified.',
-      days: 12, start: 1000, targetPct: 22, stocks: ['hay', 'sun', 'pix', 'nova'], flags: { news: true } },
+      days: 12, start: 1000, targetPct: 22, stocks: ['hay', 'sun', 'pix', 'nova'], flags: { news: true }, demo: 'news', goal: 'Use the news as a clue, not a command — don\'t pour your whole portfolio into one headline stock.' },
     { n: 3, emoji: '🔁', name: 'Steady Wins', concept: 'Dollar-Cost Averaging',
       intro: 'Nobody can buy at the exact bottom every time. So the pros use DOLLAR-COST AVERAGING: invest the same amount on a schedule, no matter the price. You automatically buy more shares when they\'re cheap and fewer when they\'re pricey — which keeps your average cost low. Flip on Auto-Invest and watch your average cost work for you.',
       tip: 'Turn on 🔁 Auto-Invest to buy a set amount every day — that is dollar-cost averaging.',
-      days: 14, start: 1000, targetPct: 26, stocks: ['hay', 'sun', 'pix', 'nova'], flags: { news: true, dca: true } },
+      days: 14, start: 1000, targetPct: 26, stocks: ['hay', 'sun', 'pix', 'nova'], flags: { news: true, dca: true }, demo: 'diversify', goal: 'Turn on Auto-Invest and keep a spread portfolio — let steady buying do the work.' },
     { n: 4, emoji: '⚖️', name: 'Risk & Reward', concept: 'Risk vs reward',
       intro: 'Meet GenoMed — a biotech that can rocket OR crater. Wild stocks offer the biggest gains and the biggest losses. Calmer stocks grow slowly but steadily. A smart portfolio holds some of each, so you get real growth without betting the farm.',
       tip: 'Balance a wild stock (🧬🚀) with steady ones (🌾☀️). High reward always rides with high risk.',
-      days: 14, start: 1200, targetPct: 30, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true } },
+      days: 14, start: 1200, targetPct: 30, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true }, demo: 'diversify', goal: 'Balance risk and reward: hold at least one wild stock AND one steady stock at the same time.' },
     { n: 5, emoji: '📉', name: 'The Crash', concept: 'Don\'t panic-sell',
       intro: 'Sooner or later, the whole market drops at once — a crash. It feels scary. History shows that panic-selling often locks in losses, and markets have frequently recovered over long periods — but there\'s no guarantee, and a lower price can also mean a company is actually in trouble. The steady move is usually to stick to your plan rather than react to fear.',
       tip: 'If a crash hits, don\'t panic-sell on emotion — but a lower price isn\'t automatically a bargain. Stick to your plan.',
-      days: 16, start: 1500, targetPct: 18, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, crash: true } },
+      days: 16, start: 1500, targetPct: 18, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, crash: true }, demo: 'risk', goal: 'When the crash hits, don\'t panic-sell — hold your plan through the drop instead of dumping shares.' },
     { n: 6, emoji: '💸', name: 'Fees & Patience', concept: 'Costs of over-trading',
       intro: 'From now on, every trade costs a small $1 fee — just like the real world. Traders who buy and sell constantly bleed money on fees and often do WORSE than someone who picks well and waits. Patience is a strategy. Trade with purpose, not every single day.',
       tip: 'Each trade now costs $1. Don\'t over-trade — patience beats churning.',
-      days: 16, start: 1500, targetPct: 30, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true } },
+      days: 16, start: 1500, targetPct: 30, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true }, demo: 'risk', goal: 'Trade with purpose — keep your trades low so fees don\'t nibble away your gains.' },
     { n: 7, emoji: '💰', name: 'Dividends', concept: 'Income & compounding',
       intro: 'Some companies share their profits with owners every day you hold them — that\'s a DIVIDEND. Even if the price barely moves, dividends quietly pay you just for holding. Reinvest them to buy more shares, and your money starts growing on its own growth. That snowball is called compounding.',
       tip: 'Hold 🏦🌾☕ to collect daily dividends, then reinvest them — that\'s compounding.',
-      days: 18, start: 2000, targetPct: 34, stocks: ['hay', 'brew', 'sun', 'vault', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true } },
+      days: 18, start: 2000, targetPct: 34, stocks: ['hay', 'brew', 'sun', 'vault', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true }, demo: 'diversify', goal: 'Hold dividend payers (🏦🌾☕) across a spread portfolio and let the daily income add up.' },
     { n: 8, emoji: '📊', name: 'Rates & Sectors', concept: 'Interest rates rotate sectors',
       intro: 'A central bank sets interest rates, and rates quietly push whole sectors up or down. When rates RISE, banks (🏦) tend to win while fast-growing tech (☁️🎮🚀) feels a headwind. When rates FALL, growth stocks catch fire. Watch the rate meter and tilt toward whatever the winds favor.',
       tip: 'Rates rising? Banks 🏦 like it, growth 🎮☁️🚀 struggles. Falling? The opposite. Watch the meter.',
-      days: 18, start: 2000, targetPct: 38, stocks: ['brew', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true } },
+      days: 18, start: 2000, targetPct: 38, stocks: ['brew', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true }, demo: 'diversify', goal: 'Keep a spread portfolio as the rate winds shift sectors — don\'t bet everything on one guess.' },
     { n: 9, emoji: '🐂', name: 'Bull & Bear', concept: 'Market cycles',
       intro: 'Markets move in cycles: a BULL run when almost everything rises, then a BEAR stretch when it all sags. Nobody can predict the exact turn, so the winning move is to stay invested through both, keep dollar-cost averaging, and let the long climb carry you. Time IN the market beats timing the market.',
       tip: 'Ride the cycle — keep investing through bull AND bear. Time in beats timing.',
-      days: 20, start: 2500, targetPct: 42, stocks: ['brew', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true, crash: true } },
+      days: 20, start: 2500, targetPct: 42, stocks: ['brew', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true, crash: true }, demo: 'risk', goal: 'Stay invested through the whole cycle — ride the bear stretch instead of fleeing to cash.' },
     { n: 10, emoji: '🫧', name: 'The Bubble', concept: 'Don\'t chase the hype',
       intro: 'Every so often one stock catches fire — everyone piles in, the price balloons, and it feels like it will never stop. That\'s a BUBBLE, and every bubble eventually POPS. The investors who get burned are the ones who chase the hype all the way to the top. Enjoy the ride if you like, but take your profits before the crowd panics.',
       tip: 'One stock will balloon then POP. Ride it if you dare — but sell before it bursts. Never chase hype.',
-      days: 20, start: 2500, targetPct: 38, stocks: ['hay', 'brew', 'sun', 'vault', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, bubble: true } },
+      days: 20, start: 2500, targetPct: 38, stocks: ['hay', 'brew', 'sun', 'vault', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, bubble: true }, demo: 'news', goal: 'Don\'t chase the hype — never let the ballooning bubble stock take over your portfolio.' },
     { n: 11, emoji: '⚖️', name: 'The Rebalance', concept: 'Rebalancing',
       intro: 'When one stock soars, it can quietly become a huge slice of your money — and a huge risk if it turns. Smart investors REBALANCE: trim the winners and top up the laggards to keep a healthy spread. It feels backwards to sell what\'s winning, but it locks in gains and protects you from any single stock sinking the ship.',
       tip: 'Trim your biggest winner and spread it around — rebalancing keeps one stock from sinking you.',
-      days: 22, start: 3000, targetPct: 46, stocks: ['brew', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true, crash: true } },
+      days: 22, start: 3000, targetPct: 46, stocks: ['brew', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true, crash: true }, demo: 'diversify', goal: 'Rebalance: trim a stock that grew into too big a slice and keep your spread healthy.' },
     { n: 12, emoji: '👑', name: 'The Long Game', concept: 'Put it all together',
       intro: 'This is it — the long game. Every force is live at once: news, fees, dividends, interest rates, crashes, and the pull of a bubble, across the whole market and the longest run yet. Use everything you\'ve learned: diversify, dollar-cost average, hold through the dips, mind your fees, collect your dividends, read the rate winds, and never chase the hype. Go the distance and you\'re a Certified Gallop Investor.',
       tip: 'Everything is on, and it\'s a marathon. Patience and a spread portfolio win. You\'ve got this.',
-      days: 26, start: 3000, targetPct: 60, stocks: ['hay', 'brew', 'sun', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true, crash: true, bubble: true } }
+      days: 26, start: 3000, targetPct: 60, stocks: ['hay', 'brew', 'sun', 'cloud', 'vault', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, fee: true, dividends: true, rates: true, crash: true, bubble: true }, demo: 'risk', goal: 'Put it all together: stay diversified, hold through the storms, and don\'t chase the hype.' }
   ];
   const MM_GLOSSARY = [
     ['Share / Stock', 'A tiny piece of ownership in a company. Owning shares means you own a slice of that business.'],
@@ -1397,7 +1397,23 @@
     try { await api(`/play/${kidId()}/game-state/market`, { method: 'POST', body: { state: p } }); } catch (e) {}
   }
   const $$ = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const mmStars = s => '★★★☆☆☆'.slice(3 - s, 6 - s); // s in 0..3 -> filled then hollow, length 3
+  const mmStars = s => '★★★★☆☆☆☆'.slice(4 - s, 8 - s); // s in 0..4 -> filled then hollow, length 4
+
+  // The four things a level scores — HOW you invested (process), not only the result.
+  // Every level is judged on all four; each level also has a `demo` primary badge that,
+  // once earned, demonstrates the level's target concept and clears the level.
+  const MM_BADGES = {
+    diversify: { icon: '🧺', label: 'Diversified', good: 'You kept your money spread across several stocks.', miss: 'Your money bunched into too few stocks.' },
+    risk:      { icon: '🛡️', label: 'Risk-managed', good: 'You stayed calm — no panic-selling, no over-trading.', miss: 'Fear or over-trading got the better of the plan.' },
+    news:      { icon: '📰', label: 'News-smart', good: 'You used headlines as clues, not commands.', miss: 'You chased headlines a little too hard.' },
+    ret:       { icon: '📈', label: 'Hit the target', good: 'You also beat the profit goal — bonus!', miss: 'You didn\'t reach the profit target this run.' }
+  };
+  // Concept-specific coaching for the failure/results debrief (GAME-P1.4 shape).
+  const MM_COACH = {
+    diversify: { concept: 'Diversification means spreading your money so one bad stock can\'t sink you. It lowers risk — it can\'t erase it.', next: 'Next run, hold at least 3 stocks and check that no single one is more than about half your money.', transfer: 'Where else in life does "don\'t put all your eggs in one basket" protect you?' },
+    news:      { concept: 'News hints at what might happen, but markets surprise everyone — a headline is a clue, never a guarantee.', next: 'Next run, react to news in small steps and keep the rest of your portfolio spread out.', transfer: 'When you hear a rumor at school, how much should you bet on it before you know more?' },
+    risk:      { concept: 'Risk management is staying calm and consistent: don\'t panic-sell in a crash, don\'t over-trade, and stick to your plan.', next: 'Next run, hold through the scary days and only trade when you have a real reason.', transfer: 'When something goes wrong suddenly, does reacting in a panic usually make it better or worse?' }
+  };
 
   // ---- the career hub / level select (free to browse; a level costs 1 token to play) ----
   async function startMarketHub() {
@@ -1435,7 +1451,7 @@
             <div class="mm-lvl-top"><span class="mm-lvl-num">${locked ? '🔒' : L.emoji}</span><span class="mm-lvl-stars">${stars ? `<span style="color:#f4b740">${mmStars(stars)}</span>` : (locked ? '' : '· · ·')}</span></div>
             <div class="mm-lvl-name">Lv ${L.n}: ${esc(L.name)}</div>
             <div class="mm-lvl-concept">${esc(L.concept)}</div>
-            <div class="mm-lvl-goal">${locked ? 'Locked' : `🎯 +${L.targetPct}% in ${L.days} days`}</div>
+            <div class="mm-lvl-goal">${locked ? 'Locked' : `up to ★★★★ · +${L.targetPct}% bonus`}</div>
           </div>`;
         }).join('')}
       </div>
@@ -1443,7 +1459,7 @@
         <button class="btn" id="mm-customize">🎨 Customize your trader</button>
         <button class="btn" id="mm-notebook" style="margin-left:8px">📓 Investor's Notebook</button>
       </div>
-      <p class="game-hint" style="font-size:.85rem;margin-top:10px">Each level costs 1 🎟️ to play. Hit the profit target to clear it and unlock the next. Your progress saves automatically.</p>
+      <p class="game-hint" style="font-size:.85rem;margin-top:10px">Each level costs 1 🎟️ to play. Show the level's skill (or hit the profit goal) to clear it and unlock the next — and earn up to four ★ for <b>how</b> you invest. Progress saves automatically.</p>
     </div>`);
     wireChrome();
     mmHeroInto('#mm-hub-hero', 'idle');
@@ -1563,7 +1579,7 @@
         <div class="mm-concept-kicker">Level ${L.n} · ${esc(L.concept)}</div>
         <h2 style="margin:.2em 0">${esc(L.name)}</h2>
         <p class="mm-concept-body">${esc(L.intro)}</p>
-        <div class="mm-goal-box">🎯 Goal: turn <b>${$$(L.start)}</b> into <b>${$$(L.start * (1 + L.targetPct / 100))}</b> (+${L.targetPct}%) within <b>${L.days} days</b>.</div>
+        <div class="mm-goal-box">🎯 <b>Clear this level:</b> ${esc(L.goal)}<div class="mm-goal-sub">💰 Bonus star: also grow <b>${$$(L.start)}</b> to <b>${$$(L.start * (1 + L.targetPct / 100))}</b> (+${L.targetPct}%) in ${L.days} days. You earn up to four stars for <b>how</b> you invest: 🧺 diversified · 🛡️ risk-managed · 📰 news-smart · 📈 hit the target.</div></div>
         <button class="btn green" id="mm-begin">Start Trading →</button>
       </div>
     </div>`);
@@ -1585,6 +1601,12 @@
     let rate = 'steady', crashed = false, recover = 0, trades = 0, fees = 0, divTotal = 0;
     const feeAmt = F.fee ? 1 : 0;
     let tradesToday = 0;
+    // ---- process tracking: scores HOW the kid invests, not just the final number ----
+    let investedDays = 0, distinctSum = 0, concViolations = 0;   // diversification signal
+    let crashSells = 0, panicFled = false;                        // risk-management signal
+    let newsChaseBurned = 0, newsBuysToday = 0;                   // news-reasoning signal
+    let heldWildAndSteady = false, usedDca = false, trimmedWinner = false; // supporting concept signals
+    const inCrashWindow = () => crashed && recover > 0;           // the scary stretch after a crash hits
     // bubble: pick the wildest stock as the "hype darling"; it balloons, then pops mid-level
     let bubbleStock = null, bubbleBurst = 0, bubblePopped = false;
     if (F.bubble) {
@@ -1666,16 +1688,28 @@
       </div>`);
       wireChrome();
       drawChart();
-      const dt = $('#dca-toggle'); if (dt) dt.onclick = () => { dcaOn = !dcaOn; Sound.click(); render(flash); };
+      const dt = $('#dca-toggle'); if (dt) dt.onclick = () => { dcaOn = !dcaOn; if (dcaOn) usedDca = true; Sound.click(); render(flash); };
       const dp = $('#dca-pick'); if (dp) dp.onchange = () => { dcaPick = dp.value; };
       document.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => {
         const s = stocks.find(x => x.id === b.dataset.buy);
-        if (cash >= s.price + feeAmt) { cash -= s.price + feeAmt; shares[s.id] += 1; spent[s.id] += s.price; if (feeAmt) { fees += feeAmt; } trades++; Sound.click(); render(flash); }
+        if (cash >= s.price + feeAmt) {
+          cash -= s.price + feeAmt; shares[s.id] += 1; spent[s.id] += s.price; if (feeAmt) { fees += feeAmt; } trades++;
+          if (headline && s.id === headline.stock) newsBuysToday++;   // count how hard they piled into today's headline
+          Sound.click(); render(flash);
+        }
       });
       document.querySelectorAll('[data-sell]').forEach(b => b.onclick = () => {
         const s = stocks.find(x => x.id === b.dataset.sell);
         // Proceeds (price - fee) are always >= 0 since price >= 1 >= fee, so no up-front cash needed.
-        if (shares[s.id] >= 1) { cash += s.price - feeAmt; spent[s.id] -= avgCost(s.id); shares[s.id] -= 1; if (feeAmt) { fees += feeAmt; } trades++; Sound.click(); render(flash); }
+        if (shares[s.id] >= 1) {
+          // Trimming your BIGGEST holding while it's above your average cost = rebalancing/taking profits.
+          const vals = stocks.map(x => ({ id: x.id, v: shares[x.id] * x.price }));
+          const biggest = vals.reduce((a, c) => (c.v > a.v ? c : a), vals[0]);
+          if (biggest.id === s.id && s.price > avgCost(s.id) && shares[s.id] >= 2) trimmedWinner = true;
+          if (inCrashWindow()) crashSells++;                          // selling into the crash = a panic signal
+          cash += s.price - feeAmt; spent[s.id] -= avgCost(s.id); shares[s.id] -= 1; if (feeAmt) { fees += feeAmt; } trades++;
+          Sound.click(); render(flash);
+        }
       });
       $('#next-day').onclick = advance;
     }
@@ -1735,6 +1769,20 @@
         s.hist.push(s.price);
       }
       if (recover > 0 && !crashing) recover--;
+      // ---- end-of-day process snapshot: diversification + news-reasoning signals ----
+      if (headline && !follows && newsBuysToday >= 3) newsChaseBurned++;  // piled into a headline that reversed
+      newsBuysToday = 0;
+      const stockVal = stocks.reduce((t, s) => t + shares[s.id] * s.price, 0);
+      if (stockVal > 0) {
+        const distinct = stocks.filter(s => shares[s.id] > 0).length;
+        const topVal = Math.max.apply(null, stocks.map(s => shares[s.id] * s.price));
+        investedDays++; distinctSum += distinct;
+        if (topVal / stockVal > 0.65) concViolations++;   // one stock is running the show
+        const hasWild = stocks.some(s => shares[s.id] > 0 && s.wild >= 0.14);
+        const hasSteady = stocks.some(s => shares[s.id] > 0 && s.wild <= 0.07);
+        if (hasWild && hasSteady) heldWildAndSteady = true;
+      }
+      if (crashSells >= 3) panicFled = true;
       if (day === L.days) return finish();
       day++; if (F.news) headline = mmNews();
       Sound.badge();
@@ -1743,14 +1791,32 @@
 
     function finish() {
       const nw = netWorth(), gain = nw - L.start, pct = Math.round(gain / L.start * 100);
-      const cleared = nw >= target;
-      let stars = 0;
-      if (cleared) stars = nw >= L.start * (1 + L.targetPct * 2 / 100) ? 3 : nw >= L.start * (1 + L.targetPct * 1.5 / 100) ? 2 : 1;
+      const returnHit = nw >= target;
+
+      // ---- score the PROCESS, not just the result — four badges (GAME-P0.2) ----
+      const avgDistinct = investedDays ? distinctSum / investedDays : 0;
+      const availStocks = stocks.length;
+      const diversifyStar = investedDays > 0 && avgDistinct >= Math.min(3, availStocks) && concViolations <= Math.max(1, Math.round(L.days * 0.2));
+      const overTraded = trades > L.days * 2;
+      const riskStar = crashSells === 0 && !panicFled && !overTraded && investedDays >= Math.round(L.days * 0.5);
+      const newsStar = newsChaseBurned <= 1 && investedDays > 0;
+      const returnStar = returnHit;
+      const badges = [
+        { k: 'diversify', on: diversifyStar },
+        { k: 'risk', on: riskStar },
+        { k: 'news', on: newsStar },
+        { k: 'ret', on: returnStar }
+      ];
+      const badgeCount = badges.filter(b => b.on).length;
+      // The level's TARGET concept — demonstrating it clears the level even without hitting the
+      // profit target. (The profit target is now just one of four ways to shine, not the only gate.)
+      const demonstrated = L.demo === 'diversify' ? diversifyStar : L.demo === 'risk' ? riskStar : newsStar;
+      const passed = demonstrated || returnHit;
+
       const prevStars = progress.cleared[L.n] || 0;
-      const firstClear = cleared && prevStars === 0;
-      // update saved progress
-      if (cleared) {
-        progress.cleared[L.n] = Math.max(prevStars, stars);
+      const firstClear = passed && !prevStars;
+      if (passed) {
+        progress.cleared[L.n] = Math.max(prevStars, badgeCount);
         if (L.n === progress.unlocked && L.n < MM_LEVELS.length) progress.unlocked = L.n + 1;
         if (firstClear) progress.careerProfit = (progress.careerProfit || 0) + Math.max(0, Math.round(gain));
         if (Object.keys(progress.cleared).length >= MM_LEVELS.length) progress.graduated = true;
@@ -1762,40 +1828,61 @@
       api(`/play/${kidId()}/score`, { method: 'POST', body: { game: 'market', score } }).then(r => {
         if (r && r.coinsEarned) toast(`+${r.coinsEarned} 🪙`);
       }).catch(() => {});
-      const nextL = MM_LEVELS[L.n]; // may be undefined at level 10
-      const justGraduated = cleared && progress.graduated;
+      const nextL = MM_LEVELS[L.n]; // may be undefined at the last level
+      const justGraduated = passed && progress.graduated;
 
-      // The results card — shown after the NES interlude on a win, or straight away on a miss.
+      // ---- concept-specific debrief (what you did well / what happened / the idea / try next / transfer) ----
+      const coach = MM_COACH[L.demo];
+      const earned = badges.find(b => b.on);
+      const didWell = earned ? MM_BADGES[earned.k].good : 'You stuck with the whole run to the closing bell — that patience matters.';
+      const whatHappened = demonstrated
+        ? `You demonstrated <b>${esc(L.concept)}</b> — exactly the skill this level teaches. Nicely done.`
+        : `This level's target skill was <b>${esc(L.concept)}</b>. ${MM_BADGES[L.demo].miss}`;
+      const debriefHTML = `<div class="mm-debrief">
+        <div class="mm-db-row"><b>✅ What you did well</b><p>${didWell}</p></div>
+        <div class="mm-db-row"><b>📊 What happened</b><p>You finished at ${$$(nw)} (${gain >= 0 ? '+' : ''}${pct}%). ${whatHappened}</p></div>
+        <div class="mm-db-row"><b>💡 What the idea says</b><p>${esc(coach.concept)}</p></div>
+        <div class="mm-db-row"><b>🎯 One thing to try next</b><p>${esc(coach.next)}</p></div>
+        <div class="mm-db-row"><b>🔁 Think about it</b><p>${esc(coach.transfer)}</p></div>
+      </div>`;
+
+      const badgeHTML = `<div class="mm-badges">${badges.map(b => {
+        const m = MM_BADGES[b.k];
+        return `<div class="mm-badge ${b.on ? 'on' : 'off'}"><span class="mm-badge-ic">${m.icon}</span><span class="mm-badge-lab">${m.label}</span><span class="mm-badge-mark">${b.on ? '✓' : '○'}</span></div>`;
+      }).join('')}</div>`;
+
+      // The results card — shown after the interlude on a clear, or straight away on a miss.
       function showResult() {
-        Confetti.burst(cleared ? 160 : 80); Sound.levelup();
-        app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
+        Confetti.burst(passed ? 160 : 70); Sound.levelup();
+        app().innerHTML = topbar(`<div class="container" style="max-width:580px"><div class="card center">
           <canvas id="mm-res-hero" width="60" height="52" class="mm-res-hero"></canvas>
-          <h2>${justGraduated ? `${MM_LOOK.name} is a Certified Gallop Investor!` : cleared ? `Level ${L.n} cleared!` : 'So close — try again!'}</h2>
-          ${cleared ? `<div class="mm-star-row">${'★'.repeat(stars)}<span class="mm-star-empty">${'★'.repeat(3 - stars)}</span></div>` : ''}
+          <h2>${justGraduated ? `${MM_LOOK.name} is a Certified Gallop Investor!` : passed ? `Level ${L.n} cleared!` : 'Good run — give it another go!'}</h2>
+          <div class="mm-star-row"><span style="color:#f4b740">${'★'.repeat(badgeCount)}</span><span class="mm-star-empty">${'★'.repeat(4 - badgeCount)}</span> <span class="mm-star-count">${badgeCount}/4</span></div>
+          ${badgeHTML}
           <div class="summary-stats">
             <div class="sstat"><div class="n">${$$(nw)}</div>portfolio</div>
             <div class="sstat"><div class="n ${gain >= 0 ? 'up' : 'down'}">${gain >= 0 ? '+' : ''}${pct}%</div>return</div>
             ${F.dividends && divTotal ? `<div class="sstat"><div class="n">${$$(divTotal)}</div>💰 dividends</div>` : ''}
           </div>
-          <div class="hs-banner ${cleared ? 'hs-new' : ''}">${cleared
-            ? (justGraduated ? 'You cleared every level and mastered the market. Incredible work! 🎉' : `You beat the +${L.targetPct}% goal. ${nextL ? `Level ${nextL.n}: ${esc(nextL.name)} is unlocked!` : ''}`)
-            : `You reached ${$$(nw)} — the goal was ${$$(target)}. Every pro has red days. Adjust your strategy and give it another go!`}</div>
-          <p class="muted">${esc(cleared ? L.tip : L.intro.split('. ')[0] + '.')}</p>
+          <div class="hs-banner ${passed ? 'hs-new' : ''}">${passed
+            ? (justGraduated ? 'You cleared every level and mastered the market. Incredible work! 🎉' : `You demonstrated ${esc(L.concept)}! ${nextL ? `Level ${nextL.n}: ${esc(nextL.name)} is unlocked.` : ''}`)
+            : `You earned ${badgeCount} of 4 stars. To clear the level, show its skill — <b>${esc(L.concept)}</b> — or reach the +${L.targetPct}% goal. You've got this!`}</div>
+          ${debriefHTML}
           <div style="margin-top:14px">
-            ${cleared && nextL ? `<button class="btn green" id="mm-next">Next Level →</button>` : ''}
-            ${!cleared ? `<button class="btn green" id="mm-retry">Try Again (1 🎟️)</button>` : ''}
+            ${passed && nextL ? `<button class="btn green" id="mm-next">Next Level →</button>` : ''}
+            <button class="btn ${passed ? '' : 'green'}" id="mm-retry">${passed ? (badgeCount < 4 ? 'Replay for ★★★★ (1 🎟️)' : 'Replay (1 🎟️)') : 'Try Again (1 🎟️)'}</button>
             <button class="btn" style="margin-left:8px" id="mm-hub">Market Hub</button>
           </div>
         </div></div>`);
         wireChrome();
-        mmHeroInto('#mm-res-hero', cleared ? 'cheer' : 'idle');
+        mmHeroInto('#mm-res-hero', passed ? 'cheer' : 'idle');
         const nx = $('#mm-next'); if (nx) nx.onclick = () => mmPlayLevel(nextL.n, progress);
         const rt = $('#mm-retry'); if (rt) rt.onclick = () => mmPlayLevel(L.n, progress);
         $('#mm-hub').onclick = () => startMarketHub();
       }
 
-      // Win → play the Punch-Out!!-style interlude (belt ceremony / themed scene), then the card.
-      if (cleared) mmCutscene(mmSceneForLevel(L.n, justGraduated), showResult);
+      // Clear → play the Punch-Out!!-style interlude (belt ceremony / themed scene), then the card.
+      if (passed) mmCutscene(mmSceneForLevel(L.n, justGraduated), showResult);
       else showResult();
     }
 

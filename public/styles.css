@@ -2248,6 +2248,27 @@ body[data-theme="academy"] .mm-goal-box { background: #33301f; color: #e6d9a8; }
 .mm-star-row { font-size: 1.8rem; color: #f4b740; letter-spacing: 4px; margin: 6px 0; }
 .mm-star-empty { color: rgba(0,0,0,.15); }
 body[data-theme="academy"] .mm-star-empty { color: rgba(255,255,255,.16); }
+.mm-star-count { font-size: .8rem; font-weight: 800; color: var(--chrome-sub); vertical-align: middle; letter-spacing: 0; margin-left: 4px; }
+.mm-goal-sub { font-size: .82rem; font-weight: 600; color: var(--chrome-sub); margin-top: 8px; line-height: 1.5; }
+body[data-theme="academy"] .mm-goal-sub { color: #cbbf94; }
+/* process badges — the four things a level scores */
+.mm-badges { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 12px 0 6px; }
+.mm-badge { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-weight: 700; font-size: .82rem; border: 1.5px solid var(--card-border); }
+.mm-badge.on { background: rgba(60,160,60,.12); border-color: #3ca03c; color: #1e7a45; }
+.mm-badge.off { background: rgba(0,0,0,.04); color: var(--chrome-sub); opacity: .7; }
+body[data-theme="academy"] .mm-badge.on { background: rgba(95,240,160,.14); border-color: #4fb87f; color: #7ee0a8; }
+body[data-theme="academy"] .mm-badge.off { background: rgba(255,255,255,.05); }
+.mm-badge-ic { font-size: 1rem; }
+.mm-badge-mark { font-weight: 900; }
+.mm-badge.on .mm-badge-mark { color: #2ea060; }
+/* concept debrief on the results card */
+.mm-debrief { text-align: left; background: var(--soft-bg); border: 1.5px solid var(--card-border); border-radius: 14px; padding: 6px 16px; margin: 14px 0 4px; }
+.mm-db-row { padding: 10px 0; border-bottom: 1px solid var(--card-border); }
+.mm-db-row:last-child { border-bottom: none; }
+.mm-db-row b { display: block; font-size: .82rem; font-weight: 800; color: var(--brand); margin-bottom: 3px; }
+.mm-db-row p { margin: 0; font-size: .9rem; line-height: 1.5; color: var(--chrome-text, #2a2f3a); }
+body[data-theme="academy"] .mm-db-row p { color: #e6ddc4; }
+body[data-theme="academy"] .mm-db-row b { color: #f4c94c; }
 .ab-card.ab-feature { border-color: #C9A84C; box-shadow: 0 0 0 1px #C9A84C33, 0 8px 24px -12px #C9A84C88; background: linear-gradient(180deg, rgba(201,168,76,.12), rgba(255,255,255,.04)); }
 
 /* ===================== Market Mogul — NES cutscenes & mascot ===================== */
