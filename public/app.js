@@ -1510,6 +1510,7 @@ route('kid-login', async () => {
       <label style="text-align:left">Family email</label><input id="k-email" type="email" value="${esc(localStorage.bp_family_email || '')}">
       <button class="btn" style="margin-top:14px" id="k-find">Find My Family →</button>
       <div class="error-msg" id="k-err"></div>
+      <p class="muted" style="margin-top:16px;border-top:1px solid #eee;padding-top:14px">🏫 Got a class code from your teacher? <a href="#join">Join your class →</a></p>
       <div id="k-kids" style="margin-top:18px"></div>
       <div id="k-pin" style="display:none">
         <h3 style="margin-top:10px">Enter your secret PIN 🤫</h3>
@@ -1564,6 +1565,19 @@ route('home', async () => {
   const data = await api(`/learn/${kidId}/overview`);
   let quests = null;
   try { quests = await api(`/learn/${kidId}/quests`); } catch (e) { /* non-critical */ }
+  let assigns = null;
+  try { const ar = await api(`/learn/${kidId}/assignments`); assigns = ar.assignments || []; } catch (e) { /* non-critical */ }
+  const SUBJ_META_H = { math: { e: '🔢', l: 'Math' }, english: { e: '📚', l: 'English' }, science: { e: '🔬', l: 'Science' }, spanish: { e: '🌎', l: 'Spanish' } };
+  const assignCard = (assigns && assigns.length) ? `
+    <div class="teacher-assign">
+      <div class="ta-head">🍎 From your teacher</div>
+      ${assigns.map(a => { const m = SUBJ_META_H[a.subject] || { e: '📘', l: a.subject }; const target = a.skillId ? `#lesson/${a.subject}/${a.skillId}` : `#lesson/${a.subject}`;
+        return `<div class="ta-item">
+          <span class="ta-emoji">${m.e}</span>
+          <div class="ta-body"><b>${esc(a.skillName || m.l + ' practice')}</b>${a.note ? `<span class="ta-note">${esc(a.note)}</span>` : `<span class="ta-note">${m.l}</span>`}</div>
+          <button class="btn sun small ta-go" data-target="${target}">Practice →</button>
+        </div>`; }).join('')}
+    </div>` : '';
   const k = data.kid;
   const questCard = quests ? `
     <div class="quest-card ${quests.allDone && !quests.claimed ? 'ready' : ''}">
@@ -1614,6 +1628,7 @@ route('home', async () => {
         <button class="btn sun" tabindex="-1" aria-hidden="true">${rec.type === 'place' ? 'Find my level →' : 'Start →'}</button>
       </div>`;
     })()}
+    ${assignCard}
     <div class="week-gallop">
       <div class="wg-head"><span>${playful() ? '🏇 This week’s gallop' : 'This week'}</span><span>${data.weekAnswers || 0} / ${(k.weekly_goal || 12) * 10} answers</span></div>
       ${gallopTrack(Math.min(100, (data.weekAnswers || 0) / ((k.weekly_goal || 12) * 10) * 100))}
@@ -1712,6 +1727,7 @@ route('home', async () => {
   } catch (e) { /* recap is a nice-to-have */ }
   const un = document.querySelector('.up-next');
   if (un) un.onclick = () => { Sound.click(); location.hash = (un.dataset.place === '1' ? '#placement/' : '#lesson/') + un.dataset.upnext; };
+  document.querySelectorAll('.ta-go').forEach(b => b.onclick = () => { Sound.click(); location.hash = b.dataset.target; });
   document.querySelectorAll('[data-focus]').forEach(b => b.onclick = () => { Sound.click(); location.hash = '#lesson/' + b.dataset.focus + '/focus'; });
   document.querySelectorAll('.subject-card').forEach(el => el.onclick = () => {
     Sound.click();
@@ -2820,6 +2836,62 @@ function agoLabel(d) {
   if (days < 30) return Math.floor(days / 7) + 'w ago'; return Math.floor(days / 30) + 'mo ago';
 }
 
+// ---- Student self-join a class by code ----
+route('join', async (codeArg) => {
+  const renderCode = () => {
+    app().innerHTML = topbar(`<div class="container" style="max-width:460px">
+      <div class="card center">
+        <div class="big-emoji">🏫</div>
+        <h2>Join your class</h2>
+        <p class="muted" style="margin:6px 0 14px">Enter the class code your teacher gave you.</p>
+        <input id="jc-code" type="text" placeholder="ABC123" style="text-transform:uppercase;text-align:center;font-size:1.4rem;letter-spacing:.2em;font-weight:800" value="${esc((codeArg || '').toUpperCase())}">
+        <div class="error-msg" id="jc-err"></div>
+        <button class="btn green" style="margin-top:14px;width:100%" id="jc-next">Next →</button>
+        <p class="muted center" style="margin-top:12px"><a href="#kid-login">← Back</a></p>
+      </div></div>`);
+    wireChrome();
+    $('#jc-next').onclick = () => { const c = $('#jc-code').value.trim(); if (!c) { showError('#jc-err', 'Enter your class code.'); return; } location.hash = '#join/' + c.toUpperCase(); };
+    $('#jc-code').addEventListener('keydown', e => e.key === 'Enter' && $('#jc-next').onclick());
+  };
+  if (!codeArg) { renderCode(); return; }
+  let info;
+  try { info = await api('/class/join/' + encodeURIComponent(codeArg)); }
+  catch (e) {
+    app().innerHTML = topbar(`<div class="container" style="max-width:460px"><div class="card center">
+      <div class="big-emoji">🤔</div><h2>Hmm, that code didn't work</h2>
+      <p class="muted" style="margin:6px 0 14px">${esc(e.message || 'Double-check the class code with your teacher.')}</p>
+      <button class="btn green" onclick="location.hash='#join'">Try another code</button>
+    </div></div>`);
+    wireChrome(); return;
+  }
+  app().innerHTML = topbar(`<div class="container" style="max-width:460px">
+    <div class="card center">
+      <div class="big-emoji">🎉</div>
+      <h2>Join ${esc(info.className)}</h2>
+      <p class="muted" style="margin:6px 0 14px">${info.school ? esc(info.school) + ' · ' : ''}${info.grade != null ? gradeLabel(info.grade) : ''}<br>Set up your login below — remember your PIN!</p>
+      <label style="text-align:left">Your name</label><input id="j-name" type="text" placeholder="First name or nickname">
+      <label style="text-align:left">Your grade</label>
+      <select id="j-grade">${GRADE_NAMES.map((g, i) => `<option value="${i === 0 ? 0 : i}" ${(info.grade != null ? info.grade : 3) === (i === 0 ? 0 : i) ? 'selected' : ''}>${i === 0 ? 'Kindergarten' : 'Grade ' + i}</option>`).join('')}</select>
+      <label style="text-align:left">Pick a 4-digit PIN</label><input id="j-pin" type="text" inputmode="numeric" maxlength="4" placeholder="e.g. 2024" style="letter-spacing:.3em;text-align:center;font-weight:700">
+      <div class="error-msg" id="j-err"></div>
+      <button class="btn green" style="margin-top:14px;width:100%" id="j-go">Join &amp; start learning →</button>
+      <p class="muted center" style="margin-top:10px"><a href="#join">← Use a different code</a></p>
+    </div></div>`);
+  wireChrome();
+  const go = async () => {
+    const name = $('#j-name').value.trim(), pin = $('#j-pin').value.trim(), grade = Number($('#j-grade').value);
+    if (!name) { showError('#j-err', 'Enter your name.'); return; }
+    if (!/^\d{4}$/.test(pin)) { showError('#j-err', 'Pick a 4-digit PIN (numbers only).'); return; }
+    const btn = $('#j-go'); btn.disabled = true; btn.textContent = 'Joining…';
+    try {
+      await api('/class/join', { method: 'POST', body: { code: codeArg, name, pin, grade } });
+      await refreshMe(); Sound.levelup(); location.hash = '#home';
+    } catch (e) { showError('#j-err', e.message); btn.disabled = false; btn.textContent = 'Join & start learning →'; }
+  };
+  $('#j-go').onclick = go;
+  $('#j-pin').addEventListener('keydown', e => e.key === 'Enter' && go());
+});
+
 route('teacher-signup', async () => {
   await refreshMe();
   if (isTeacher()) { location.hash = '#teacher'; return; }
@@ -2889,6 +2961,12 @@ route('teacher', async () => {
       <div class="tstat ${t.needingSupport ? 'warn' : ''}"><b>${t.needingSupport}</b><span>Need support</span></div>
       <div class="tstat"><b>${t.answersWeek}</b><span>Answers this week</span></div>
     </div>
+    ${(() => {
+      const sch = data.schoolCtx;
+      if (sch && sch.isHead) return `<div class="tschool-bar"><span>🏫 <b>${esc(sch.name)}</b> · you're the head of school</span><button class="btn ghost small" id="school-open">School overview →</button></div>`;
+      if (sch) return `<div class="tschool-bar"><span>🏫 Part of <b>${esc(sch.name)}</b></span><button class="btn ghost small" id="school-open">View school</button></div>`;
+      return `<div class="tschool-bar"><span>🏫 Working with other teachers? Set up a school to see everyone's classes in one place.</span><button class="btn ghost small" id="school-setup">Set up / join a school</button></div>`;
+    })()}
     <div class="tsec-head"><h2>Your classes</h2><button class="btn green small" id="new-class">+ New class</button></div>
     ${data.classes.length ? `<div class="tclass-grid">${classCards}</div>` : `
       <div class="card center" style="padding:32px">
@@ -2914,7 +2992,44 @@ route('teacher', async () => {
   };
   const nc = $('#new-class'); if (nc) nc.onclick = createClass;
   const nce = $('#new-class-empty'); if (nce) nce.onclick = createClass;
+  const so = $('#school-open'); if (so) so.onclick = () => location.hash = '#teacher-school';
+  const ss = $('#school-setup'); if (ss) ss.onclick = () => teacherSchoolSetup();
 });
+
+// Set up or join a school (head vs member).
+async function teacherSchoolSetup() {
+  const wrap = document.createElement('div');
+  wrap.className = 'celebrate tadd-overlay';
+  wrap.innerHTML = `<div class="tadd-modal" onclick="event.stopPropagation()">
+    <h3 style="margin:0 0 4px">Set up or join a school</h3>
+    <p class="muted" style="margin:0 0 14px;font-size:.9rem">A school lets a group of teachers share one view. The head of school sees every teacher's classes.</p>
+    <div class="tadd-tabs"><button class="tadd-tab active" data-m="create">Create a school</button><button class="tadd-tab" data-m="join">Join with a code</button></div>
+    <div class="tadd-pane" data-m="create">
+      <label>School name</label><input id="sc-name" type="text" placeholder="Oak Grove Academy">
+      <button class="btn green" id="sc-create" style="margin-top:12px;width:100%">Create school</button>
+      <p class="muted" style="font-size:.8rem;margin-top:8px">You'll become the head of school and get a code to share with your teachers.</p>
+    </div>
+    <div class="tadd-pane" data-m="join" style="display:none">
+      <label>School code</label><input id="sc-code" type="text" placeholder="SXXXXX" style="text-transform:uppercase">
+      <button class="btn green" id="sc-join" style="margin-top:12px;width:100%">Join school</button>
+    </div>
+    <div style="text-align:right;margin-top:12px"><button class="btn ghost small" id="sc-cancel">Cancel</button></div>
+  </div>`;
+  document.body.appendChild(wrap);
+  wrap.querySelectorAll('.tadd-tab').forEach(tab => tab.onclick = () => {
+    wrap.querySelectorAll('.tadd-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active');
+    wrap.querySelectorAll('.tadd-pane').forEach(p => p.style.display = p.dataset.m === tab.dataset.m ? 'block' : 'none');
+  });
+  $('#sc-cancel').onclick = () => wrap.remove();
+  $('#sc-create').onclick = async () => {
+    try { await api('/teacher/school/create', { method: 'POST', body: { name: $('#sc-name').value } }); Sound.levelup(); wrap.remove(); location.hash = '#teacher-school'; }
+    catch (e) { toast(e.message); }
+  };
+  $('#sc-join').onclick = async () => {
+    try { await api('/teacher/school/join', { method: 'POST', body: { code: $('#sc-code').value } }); Sound.badge(); wrap.remove(); navigate(); }
+    catch (e) { toast(e.message); }
+  };
+}
 
 route('teacher-class', async (classId) => {
   await refreshMe();
@@ -2926,8 +3041,14 @@ route('teacher-class', async (classId) => {
     showError(null, e.message); return;
   }
   const c = data.class, a = data.aggregates;
+  const ownClass = !c.ownerId || c.ownerId === State.me.parent.id;
+  let assignData = { assignments: [] };
+  try { assignData = await api('/teacher/classes/' + classId + '/assignments'); } catch (e) { /* non-critical */ }
   const subjAvgChips = Object.keys(a.subjectAvg).map(s => a.subjectAvg[s] != null
     ? `<span class="tsa-chip">${TSUBJ[s]}: <b>${gradeLabel(Math.round(a.subjectAvg[s]))}</b></span>` : '').filter(Boolean).join('');
+  const assignItems = assignData.assignments.length
+    ? assignData.assignments.map(as => `<div class="tas-item"><span class="tas-emoji">${(TSUBJ[as.subject] || '📘').split(' ')[0]}</span><div class="tas-body"><b>${esc(as.skillName || (TSUBJ[as.subject] || as.subject).replace(/^\S+\s/, '') + ' practice')}</b>${as.note ? `<span class="muted"> · ${esc(as.note)}</span>` : ''}</div>${ownClass ? `<button class="btn ghost xsmall tas-del" data-id="${as.id}">Remove</button>` : ''}</div>`).join('')
+    : '<p class="muted" style="margin:6px 0 0;font-size:.88rem">No assignments yet. Set a focus skill and it appears on every student\'s home screen.</p>';
   const rosterRows = data.roster.map(r => {
     const lv = sub => { const s = r.subjects.find(x => x.subject === sub); return s && s.levelName ? s.levelName.replace('Grade ', 'G').replace('Kindergarten', 'K') : '—'; };
     return `<tr data-kid="${r.id}" class="troster-row">
@@ -2949,9 +3070,10 @@ route('teacher-class', async (classId) => {
         <p class="muted" style="margin:0">${gradeLabel(c.grade)} · ${a.students} student${a.students === 1 ? '' : 's'} · Join code <b>${esc(c.joinCode || '—')}</b></p>
       </div>
       <div class="tdash-actions">
-        <button class="btn green small" id="add-student">+ Add students</button>
+        ${ownClass ? `<button class="btn green small" id="add-student">+ Add students</button>` : ''}
+        <button class="btn ghost small" id="print-class">🖨 Print</button>
         <button class="btn ghost small" id="export-csv">⬇ Export CSV</button>
-        <button class="btn ghost small" id="class-menu">⚙</button>
+        ${ownClass ? `<button class="btn ghost small" id="class-menu">⚙</button>` : ''}
       </div>
     </div>
     <div class="tstat-row">
@@ -2962,6 +3084,22 @@ route('teacher-class', async (classId) => {
       <div class="tstat"><b>${a.answersWeek}</b><span>Answers this week</span></div>
     </div>
     ${subjAvgChips ? `<div class="tsa-row"><span class="muted" style="font-size:.85rem">Class average level:</span> ${subjAvgChips}</div>` : ''}
+    ${ownClass ? `<div class="tpanels">
+      <div class="tpanel">
+        <div class="tpanel-head">🔑 Student sign-in</div>
+        <p class="muted" style="margin:0 0 8px;font-size:.86rem">Students can join with this code at <b>learnwithgallop.com</b> → “Join your class”, or add them manually.</p>
+        <div class="tjoin-code">${esc(c.joinCode || '—')}</div>
+        <div class="tjoin-actions">
+          <button class="btn ghost xsmall" id="copy-link">📋 Copy join link</button>
+          <button class="btn ghost xsmall" id="regen-code">↻ New code</button>
+          <label class="tjoin-toggle"><input type="checkbox" id="join-toggle" ${c.joinEnabled ? 'checked' : ''}> Allow self-join</label>
+        </div>
+      </div>
+      <div class="tpanel">
+        <div class="tpanel-head">🎯 Assignments <button class="btn green xsmall" id="add-assign" style="float:right">+ Assign focus</button></div>
+        <div class="tas-list">${assignItems}</div>
+      </div>
+    </div>` : ''}
     ${data.roster.length ? `
     <div class="troster-wrap">
       <table class="troster">
@@ -2978,9 +3116,26 @@ route('teacher-class', async (classId) => {
   wireChrome();
   document.querySelectorAll('.troster-row').forEach(el => el.onclick = () => location.hash = '#teacher-student/' + el.dataset.kid);
   const exportBtn = $('#export-csv'); if (exportBtn) exportBtn.onclick = () => { window.location = '/api/teacher/classes/' + classId + '/export.csv'; };
+  const printBtn = $('#print-class'); if (printBtn) printBtn.onclick = () => location.hash = '#teacher-print-class/' + classId;
   const openAdd = () => teacherAddStudents(classId, c);
   const asb = $('#add-student'); if (asb) asb.onclick = openAdd;
   const ase = $('#add-student-empty'); if (ase) ase.onclick = openAdd;
+  const copyBtn = $('#copy-link'); if (copyBtn) copyBtn.onclick = () => {
+    const link = location.origin + '/#join/' + (c.joinCode || '');
+    try { navigator.clipboard.writeText(link); toast('Join link copied! 📋'); } catch (e) { prompt('Copy this join link:', link); }
+  };
+  const regen = $('#regen-code'); if (regen) regen.onclick = async () => {
+    if (!confirm('Make a new class code? The old code will stop working for new students.')) return;
+    try { await api('/teacher/classes/' + classId + '/regenerate-code', { method: 'POST' }); toast('New code created.'); navigate(); } catch (e) { toast(e.message); }
+  };
+  const jt = $('#join-toggle'); if (jt) jt.onchange = async () => {
+    try { await api('/teacher/classes/' + classId, { method: 'PATCH', body: { join_enabled: jt.checked } }); toast(jt.checked ? 'Self-join on.' : 'Self-join off.'); } catch (e) { toast(e.message); jt.checked = !jt.checked; }
+  };
+  const addAssign = $('#add-assign'); if (addAssign) addAssign.onclick = () => teacherAssignFocus(classId);
+  document.querySelectorAll('.tas-del').forEach(b => b.onclick = async (e) => {
+    e.stopPropagation();
+    try { await api('/teacher/assignments/' + b.dataset.id, { method: 'DELETE' }); toast('Assignment removed.'); navigate(); } catch (err) { toast(err.message); }
+  });
   const cm = $('#class-menu'); if (cm) cm.onclick = async () => {
     const choice = prompt('Class settings — type:\n  "rename" to rename this class\n  "delete" to delete it (students are kept in your account)', '');
     if (!choice) return;
@@ -3046,6 +3201,42 @@ async function teacherAddStudents(classId, c) {
   $('#ta-done').onclick = () => { wrap.remove(); navigate(); };
 }
 
+// Assign a focus skill (or whole subject) to a class.
+async function teacherAssignFocus(classId) {
+  let meta;
+  try { meta = (await api('/learn/subjects')).subjects; } catch (e) { toast('Could not load skills.'); return; }
+  const bySubject = {};
+  meta.forEach(s => { bySubject[s.subject] = s.skills || []; });
+  const wrap = document.createElement('div');
+  wrap.className = 'celebrate tadd-overlay';
+  wrap.innerHTML = `<div class="tadd-modal" onclick="event.stopPropagation()">
+    <h3 style="margin:0 0 4px">Assign a focus</h3>
+    <p class="muted" style="margin:0 0 14px;font-size:.9rem">Pick what your class should practice. It shows up on every student's home screen as “From your teacher”.</p>
+    <label>Subject</label>
+    <select id="af-subject">${['math', 'english', 'science', 'spanish'].map(s => `<option value="${s}">${TSUBJ[s]}</option>`).join('')}</select>
+    <label>Skill</label>
+    <select id="af-skill"><option value="">Whole subject (adaptive)</option></select>
+    <label>Note for students <span class="muted" style="font-weight:400">(optional)</span></label>
+    <input id="af-note" type="text" maxlength="120" placeholder="e.g. Practice before Friday's quiz">
+    <div style="display:flex;gap:8px;margin-top:14px"><button class="btn green" id="af-save" style="flex:1">Assign</button><button class="btn ghost" id="af-cancel">Cancel</button></div>
+  </div>`;
+  document.body.appendChild(wrap);
+  const fillSkills = () => {
+    const sub = $('#af-subject').value;
+    const skills = bySubject[sub] || [];
+    $('#af-skill').innerHTML = '<option value="">Whole subject (adaptive)</option>' +
+      skills.map(k => `<option value="${esc(k.id)}">${esc(k.name)}${k.grade != null ? ' (' + gradeLabel(k.grade) + ')' : ''}</option>`).join('');
+  };
+  fillSkills();
+  $('#af-subject').onchange = fillSkills;
+  $('#af-cancel').onclick = () => wrap.remove();
+  $('#af-save').onclick = async () => {
+    const body = { subject: $('#af-subject').value, skillId: $('#af-skill').value || null, note: $('#af-note').value };
+    try { await api('/teacher/classes/' + classId + '/assignments', { method: 'POST', body }); Sound.badge(); wrap.remove(); navigate(); }
+    catch (e) { toast(e.message); }
+  };
+}
+
 route('teacher-student', async (kidId) => {
   await refreshMe();
   if (!isTeacher()) { location.hash = State.me.role === 'kid' ? '#home' : '#login'; return; }
@@ -3079,6 +3270,7 @@ route('teacher-student', async (kidId) => {
       </div>
       <div class="tstudent-actions">
         <button class="btn green small" id="ts-launch">▶ Open as student</button>
+        <button class="btn ghost small" id="ts-print">🖨 Printable report</button>
         <button class="btn ghost small" id="ts-pin">🔑 Reset PIN</button>
         <button class="btn ghost small" id="ts-reset">↺ Start fresh</button>
       </div>
@@ -3100,6 +3292,7 @@ route('teacher-student', async (kidId) => {
     try { await api('/teacher/enter-student', { method: 'POST', body: { kidId: s.id } }); await refreshMe(); location.hash = '#home'; }
     catch (e) { toast(e.message); }
   };
+  const tsPrint = $('#ts-print'); if (tsPrint) tsPrint.onclick = () => location.hash = '#teacher-print/' + s.id;
   $('#ts-pin').onclick = async () => {
     if (!confirm('Generate a new 4-digit PIN for ' + s.name + '? Their old PIN will stop working.')) return;
     try { const r = await api('/teacher/students/' + s.id + '/pin', { method: 'POST' }); alert(s.name + "'s new PIN is: " + r.pin + '\n\nWrite it down — you can always reset it again here.'); }
@@ -3110,6 +3303,109 @@ route('teacher-student', async (kidId) => {
     try { await api('/teacher/students/' + s.id + '/reset', { method: 'POST' }); toast('Progress reset.'); navigate(); }
     catch (e) { toast(e.message); }
   };
+});
+
+// ---- Printable single-student report (conference-ready) ----
+route('teacher-print', async (kidId) => {
+  await refreshMe();
+  if (!isTeacher()) { location.hash = '#login'; return; }
+  let data; try { data = await api('/teacher/students/' + kidId); } catch (e) { toast('Student not found.'); location.hash = '#teacher'; return; }
+  const s = data.student, snap = data.snapshot, card = data.report;
+  const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  const rows = snap.subjects.map(sub => {
+    const cs = card && card.subjects ? card.subjects.find(x => x.subject === sub.subject) : null;
+    const acc = cs && cs.accuracy != null ? Math.round(cs.accuracy * 100) + '%' : '—';
+    const status = cs && cs.status && cs.status !== 'insufficient' ? String(cs.status).replace(/-/g, ' ') : '—';
+    return `<tr><td>${TSUBJ[sub.subject]}</td><td>${sub.placed ? esc(sub.levelName) : 'Not placed yet'}</td><td>${acc}</td><td style="text-transform:capitalize">${esc(status)}</td></tr>`;
+  }).join('');
+  const focus = (card && card.subjects ? card.subjects : []).flatMap(su => (su.focusAreas || []).map(n => ({ n, s: su.subject }))).slice(0, 6);
+  const strengths = (card && card.subjects ? card.subjects : []).flatMap(su => (su.strengths || []).map(n => ({ n, s: su.subject }))).slice(0, 6);
+  app().innerHTML = `<div class="printwrap">
+    <div class="print-controls no-print"><button class="btn green" onclick="window.print()">🖨 Print / Save as PDF</button> <button class="btn ghost" onclick="location.hash='#teacher-student/${s.id}'">← Back</button></div>
+    <div class="printdoc">
+      <div class="pd-head"><img src="/logo-full.png" alt="Gallop" style="height:34px"><div class="pd-meta">Progress Report<br><span>${esc(today)}</span></div></div>
+      <h1 class="pd-name">${esc(s.name)}</h1>
+      <p class="pd-sub">${gradeLabel(s.grade)} · ${snap.weekAnswers} answers this week · ${snap.weekAccuracy == null ? '—' : snap.weekAccuracy + '%'} accuracy · ${snap.minutesWeek || 0} min this week · 🔥 ${s.streak || 0}-day streak</p>
+      <h2 class="pd-h2">By subject</h2>
+      <table class="pd-table"><thead><tr><th>Subject</th><th>Working level</th><th>Accuracy</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>
+      ${strengths.length ? `<h2 class="pd-h2">Strengths</h2><ul class="pd-list">${strengths.map(x => `<li>${esc(x.n)} <span class="pd-tag">${(TSUBJ[x.s] || x.s)}</span></li>`).join('')}</ul>` : ''}
+      ${focus.length ? `<h2 class="pd-h2">Areas to focus on</h2><ul class="pd-list">${focus.map(x => `<li>${esc(x.n)} <span class="pd-tag">${(TSUBJ[x.s] || x.s)}</span></li>`).join('')}</ul>` : ''}
+      <p class="pd-foot">Generated by Gallop Learning Academy · learnwithgallop.com — figures reflect the student's real practice activity.</p>
+    </div>
+  </div>`;
+});
+
+// ---- Printable whole-class summary ----
+route('teacher-print-class', async (classId) => {
+  await refreshMe();
+  if (!isTeacher()) { location.hash = '#login'; return; }
+  let data; try { data = await api('/teacher/classes/' + classId); } catch (e) { toast('Class not found.'); location.hash = '#teacher'; return; }
+  const c = data.class, a = data.aggregates;
+  const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  const rows = data.roster.map(r => {
+    const lv = sub => { const x = r.subjects.find(y => y.subject === sub); return x && x.levelName ? x.levelName.replace('Grade ', 'G').replace('Kindergarten', 'K') : '—'; };
+    return `<tr><td>${esc(r.name)}</td><td>${gradeLabel(r.grade)}</td><td style="text-transform:capitalize">${(T_STATUS[r.status] || {}).label || r.status}</td><td>${r.weekAnswers}</td><td>${r.weekAccuracy == null ? '—' : r.weekAccuracy + '%'}</td><td>${lv('math')}·${lv('english')}·${lv('science')}·${lv('spanish')}</td><td>${r.topStruggle ? esc(r.topStruggle.name) : '—'}</td></tr>`;
+  }).join('');
+  app().innerHTML = `<div class="printwrap">
+    <div class="print-controls no-print"><button class="btn green" onclick="window.print()">🖨 Print / Save as PDF</button> <button class="btn ghost" onclick="location.hash='#teacher-class/${c.id}'">← Back</button></div>
+    <div class="printdoc">
+      <div class="pd-head"><img src="/logo-full.png" alt="Gallop" style="height:34px"><div class="pd-meta">Class Summary<br><span>${esc(today)}</span></div></div>
+      <h1 class="pd-name">${esc(c.name)}</h1>
+      <p class="pd-sub">${gradeLabel(c.grade)} · ${a.students} students · ${a.activeThisWeek} active this week · ${a.avgAccuracy == null ? '—' : a.avgAccuracy + '%'} avg accuracy · ${a.needingSupport} need support</p>
+      <table class="pd-table"><thead><tr><th>Student</th><th>Grade</th><th>Status</th><th>Wk ans</th><th>Acc.</th><th>Levels (M·E·S·Sp)</th><th>Needs help</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="pd-foot">Generated by Gallop Learning Academy · learnwithgallop.com</p>
+    </div>
+  </div>`;
+});
+
+// ---- School overview (head of school: every teacher + class) ----
+route('teacher-school', async () => {
+  await refreshMe();
+  if (!isTeacher()) { location.hash = '#login'; return; }
+  let data; try { data = await api('/teacher/school'); } catch (e) {
+    if (e.status === 404) { location.hash = '#teacher'; return; }
+    showError(null, e.message); return;
+  }
+  const sc = data.school;
+  if (!sc.isHead) {
+    app().innerHTML = topbar(`<div class="container" style="max-width:640px">
+      <div class="tcrumb"><a href="#teacher">← My classes</a></div>
+      <div class="card"><h2>🏫 ${esc(sc.name)}</h2>
+        <p class="muted">You're a member of this school. Your classes appear on your own dashboard; your head of school can see everyone's.</p>
+        <div class="tsch-teachers">${data.teachers.map(t => `<div class="tsch-teacher">${t.isHead ? '👑 ' : '👩‍🏫 '}${esc(t.name)}${t.isHead ? ' (head)' : ''}</div>`).join('')}</div>
+        <button class="btn ghost small" id="leave-school" style="margin-top:14px">Leave school</button>
+      </div></div>`);
+    wireChrome();
+    $('#leave-school').onclick = async () => { if (!confirm('Leave ' + sc.name + '? Your classes and students stay with your account.')) return; try { await api('/teacher/school/leave', { method: 'POST' }); toast('Left school.'); location.hash = '#teacher'; } catch (e) { toast(e.message); } };
+    return;
+  }
+  const t = data.totals;
+  const teacherBlocks = data.teacherRows.map(tr => `
+    <div class="tsch-block">
+      <div class="tsch-block-head"><b>${tr.isHead ? '👑 ' : ''}${esc(tr.name)}</b><span class="muted">${esc(tr.email)}</span></div>
+      <div class="tsch-block-stats">${tr.students} students · ${tr.activeToday} active today · ${tr.needingSupport} need support</div>
+      <div class="tsch-classes">${tr.classes.length ? tr.classes.map(cl => `<button class="tsch-class" data-id="${cl.id}">${esc(cl.name)} <span>${gradeLabel(cl.grade)} · ${cl.students} 👧</span></button>`).join('') : '<span class="muted" style="font-size:.85rem">No classes yet</span>'}</div>
+    </div>`).join('');
+  app().innerHTML = topbar(`<div class="container">
+    <div class="tcrumb"><a href="#teacher">← My classes</a></div>
+    <div class="tdash-head">
+      <div>
+        <div class="eyebrow" style="color:var(--brand);text-transform:uppercase;letter-spacing:.12em;font-size:.76rem;font-weight:800">School overview</div>
+        <h1 style="margin:4px 0 2px">${esc(sc.name)}</h1>
+        <p class="muted" style="margin:0">Every teacher and class in your school. Share code <b>${esc(sc.code || '')}</b> so teachers can join.</p>
+      </div>
+    </div>
+    <div class="tstat-row">
+      <div class="tstat"><b>${data.teacherRows.length}</b><span>Teachers</span></div>
+      <div class="tstat"><b>${t.classes}</b><span>Classes</span></div>
+      <div class="tstat"><b>${t.students}</b><span>Students</span></div>
+      <div class="tstat"><b>${t.activeToday}</b><span>Active today</span></div>
+      <div class="tstat ${t.needingSupport ? 'warn' : ''}"><b>${t.needingSupport}</b><span>Need support</span></div>
+    </div>
+    <div class="tsch-blocks">${teacherBlocks}</div>
+  </div>`);
+  wireChrome();
+  document.querySelectorAll('.tsch-class').forEach(b => b.onclick = () => location.hash = '#teacher-class/' + b.dataset.id);
 });
 
 route('parent', async () => {
