@@ -982,7 +982,7 @@ route('landing', async () => {
     </div>
     <div class="diff-callout reveal">
       <div class="dc-media">
-        <img src="/shots/lesson-live.webp" alt="A child learning a concept with Gallop before practicing it" loading="lazy">
+        <img src="/shots/lemonade.webp" alt="A child running Sunny's Lemonade Stand in Gallop — setting the price, choosing how many cups to make, and banking the profit" loading="lazy">
         <span class="dc-badge">🐴 The Gallop difference</span>
       </div>
       <div class="dc-copy">
@@ -1024,7 +1024,7 @@ route('landing', async () => {
           <div class="tour-slide" data-step="1"><img src="/shots/student-home.webp" alt="A student's Gallop home base with score, streak and next lesson" loading="lazy"></div>
           <div class="tour-slide" data-step="2"><img src="/shots/play-zone.webp" alt="The Gallop Play Zone arcade — Stable Street, Sunny's Lemonade Stand, Gallop Bakery, Robo Logic and more" loading="lazy"></div>
           <div class="tour-slide" data-step="3"><img src="/shots/career-explorer.webp" alt="The Gallop Career Explorer — 16 real fields from Engineering and Medicine to Entrepreneurship and the Trades" loading="lazy"></div>
-          <div class="tour-slide" data-step="4"><img src="/shots/market-mogul.webp" alt="Stable Street — a 12-level investing career teaching diversification, dollar-cost averaging, dividends and more" loading="lazy"></div>
+          <div class="tour-slide" data-step="4"><img src="/shots/invest-play.webp" alt="Stable Street — a child reads the market news, then buys and sells stocks in a live-feeling portfolio, learning diversification and risk" loading="lazy"></div>
           <div class="tour-slide" data-step="5"><img src="/shots/parent-dashboard.webp" alt="A parent dashboard showing each child's progress and where they need help" loading="lazy"></div>
         </div>
         <div class="tour-caps">
@@ -1053,7 +1053,7 @@ route('landing', async () => {
           <p>Games earned by learning — Sunny's Lemonade Stand, Gallop Bakery, Robo Logic and more. Every one sneaks in real math, logic, and money skills. Parents control when they're on.</p>
         </div>
         <div class="lab-card">
-          <div class="lab-shot"><img src="/shots/market-mogul.webp" alt="Stable Street investing game" loading="lazy"></div>
+          <div class="lab-shot"><img src="/shots/invest-play.webp" alt="Stable Street — buying and selling stocks in a live-feeling market" loading="lazy"></div>
           <h3>📈 Investment Challenges</h3>
           <p>A 12-level investing career on a market that feels alive — kids learn diversification, dollar-cost averaging, dividends, and patience, all with pretend money.</p>
         </div>
