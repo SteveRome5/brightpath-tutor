@@ -3979,7 +3979,13 @@ route('parent', async () => {
                 <div><label>Name</label><input class="ke-name" value="${esc(k.name)}"></div>
                 <div><label>Grade</label><select class="ke-grade">${['K', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((g, i) => `<option value="${i}" ${k.grade === i ? 'selected' : ''}>${g === 'K' ? 'K' : g}</option>`).join('')}</select></div>
                 <div><label>PIN</label><input class="ke-pin" maxlength="4" inputmode="numeric" placeholder="unchanged"></div>
-                <div><label>Weekly goal</label><select class="ke-goal">${[6, 9, 12, 15, 20].map(g => `<option value="${g}" ${(k.weekly_goal || 12) === g ? 'selected' : ''}>${g * 10} answers/wk</option>`).join('')}</select></div>
+                <div><label>Weekly goal</label><select class="ke-goal">${[
+                  { g: 6, lbl: 'Gentle · ~3 short days (60/wk)' },
+                  { g: 9, lbl: 'Light · ~3–4 days (90/wk)' },
+                  { g: 12, lbl: 'Recommended · ~4 days (120/wk)' },
+                  { g: 15, lbl: 'Focused · ~5 days (150/wk)' },
+                  { g: 20, lbl: 'Ambitious · ~5 days (200/wk)' }
+                ].map(o => `<option value="${o.g}" ${(k.weekly_goal || 12) === o.g ? 'selected' : ''}>${o.lbl}</option>`).join('')}</select><span class="muted" style="font-size:.78rem;display:block;margin-top:4px">A few steady days beats one long cram. About 15–20 min a day is plenty.</span></div>
                 <div><label>Schedule</label><select class="ke-cal">${['traditional', 'yearround', 'homeschool'].map(c => `<option value="${c}" ${k.calendar_mode === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
               </div>
               <label class="ke-showlevel"><input type="checkbox" class="ke-showlevel-cb" ${k.show_level ? 'checked' : ''}>
@@ -3997,6 +4003,13 @@ route('parent', async () => {
             </div>
             <div class="kid-games" id="games-${k.id}" style="display:none">
               <div class="kg-head">🎮 Games for ${esc(k.name.split(' ')[0])}</div>
+              <div class="kg-presets">
+                <span class="muted" style="font-size:.82rem;width:100%">Quick presets:</span>
+                <button type="button" class="btn ghost small kg-preset" data-on="1" data-gate="5" data-limit="30">⚖️ Balanced</button>
+                <button type="button" class="btn ghost small kg-preset" data-on="1" data-gate="15" data-limit="20">📚 Learning-focused</button>
+                <button type="button" class="btn ghost small kg-preset" data-on="1" data-gate="0" data-limit="0">♾️ Always available</button>
+                <button type="button" class="btn ghost small kg-preset" data-on="0" data-gate="0" data-limit="0">🚫 Games off</button>
+              </div>
               <label class="kg-toggle"><input type="checkbox" class="kg-on-cb" ${k.games_enabled == null || k.games_enabled ? 'checked' : ''}>
                 <span><b>Play Zone arcade</b><br><span class="muted" style="font-size:.83rem">The break games. On for the full experience, or off for a pure-learning setup with no games at all.</span></span>
               </label>
@@ -4258,6 +4271,16 @@ route('parent', async () => {
     if (el) { el.style.display = el.style.display === 'none' ? 'block' : 'none'; Sound.click(); }
   });
   document.querySelectorAll('[data-cancel-games]').forEach(b => b.onclick = () => { const el = $('#games-' + b.dataset.cancelGames); if (el) el.style.display = 'none'; });
+  // Game-control presets (PP-107): one tap fills the on/off, earn-it gate, and daily limit.
+  document.querySelectorAll('.kg-preset').forEach(btn => btn.onclick = () => {
+    const box = btn.closest('.kid-games'); if (!box) return;
+    box.querySelector('.kg-on-cb').checked = btn.dataset.on === '1';
+    box.querySelector('.kg-gate-inp').value = btn.dataset.gate;
+    box.querySelector('.kg-time-inp').value = btn.dataset.limit;
+    box.querySelectorAll('.kg-preset').forEach(x => x.classList.toggle('on', x === btn));
+    Sound.click();
+    toast('Preset applied — press “Save games settings” to keep it.');
+  });
   document.querySelectorAll('[data-save-games]').forEach(b => b.onclick = async () => {
     const box = $('#games-' + b.dataset.saveGames);
     const body = {

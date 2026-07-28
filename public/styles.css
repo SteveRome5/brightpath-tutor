@@ -2607,3 +2607,6 @@ body[data-theme="academy"] .contrast-strip { background: rgba(95,240,160,.08); b
 .bd-kidblock { border-top: 1px solid var(--card-border); padding-top: 10px; margin-top: 10px; }
 .bd-kidblock > b { display: block; margin-bottom: 6px; }
 .bd-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: .88rem; flex-wrap: wrap; }
+/* Game-control presets */
+.kg-presets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0 12px; }
+.kg-preset.on { background: var(--brand); color: #fff; border-color: var(--brand); }
