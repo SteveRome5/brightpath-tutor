@@ -158,7 +158,7 @@
       { id: 'memory', emoji: '🃏', name: 'Memory Meadow', desc: 'Flip cards, match pairs — Spanish words, math facts & more!', min: 0, max: 12 },
       { id: 'bakery', emoji: '🧁', name: 'Gallop Bakery', desc: 'Run the Gallop Bakery for a day — use real math to bake, price, and bank a profit!', min: 3, max: 8 },
       { id: 'lemonade', emoji: '🍋', name: "Sunny's Lemonade Stand", desc: 'Run your own stand — buy smart, price right, bank the profit!', min: 3, max: 8 },
-      { id: 'art', emoji: '🎨', name: 'Doodle Barn', desc: 'Draw with step-by-step guides — so cute!', min: 0, max: 6 }
+      { id: 'art', emoji: '🎨', name: 'Doodle Barn', desc: 'A real drawing pad — smooth brushes, colors, stickers, fill, undo & fun guides!', min: 0, max: 12 }
     ];
     const games = CATALOG.filter(g => grade >= g.min && grade <= g.max);
     app().innerHTML = topbar(`<div class="container">
@@ -581,66 +581,147 @@
     { name: 'Coffee Mug', emoji: '☕', steps: ['A tall rounded cup shape', 'A curved handle on one side', 'An oval rim across the top', 'Squiggly steam lines rising up', 'A heart on the front & color it!'] }
   ];
   function startArt() {
-    let guide = null, color = '#e43b44', size = 2, drawing = false, last = null;
-    // Retro 16-bit paint palette
-    const COLORS = ['#e43b44', '#f77622', '#feae34', '#63c74d', '#0095e9', '#124e89', '#b55088', '#3a2e4d', '#ffffff', '#181818'];
+    let guide = null;
+    // Bright, friendly crayon palette (smooth full-colour — no retro constraint).
+    const PALETTE = ['#111111', '#8b5a2b', '#e6352b', '#ff7a1a', '#ffd21e', '#2fb344', '#1aa3e8', '#2540c0', '#8b3fd6', '#ff5fa2', '#7a8794', '#ffffff'];
+    const STICKERS = ['⭐', '❤️', '🌈', '🌸', '🦋', '🐶', '🐱', '😊', '☀️', '🍎', '🚗', '⚽', '🦄', '🍦'];
+    const SIZES = [3, 7, 14, 26];
+    const state = { tool: 'brush', color: '#e6352b', size: 7, sticker: '⭐', hue: 0 };
+    const hexToRgb = h => { const n = parseInt(h.slice(1), 16); return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 }; };
+
     function render() {
-      app().innerHTML = topbar(`<div class="container" style="max-width:760px">
-        <div class="lesson-top"><b>🎨 Doodle Barn</b>${guide ? `<b>${guide.emoji} ${guide.name}</b>` : ''}</div>
-        ${!guide ? `<div class="card"><h3>Pick a drawing guide (or free draw!)</h3>
-          <div class="badge-shelf" style="margin-top:12px">
-            ${ART_GUIDES.map((g, i) => `<button class="btn small" data-g="${i}">${g.emoji} ${g.name}</button>`).join('')}
-            <button class="btn sun small" data-g="-1">✏️ Free Draw</button>
-          </div></div>` : ''}
-        ${guide ? `<div class="card" style="padding:12px;margin-bottom:10px"><b>Steps:</b> ${guide.steps ? guide.steps.map((s, i) => `<span class="pill strength" style="margin:2px">${i + 1}. ${esc(s)}</span>`).join(' ') : 'Draw anything you dream up!'}</div>` : ''}
-        ${guide ? `
-        <canvas id="art-canvas" class="px-stage" width="176" height="112"></canvas>
-        <div class="center" style="margin-top:10px">
-          ${COLORS.map(c => `<button class="paint ${color === c ? 'sel' : ''}" style="background:${c}" data-c="${c}"></button>`).join('')}
-          <button class="btn ghost small" style="color:#1A5C38;border-color:#1A5C38" id="size-btn">✏️ ${size <= 1 ? 'Fine' : size <= 2 ? 'Medium' : 'Chunky'}</button>
-          <button class="btn coral small" id="clear-art">🗑️</button>
-          <button class="btn green small" id="save-art">💾 Save My Art</button>
-        </div>` : ''}
+      if (!guide) {
+        app().innerHTML = topbar(`<div class="container" style="max-width:840px">
+          <div class="lesson-top"><b>🎨 Doodle Barn</b></div>
+          <div class="card"><h3>Pick something to draw — or free draw!</h3>
+            <div class="guide-grid">
+              <button class="guide-pick" data-g="-1"><span class="ge">✏️</span><span>Free Draw</span></button>
+              ${ART_GUIDES.map((g, i) => `<button class="guide-pick" data-g="${i}"><span class="ge">${g.emoji}</span><span>${esc(g.name)}</span></button>`).join('')}
+            </div>
+          </div></div>`);
+        wireChrome();
+        document.querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
+          const i = Number(b.dataset.g);
+          guide = i === -1 ? { name: 'Free Draw', emoji: '✏️', steps: null } : ART_GUIDES[i];
+          Sound.click(); render();
+        });
+        return;
+      }
+      app().innerHTML = topbar(`<div class="container" style="max-width:920px">
+        <div class="lesson-top"><b>🎨 Doodle Barn</b><b>${guide.emoji} ${esc(guide.name)}</b></div>
+        <div class="draw-steps">${guide.steps ? `<b>Steps:</b> ${guide.steps.map((s, i) => `<span class="draw-step">${i + 1}. ${esc(s)}</span>`).join('')}` : `<b>✏️ Free draw</b> — make anything you dream up!`}</div>
+        <div class="draw-wrap"><canvas id="art-canvas" class="draw-canvas"></canvas></div>
+        <div class="draw-tools">
+          <div class="dt-group">${PALETTE.map(c => `<button class="crayon${c === state.color ? ' sel' : ''}" data-c="${c}" style="--cc:${c}" aria-label="colour"></button>`).join('')}</div>
+          <div class="dt-group">${SIZES.map(s => `<button class="sizedot${s === state.size ? ' sel' : ''}" data-s="${s}" aria-label="brush size ${s}"><span style="width:${Math.min(s, 22)}px;height:${Math.min(s, 22)}px"></span></button>`).join('')}</div>
+          <div class="dt-group">
+            <button class="toolbtn sel" data-tool="brush" title="Brush">🖌️</button>
+            <button class="toolbtn" data-tool="rainbow" title="Rainbow">🌈</button>
+            <button class="toolbtn" data-tool="fill" title="Fill">🪣</button>
+            <button class="toolbtn" data-tool="sticker" title="Stickers">⭐</button>
+            <button class="toolbtn" data-tool="eraser" title="Eraser">🧽</button>
+          </div>
+          <div class="dt-group" id="dt-stickers" style="display:none">${STICKERS.map(s => `<button class="stickerbtn${s === state.sticker ? ' sel' : ''}" data-sticker="${s}">${s}</button>`).join('')}</div>
+          <div class="dt-group dt-actions">
+            <button class="toolbtn" id="art-undo" title="Undo">↶</button>
+            <button class="toolbtn" id="art-redo" title="Redo">↷</button>
+            <button class="toolbtn" id="art-clear" title="Start over">🗑️</button>
+            <button class="btn green small" id="art-save">💾 Save My Art</button>
+          </div>
+        </div>
       </div>`);
       wireChrome();
-      document.querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
-        const i = Number(b.dataset.g);
-        guide = i === -1 ? { name: 'Free Draw', emoji: '✏️', steps: null } : ART_GUIDES[i];
-        Sound.click(); render();
-      });
-      const canvas = $('#art-canvas');
-      if (!canvas) return;
+      setupStudio();
+    }
+
+    function setupStudio() {
+      const canvas = $('#art-canvas'); if (!canvas) return;
+      const LW = 900, LH = 560;                                  // logical drawing space
+      const scale = Math.min(2, window.devicePixelRatio || 1);   // crisp on hi-dpi, bounded for memory
+      canvas.width = Math.round(LW * scale); canvas.height = Math.round(LH * scale);
       const ctx = canvas.getContext('2d');
-      ctx.imageSmoothingEnabled = false;
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      const pos = e => {
-        const r = canvas.getBoundingClientRect();
-        const p = e.touches ? e.touches[0] : e;
-        return { x: (p.clientX - r.left) * canvas.width / r.width, y: (p.clientY - r.top) * canvas.height / r.height };
+      ctx.scale(scale, scale);
+      ctx.imageSmoothingEnabled = true; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      const BG = '#ffffff';
+      ctx.fillStyle = BG; ctx.fillRect(0, 0, LW, LH);
+
+      // Undo/redo history as compressed snapshots (memory-friendly vs. raw ImageData).
+      let history = [], hidx = -1;
+      const updateUndo = () => { const u = $('#art-undo'), r = $('#art-redo'); if (u) u.disabled = hidx <= 0; if (r) r.disabled = hidx >= history.length - 1; };
+      const snap = () => { try { history = history.slice(0, hidx + 1); history.push(canvas.toDataURL('image/png')); if (history.length > 16) history.shift(); hidx = history.length - 1; updateUndo(); } catch (e) {} };
+      const restore = url => { const img = new Image(); img.onload = () => { ctx.clearRect(0, 0, LW, LH); ctx.fillStyle = BG; ctx.fillRect(0, 0, LW, LH); ctx.drawImage(img, 0, 0, LW, LH); }; img.src = url; };
+      snap(); // blank starting state
+
+      const pt = e => { const r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * LW / r.width, y: (e.clientY - r.top) * LH / r.height }; };
+      const strokeColor = () => state.tool === 'eraser' ? BG : (state.tool === 'rainbow' ? `hsl(${state.hue % 360},85%,55%)` : state.color);
+      let drawing = false, prev = null, prevMid = null;
+
+      const down = e => {
+        if (e.button !== undefined && e.button !== 0) return;
+        try { if (e.pointerId != null) canvas.setPointerCapture(e.pointerId); } catch (_) {}
+        const p = pt(e);
+        if (state.tool === 'sticker') { ctx.font = `${Math.max(30, state.size * 6)}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(state.sticker, p.x, p.y); snap(); return; }
+        if (state.tool === 'fill') { floodFill(p); snap(); return; }
+        drawing = true; prev = p; prevMid = p;
+        ctx.fillStyle = strokeColor();
+        ctx.beginPath(); ctx.arc(p.x, p.y, (state.tool === 'eraser' ? state.size * 1.7 : state.size) / 2, 0, 7); ctx.fill();
       };
-      const start = e => { drawing = true; last = pos(e); e.preventDefault(); };
       const move = e => {
         if (!drawing) return;
-        const p = pos(e);
-        ctx.strokeStyle = color; ctx.lineWidth = size;
-        ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
-        last = p; e.preventDefault();
+        const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : null;
+        for (const ev of (evs && evs.length ? evs : [e])) {
+          const p = pt(ev);
+          const mid = { x: (prev.x + p.x) / 2, y: (prev.y + p.y) / 2 };
+          ctx.strokeStyle = strokeColor();
+          ctx.lineWidth = state.tool === 'eraser' ? state.size * 1.7 : state.size;
+          ctx.beginPath(); ctx.moveTo(prevMid.x, prevMid.y); ctx.quadraticCurveTo(prev.x, prev.y, mid.x, mid.y); ctx.stroke();
+          if (state.tool === 'rainbow') state.hue += 4;
+          prev = p; prevMid = mid;
+        }
       };
-      canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move);
-      canvas.addEventListener('touchstart', start, { passive: false }); canvas.addEventListener('touchmove', move, { passive: false });
-      addEventListener('mouseup', () => drawing = false); addEventListener('touchend', () => drawing = false);
-      document.querySelectorAll('.paint').forEach(b => b.onclick = () => { color = b.dataset.c; Sound.click(); document.querySelectorAll('.paint').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); });
-      $('#size-btn').onclick = function () { size = size <= 1 ? 2 : size <= 2 ? 4 : 1; this.textContent = '✏️ ' + (size <= 1 ? 'Fine' : size <= 2 ? 'Medium' : 'Chunky'); };
-      $('#clear-art').onclick = () => { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); Sound.wrong(); };
-      $('#save-art').onclick = () => {
-        // upscale the low-res pixel art 5x with nearest-neighbour for a crisp export
-        const big = document.createElement('canvas'); big.width = canvas.width * 5; big.height = canvas.height * 5;
-        const bx = big.getContext('2d'); bx.imageSmoothingEnabled = false; bx.drawImage(canvas, 0, 0, big.width, big.height);
+      const up = () => { if (!drawing) return; drawing = false; snap(); };
+      canvas.addEventListener('pointerdown', down);
+      canvas.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+      canvas.addEventListener('pointercancel', up);
+
+      function floodFill(p) {
+        const W = canvas.width, H = canvas.height;
+        const sx = Math.min(W - 1, Math.max(0, Math.round(p.x * scale))), sy = Math.min(H - 1, Math.max(0, Math.round(p.y * scale)));
+        const img = ctx.getImageData(0, 0, W, H), d = img.data;
+        const s = (sy * W + sx) * 4, tr = d[s], tg = d[s + 1], tb = d[s + 2], ta = d[s + 3];
+        const fc = hexToRgb(state.color);
+        if (Math.abs(tr - fc.r) + Math.abs(tg - fc.g) + Math.abs(tb - fc.b) < 8 && ta === 255) return;
+        const tol = 50, seen = new Uint8Array(W * H), stack = [sy * W + sx];
+        const match = i => { const j = i * 4; return Math.abs(d[j] - tr) <= tol && Math.abs(d[j + 1] - tg) <= tol && Math.abs(d[j + 2] - tb) <= tol && Math.abs(d[j + 3] - ta) <= tol; };
+        while (stack.length) {
+          const i = stack.pop(); if (seen[i]) continue; seen[i] = 1; if (!match(i)) continue;
+          const j = i * 4; d[j] = fc.r; d[j + 1] = fc.g; d[j + 2] = fc.b; d[j + 3] = 255;
+          const x = i % W, y = (i / W) | 0;
+          if (x > 0) stack.push(i - 1); if (x < W - 1) stack.push(i + 1); if (y > 0) stack.push(i - W); if (y < H - 1) stack.push(i + W);
+        }
+        ctx.putImageData(img, 0, 0);
+      }
+
+      function setTool(t) {
+        state.tool = t;
+        document.querySelectorAll('.toolbtn[data-tool]').forEach(x => x.classList.toggle('sel', x.dataset.tool === t));
+        const st = $('#dt-stickers'); if (st) st.style.display = t === 'sticker' ? 'flex' : 'none';
+        canvas.style.cursor = t === 'fill' ? 'cell' : 'crosshair';
+      }
+      document.querySelectorAll('.crayon').forEach(b => b.onclick = () => { state.color = b.dataset.c; if (state.tool === 'eraser' || state.tool === 'sticker' || state.tool === 'fill') setTool('brush'); document.querySelectorAll('.crayon').forEach(x => x.classList.toggle('sel', x === b)); Sound.click(); });
+      document.querySelectorAll('.sizedot').forEach(b => b.onclick = () => { state.size = Number(b.dataset.s); document.querySelectorAll('.sizedot').forEach(x => x.classList.toggle('sel', x === b)); Sound.click(); });
+      document.querySelectorAll('.stickerbtn').forEach(b => b.onclick = () => { state.sticker = b.dataset.sticker; setTool('sticker'); document.querySelectorAll('.stickerbtn').forEach(x => x.classList.toggle('sel', x === b)); Sound.click(); });
+      document.querySelectorAll('.toolbtn[data-tool]').forEach(b => b.onclick = () => { setTool(b.dataset.tool); Sound.click(); });
+      $('#art-undo').onclick = () => { if (hidx > 0) { hidx--; restore(history[hidx]); updateUndo(); Sound.click(); } };
+      $('#art-redo').onclick = () => { if (hidx < history.length - 1) { hidx++; restore(history[hidx]); updateUndo(); Sound.click(); } };
+      $('#art-clear').onclick = () => { ctx.fillStyle = BG; ctx.fillRect(0, 0, LW, LH); snap(); Sound.wrong(); };
+      $('#art-save').onclick = () => {
         const a = document.createElement('a');
-        a.download = 'my-gallop-art.png'; a.href = big.toDataURL('image/png'); a.click();
+        a.download = 'my-gallop-art.png'; a.href = canvas.toDataURL('image/png'); a.click();
         finishGame('art', 100, 'Masterpiece saved! 🖼️', 'Your art downloaded to this device — show your family!');
       };
+      updateUndo();
     }
     render();
   }
