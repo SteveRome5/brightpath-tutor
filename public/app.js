@@ -1174,6 +1174,14 @@ route('landing', async () => {
         <blockquote>A one-page weekly summary tells you, in plain language, where your child is ahead, where they're stuck, and the one thing to do this week — plus how close they are to the next grade level.</blockquote>
         <figcaption><span class="q-name">You know exactly what to do next</span><span class="q-detail">Weekly report & "Do this next"</span></figcaption>
       </figure>
+      <figure class="quote-card reveal">
+        <blockquote>Past the lessons, kids run a lemonade stand, invest through a 12-level market, and explore real careers — the hands-on money and life skills no other program builds in.</blockquote>
+        <figcaption><span class="q-name">They live what they learn</span><span class="q-detail">The Lab · business, investing & careers</span></figcaption>
+      </figure>
+      <figure class="quote-card reveal">
+        <blockquote>All four subjects, the guided lessons, the adaptive tutor, the games, and the career center come as one plan — for less than most families spend on a single subject at a center.</blockquote>
+        <figcaption><span class="q-name">Everything in one place</span><span class="q-detail">Four subjects · one simple plan</span></figcaption>
+      </figure>
     </div>
 
     <div id="s-story" class="founder-note reveal">
