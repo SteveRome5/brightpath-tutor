@@ -3041,7 +3041,7 @@ route('report', async (kidId) => {
           </div>
           ${s.placed ? `
             <p class="muted" style="margin:6px 0">${isParent ? `${accuracyLine(s)}${statusNote(s)}` : `${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} done. Keep it up, you're growing!`}</p>
-            ${isParent ? `<p class="muted" style="margin:2px 0 8px;font-size:.9rem">Working level: <b>${esc(s.levelName)}</b>${s.enrolledGrade != null ? ` · enrolled in <b>${s.enrolledGrade === 0 ? 'Kindergarten' : 'Grade ' + s.enrolledGrade}</b>` : ''}</p>` : ''}
+            ${isParent ? `<p class="muted" style="margin:2px 0 8px;font-size:.9rem">Working level: <b>${esc(s.levelName)}</b>${s.enrolledGrade != null ? ` · enrolled in <b>${s.enrolledGrade === 0 ? 'Kindergarten' : 'Grade ' + s.enrolledGrade}</b>` : ''}${s.levelSetByParent ? ` · <span style="color:var(--brand)">✋ set by you${s.levelSetAt ? ' on ' + esc(s.levelSetAt) : ''}</span> <span class="muted">(manage in ✏️ Edit)</span>` : ''}</p>` : ''}
             ${isParent && s.assistedAnswers > 0 ? `<p class="muted" style="margin:2px 0 8px;font-size:.85rem">👪 Practiced together: <b>${s.assistedAnswers}</b> — counted as engagement, kept out of the independent scores above.</p>` : ''}
             ${isParent && s.placementNote ? `<p class="place-note"><b>Why we started here:</b> ${esc(s.placementNote)}</p>` : ''}
             ${isParent && s.placementMissed && s.placementMissed.length ? `<p class="place-note" style="background:#fff6ec;border-color:#f0d9bd"><b>Missed on the placement quiz:</b> ${s.placementMissed.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')} <span class="muted" style="font-size:.85rem">— these are just the concepts to keep an eye on; ${esc(k.name)} gets extra practice on them automatically.</span></p>` : ''}
@@ -4238,14 +4238,15 @@ route('parent', async () => {
     if (!box) return;
     try {
       const r = await api('/kids/' + kidId + '/levels');
-      box.innerHTML = `<b style="font-size:.85rem">📚 Set working level <span class="muted" style="font-weight:400">— if a subject is placed wrong, pick the right grade here and Gallop locks to it (it won't drift back).</span></b>
+      box.innerHTML = `<b style="font-size:.85rem">📚 Set working level <span class="muted" style="font-weight:400">— if a subject is placed wrong, pick the right grade here and Gallop holds it there. You can hand it back to adaptive placement anytime.</span></b>
         <div class="lvl-rows">${r.levels.map(l => `
           <div class="lvl-row">
             <span class="lvl-sub">${esc(l.label)}</span>
             ${l.placed ? `<select class="lvl-sel" data-lvl-kid="${kidId}" data-lvl-sub="${l.subject}">
               ${Array.from({ length: l.max + 1 }, (_, g) => `<option value="${g}" ${g === l.level ? 'selected' : ''}>${g === 0 ? 'Kindergarten' : 'Grade ' + g}</option>`).join('')}
             </select>` : `<span class="lvl-name muted">${esc(l.levelName)}</span>`}
-          </div>`).join('')}</div>`;
+          </div>
+          ${l.setByParent ? `<div class="lvl-prov"><span class="muted">✋ Set by you${l.setAt ? ' on ' + esc(l.setAt) : ''}${l.prevAdaptive ? ` · Gallop had ${esc(l.prevAdaptive)}` : ''}</span> <button class="btn ghost small lvl-adaptive" data-lvl-kid="${kidId}" data-lvl-sub="${l.subject}" style="color:var(--brand);border-color:var(--brand)">↩ Return to Gallop's adaptive placement</button></div>` : ''}`).join('')}</div>`;
       box.querySelectorAll('.lvl-sel').forEach(sel => sel.onchange = async () => {
         const kid = sel.dataset.lvlKid, subject = sel.dataset.lvlSub, level = Number(sel.value);
         sel.disabled = true;
@@ -4254,6 +4255,14 @@ route('parent', async () => {
           Sound.badge(); toast(`${subject.charAt(0).toUpperCase() + subject.slice(1)} set to ${res.levelName}.`);
           loadLevels(Number(kid));
         } catch (e) { sel.disabled = false; }
+      });
+      box.querySelectorAll('.lvl-adaptive').forEach(btn => btn.onclick = async () => {
+        const kid = btn.dataset.lvlKid, subject = btn.dataset.lvlSub;
+        try {
+          const res = await api('/kids/' + kid + '/level/adaptive', { method: 'POST', body: { subject } });
+          Sound.badge(); toast(`${subject.charAt(0).toUpperCase() + subject.slice(1)} back to adaptive${res.levelName ? ' at ' + res.levelName : ''}.`);
+          loadLevels(Number(kid));
+        } catch (e) { toast(e.message || 'Could not switch back.'); }
       });
     } catch (e) { box.innerHTML = ''; }
   }

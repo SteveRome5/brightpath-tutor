@@ -850,6 +850,8 @@ function reportCard(kidId) {
     return {
       subject: sub, label: subjectLabel(sub), level: state.level, levelName: gradeName(Math.round(state.level)),
       placed: !!state.placed, avgMastery: avg, letter: letterGrade(agg.n ? (agg.c / agg.n) : null),
+      levelSetByParent: state.level_src === 'parent',
+      levelSetAt: state.level_set_at ? String(state.level_set_at).slice(0, 10) : null,
       gallopScore, gradeEquiv, gradeEstimateReady,
       gradeCoverage: { practiced: progress.atLevelPracticed, total: progress.atLevelTotal },
       progress,

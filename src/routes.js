@@ -951,10 +951,13 @@ router.get('/kids/:kidId/levels', auth.requireParent, (req, res) => {
   const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
   if (!kid) return res.status(404).json({ error: 'Learner not found.' });
   const levels = Object.keys(content.SUBJECTS).map(sub => {
-    const st = db.prepare('SELECT level, placed FROM subject_state WHERE kid_id=? AND subject=?').get(kid.id, sub);
+    const st = db.prepare('SELECT level, placed, level_src, level_set_at, prev_level FROM subject_state WHERE kid_id=? AND subject=?').get(kid.id, sub);
     return { subject: sub, label: adaptive.subjectLabel(sub), placed: !!(st && st.placed),
              level: st ? Math.round(st.level) : null,
              levelName: st && st.placed ? adaptive.gradeName(Math.round(st.level)) : 'Not placed yet',
+             setByParent: !!(st && st.level_src === 'parent'),
+             setAt: st && st.level_set_at ? String(st.level_set_at).slice(0, 10) : null,
+             prevAdaptive: st && st.prev_level != null ? adaptive.gradeName(Math.round(st.prev_level)) : null,
              max: adaptive.maxGrade(sub) };
   });
   res.json({ levels });
@@ -964,8 +967,26 @@ router.post('/kids/:kidId/level', auth.requireParent, (req, res) => {
   if (!kid) return res.status(404).json({ error: 'Learner not found.' });
   const { subject, level } = req.body || {};
   if (!validSubject(subject) || level == null || !Number.isFinite(Number(level))) return res.status(400).json({ error: 'Need a subject and a valid level.' });
+  // Capture the level Gallop had BEFORE this manual override (only the first time, so repeated
+  // parent tweaks don't overwrite the true adaptive baseline) so "return to adaptive" can restore it.
+  const before = db.prepare('SELECT level, level_src, prev_level FROM subject_state WHERE kid_id=? AND subject=?').get(kid.id, subject);
+  const prev = before && before.level_src === 'parent' && before.prev_level != null ? before.prev_level : (before ? before.level : null);
   const newLevel = adaptive.setLevel(kid.id, subject, Number(level), { authoritative: true });
+  db.prepare("UPDATE subject_state SET level_src='parent', level_set_at=datetime('now'), prev_level=? WHERE kid_id=? AND subject=?").run(prev, kid.id, subject);
   res.json({ ok: true, level: newLevel, levelName: adaptive.gradeName(newLevel) });
+});
+// Return a subject to Gallop's adaptive placement: clear the parent override and restore the
+// adaptive level Gallop had before the manual change, so the engine continues from there (PP-106).
+router.post('/kids/:kidId/level/adaptive', auth.requireParent, (req, res) => {
+  const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
+  if (!kid) return res.status(404).json({ error: 'Learner not found.' });
+  const { subject } = req.body || {};
+  if (!validSubject(subject)) return res.status(400).json({ error: 'Need a subject.' });
+  const st = db.prepare('SELECT prev_level FROM subject_state WHERE kid_id=? AND subject=?').get(kid.id, subject);
+  if (st && st.prev_level != null) adaptive.setLevel(kid.id, subject, Math.round(st.prev_level), { authoritative: true });
+  db.prepare("UPDATE subject_state SET level_src=NULL, level_set_at=NULL, prev_level=NULL WHERE kid_id=? AND subject=?").run(kid.id, subject);
+  const cur = db.prepare('SELECT level FROM subject_state WHERE kid_id=? AND subject=?').get(kid.id, subject);
+  res.json({ ok: true, levelName: cur ? adaptive.gradeName(Math.round(cur.level)) : null });
 });
 
 // ---------- admin (owner only) ----------

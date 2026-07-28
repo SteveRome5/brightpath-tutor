@@ -349,7 +349,14 @@ for (const stmt of [
   "ALTER TABLE activity_log ADD COLUMN assisted INTEGER DEFAULT 0",
   // A kid session launched via "Practice together" is flagged assisted so every answer in it is
   // recorded as assisted, surviving the page reload the parent→child handoff performs.
-  "ALTER TABLE sessions ADD COLUMN assisted INTEGER DEFAULT 0"
+  "ALTER TABLE sessions ADD COLUMN assisted INTEGER DEFAULT 0",
+  // Level provenance (PP-106): when a PARENT manually sets a subject's working level, record it so
+  // the report can say "set by you on <date>" and offer a return to Gallop's adaptive placement.
+  // level_src null/'adaptive' = Gallop-chosen; 'parent' = manually set. prev_level = the adaptive
+  // level just before the manual override, so "return to adaptive" can restore it.
+  "ALTER TABLE subject_state ADD COLUMN level_src TEXT",
+  "ALTER TABLE subject_state ADD COLUMN level_set_at TEXT",
+  "ALTER TABLE subject_state ADD COLUMN prev_level REAL"
 ]) {
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }
