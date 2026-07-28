@@ -7,6 +7,7 @@ const { extraSkills } = require('./extra');
 const { expansionSkills } = require('./expansion');
 const advanced = require('./advanced');
 const frq = require('./frq');
+const apBlueprints = require('./ap_blueprints');
 const standards = require('./standards');
 
 const SUBJECTS = { math, english, science, spanish };
@@ -94,5 +95,8 @@ module.exports = {
   SUBJECTS, subjectMeta, getSkill, skillsForSubject, generateQuestion,
   listTracks, getTrack, generateTrackQuestion,
   // Free-response (AP)
-  listFrqs: (id) => frq.listFrqs(id), getFrq: (id, fid) => frq.getFrq(id, fid), frqCount: (id) => frq.frqCount(id), hasFrqs: (id) => frq.hasFrqs(id)
+  listFrqs: (id) => frq.listFrqs(id), getFrq: (id, fid) => frq.getFrq(id, fid), frqCount: (id) => frq.frqCount(id), hasFrqs: (id) => frq.hasFrqs(id),
+  // AP exam blueprints (official format + Gallop coverage)
+  getBlueprint: (id) => apBlueprints.getBlueprint(id),
+  apCoverage: (id) => apBlueprints.coverageFor(id, (listTracks().find(t => t.id === id) || {}).count || 0, frq.frqCount(id))
 };

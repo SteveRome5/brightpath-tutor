@@ -612,6 +612,13 @@ const trackRecent = new Map(); // `${kidId}:${trackId}` -> [recent prompts]
 
 router.get('/learn/tracks', (req, res) => res.json({ tracks: content.listTracks() }));
 
+// Official AP exam blueprint + Gallop's current coverage for a track (reference data, public).
+router.get('/learn/track/:trackId/blueprint', (req, res) => {
+  const cov = content.apCoverage(req.params.trackId);
+  if (!cov) return res.status(404).json({ error: 'No blueprint for this track.' });
+  res.json({ blueprint: cov });
+});
+
 router.get('/learn/:kidId/track/:trackId/next', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { trackId } = req.params;
   const key = `${req.kid.id}:${trackId}`;

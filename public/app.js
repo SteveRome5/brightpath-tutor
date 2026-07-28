@@ -2452,6 +2452,8 @@ async function examHub(kidId, track) {
   const style = SUBJECT_STYLE[track.subject] || { color: '#1A5C38' };
   let p = null;
   try { p = (await api('/learn/' + kidId + '/track/' + track.id + '/progress')).progress; } catch (e) { p = null; }
+  let bp = null;
+  try { bp = (await api('/learn/track/' + track.id + '/blueprint')).blueprint; } catch (e) { bp = null; }
   const band = p && p.estBand;                 // null until the evidence threshold is met
   const range = p && p.bandRange;
   const gaugeText = band ? (range && range[0] !== range[1] ? `${range[0]}–${range[1]}` : `${band}`) : '—';
@@ -2494,6 +2496,16 @@ async function examHub(kidId, track) {
         <span class="em-sub">A short timed diagnostic (10 MCQ + 1 free-response) — a quick readiness check, not a full-length AP exam.</span>
       </button>
     </div>
+    ${bp && bp.official ? `<details class="exam-format">
+      <summary>📋 Official exam format vs. what Gallop offers</summary>
+      <div class="ef-body">
+        <div class="ef-row"><span class="ef-k">Official ${esc(track.exam)} exam (${esc(bp.examYear)})</span><span class="ef-v">${bp.official.mcq} multiple-choice + ${bp.official.frq} free-response · ${Math.floor(bp.official.timeMin / 60)}h ${bp.official.timeMin % 60}m${bp.official.calc ? ' · ' + esc(bp.official.calc) : ''}</span></div>
+        <div class="ef-row"><span class="ef-k">Gallop practice now</span><span class="ef-v">${bp.gallop.mcq} practice MCQ + ${bp.gallop.frq} free-response challenges, plus a 30-minute mini mock.</span></div>
+        ${bp.gaps && bp.gaps.length ? `<div class="ef-row"><span class="ef-k">Not yet covered</span><span class="ef-v"><ul class="ef-gaps">${bp.gaps.map(g => `<li>${esc(g)}</li>`).join('')}</ul></span></div>` : ''}
+        ${bp.note ? `<p class="ef-note">${esc(bp.note)}</p>` : ''}
+        <p class="ef-note">Gallop is advanced practice and enrichment — always confirm the current exam format at <a href="${esc(bp.source)}" target="_blank" rel="noopener">College Board</a>.</p>
+      </div>
+    </details>` : ''}
     <p class="muted" style="font-size:.8rem;margin-top:14px">Estimates are practice projections from your work here (free-response is self-scored) — not official College Board scores, and not a full-length AP exam.</p>
   </div>`);
   wireChrome();

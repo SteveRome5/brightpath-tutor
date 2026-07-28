@@ -1954,6 +1954,19 @@ body[data-theme="academy"] .lw-passage { background: #2a2921; border-color: #4a4
 .exam-mode.em-disabled { opacity: .6; cursor: default; }
 @media (max-width: 720px) { .exam-modes { grid-template-columns: 1fr; } .erp-stats { grid-template-columns: 1fr 1fr; } }
 
+/* AP exam-format disclosure */
+.exam-format { margin-top: 14px; background: #fff; border: 1px solid #e7e3d8; border-radius: 12px; padding: 4px 16px; }
+.exam-format summary { cursor: pointer; font-weight: 700; padding: 12px 0; color: #16213a; }
+.exam-format .ef-body { padding: 4px 0 12px; }
+.ef-row { display: grid; grid-template-columns: 180px 1fr; gap: 12px; padding: 8px 0; border-top: 1px solid #f1ede2; }
+.ef-row:first-child { border-top: none; }
+.ef-k { font-weight: 700; color: #5b6478; font-size: .86rem; }
+.ef-v { color: #16213a; font-size: .92rem; }
+.ef-gaps { margin: 0; padding-left: 18px; }
+.ef-gaps li { margin: 2px 0; }
+.ef-note { font-size: .82rem; color: #7a8494; margin: 10px 0 0; }
+@media (max-width: 600px) { .ef-row { grid-template-columns: 1fr; gap: 2px; } }
+
 /* Free-response */
 .frq-list { display: flex; flex-direction: column; gap: 10px; }
 .frq-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #fff; border: 1px solid #e7e3d8; border-radius: 14px; padding: 16px 18px; cursor: pointer; font: inherit; text-align: left; box-shadow: 0 8px 22px -18px rgba(0,0,0,.35); transition: transform .12s ease; }
