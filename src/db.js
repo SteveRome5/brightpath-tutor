@@ -428,6 +428,25 @@ try {
   db.exec('CREATE INDEX IF NOT EXISTS idx_assign_class ON class_assignments(class_id)');
 } catch (e) {}
 
+// Advanced Track exam-readiness: per-student, per-track running stats for AP/Honors/Regents
+// tracks — multiple-choice practice, free-response self-scores, and best exam-simulator result.
+// Kept entirely separate from the K-12 adaptive ladder (never touches subject_state/skill_state).
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS track_progress (
+    kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+    track_id TEXT NOT NULL,
+    mc_attempts INTEGER DEFAULT 0,
+    mc_correct INTEGER DEFAULT 0,
+    frq_attempts INTEGER DEFAULT 0,
+    frq_points INTEGER DEFAULT 0,
+    frq_max INTEGER DEFAULT 0,
+    best_exam_score INTEGER DEFAULT 0,   -- estimated 1..5, 0 = none yet
+    last_exam_pct INTEGER DEFAULT 0,
+    updated_at TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY (kid_id, track_id)
+  )`);
+} catch (e) {}
+
 // Schools: a group of teacher accounts under a head of school. Members join with the school code.
 try {
   db.exec(`CREATE TABLE IF NOT EXISTS schools (

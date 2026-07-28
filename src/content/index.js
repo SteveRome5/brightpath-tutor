@@ -6,6 +6,7 @@ const spanish = require('./spanish');
 const { extraSkills } = require('./extra');
 const { expansionSkills } = require('./expansion');
 const advanced = require('./advanced');
+const frq = require('./frq');
 const standards = require('./standards');
 
 const SUBJECTS = { math, english, science, spanish };
@@ -82,8 +83,16 @@ function generateQuestion(subject, skillId, difficulty = 0.4, avoid = null) {
 }
 
 // Advanced exam-prep track passthrough (separate from the adaptive engine).
-function listTracks() { return advanced.listTracks(); }
+function listTracks() {
+  // Merge FRQ availability into each track's metadata so the UI can offer free-response.
+  return advanced.listTracks().map(t => ({ ...t, frqCount: frq.frqCount(t.id) }));
+}
 function getTrack(id) { return advanced.getTrack(id); }
 function generateTrackQuestion(trackId, avoid = null) { return advanced.generateTrackQuestion(trackId, avoid); }
 
-module.exports = { SUBJECTS, subjectMeta, getSkill, skillsForSubject, generateQuestion, listTracks, getTrack, generateTrackQuestion };
+module.exports = {
+  SUBJECTS, subjectMeta, getSkill, skillsForSubject, generateQuestion,
+  listTracks, getTrack, generateTrackQuestion,
+  // Free-response (AP)
+  listFrqs: (id) => frq.listFrqs(id), getFrq: (id, fid) => frq.getFrq(id, fid), frqCount: (id) => frq.frqCount(id), hasFrqs: (id) => frq.hasFrqs(id)
+};

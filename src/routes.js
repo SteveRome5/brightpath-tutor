@@ -644,8 +644,157 @@ router.post('/learn/:kidId/track/answer', answerLimiter, auth.requireKid, auth.r
   const xp = isCorrect ? 15 : 3;
   db.prepare('UPDATE kids SET xp = xp + ?, coins = coins + ? WHERE id=?').run(xp, isCorrect ? 2 : 0, req.kid.id);
   try { adaptive.updateStreak(req.kid.id); } catch (e) {}
+  // Update exam-readiness running MC stats for this track.
+  try {
+    trackProgressUpsert(req.kid.id, trackId, row => { row.mc_attempts += 1; if (isCorrect) row.mc_correct += 1; });
+  } catch (e) {}
   const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id);
   res.json({ ok: true, correct: isCorrect, xpEarned: xp, coinsEarned: isCorrect ? 2 : 0, kid: publicKid(kid) });
+});
+
+// ---------- Advanced Track: free-response, exam simulator, exam-readiness ----------
+// Ensure a track_progress row exists, apply a mutation, persist. Kept isolated from the ladder.
+function trackProgressRow(kidId, trackId) {
+  let r = db.prepare('SELECT * FROM track_progress WHERE kid_id=? AND track_id=?').get(kidId, trackId);
+  if (!r) {
+    db.prepare('INSERT OR IGNORE INTO track_progress (kid_id, track_id) VALUES (?,?)').run(kidId, trackId);
+    r = db.prepare('SELECT * FROM track_progress WHERE kid_id=? AND track_id=?').get(kidId, trackId);
+  }
+  return r;
+}
+function trackProgressUpsert(kidId, trackId, mutate) {
+  const r = trackProgressRow(kidId, trackId);
+  mutate(r);
+  db.prepare(`UPDATE track_progress SET mc_attempts=?, mc_correct=?, frq_attempts=?, frq_points=?, frq_max=?, best_exam_score=?, last_exam_pct=?, updated_at=datetime('now') WHERE kid_id=? AND track_id=?`)
+    .run(r.mc_attempts, r.mc_correct, r.frq_attempts, r.frq_points, r.frq_max, r.best_exam_score, r.last_exam_pct, kidId, trackId);
+  return r;
+}
+// Estimated AP score band (1..5) from a composite percent — a practice estimate, not official.
+function estBand(pct) { return pct >= 75 ? 5 : pct >= 62 ? 4 : pct >= 48 ? 3 : pct >= 33 ? 2 : 1; }
+function readinessFor(r, trackId) {
+  const mcPct = r.mc_attempts >= 1 ? Math.round(r.mc_correct / r.mc_attempts * 100) : null;
+  const frqPct = r.frq_max >= 1 ? Math.round(r.frq_points / r.frq_max * 100) : null;
+  // Blend: if both present, 45% MC + 55% FRQ (FRQ is the harder signal); else whichever exists.
+  let composite = null;
+  if (mcPct != null && frqPct != null) composite = Math.round(0.45 * mcPct + 0.55 * frqPct);
+  else composite = mcPct != null ? mcPct : frqPct;
+  return {
+    trackId,
+    mcPct, mcAttempts: r.mc_attempts,
+    frqPct, frqAttempts: r.frq_attempts, frqPoints: r.frq_points, frqMax: r.frq_max,
+    readiness: composite,                          // 0..100 or null
+    estBand: composite != null ? estBand(composite) : null,
+    bestExamScore: r.best_exam_score || null,
+    lastExamPct: r.last_exam_pct || null
+  };
+}
+
+// List the free-response questions available for a track (metadata only).
+router.get('/learn/:kidId/track/:trackId/frqs', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const meta = content.getTrack(req.params.trackId);
+  if (!meta) return res.status(404).json({ error: 'Unknown track' });
+  res.json({ track: { id: meta.id, name: meta.name, exam: meta.exam, subject: meta.subject }, frqs: content.listFrqs(req.params.trackId) });
+});
+
+// Full free-response question (prompt + parts + model solutions + rubric). The client keeps
+// solutions hidden until the student chooses to reveal and self-score.
+router.get('/learn/:kidId/track/:trackId/frq/:frqId', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const f = content.getFrq(req.params.trackId, req.params.frqId);
+  if (!f) return res.status(404).json({ error: 'Question not found' });
+  const meta = content.getTrack(req.params.trackId);
+  res.json({ frq: f, track: meta ? { id: meta.id, name: meta.name, exam: meta.exam, subject: meta.subject } : null });
+});
+
+// Record a free-response self-score.
+router.post('/learn/:kidId/track/frq/score', answerLimiter, auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const { trackId, frqId } = req.body || {};
+  const f = content.getFrq(trackId, frqId);
+  if (!f) return res.status(400).json({ error: 'Unknown question' });
+  const meta = content.getTrack(trackId);
+  const max = f.maxPoints;
+  let earned = Number((req.body || {}).pointsEarned);
+  if (!Number.isFinite(earned)) earned = 0;
+  earned = Math.max(0, Math.min(max, Math.round(earned)));
+  db.prepare('INSERT INTO activity_log (kid_id, subject, skill_id, correct, difficulty, time_ms) VALUES (?,?,?,?,?,?)')
+    .run(req.kid.id, meta.subject, `track:${trackId}`, earned >= max * 0.6 ? 1 : 0, 0.95, null);
+  const xp = 20 + earned * 3;
+  db.prepare('UPDATE kids SET xp = xp + ?, coins = coins + ? WHERE id=?').run(xp, Math.max(2, earned), req.kid.id);
+  try { adaptive.updateStreak(req.kid.id); } catch (e) {}
+  trackProgressUpsert(req.kid.id, trackId, row => { row.frq_attempts += 1; row.frq_points += earned; row.frq_max += max; });
+  const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id);
+  res.json({ ok: true, earned, max, xpEarned: xp, kid: publicKid(kid) });
+});
+
+// Build an exam-simulator paper: a set of MC questions + one or more FRQs for the track.
+router.get('/learn/:kidId/track/:trackId/exam', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const trackId = req.params.trackId;
+  const meta = content.getTrack(trackId);
+  if (!meta) return res.status(404).json({ error: 'Unknown track' });
+  const MC_N = 10;
+  const mc = [];
+  const seen = new Set();
+  for (let i = 0; i < MC_N * 4 && mc.length < MC_N; i++) {
+    let q = null; try { q = content.generateTrackQuestion(trackId, seen); } catch (e) { q = null; }
+    if (!q || !q.choices) break;
+    if (seen.has(q.prompt)) continue;
+    seen.add(q.prompt);
+    mc.push({ prompt: q.prompt, choices: q.choices, passage: q.passage || null, answerIndex: q.choices.indexOf(q.answer), explain: q.explain });
+  }
+  // One FRQ (rotate by a client-provided index if given).
+  const frqs = content.listFrqs(trackId);
+  let frq = null;
+  if (frqs.length) {
+    const idx = Math.max(0, Math.min(frqs.length - 1, Number(req.query.frq) || 0));
+    frq = content.getFrq(trackId, frqs[idx].id);
+  }
+  res.json({
+    track: { id: meta.id, name: meta.name, exam: meta.exam, subject: meta.subject },
+    mc, frq, timeSuggestSec: MC_N * 90 + (frq ? 900 : 0)
+  });
+});
+
+// Score a completed exam simulation → estimated band (1..5).
+router.post('/learn/:kidId/track/exam/score', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const b = req.body || {};
+  const trackId = String(b.trackId || '');
+  const meta = content.getTrack(trackId);
+  if (!meta) return res.status(400).json({ error: 'Unknown track' });
+  const mcTotal = Math.max(0, Number(b.mcTotal) || 0);
+  const mcCorrect = Math.max(0, Math.min(mcTotal, Number(b.mcCorrect) || 0));
+  const frqMax = Math.max(0, Number(b.frqMax) || 0);
+  const frqPoints = Math.max(0, Math.min(frqMax, Number(b.frqPoints) || 0));
+  const mcPct = mcTotal ? mcCorrect / mcTotal * 100 : null;
+  const frqPct = frqMax ? frqPoints / frqMax * 100 : null;
+  let composite;
+  if (mcPct != null && frqPct != null) composite = Math.round(0.5 * mcPct + 0.5 * frqPct);
+  else composite = Math.round(mcPct != null ? mcPct : (frqPct != null ? frqPct : 0));
+  const band = estBand(composite);
+  db.prepare('INSERT INTO activity_log (kid_id, subject, skill_id, correct, difficulty, time_ms) VALUES (?,?,?,?,?,?)')
+    .run(req.kid.id, meta.subject, `track:${trackId}`, composite >= 60 ? 1 : 0, 1.0, Number(b.timeMs) || null);
+  const xp = 40 + band * 15;
+  db.prepare('UPDATE kids SET xp = xp + ?, coins = coins + ? WHERE id=?').run(xp, 10, req.kid.id);
+  try { adaptive.updateStreak(req.kid.id); } catch (e) {}
+  trackProgressUpsert(req.kid.id, trackId, row => {
+    row.last_exam_pct = composite;
+    if (band > (row.best_exam_score || 0)) row.best_exam_score = band;
+    // Fold the exam's MC + FRQ into running readiness too.
+    row.mc_attempts += mcTotal; row.mc_correct += mcCorrect;
+    if (frqMax) { row.frq_attempts += 1; row.frq_points += frqPoints; row.frq_max += frqMax; }
+  });
+  const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id);
+  res.json({ ok: true, composite, band, mcPct: mcPct == null ? null : Math.round(mcPct), frqPct: frqPct == null ? null : Math.round(frqPct), xpEarned: xp, kid: publicKid(kid) });
+});
+
+// Exam-readiness snapshot for a track (or all tracks the student has touched).
+router.get('/learn/:kidId/track/:trackId/progress', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const r = trackProgressRow(req.kid.id, req.params.trackId);
+  res.json({ progress: readinessFor(r, req.params.trackId) });
+});
+router.get('/learn/:kidId/tracks/progress', auth.requireKid, (req, res) => {
+  const rows = db.prepare('SELECT * FROM track_progress WHERE kid_id=?').all(req.kid.id);
+  const out = {};
+  for (const r of rows) out[r.track_id] = readinessFor(r, r.track_id);
+  res.json({ progress: out });
 });
 
 // report card (kid-safe view + parent view share this)
