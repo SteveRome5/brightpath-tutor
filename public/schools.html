@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gallop for Schools — Real-world learning for your whole classroom</title>
+  <meta name="description" content="Bring Gallop to your school: an adaptive K-12 learning platform in Math, English, Science & Spanish, plus The Lab — financial literacy, entrepreneurship, investing & careers. Standards-aligned, COPPA-safe, and affordable at scale. Book a demo.">
+  <link rel="canonical" href="https://learnwithgallop.com/schools">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#1A5C38">
+  <link rel="icon" href="/logo-roundel.png" type="image/png">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Gallop Learning Academy">
+  <meta property="og:title" content="Gallop for Schools — Real-world learning for your whole classroom">
+  <meta property="og:description" content="An adaptive K-12 platform that meets every student at their level across four subjects — then has them apply it in The Lab: financial literacy, entrepreneurship, investing & careers. Standards-aligned, COPPA-safe, affordable at scale.">
+  <meta property="og:url" content="https://learnwithgallop.com/schools">
+  <meta property="og:image" content="https://learnwithgallop.com/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Gallop for Schools — Real-world learning for your whole classroom">
+  <meta name="twitter:description" content="Adaptive K-12 across four subjects, plus The Lab: financial literacy, entrepreneurship, investing & careers. Standards-aligned, COPPA-safe, affordable at scale. Book a demo.">
+  <meta name="twitter:image" content="https://learnwithgallop.com/og-image.png">
+  <style>
+    :root {
+      --green: #1A5C38; --green-deep: #123f27; --gold: #C9A84C; --gold-deep: #a6842f;
+      --ink: #16213a; --sub: #5b6478; --cream: #f6f4ee; --line: #e7e3d8;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Mulish, Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--cream); color: var(--ink); font-family: var(--font); line-height: 1.65; }
+    a { color: var(--green); }
+    img { max-width: 100%; display: block; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+    /* Header */
+    header.site { position: sticky; top: 0; z-index: 20; background: rgba(246,244,238,.92);
+      backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+    header.site .bar { display: flex; align-items: center; gap: 14px; padding: 12px 20px; max-width: 1080px; margin: 0 auto; }
+    header.site img { height: 34px; width: auto; }
+    header.site .spacer { margin-left: auto; }
+    .btn { display: inline-block; border: none; border-radius: 12px; font: inherit; font-weight: 700; cursor: pointer;
+      padding: 12px 22px; text-decoration: none; text-align: center; transition: transform .12s ease, box-shadow .12s ease; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn.green { background: var(--green); color: #fff; box-shadow: 0 10px 24px -12px rgba(26,92,56,.7); }
+    .btn.gold { background: var(--gold); color: #3a2e08; box-shadow: 0 10px 24px -12px rgba(201,168,76,.7); }
+    .btn.ghost { background: transparent; color: var(--green); box-shadow: inset 0 0 0 1.5px var(--green); }
+    .btn.small { padding: 9px 16px; font-size: .9rem; border-radius: 10px; }
+    .link-back { color: var(--sub); text-decoration: none; font-weight: 600; font-size: .92rem; }
+    .link-back:hover { color: var(--green); }
+
+    /* Hero */
+    .hero { position: relative; overflow: hidden; background:
+      radial-gradient(120% 80% at 80% -10%, rgba(201,168,76,.16), transparent 60%),
+      linear-gradient(180deg, #ffffff, var(--cream)); border-bottom: 1px solid var(--line); }
+    .hero .wrap { padding-top: 56px; padding-bottom: 52px; }
+    .eyebrow { display: inline-block; text-transform: uppercase; letter-spacing: .16em; font-size: .76rem; font-weight: 800;
+      color: var(--green); background: rgba(26,92,56,.09); border: 1px solid rgba(26,92,56,.16);
+      padding: 6px 14px; border-radius: 999px; margin-bottom: 18px; }
+    .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.08; margin: 0 0 16px; max-width: 16ch; }
+    .hero h1 .hl { color: var(--green); position: relative; }
+    .hero p.lede { font-size: 1.2rem; color: var(--sub); max-width: 56ch; margin: 0 0 26px; }
+    .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .hero-note { color: var(--sub); font-size: .9rem; margin: 14px 0 0; }
+    .trustrow { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 26px; }
+    .trustrow span { font-size: .88rem; font-weight: 600; color: var(--sub); }
+
+    section { padding: 56px 0; }
+    section.alt { background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .kicker { text-transform: uppercase; letter-spacing: .16em; font-size: .74rem; font-weight: 800; color: var(--gold-deep); margin: 0 0 8px; }
+    h2.sec { font-size: clamp(1.6rem, 3.4vw, 2.3rem); margin: 0 0 10px; line-height: 1.15; }
+    p.sec-sub { color: var(--sub); font-size: 1.08rem; max-width: 62ch; margin: 0 0 30px; }
+
+    /* Value grid */
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 22px 20px;
+      box-shadow: 0 10px 30px -22px rgba(0,0,0,.4); }
+    section.alt .card { background: var(--cream); }
+    .card .ic { font-size: 1.7rem; }
+    .card h3 { margin: 10px 0 6px; font-size: 1.12rem; }
+    .card p { margin: 0; color: var(--sub); font-size: .96rem; }
+
+    /* Split feature (The Lab) */
+    .split { display: grid; grid-template-columns: 1.05fr 1fr; gap: 34px; align-items: center; }
+    .split .media { border-radius: 18px; overflow: hidden; border: 1px solid var(--line);
+      box-shadow: 0 22px 50px -26px rgba(0,0,0,.45); background: #0e1830; }
+    .split ul { list-style: none; padding: 0; margin: 18px 0 0; }
+    .split li { position: relative; padding: 6px 0 6px 30px; color: var(--ink); }
+    .split li::before { content: "✓"; position: absolute; left: 0; top: 6px; color: var(--green); font-weight: 800; }
+    .split li b { color: var(--ink); }
+
+    /* Use cases */
+    .uses { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .use { display: flex; gap: 14px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+    section.alt .use { background: var(--cream); }
+    .use .ic { font-size: 1.5rem; flex: 0 0 auto; }
+    .use h4 { margin: 0 0 4px; font-size: 1.03rem; }
+    .use p { margin: 0; color: var(--sub); font-size: .93rem; }
+
+    /* Steps */
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; counter-reset: step; }
+    .step { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 20px 18px; position: relative; }
+    section.alt .step { background: var(--cream); }
+    .step .n { width: 34px; height: 34px; border-radius: 50%; background: var(--green); color: #fff; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+    .step h4 { margin: 0 0 4px; font-size: 1.03rem; }
+    .step p { margin: 0; color: var(--sub); font-size: .92rem; }
+
+    /* Pricing */
+    .pricebox { background: linear-gradient(180deg, #ffffff, var(--cream)); border: 1px solid var(--line); border-radius: 20px;
+      padding: 32px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 28px; align-items: center; }
+    .pricebox .big { font-size: 1.5rem; font-weight: 800; margin: 0 0 6px; }
+    .pricebox p { color: var(--sub); margin: 0 0 8px; }
+    .compare { margin: 12px 0 0; font-size: .95rem; color: var(--ink); }
+    .compare b { color: var(--green); }
+
+    /* FAQ */
+    details { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 4px 18px; margin-bottom: 10px; }
+    section.alt details { background: var(--cream); }
+    summary { cursor: pointer; font-weight: 700; padding: 12px 0; list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; float: right; color: var(--green); font-weight: 800; }
+    details[open] summary::after { content: "–"; }
+    details p { margin: 0 0 14px; color: var(--sub); }
+
+    /* Founder */
+    .founder { display: flex; gap: 18px; align-items: flex-start; background: #fff; border: 1px solid var(--line);
+      border-radius: 18px; padding: 26px; }
+    section.alt .founder { background: var(--cream); }
+    .founder img { width: 64px; height: 64px; border-radius: 50%; padding: 6px; background: rgba(26,92,56,.08); flex: 0 0 auto; }
+    .founder p { margin: 0 0 8px; }
+
+    /* Lead form */
+    .formwrap { background: var(--green-deep); color: #fdf6e6; border-radius: 22px; overflow: hidden;
+      display: grid; grid-template-columns: 1fr 1.1fr; }
+    .formwrap .pitch { padding: 34px 32px; background:
+      radial-gradient(120% 80% at 10% 10%, rgba(201,168,76,.22), transparent 55%), var(--green-deep); }
+    .formwrap .pitch h2 { color: #fff; font-size: 1.7rem; margin: 0 0 10px; }
+    .formwrap .pitch p { color: #dfe8e1; margin: 0 0 12px; }
+    .formwrap .pitch .mini { font-size: .9rem; color: #bcd0c4; }
+    .formwrap form { background: #fff; color: var(--ink); padding: 30px 30px 34px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: .82rem; font-weight: 700; color: var(--sub); margin-bottom: 5px; }
+    .field input, .field select, .field textarea { width: 100%; font: inherit; padding: 11px 13px; border-radius: 10px;
+      border: 1.5px solid var(--line); background: #fff; color: var(--ink); }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(26,92,56,.14); }
+    .field.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field.two > div { display: flex; flex-direction: column; }
+    .form-msg { margin-top: 12px; font-weight: 600; font-size: .95rem; }
+    .form-msg.err { color: #c0392b; }
+    .form-msg.ok { color: var(--green); }
+    .thanks { text-align: center; padding: 40px 20px; }
+    .thanks .big-emoji { font-size: 2.6rem; }
+
+    footer.site { background: var(--green-deep); color: #cde0d3; padding: 30px 20px; text-align: center; font-size: .9rem; }
+    footer.site a { color: #fff; }
+    footer.site .links { margin-bottom: 10px; }
+    footer.site .links a { margin: 0 10px; text-decoration: none; }
+
+    @media (max-width: 860px) {
+      .cards { grid-template-columns: 1fr 1fr; }
+      .steps { grid-template-columns: 1fr 1fr; }
+      .split { grid-template-columns: 1fr; }
+      .pricebox { grid-template-columns: 1fr; }
+      .formwrap { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .cards, .uses { grid-template-columns: 1fr; }
+      .field.two { grid-template-columns: 1fr; }
+      header.site .hide-sm { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="bar">
+      <a href="/"><img src="/logo-full.png" alt="Gallop Learning Academy"></a>
+      <div class="spacer"></div>
+      <a class="link-back hide-sm" href="/">← For families</a>
+      <a class="btn green small" href="#demo">Book a demo</a>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <span class="eyebrow">🏫 For schools &amp; educators</span>
+      <h1>Real-world learning for your <span class="hl">whole classroom</span>.</h1>
+      <p class="lede">Gallop is an adaptive K–12 platform that meets every student at their exact level across Math, English, Science &amp; Spanish — then has them <b>apply</b> it in The Lab: financial literacy, entrepreneurship, investing, and careers. Standards-aligned, safe, and affordable at scale.</p>
+      <div class="hero-cta">
+        <a class="btn green" href="#demo">Book a 15-minute demo →</a>
+        <a class="btn ghost" href="#pricing">See school pricing</a>
+      </div>
+      <p class="hero-note">Pilot-friendly · No student data sold, ever · Set up with rosters &amp; reporting for you</p>
+      <div class="trustrow">
+        <span>📏 Aligned to Common Core, NGSS &amp; ACTFL</span>
+        <span>🔒 COPPA-compliant · no ads</span>
+        <span>💵 A fraction of per-subject software &amp; tutoring costs</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY -->
+  <section>
+    <div class="wrap">
+      <p class="kicker">Why schools choose Gallop</p>
+      <h2 class="sec">One platform that teaches — and proves it stuck.</h2>
+      <p class="sec-sub">Everything a teacher needs to meet a mixed-ability room, plus the real-world skills most curricula never reach.</p>
+      <div class="cards">
+        <div class="card"><div class="ic">🎯</div><h3>Differentiation on autopilot</h3><p>A placement check finds each student's real level in every subject, and every question adapts from there — so one classroom of many levels all get work that fits.</p></div>
+        <div class="card"><div class="ic">🔬</div><h3>The real-world edge</h3><p>The Lab turns skills into practice: running a business, investing in a live-feeling market, and exploring careers — the financial-literacy and life skills a growing number of states now require.</p></div>
+        <div class="card"><div class="ic">📚</div><h3>Taught, then practiced</h3><p>Every skill starts with a short guided lesson — see it, hear it, do it — before a single practice question. It supplements classroom instruction; it never replaces the teacher.</p></div>
+        <div class="card"><div class="ic">📊</div><h3>Progress you can see</h3><p>Per-student progress reports show exactly where each child is ahead and where they need a hand — updated automatically, ready for conferences and intervention.</p></div>
+        <div class="card"><div class="ic">🔒</div><h3>Safe &amp; compliant</h3><p>COPPA-compliant, no ads, and we never sell student data. Happy to complete your school or district's data-privacy agreement as part of onboarding.</p></div>
+        <div class="card"><div class="ic">💵</div><h3>Affordable at scale</h3><p>All four subjects, the lessons, The Lab, and reporting in one price — a fraction of what single-subject software or tutoring centers cost per student.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THE LAB -->
+  <section class="alt">
+    <div class="wrap">
+      <div class="split">
+        <div class="media"><img src="/shots/market-mogul.webp" alt="Stable Street — Gallop's 12-level investing simulator teaching diversification, dollar-cost averaging and dividends"></div>
+        <div>
+          <p class="kicker">What makes Gallop different</p>
+          <h2 class="sec">Where academics meet the real world.</h2>
+          <p class="sec-sub">Most programs place, drill, and advance. Gallop teaches the skill, then sends students into <b>The Lab</b> to use it — the part that makes learning stick and gives your school something no worksheet app offers.</p>
+          <ul>
+            <li><b>Financial literacy</b> — earning, budgeting, pricing, and profit through hands-on business games.</li>
+            <li><b>Investing simulator</b> — a 12-level portfolio on a market that feels alive, all with pretend money.</li>
+            <li><b>Career exploration</b> — 16 real fields, role models, and the classes that lead there.</li>
+            <li><b>Entrepreneurship</b> — students run a stand or a bakery, using real math to bank a profit.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- USE CASES -->
+  <section>
+    <div class="wrap">
+      <p class="kicker">Where it fits your day</p>
+      <h2 class="sec">Flexible enough for how you already teach.</h2>
+      <div class="uses">
+        <div class="use"><div class="ic">🧩</div><div><h4>In-class differentiation &amp; centers</h4><p>Put students on Gallop during rotations or independent work — each one gets level-appropriate practice while you pull small groups.</p></div></div>
+        <div class="use"><div class="ic">🌅</div><div><h4>Enrichment &amp; after-school</h4><p>A ready-made program for before/after-school, summer, and enrichment blocks — engaging enough that kids ask to keep going.</p></div></div>
+        <div class="use"><div class="ic">💡</div><div><h4>Life-skills &amp; financial literacy</h4><p>Meet new personal-finance and life-skills requirements with The Lab, without building a course from scratch.</p></div></div>
+        <div class="use"><div class="ic">🛟</div><div><h4>Intervention &amp; support</h4><p>Students who are behind get met at their true level and move up as they master skills — with reports that show the growth.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW ROLLOUT WORKS -->
+  <section class="alt">
+    <div class="wrap">
+      <p class="kicker">Getting started is easy</p>
+      <h2 class="sec">We set it up with you.</h2>
+      <p class="sec-sub">A white-glove rollout — you tell us about your school, we handle the setup, your teachers get reporting from day one.</p>
+      <div class="steps">
+        <div class="step"><div class="n">1</div><h4>Book a demo</h4><p>A quick 15-minute walkthrough of the platform and The Lab, tailored to your grades.</p></div>
+        <div class="step"><div class="n">2</div><h4>Set up classes</h4><p>We help you add students and classes and complete any data-privacy paperwork your school needs.</p></div>
+        <div class="step"><div class="n">3</div><h4>Students start</h4><p>Each student places into their real level and begins — teachers see progress reports right away.</p></div>
+        <div class="step"><div class="n">4</div><h4>Ongoing support</h4><p>A real person on the other end for questions, plus a pilot option before you commit school-wide.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing">
+    <div class="wrap">
+      <p class="kicker">School pricing</p>
+      <h2 class="sec">Simple, per-student pricing that scales.</h2>
+      <p class="sec-sub">We price by number of students, with classroom, grade, and whole-school options — and a pilot so you can try it first. Tell us your size and we'll send a quote the same week.</p>
+      <div class="pricebox">
+        <div>
+          <p class="big">All four subjects, the lessons, The Lab &amp; reporting — one price.</p>
+          <p>No per-subject add-ons, no setup fees. Nonprofit and Title I schools: ask about discounted rates.</p>
+          <p class="compare">For context, a single-subject learning-center membership commonly runs <b>$150–$200 per student per month</b>, and private tutoring <b>$40–$80 an hour</b>. Gallop covers all four subjects plus The Lab for a small fraction of that — and your quote is built to your enrollment.</p>
+        </div>
+        <div style="text-align:center">
+          <a class="btn gold" href="#demo" style="width:100%;font-size:1.05rem">Request a quote →</a>
+          <p style="color:var(--sub);font-size:.86rem;margin-top:10px">Same-week response · Pilot available</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOUNDER -->
+  <section class="alt">
+    <div class="wrap">
+      <div class="founder">
+        <img src="/logo-roundel.png" alt="Gallop">
+        <div>
+          <p class="kicker" style="margin-bottom:6px">From the founders</p>
+          <p>We're Steve &amp; Lin — two parents and lifelong entrepreneurs who built Gallop for our own daughter, because the help we could buy was expensive, one-size-fits-all, and disconnected from the real world. There's no faceless edtech company behind Gallop. When your school works with us, you're working directly with the people who built it — and who care that it actually moves your students.</p>
+          <p style="color:var(--sub);font-size:.92rem;margin-top:6px">— Steve &amp; Lin Jerome, Lotus Farms LLC</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section>
+    <div class="wrap">
+      <p class="kicker">Questions from schools</p>
+      <h2 class="sec">Good to know.</h2>
+      <details><summary>What devices do students need?</summary><p>Gallop runs in any modern web browser — Chromebooks, iPads, laptops, or desktops. There's nothing to install, and it works on the devices most schools already have.</p></details>
+      <details><summary>How do students log in and get rostered?</summary><p>We help you add students and classes during onboarding. Students sign in simply and place into their real level in each subject the first time they use it — no lengthy setup for teachers.</p></details>
+      <details><summary>How do you handle student-data privacy?</summary><p>Gallop is COPPA-compliant, shows no ads, and never sells student data. We're glad to review and complete your school or district's data-privacy agreement as part of getting started.</p></details>
+      <details><summary>Is there a pilot?</summary><p>Yes. Most schools start with a small pilot — a class or a grade — before rolling out more widely, so you can see the fit with your students first.</p></details>
+      <details><summary>Does this replace our teachers or curriculum?</summary><p>No — it's built to supplement classroom instruction, not replace it. Gallop reinforces what you teach with a guided lesson before every practice set, and adds the real-world skills in The Lab that most curricula don't reach.</p></details>
+      <details><summary>What does it cost?</summary><p>Pricing is per student and scales with your size, with classroom, grade, and whole-school options. Tell us your enrollment through the form below and we'll send a quote — usually the same week.</p></details>
+    </div>
+  </section>
+
+  <!-- LEAD FORM / DEMO -->
+  <section class="alt" id="demo">
+    <div class="wrap">
+      <div class="formwrap">
+        <div class="pitch">
+          <h2>Book a demo or request pricing</h2>
+          <p>Tell us a little about your school and we'll follow up — usually the same week — with a walkthrough and a quote built to your size.</p>
+          <p class="mini">Prefer email? Reach us at <a href="mailto:support@learnwithgallop.com?subject=School%20inquiry" style="color:#ffe6a1">support@learnwithgallop.com</a> or <b>@learnwithgallop</b> on Instagram.</p>
+        </div>
+        <form id="lead-form" novalidate>
+          <div class="field"><label for="school">School / organization</label><input id="school" name="school" type="text" autocomplete="organization" placeholder="Oak Grove Academy"></div>
+          <div class="field two">
+            <div><label for="name">Your name *</label><input id="name" name="name" type="text" autocomplete="name" placeholder="Jordan Rivera" required></div>
+            <div><label for="email">Work email *</label><input id="email" name="email" type="email" autocomplete="email" placeholder="you@school.org" required></div>
+          </div>
+          <div class="field two">
+            <div><label for="role">Your role</label><select id="role" name="role">
+              <option value="">Select…</option>
+              <option>Teacher</option><option>Principal / Head of School</option><option>Curriculum / Academic Director</option>
+              <option>Administrator</option><option>After-school / Program Director</option><option>Other</option>
+            </select></div>
+            <div><label for="students">Approx. students</label><select id="students" name="students">
+              <option value="">Select…</option>
+              <option>1–30</option><option>31–100</option><option>101–300</option><option>301–750</option><option>750+</option>
+            </select></div>
+          </div>
+          <div class="field"><label for="interest">Most interested in</label><select id="interest" name="interest">
+            <option value="">Select…</option>
+            <option>Core subjects (Math, English, Science, Spanish)</option>
+            <option>The Lab — financial literacy &amp; life skills</option>
+            <option>Intervention / support</option>
+            <option>Enrichment / after-school</option>
+            <option>A school-wide rollout</option>
+          </select></div>
+          <div class="field"><label for="message">Anything else? (optional)</label><textarea id="message" name="message" rows="3" placeholder="Grades, timeline, or questions…"></textarea></div>
+          <button class="btn green" type="submit" id="lead-submit" style="width:100%;font-size:1.05rem">Send &amp; book my demo →</button>
+          <div class="form-msg" id="lead-msg" role="status" aria-live="polite"></div>
+          <p style="color:var(--sub);font-size:.78rem;margin:10px 0 0">By submitting, you agree we may contact you about Gallop for your school. We never sell your information.</p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site">
+    <div class="links">
+      <a href="/">For families</a> · <a href="/#s-pricing">Family pricing</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>
+    </div>
+    © <span id="yr">2026</span> Lotus Farms LLC · Gallop Learning Academy · <a href="mailto:support@learnwithgallop.com">support@learnwithgallop.com</a>
+  </footer>
+
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+    (function () {
+      var form = document.getElementById('lead-form');
+      var msg = document.getElementById('lead-msg');
+      var btn = document.getElementById('lead-submit');
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        msg.className = 'form-msg'; msg.textContent = '';
+        var data = {
+          school: form.school.value, name: form.name.value, email: form.email.value,
+          role: form.role.value, students: form.students.value,
+          interest: form.interest.value, message: form.message.value
+        };
+        if (!data.name.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email.trim())) {
+          msg.className = 'form-msg err'; msg.textContent = 'Please add your name and a valid work email.'; return;
+        }
+        btn.disabled = true; btn.textContent = 'Sending…';
+        fetch('/api/schools/inquiry', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+        }).then(function (r) { return r.ok ? r.json() : Promise.reject(); }).then(function () {
+          form.innerHTML = '<div class="thanks"><div class="big-emoji">🎉</div><h3 style="margin:8px 0 6px">Thank you!</h3>' +
+            '<p style="color:var(--sub)">We\'ve got your details and will be in touch soon — usually within the week. ' +
+            'For anything urgent, email <a href="mailto:support@learnwithgallop.com">support@learnwithgallop.com</a>.</p></div>';
+        }).catch(function () {
+          btn.disabled = false; btn.textContent = 'Send & book my demo →';
+          msg.className = 'form-msg err';
+          msg.innerHTML = 'Something went wrong sending that. Please email <a href="mailto:support@learnwithgallop.com?subject=School%20inquiry">support@learnwithgallop.com</a> and we\'ll jump on it.';
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -364,6 +364,17 @@ try {
   )`);
 } catch (e) {}
 
+// B2B lead capture: schools/educators who submit the "Book a demo / request pricing" form.
+// Stored durably so a lead is never lost even if the notification email fails to send.
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS school_leads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    school TEXT, name TEXT, email TEXT, phone TEXT, role TEXT,
+    students TEXT, interest TEXT, message TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`);
+} catch (e) {}
+
 // Child-privacy: custom avatar PHOTOS were retired in favor of illustrated avatars only.
 // Scrub any previously-stored photo so no child's image remains at rest. Guarded by IS NOT
 // NULL so it's a no-op once clean (won't rewrite rows on every boot). New backups taken

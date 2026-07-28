@@ -66,6 +66,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // not #hash routes). The SPA keeps its #privacy/#terms aliases for in-app navigation.
 app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'privacy.html')));
 app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'public', 'terms.html')));
+// B2B landing page for private schools & educators (its own crawlable URL + link-preview meta).
+app.get(['/schools', '/for-schools'], (req, res) => res.sendFile(path.join(__dirname, 'public', 'schools.html')));
 
 // SPA fallback
 app.get(/.*/, (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));

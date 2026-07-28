@@ -372,6 +372,32 @@ function sendSupportEscalation(ticket) {
   } catch (e) { /* escalation email must never throw */ }
 }
 
+// A school/educator submitted the "Book a demo / request pricing" form. Notify the team so
+// they can follow up. Never throws — a failed notification must not break the thank-you.
+function sendSchoolLead(lead) {
+  try {
+    const to = process.env.SCHOOLS_LEAD_EMAIL || ADMIN_EMAIL;
+    const rows = [
+      ['School / organization', lead.school],
+      ['Contact name', lead.name],
+      ['Email', lead.email],
+      ['Phone', lead.phone],
+      ['Role', lead.role],
+      ['Approx. students', lead.students],
+      ['Interested in', lead.interest],
+      ['Message', lead.message]
+    ].filter(r => r[1]);
+    const table = rows.map(([k, v]) =>
+      `<tr><td style="vertical-align:top;padding:4px 12px 4px 0;color:#5b6478;white-space:nowrap"><b>${esc(k)}</b></td><td style="padding:4px 0">${esc(String(v)).replace(/\n/g, '<br>')}</td></tr>`).join('');
+    const html = layout(`
+      <h2 style="margin:0 0 12px;color:${BRAND}">New school inquiry 🏫</h2>
+      <table style="border-collapse:collapse;font-size:.95rem">${table}</table>
+      <p style="margin:16px 0 0;color:#5b6478;font-size:.88rem">Reply directly to <b>${esc(lead.email || '')}</b> to follow up.</p>
+    `);
+    return sendEmail({ to, subject: `School inquiry: ${lead.school || lead.name || 'new lead'}`, html, kind: 'school_lead' });
+  } catch (e) { return Promise.resolve({ sent: false }); }
+}
+
 // Send a support reply to the parent, from support@, so their reply threads back to support.
 function sendSupportReply(toEmail, subject, replyText) {
   try {
@@ -383,4 +409,4 @@ function sendSupportReply(toEmail, subject, replyText) {
   } catch (e) { return { sent: false }; }
 }
 
-module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendWeeklyReport, sendTrialEnding, sendTrialEnded, sendChildSubscribeRequest, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply };
+module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendWeeklyReport, sendTrialEnding, sendTrialEnded, sendChildSubscribeRequest, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply, sendSchoolLead };

@@ -957,6 +957,7 @@ route('landing', async () => {
           <button class="sn-link" onclick="scrollToSection('s-story')">Our story</button>
           <button class="sn-link" onclick="scrollToSection('s-pricing')">Pricing</button>
           <button class="sn-link" onclick="scrollToSection('s-faq')">FAQ</button>
+          <a class="sn-link" href="/schools" style="text-decoration:none;display:inline-flex;align-items:center">For schools 🏫</a>
         </div>
         <button class="btn sun small sn-cta" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start free trial</button>
       </div>
@@ -1199,7 +1200,7 @@ route('landing', async () => {
   </div>
   <div class="site-footer">© ${new Date().getFullYear()} Lotus Farms LLC · Gallop Learning Academy · Adaptive, real-world learning for grades K–12<br>
     <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow along on Instagram at @learnwithgallop</a><br>
-    <a href="#standards" style="color:inherit;opacity:.8">Standards Alignment</a> · <a href="#help" style="color:inherit;opacity:.8">Help &amp; Support</a> · <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
+    <a href="/schools" style="color:inherit;opacity:.8">For Schools</a> · <a href="#standards" style="color:inherit;opacity:.8">Standards Alignment</a> · <a href="#help" style="color:inherit;opacity:.8">Help &amp; Support</a> · <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
   </div>
   ${State.me.role !== 'parent' && State.me.role !== 'kid' ? `<div class="sticky-cta"><button class="btn" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start free trial — no card →</button></div>` : ''}`);
   wireChrome();

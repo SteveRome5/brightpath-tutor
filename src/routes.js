@@ -898,6 +898,40 @@ router.post('/newsletter', newsletterLimiter, (req, res) => {
   res.json({ ok: true });
 });
 
+// B2B lead capture — the "Book a demo / request pricing" form on /schools. Stores the lead
+// durably and notifies the team by email. Rate-limited against spam. A school filling this
+// out is their own action; we only record and forward it.
+const schoolLimiter = rateLimit({ windowMs: 15 * 60000, max: 8, key: 'school' });
+router.post('/schools/inquiry', schoolLimiter, (req, res) => {
+  const b = req.body || {};
+  const clean = s => String(s == null ? '' : s).trim().slice(0, 2000);
+  const lead = {
+    school: clean(b.school), name: clean(b.name), email: clean(b.email).toLowerCase(),
+    phone: clean(b.phone), role: clean(b.role), students: clean(b.students),
+    interest: clean(b.interest), message: clean(b.message)
+  };
+  if (!lead.name || !EMAIL_RE.test(lead.email)) {
+    return res.status(400).json({ error: 'Please share your name and a valid email so we can reach you.' });
+  }
+  try {
+    db.prepare('INSERT INTO school_leads (school,name,email,phone,role,students,interest,message) VALUES (?,?,?,?,?,?,?,?)')
+      .run(lead.school, lead.name, lead.email, lead.phone, lead.role, lead.students, lead.interest, lead.message);
+  } catch (e) {}
+  try { mailer.sendSchoolLead(lead); } catch (e) {}
+  res.json({ ok: true });
+});
+
+// Admin: school leads as CSV for follow-up.
+router.get('/admin/school-leads.csv', auth.requireAdmin, (req, res) => {
+  const csvCell = v => { let s = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return `"${s.replace(/"/g, '""')}"`; };
+  const rows = db.prepare('SELECT created_at, school, name, email, phone, role, students, interest, message FROM school_leads ORDER BY id DESC').all();
+  const out = ['created_at,school,name,email,phone,role,students,interest,message',
+    ...rows.map(r => [r.created_at, r.school, r.name, r.email, r.phone, r.role, r.students, r.interest, r.message].map(csvCell).join(','))];
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="gallop-school-leads.csv"');
+  res.send(out.join('\n'));
+});
+
 // One-click unsubscribe from lifecycle/tips emails (link in every non-receipt email).
 router.get('/email/unsubscribe', (req, res) => {
   const t = String(req.query.t || '');
