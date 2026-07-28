@@ -2952,7 +2952,9 @@ route('report', async (kidId) => {
         <div class="gh-num">${r.gallop.overall}</div>
         <div class="gh-meta">
           <b>Gallop Score</b>${r.gallop.deltas && r.gallop.deltas.overall > 0 ? ` <span class="gs-up">▲ +${r.gallop.deltas.overall} this week</span>` : ''}
-          <span class="gh-sub">${esc(k.name)}'s all-subjects number. It climbs only with real understanding, never by lucky guesses.</span>
+          <span class="gh-sub">${(r.gallop.measured != null && r.gallop.expected && r.gallop.measured < r.gallop.expected)
+            ? `Average of <b>${r.gallop.measured} of ${r.gallop.expected} subjects</b> measured so far — it fills in as ${esc(k.name)} places into the rest.`
+            : `${esc(k.name)}'s score across all ${r.gallop.expected || 4} subjects.`} It's based on repeated, independent practice; Gallop looks for consistent evidence before confirming mastery.</span>
         </div>
       </div>
       ${isParent ? `<details class="gs-explain"><summary>What is a Gallop Score, and will it go up? 🐎</summary>
@@ -2971,7 +2973,9 @@ route('report', async (kidId) => {
             <div class="subj-score">
               <div class="ss-num" style="color:${SUBJECT_STYLE[s.subject].color}">${s.gallopScore != null ? s.gallopScore : '—'}</div>
               <div class="ss-cap">Gallop Score${s.gallopScore != null && r.gallop.deltas && r.gallop.deltas[s.subject] > 0 ? ` · <span class="gs-up">+${r.gallop.deltas[s.subject]}</span>` : ''}</div>
-              ${isParent && s.gradeEquiv ? `<div class="ss-grade" title="Grade level of mastery ${esc(k.name)} has proven so far — climbs as they practice. Different from Working level (where they learn now).">≈ ${esc(s.gradeEquiv.label)}${s.letter && s.letter !== '—' ? ` · ${esc(s.letter)}` : ''}</div>` : ''}
+              ${isParent ? (s.gradeEstimateReady && s.gradeEquiv
+                ? `<div class="ss-grade" title="Grade level of mastery ${esc(k.name)} has proven so far, based on real evidence across the grade. Different from Working level (where they learn now).">≈ ${esc(s.gradeEquiv.label)}${s.letter && s.letter !== '—' ? ` · ${esc(s.letter)}` : ''}</div>`
+                : (s.placed ? `<div class="ss-grade ss-grade-pending" title="A grade-level estimate appears once there's enough evidence across this grade's skills. Until then we show the working level only.">Estimate building${s.gradeCoverage && s.gradeCoverage.total ? ` · ${s.gradeCoverage.practiced}/${s.gradeCoverage.total} skills` : ''}</div>` : '')) : ''}
             </div>
           </div>
           ${s.placed ? `
@@ -2985,7 +2989,7 @@ route('report', async (kidId) => {
               <div class="advance-track"><div class="advance-fill" style="width:${s.progress.atLevelTotal ? Math.round(s.progress.atLevelMastered / s.progress.atLevelTotal * 100) : 0}%"></div></div>
               ${s.progress.atMaxGrade
                 ? `<p class="advance-note">${esc(k.name)} is at the top grade for ${esc(s.label)} — now deepening mastery across every skill.</p>`
-                : `<p class="advance-note">To advance to <b>${esc(s.nextGradeName || 'the next grade')}</b>, ${esc(k.name)} masters all <b>${s.progress.atLevelTotal}</b> ${esc(s.levelName)} skills at 85%+ accuracy${s.progress.atLevelTotal > 0 && s.progress.atLevelMastered >= s.progress.atLevelTotal ? ' — all mastered, advancement is close! 🎉' : (s.progress.atLevelTotal - s.progress.atLevelMastered) > 0 ? ` — <b>${s.progress.atLevelTotal - s.progress.atLevelMastered}</b> to go.` : '.'}</p>`}
+                : `<p class="advance-note">To advance to <b>${esc(s.nextGradeName || 'the next grade')}</b>, ${esc(k.name)} masters all <b>${s.progress.atLevelTotal}</b> ${esc(s.levelName)} skills — each at <b>80%+ mastery</b> with <b>85%+ recent accuracy</b>${s.progress.atLevelTotal > 0 && s.progress.atLevelMastered >= s.progress.atLevelTotal ? ' — all mastered, advancement is close! 🎉' : (s.progress.atLevelTotal - s.progress.atLevelMastered) > 0 ? ` — <b>${s.progress.atLevelTotal - s.progress.atLevelMastered}</b> to go.` : '.'}</p>`}
             </div>` : ''}
             ${s.strengths.length ? `<p>💪 Strengths: ${s.strengths.map(x => `<span class="pill strength">${esc(x)}</span>`).join(' ')}</p>` : ''}
             ${s.focusAreas.length ? `<p style="margin-top:6px">🎯 Focus areas (getting extra help): ${s.focusAreas.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')}</p>` : ''}
@@ -3107,7 +3111,7 @@ route('weekly', async (kidId) => {
         <svg viewBox="0 0 458 92" style="width:100%;height:auto;margin:8px 0" role="img" aria-label="Weekly activity chart: ${total} questions over ${activeDays} active day${activeDays === 1 ? '' : 's'}, ${acc}% correct.">${bars}</svg>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
           <div><b style="color:#1f8a5f">💪 Shining at</b><br><span class="muted" style="font-size:.9rem">${strengthList.length ? strengthList.map(esc).join('<br>') : 'Building the basics, stars incoming!'}</span></div>
-          <div><b style="color:#C9A84C">🎯 Working on</b><br><span class="muted" style="font-size:.9rem">${focusList.length ? focusList.map(esc).join('<br>') : 'No trouble spots this week!'}</span></div>
+          <div><b style="color:#C9A84C">🎯 Working on</b><br><span class="muted" style="font-size:.9rem">${focusList.length ? focusList.map(esc).join('<br>') : 'No single trouble spot flagged yet — more practice will sharpen the picture.'}</span></div>
         </div>
         <p style="margin-top:16px;font-size:.85rem;color:#7d8496;border-top:1px dashed #ddd;padding-top:10px">${total >= 100 ? `Outstanding week, ${esc(k.name)}, over 100 questions! The gallop is real. 🐎` : total >= 50 ? `Great consistency, ${esc(k.name)}, keep that streak alive! 🐎` : total > 0 ? `Every question counts, ${esc(k.name)}, let's pick up the pace next week! 🐎` : `A fresh week awaits, first quest starts today! 🐎`}</p>
       </div>
@@ -4272,8 +4276,9 @@ route('parent', async () => {
             <div style="background:#fdeee7;border-radius:10px;padding:10px 12px;margin:10px 0 4px">
               <div style="font-size:.82rem;color:#b0532f"><b>🎯 Needs a hand with:</b> ${esc(f.name)} <span class="muted">(${SUBJ[f.subject] || f.subject})</span></div>
               <button class="btn coral small snap-focus" data-kid="${k.id}" data-subject="${f.subject}" data-skill="${esc(f.skillId)}" style="margin-top:8px">✨ Practice this together</button>
-            </div>` : `
-            <p class="muted" style="margin:8px 0 4px;font-size:.85rem">No trouble spots right now — ${esc(k.name.split(' ')[0])} is moving along nicely. 🎉</p>`}
+            </div>` : (k.overall === 'developing' || k.overall === 'needs-support') ? `
+            <p class="muted" style="margin:8px 0 4px;font-size:.85rem">🔎 Gallop is still pinpointing the exact skill for ${esc(k.name.split(' ')[0])} — the next session or two will narrow it down.</p>` : `
+            <p class="muted" style="margin:8px 0 4px;font-size:.85rem">No specific trouble spot right now — ${esc(k.name.split(' ')[0])} is moving along nicely. 🎉</p>`}
           <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn green small snap-start" data-kid="${k.id}">▶ Start</button>
             <button class="btn small snap-report" data-kid="${k.id}">📊 Full report</button>

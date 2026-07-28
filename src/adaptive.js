@@ -813,10 +813,20 @@ function reportCard(kidId) {
       if (status === 'excelling' && progress.mastered === 0) status = 'on-track';
       if ((status === 'excelling' || status === 'on-track') && progress.atLevelMastered === 0 && thin) status = 'developing';
     }
+    // ---- Grade-estimate evidence gating (P0-1) ----
+    // "≈ mid Grade X" reads as PROVEN command of the grade, so only claim it with real coverage:
+    // evidence across at least half the current-grade skills, at least one of them mastered, and a
+    // stable body of work. Otherwise the parent UI shows the working level and "estimate not ready
+    // yet" instead of a number that contradicts "0 of N skills mastered".
+    const gradeCoverageRatio = progress.atLevelTotal > 0 ? progress.atLevelPracticed / progress.atLevelTotal : 0;
+    const gradeEstimateReady = !!state.placed && progress.atLevelTotal > 0
+      && gradeCoverageRatio >= 0.5 && progress.atLevelMastered >= 1 && (progress.totalAnswered || 0) >= 12;
     return {
       subject: sub, label: subjectLabel(sub), level: state.level, levelName: gradeName(Math.round(state.level)),
       placed: !!state.placed, avgMastery: avg, letter: letterGrade(agg.n ? (agg.c / agg.n) : null),
-      gallopScore, gradeEquiv, progress,
+      gallopScore, gradeEquiv, gradeEstimateReady,
+      gradeCoverage: { practiced: progress.atLevelPracticed, total: progress.atLevelTotal },
+      progress,
       nextGradeName: curLvl < maxGrade(sub) ? gradeName(curLvl + 1) : null,
       questionsAnswered: agg.n || 0, accuracy: agg.n ? (agg.c / agg.n) : null,
       status, recentAccuracy: recentAcc, recentSample: recentRows.length, enrolledGrade: kid.grade || 0,
@@ -853,7 +863,11 @@ function reportCard(kidId) {
   const perSubjectScore = {};
   subjects.forEach(s => { if (s.gallopScore != null) perSubjectScore[s.subject] = s.gallopScore; });
   const overallScore = gscore.overall(perSubjectScore);
-  const gallop = { overall: overallScore, bySubject: perSubjectScore, deltas: {} };
+  // Coverage for the overall score (P0-2): how many of the 4 subjects actually contributed a
+  // number. The client shows "Average of N of 4 subjects" so the headline never implies a
+  // complete all-subject assessment when one or more subjects have no data.
+  const measuredSubjects = Object.keys(perSubjectScore).length;
+  const gallop = { overall: overallScore, bySubject: perSubjectScore, deltas: {}, measured: measuredSubjects, expected: subjects.length };
   try {
     const today = db.prepare(`SELECT date('now') AS d`).get().d;
     const snap = db.prepare('INSERT OR REPLACE INTO score_snapshots (kid_id, subject, day, score) VALUES (?,?,?,?)');

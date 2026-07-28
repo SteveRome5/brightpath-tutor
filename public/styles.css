@@ -1729,6 +1729,7 @@ body[data-theme="academy"] .lw-passage { background: #2a2921; border-color: #4a4
 .ss-num { font-family: var(--font-display); font-weight: 700; font-size: 1.9rem; line-height: 1; }
 .ss-cap { font-size: .72rem; color: var(--ink); opacity: .7; font-weight: 600; }
 .ss-grade { font-size: .72rem; color: var(--ink); opacity: .62; margin-top: 2px; }
+.ss-grade-pending { font-style: italic; opacity: .5; }
 @media (max-width: 520px){ .gh-num { font-size: 2.4rem; } .gallop-hero { padding: 14px; gap: 12px; } }
 
 /* ---- Header: clearer spacing, separated sound control, mobile tap targets ---- */

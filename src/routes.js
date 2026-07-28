@@ -1051,8 +1051,12 @@ router.get('/family/overview', auth.requireParent, (req, res) => {
     let overall = 'getting-started', gallop = null, gallopDelta = null;
     try {
       const card = adaptive.reportCard(k.id);
-      const st = (card.subjects || []).map(s => s.status).filter(x => x && x !== 'insufficient');
-      if (st.length) {
+      // A pace verdict needs real evidence. 'building' (subject not started) and 'insufficient'
+      // (placed but too few answers) are NO-DATA states, not "on track" — excluding them means a
+      // brand-new learner with zero answers stays 'getting-started' instead of a false green
+      // "On track" (P0-5). Only judge overall when at least one subject has a real verdict.
+      const st = (card.subjects || []).map(s => s.status).filter(x => x && x !== 'insufficient' && x !== 'building');
+      if (totalAns > 0 && st.length) {
         if (st.some(s => s === 'needs-support')) overall = 'needs-support';
         else if (st.every(s => s === 'excelling')) overall = 'excelling';
         else if (st.some(s => s === 'developing')) overall = 'developing';
