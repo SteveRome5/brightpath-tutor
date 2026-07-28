@@ -1,6 +1,6 @@
 // BrightPath Math, K-12 skill tree with real-life question generators
 // Each skill: { id, name, grade, gen(d) } where d = difficulty 0..1
-const { rint, pick, shuffle, numChoices, textChoices, q, KID_NAMES, FOODS, TOYS, PLACES } = require('./helpers');
+const { rint, pick, shuffle, numChoices, textChoices, q, gcd, reduceFraction, isReduced, KID_NAMES, FOODS, TOYS, PLACES } = require('./helpers');
 
 // Build 4 guaranteed-distinct "<n>π" answer choices around a correct coefficient.
 function piDistractors(coeff) {
@@ -408,18 +408,38 @@ const skills = [
   {
     id: 'm.4.equivfrac', name: 'Equivalent Fractions', grade: 4,
     gen(d) {
-      const den = pick([2, 3, 4, 5, 6, 8, 10]), num = rint(1, den - 1), m = pick(d > 0.5 ? [3, 4, 5, 6] : [2, 3, 4]);
+      // Build a base fraction and REDUCE it, so the "simplest form" is always truly reduced
+      // (gcd = 1). This is the fix for the bug where 16/40 was "simplified" to 4/10 (not 2/5).
+      const den0 = pick([2, 3, 4, 5, 6, 8, 10]), num0 = rint(1, den0 - 1);
+      const [num, den] = reduceFraction(num0, den0);   // the canonical simplest form (gcd(num,den)=1)
+      const m = pick(d > 0.5 ? [3, 4, 5, 6] : [2, 3, 4]);
       const ctx = pick(['flour', 'sugar', 'milk', 'water', 'juice']);
       const mode = pick(['make', 'make', 'simplify']);
       if (mode === 'simplify') {
-        // Give an unreduced fraction and ask for the simplest form
+        // The unreduced fraction shown in the prompt. Its ONLY reduced equivalent is num/den.
         const bigNum = num * m, bigDen = den * m;
+        const g = gcd(bigNum, bigDen);  // equals m, since num/den is already reduced
+        // Distractors, all guaranteed WRONG for "simplest form":
+        //  1) equivalent-but-not-reduced (the classic trap the QA flagged) — only if it differs
+        //     from the prompt fraction and from the answer.
+        //  2) two non-equivalent fractions.
+        const trap = m >= 4 ? `${num * 2}/${den * 2}` : null; // e.g. 2/5 → 4/10 (equal but NOT simplest)
+        const wrongs = [
+          trap,
+          `${num + 1}/${den}`,      // non-equivalent
+          `${num}/${den + 1}`,      // non-equivalent
+          `${den}/${num || 1}`      // reciprocal (non-equivalent unless num===den, impossible here)
+        ].filter(Boolean)
+          // never offer a choice that is actually reduced-equivalent to the answer or equals the prompt
+          .filter(w => w !== `${bigNum}/${bigDen}`);
+        const whyWrong = trap ? { [trap]: `${num * 2}/${den * 2} is EQUAL to ${bigNum}/${bigDen}, but it isn't in simplest form — you can still divide top and bottom by ${2}. Keep going until the only common factor is 1.` } : null;
         return q({
           prompt: `Which fraction is EQUAL to ${bigNum}/${bigDen} but written in simplest form?`,
-          choices: textChoices(`${num}/${den}`, [`${num + 1}/${den}`, `${num}/${den + 1}`, `${bigNum}/${bigDen - 1}`, `${num * 2}/${den}`]),
+          choices: textChoices(`${num}/${den}`, wrongs),
           answer: `${num}/${den}`,
-          hint: `Divide top and bottom by ${m}.`,
-          explain: `${bigNum} ÷ ${m} = ${num} and ${bigDen} ÷ ${m} = ${den}, so ${bigNum}/${bigDen} = ${num}/${den}.`
+          hint: `Find the greatest number that divides BOTH ${bigNum} and ${bigDen}. Here it's ${g}.`,
+          explain: `The greatest common factor of ${bigNum} and ${bigDen} is ${g}. ${bigNum} ÷ ${g} = ${num} and ${bigDen} ÷ ${g} = ${den}, so ${bigNum}/${bigDen} in simplest form is ${num}/${den}.`,
+          whyWrong
         });
       }
       return q({

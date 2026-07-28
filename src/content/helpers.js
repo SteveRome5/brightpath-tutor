@@ -1,6 +1,11 @@
 // Shared helpers for question generators — randomization + real-life flavor
 function rint(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+// Greatest common divisor (Euclid) — the correct way to reduce a fraction.
+function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a || 1; }
+// Reduce n/d to lowest terms, returning [num, den].
+function reduceFraction(n, d) { const g = gcd(n, d); return [n / g, d / g]; }
+function isReduced(n, d) { return gcd(n, d) === 1; }
 function shuffle(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -71,4 +76,4 @@ function q(o) {
   };
 }
 
-module.exports = { rint, pick, shuffle, numChoices, textChoices, q, KID_NAMES, FOODS, TOYS, PLACES };
+module.exports = { rint, pick, shuffle, numChoices, textChoices, q, gcd, reduceFraction, isReduced, KID_NAMES, FOODS, TOYS, PLACES };
