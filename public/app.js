@@ -812,7 +812,7 @@ function topbar(inner = '') {
         </div>
       </div>
     </div>
-  </div>${inner}`;
+  </div>${me.role === 'kid' && me.assisted ? `<div class="together-bar">👪 <b>Practicing together</b> — parent-assisted practice. It counts as engagement but won't change ${esc(me.kid ? me.kid.name : 'your child')}'s independent scores. <button class="btn small together-exit-btn" id="together-exit">← Back to Parent Dashboard</button></div>` : ''}${inner}`;
 }
 function wireChrome() {
   const sb = $('#sound-btn'), menu = $('#sound-menu');
@@ -844,13 +844,17 @@ function wireChrome() {
     try { history.replaceState(null, '', location.pathname + '#'); } catch (e) { location.hash = '#'; }
     navigate();
   };
-  const xk = $('#exit-kid-btn');
-  if (xk) xk.onclick = async () => {
+  const exitToParent = async () => {
     // Reload back into the parent session (symmetric with enterKid). The re-boot re-initializes
     // adult analytics cleanly and guarantees no learner state carries into the parent context.
     try { await api('/auth/exit-kid', { method: 'POST' }); await refreshMe(); location.hash = isTeacher() ? '#teacher' : '#parent'; location.reload(); }
     catch (e) { location.hash = '#login'; location.reload(); }
   };
+  const xk = $('#exit-kid-btn');
+  if (xk) xk.onclick = exitToParent;
+  // Together Mode banner's "Back to Parent Dashboard" uses the same safe exit.
+  const tex = $('#together-exit');
+  if (tex) tex.onclick = exitToParent;
   // Accessibility: the kid nav tiles are <div>s. Make them real buttons for keyboard
   // and screen-reader users (focusable + role + label). Enter/Space is handled globally.
   upgradeTiles();
@@ -2991,6 +2995,7 @@ route('report', async (kidId) => {
           ${s.placed ? `
             <p class="muted" style="margin:6px 0">${isParent ? `${accuracyLine(s)}${statusNote(s)}` : `${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} done. Keep it up, you're growing!`}</p>
             ${isParent ? `<p class="muted" style="margin:2px 0 8px;font-size:.9rem">Working level: <b>${esc(s.levelName)}</b>${s.enrolledGrade != null ? ` · enrolled in <b>${s.enrolledGrade === 0 ? 'Kindergarten' : 'Grade ' + s.enrolledGrade}</b>` : ''}</p>` : ''}
+            ${isParent && s.assistedAnswers > 0 ? `<p class="muted" style="margin:2px 0 8px;font-size:.85rem">👪 Practiced together: <b>${s.assistedAnswers}</b> — counted as engagement, kept out of the independent scores above.</p>` : ''}
             ${isParent && s.placementNote ? `<p class="place-note"><b>Why we started here:</b> ${esc(s.placementNote)}</p>` : ''}
             ${isParent && s.placementMissed && s.placementMissed.length ? `<p class="place-note" style="background:#fff6ec;border-color:#f0d9bd"><b>Missed on the placement quiz:</b> ${s.placementMissed.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')} <span class="muted" style="font-size:.85rem">— these are just the concepts to keep an eye on; ${esc(k.name)} gets extra practice on them automatically.</span></p>` : ''}
             ${isParent && s.progress ? `
@@ -4081,8 +4086,8 @@ route('parent', async () => {
       navigate();
     } catch (e) { showError('#nk-err', e.message); }
   };
-  async function enterKid(kidId, dest) {
-    await api('/auth/enter-kid', { method: 'POST', body: { kidId } });
+  async function enterKid(kidId, dest, together) {
+    await api('/auth/enter-kid', { method: 'POST', body: { kidId, together: !!together } });
     Sound.levelup();
     // Full reload into the child session. This is the privacy boundary: the learner page re-boots
     // with role 'kid', so marketing/analytics tags (which may have loaded on the parent page) are
@@ -4321,7 +4326,7 @@ route('parent', async () => {
     }).join('')}</div>`;
     box.querySelectorAll('.snap-start').forEach(b => b.onclick = () => enterKid(Number(b.dataset.kid)));
     box.querySelectorAll('.snap-report').forEach(b => b.onclick = () => { location.hash = '#report/' + b.dataset.kid; });
-    box.querySelectorAll('.snap-focus').forEach(b => b.onclick = () => enterKid(Number(b.dataset.kid), '#lesson/' + b.dataset.subject + '/' + b.dataset.skill));
+    box.querySelectorAll('.snap-focus').forEach(b => b.onclick = () => enterKid(Number(b.dataset.kid), '#lesson/' + b.dataset.subject + '/' + b.dataset.skill, true));
   }).catch(() => {});
 
   // Monthly growth recap — the longer arc that shows the program is paying off over time.

@@ -78,9 +78,9 @@ function setPassword(parentId, password) {
   db.prepare('UPDATE parents SET password_hash=?, salt=? WHERE id=?').run(hash, salt, parentId);
 }
 
-function createSession(kind, refId) {
+function createSession(kind, refId, assisted) {
   const token = crypto.randomBytes(32).toString('hex');
-  db.prepare('INSERT INTO sessions (token, kind, ref_id) VALUES (?,?,?)').run(token, kind, refId);
+  db.prepare('INSERT INTO sessions (token, kind, ref_id, assisted) VALUES (?,?,?,?)').run(token, kind, refId, assisted ? 1 : 0);
   return token;
 }
 
@@ -118,6 +118,7 @@ function requireKid(req, res, next) {
   const s = getSession(req.cookies.bp_session);
   if (s && s.kind === 'kid') {
     req.kid = db.prepare('SELECT * FROM kids WHERE id=?').get(s.ref_id);
+    req.assistedSession = !!s.assisted;   // Together Mode: answers here are parent-assisted
     if (req.kid) {
       // Defense in depth: the URL :kidId is decorative for a kid session (handlers use
       // req.kid.id). But if the path carries a REAL, different learner id, reject it — so a

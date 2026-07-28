@@ -206,9 +206,12 @@ router.post('/auth/enter-kid', auth.requireParent, (req, res) => {
   if (!kid) return res.status(404).json({ error: 'Learner not found.' });
   const parentToken = req.cookies.bp_session;
   if (parentToken) res.cookie('bp_parent_return', parentToken, COOKIE_OPTS);
-  const token = auth.createSession('kid', kid.id);
+  // Together Mode: the parent launched "Practice together", so flag the whole kid session assisted.
+  // Every answer in it is recorded assisted and can never move independent mastery/placement.
+  const together = !!(req.body && (req.body.together === true || req.body.together === 1 || req.body.together === '1'));
+  const token = auth.createSession('kid', kid.id, together);
   res.cookie('bp_session', token, COOKIE_OPTS);
-  res.json({ ok: true, kid: publicKid(kid) });
+  res.json({ ok: true, kid: publicKid(kid), assisted: together });
 });
 
 // Return from a parent-launched kid session back to the parent dashboard.
@@ -361,7 +364,8 @@ router.get('/auth/me', (req, res) => {
   // parent session), tell the client so it can show an "Exit to parent" control.
   let parentReturn = false;
   try { const pr = auth.getSession(req.cookies.bp_parent_return); parentReturn = !!(pr && pr.kind === 'parent'); } catch (e) {}
-  res.json({ role: 'kid', kid: publicKid(kid), parentReturn });
+  const kidSess = auth.getSession(req.cookies.bp_session);
+  res.json({ role: 'kid', kid: publicKid(kid), parentReturn, assisted: !!(kidSess && kidSess.assisted) });
 });
 
 function publicKid(k) {
@@ -642,7 +646,7 @@ router.post('/learn/:kidId/answer', answerLimiter, auth.requireKid, auth.require
   // request can't corrupt mastery, mint fake certificates, or inflate XP.
   let diff = Number(difficulty); diff = Number.isFinite(diff) ? Math.max(0, Math.min(1, diff)) : 0.5;
   const tRaw = Number(timeMs); const tMs = Number.isFinite(tRaw) && tRaw > 0 ? Math.min(tRaw, 600000) : null;
-  const result = adaptive.recordAnswer(req.kid.id, subject, skillId, !!correct, tMs, diff);
+  const result = adaptive.recordAnswer(req.kid.id, subject, skillId, !!correct, tMs, diff, req.assistedSession);
   const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id);
   res.json({ ...result, kid: publicKid(kid) });
 });
@@ -1040,7 +1044,7 @@ router.get('/family/overview', auth.requireParent, (req, res) => {
     // weekAnswers counts ALL work (engagement/goal); weekAccuracy excludes optional Advanced
     // Track (AP/honors) so the accuracy figure is a fair grade-level read, matching the report.
     const w = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= ?').get(k.id, win.weekStart);
-    const wAcc = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND skill_id NOT LIKE 'track:%' AND ts >= ?").get(k.id, win.weekStart);
+    const wAcc = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND skill_id NOT LIKE 'track:%' AND (assisted IS NULL OR assisted=0) AND ts >= ?").get(k.id, win.weekStart);
     const totalAns = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=?').get(k.id).n;
     // The skills this child is genuinely stuck on, hardest first — this is "where they need help".
     const struggles = db.prepare(

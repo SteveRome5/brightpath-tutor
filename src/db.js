@@ -342,7 +342,14 @@ for (const stmt of [
   // Multi-teacher schools: a teacher account may belong to a school and hold a role within it
   // ('head' = head of school, sees every class; 'member' = a regular teacher). Null = solo teacher.
   "ALTER TABLE parents ADD COLUMN school_id INTEGER",
-  "ALTER TABLE parents ADD COLUMN school_role TEXT"
+  "ALTER TABLE parents ADD COLUMN school_role TEXT",
+  // Together Mode (parent-assisted practice): an answer logged with assisted=1 was worked on WITH
+  // a parent. It counts as engagement but NEVER moves independent mastery, placement, or the Gallop
+  // Score — the report/exports keep assisted and independent work separate (COPPA-safe, honest).
+  "ALTER TABLE activity_log ADD COLUMN assisted INTEGER DEFAULT 0",
+  // A kid session launched via "Practice together" is flagged assisted so every answer in it is
+  // recorded as assisted, surviving the page reload the parent→child handoff performs.
+  "ALTER TABLE sessions ADD COLUMN assisted INTEGER DEFAULT 0"
 ]) {
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }

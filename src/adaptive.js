@@ -359,12 +359,24 @@ function weightedLowest(list) {
 }
 
 // ---------- recording answers & progression ----------
-function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty) {
+function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty, assisted) {
   const st = getSkillState(kidId, subject, skillId);
   // Defense in depth: clamp difficulty here too (routes clamp already, but any future
   // caller must not be able to move mastery the wrong way with an out-of-range value).
   let d0 = Number(difficulty);
   d0 = Number.isFinite(d0) ? Math.max(0, Math.min(1, d0)) : 0.5;
+  // ---- Together Mode (parent-assisted) ----
+  // Assisted answers count as ENGAGEMENT (logged, small XP, streak) but MUST NOT move independent
+  // mastery, placement, or the Gallop Score — a parent could be coaching. So we log the answer with
+  // assisted=1 and return early, before any skill_state / progression change. Mastery only ever
+  // improves from independent work, which is the "later independent check" the audit requires.
+  if (assisted) {
+    db.prepare('INSERT INTO activity_log (kid_id, subject, skill_id, correct, difficulty, time_ms, assisted) VALUES (?,?,?,?,?,?,1)')
+      .run(kidId, subject, skillId, correct ? 1 : 0, d0, timeMs || null);
+    db.prepare('UPDATE kids SET xp = xp + ? WHERE id=?').run(correct ? 4 : 1, kidId); // small engagement XP, no coins/tokens
+    updateStreak(kidId);
+    return { mastery: st.mastery, xpGained: correct ? 4 : 1, events: [], assisted: true, levelChange: null };
+  }
   let m = st.mastery;
   if (correct) {
     m = m + 0.16 * (1 - m) * (0.7 + d0 * 0.6);
@@ -685,7 +697,7 @@ function careerInsights(kidId) {
     const state = getSubjectState(kidId, sub);
     const rows = db.prepare('SELECT mastery FROM skill_state WHERE kid_id=? AND subject=? AND attempts>0').all(kidId, sub);
     const avg = rows.length ? rows.reduce((a, r) => a + r.mastery, 0) / rows.length : null;
-    const agg = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND subject=? AND skill_id NOT LIKE 'track:%'").get(kidId, sub);
+    const agg = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND subject=? AND skill_id NOT LIKE 'track:%' AND (assisted IS NULL OR assisted=0)").get(kidId, sub);
     const acc = agg.n ? agg.c / agg.n : null;
     // strength score: blend mastery (60%) + accuracy (40%); null if not enough data (grade-level only)
     const score = avg == null ? null : Math.max(0, Math.min(1, (avg * 0.6 + (acc == null ? avg : acc) * 0.4)));
@@ -768,7 +780,10 @@ function reportCard(kidId) {
     // Grade-level accuracy EXCLUDES advanced-track (AP/honors) answers: those are optional,
     // deliberately hard, and kept separate from grade-level placement & the Gallop Score. A
     // child grinding AP prep must never see their grade-level accuracy/letter/status drop.
-    const agg = db.prepare(`SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND subject=? AND skill_id NOT LIKE 'track:%'`).get(kidId, sub);
+    // Independent grade-level accuracy: excludes optional AP/honors (track:%) AND parent-assisted
+    // (Together Mode) answers, so the number reflects what the child can do on their own.
+    const agg = db.prepare(`SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND subject=? AND skill_id NOT LIKE 'track:%' AND (assisted IS NULL OR assisted=0)`).get(kidId, sub);
+    const assistedAgg = db.prepare(`SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND subject=? AND assisted=1`).get(kidId, sub);
     const strengths = rows.filter(r => r.mastery >= MASTERED).sort((a, b) => b.mastery - a.mastery).slice(0, 3);
     const focus = rows.filter(r => r.mastery < STRUGGLING && r.attempts >= 2).sort((a, b) => a.mastery - b.mastery).slice(0, 3);
     const nameOf = id => { const s = content.getSkill(sub, id); return s ? s.name : id; };
@@ -776,7 +791,7 @@ function reportCard(kidId) {
     // holding steady, or needing extra care right now?
     // Status uses the child's RECENT overall experience in the subject (last ~15
     // answers), stable, and honest to what they've actually been feeling lately.
-    const recentRows = db.prepare("SELECT correct FROM activity_log WHERE kid_id=? AND subject=? AND skill_id NOT LIKE 'track:%' ORDER BY id DESC LIMIT 15").all(kidId, sub);
+    const recentRows = db.prepare("SELECT correct FROM activity_log WHERE kid_id=? AND subject=? AND skill_id NOT LIKE 'track:%' AND (assisted IS NULL OR assisted=0) ORDER BY id DESC LIMIT 15").all(kidId, sub);
     const MIN_SAMPLE = 8;                        // fewer than this = not enough to judge
     const recentAcc = recentRows.length >= MIN_SAMPLE ? recentRows.filter(r => r.correct).length / recentRows.length : null;
     // Explicit, honest status rules (never a definitive label on a tiny sample):
@@ -840,6 +855,7 @@ function reportCard(kidId) {
       progress,
       nextGradeName: curLvl < maxGrade(sub) ? gradeName(curLvl + 1) : null,
       questionsAnswered: agg.n || 0, accuracy: agg.n ? (agg.c / agg.n) : null,
+      assistedAnswers: assistedAgg.n || 0,
       status, recentAccuracy: recentAcc, recentSample: recentRows.length, enrolledGrade: kid.grade || 0,
       placementNote: placementRationale(sub, state, kid),
       placementMissed: (() => { try { return state.placement_missed ? JSON.parse(state.placement_missed) : []; } catch (e) { return []; } })(),

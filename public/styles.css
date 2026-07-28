@@ -2523,3 +2523,9 @@ body[data-theme="academy"] .rt-n { color: var(--accent); }
 .ke-showlevel b { color: var(--chrome-ink); }
 .career-explore-note { background: var(--soft-bg); border: 1.5px solid var(--card-border); border-radius: 12px; padding: 12px 14px; margin-top: 14px; }
 .career-explore-note b { color: var(--brand); }
+/* Together Mode (parent-assisted practice) banner — persistent under the topbar so the parent
+   always knows this session won't move independent scores, with a one-tap return. */
+.together-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; background: linear-gradient(90deg, #efe7fb, #e7eefb); color: #4a3d78; border-bottom: 2px solid #cdbdf0; padding: 8px 14px; font-size: .9rem; font-weight: 600; }
+.together-bar b { color: #3a2f66; }
+.together-bar .together-exit-btn { background: #5b46b0; color: #fff; border: none; }
+body[data-theme="academy"] .together-bar { background: #2a2440; color: #d8cdf5; border-color: #4a3f70; }
