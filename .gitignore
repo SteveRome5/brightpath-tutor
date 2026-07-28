@@ -1,3 +1,6 @@
 node_modules/
 data/
 .env
+
+# Generated deliverable documents (delivered to the user, not app source)
+*.docx
