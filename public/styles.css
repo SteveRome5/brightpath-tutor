@@ -2517,3 +2517,5 @@ body[data-theme="academy"] .rt-n { color: var(--accent); }
 .ke-showlevel { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding: 12px 14px; background: var(--soft-bg); border: 1px solid var(--card-border); border-radius: 12px; cursor: pointer; }
 .ke-showlevel input { margin-top: 3px; width: 18px; height: 18px; flex: none; cursor: pointer; }
 .ke-showlevel b { color: var(--chrome-ink); }
+.career-explore-note { background: var(--soft-bg); border: 1.5px solid var(--card-border); border-radius: 12px; padding: 12px 14px; margin-top: 14px; }
+.career-explore-note b { color: var(--brand); }

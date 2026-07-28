@@ -689,7 +689,7 @@ function careerInsights(kidId) {
     const acc = agg.n ? agg.c / agg.n : null;
     // strength score: blend mastery (60%) + accuracy (40%); null if not enough data (grade-level only)
     const score = avg == null ? null : Math.max(0, Math.min(1, (avg * 0.6 + (acc == null ? avg : acc) * 0.4)));
-    return { subject: sub, label: subjectLabel(sub), placed: !!state.placed, level: Math.round(state.level), answers: agg.n || 0, mastery: avg, accuracy: acc, score };
+    return { subject: sub, label: subjectLabel(sub), placed: !!state.placed, level: Math.round(state.level), answers: agg.n || 0, skills: rows.length, mastery: avg, accuracy: acc, score };
   });
   const active = subs.filter(s => s.score != null && s.answers >= 5);
   const ranked = active.slice().sort((a, b) => b.score - a.score);
@@ -700,8 +700,15 @@ function careerInsights(kidId) {
     for (const [sub, w] of Object.entries(c.sig)) { num += scoreOf(sub) * w; den += w; }
     return { ...c, match: den ? num / den : 0 };
   }).sort((a, b) => b.match - a.match);
-  const enough = active.length >= 1 && ranked.length && ranked[0].score >= 0.4;
   const band = grade >= 9 ? 'pathways' : grade >= 6 ? 'explore' : 'emerging';
+  // enough = we can show INTERESTS to explore (light). enoughForFit = we can rank career "fit"
+  // with confidence (P0-6). A ranked fit needs broad, older-learner evidence — never a "Strong
+  // fit" for a Grade-1 child off one math + one English skill. Early-elementary (emerging band)
+  // always stays exploratory; ranked fit needs 2+ subjects, ≥6 practiced skills, and a real lead.
+  const distinctSkills = active.reduce((n, s) => n + (s.skills || 0), 0);
+  const enough = active.length >= 1 && ranked.length && ranked[0].score >= 0.4;
+  const enoughForFit = band !== 'emerging' && active.length >= 2 && distinctSkills >= 6
+    && ranked.length && ranked[0].score >= 0.5;
   const topStrengths = ranked.filter(s => s.score >= 0.6).slice(0, 2);
   const growthAreas = ranked.filter(s => s.score < 0.5).sort((a, b) => a.score - b.score).slice(0, 2)
     .map(s => ({ subject: s.subject, label: s.label, score: s.score,
@@ -709,9 +716,13 @@ function careerInsights(kidId) {
   return {
     grade, band, ranked,
     hasData: enough,
+    enoughForFit,
+    evidence: { subjects: active.length, skills: distinctSkills },
     topStrengths: topStrengths.map(s => ({ subject: s.subject, label: s.label, score: s.score, level: s.level })),
     growthAreas,
-    pathways: enough ? pathways.filter(p => p.match >= 0.35).slice(0, band === 'pathways' ? 4 : 3) : []
+    // Ranked career "fit" only surfaces with strong evidence; otherwise the client shows
+    // exploratory interests, not predicted fit.
+    pathways: enoughForFit ? pathways.filter(p => p.match >= 0.35).slice(0, band === 'pathways' ? 4 : 3) : []
   };
 }
 

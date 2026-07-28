@@ -2838,12 +2838,15 @@ function accuracyLine(s) {
 function renderCareer(c, k) {
   const SUBCOL = { math: '#5b5bd6', english: '#0f9d76', science: '#2f78c2', spanish: '#d26440' };
   const SUBEMO = { math: '🔢', english: '📚', science: '🔬', spanish: '🌎' };
-  const bandTitle = c.band === 'pathways' ? '🎯 Career Pathways' : c.band === 'explore' ? '🧭 Strengths & Career Explorer' : '🌱 Emerging Strengths';
-  const intro = c.band === 'pathways'
+  // Only call it "Career Pathways" when we actually have the evidence to rank fit; otherwise it's
+  // an exploration of strengths/interests, never a prediction (P0-6).
+  const bandTitle = !c.enoughForFit ? '🌱 Strengths & Interests to Explore'
+    : c.band === 'pathways' ? '🎯 Career Pathways' : c.band === 'explore' ? '🧭 Strengths & Career Explorer' : '🌱 Emerging Strengths';
+  const intro = !c.enoughForFit
+    ? `Here's a look at ${esc(k.name)}'s relative strengths so far. These are interests to explore together — not a career prediction. Gallop suggests specific directions only once there's broad evidence across subjects and time.`
+    : c.band === 'pathways'
     ? `Based on how ${esc(k.name)} is performing, here are career directions that fit their strengths, along with how to prepare for them in high school.`
-    : c.band === 'explore'
-    ? `${esc(k.name)}'s strengths are starting to point somewhere. Here's where these skills tend to lead, worth talking through together.`
-    : `It's early, but ${esc(k.name)} is already building strengths. Here's a peek at where these skills can lead one day.`;
+    : `${esc(k.name)}'s strengths are starting to point somewhere. Here's where these skills tend to lead, worth talking through together.`;
   if (!c.hasData) {
     return `<div class="card career-card">
       <div class="career-head"><h3>${bandTitle}</h3></div>
@@ -2878,10 +2881,17 @@ function renderCareer(c, k) {
     <div class="strength-panel">${bars}</div>
     ${strengthChips}
     ${growth}
-    <h4 style="margin:18px 0 10px">${c.band === 'pathways' ? 'Pathways that fit these strengths' : 'Where these skills can lead'}</h4>
-    <div class="path-grid">${paths}</div>
+    ${(c.enoughForFit && c.pathways.length) ? `
+      <h4 style="margin:18px 0 10px">${c.band === 'pathways' ? 'Pathways that fit these strengths' : 'Where these skills can lead'}</h4>
+      <div class="path-grid">${paths}</div>
+      <p class="muted" style="font-size:.78rem;margin-top:10px">Based on ${c.evidence ? `${c.evidence.subjects} subjects and ${c.evidence.skills} skills practiced` : 'current work'} — a direction to explore, not a prediction. It sharpens as ${esc(k.name)} does more.</p>
+    ` : `
+      <div class="career-explore-note">
+        <b>🧭 Interests to explore</b>
+        <p class="muted" style="margin:6px 0 0">These are early <b>strengths</b>, not a career prediction. Gallop waits for broader evidence — several subjects and more skills over time — before it suggests specific career directions${c.grade != null && c.grade <= 5 ? ', which it does for older learners' : ''}. For now, notice what ${esc(k.name)} enjoys and lean into it.</p>
+      </div>`}
     <div class="center" style="margin-top:14px"><button class="btn green small no-print" onclick="location.hash='#careers/${k.id}'">🔭 Open the Career Explorer — real jobs & role models →</button></div>
-    <p class="muted" style="font-size:.78rem;margin-top:12px">These suggestions come from ${esc(k.name)}'s skill levels and accuracy across subjects. They sharpen as more work is completed and update automatically as ${esc(k.name)} grows.</p>
+    <p class="muted" style="font-size:.78rem;margin-top:12px">These reflect ${esc(k.name)}'s skill levels and accuracy across subjects. They sharpen as more work is completed and update automatically as ${esc(k.name)} grows.</p>
   </div>`;
 }
 
