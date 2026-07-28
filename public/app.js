@@ -1626,10 +1626,13 @@ route('home', async () => {
         : rec.type === 'review' ? (playful() ? `Keep ${s.label} sharp 🧠` : `${s.label}: time for a quick review`)
         : rec.type === 'more' ? (playful() ? `Keep the ${s.label} roll going 🔥` : `${s.label}: keep the momentum`)
         : (playful() ? `Fresh ${s.label} adventure awaits ✨` : `${s.label}: nothing logged today`);
-      const sub = rec.type === 'place' ? (playful() ? 'A quick quiz finds your perfect starting spot.' : 'Short adaptive assessment, a few minutes.')
-        : rec.type === 'boost' ? (playful() ? 'A few wins here and your skill power jumps!' : 'Targeted reps where mastery is lowest.')
-        : rec.type === 'review' ? (playful() ? 'A little review so it really sticks!' : 'A spaced-review check so mastery lasts.')
-        : (playful() ? 'Your tutor picked this just for you.' : 'Recommended by your progress data.');
+      // Copy describes WHY this subject is recommended (the subject-level reason), not a promise
+      // about the very first question's mode — the adaptive session mixes new work and review, so
+      // claiming "this is a review" while the first item is a new skill was a contradiction (P1.3).
+      const sub = rec.type === 'place' ? (playful() ? 'A quick quiz finds your perfect starting spot.' : 'Short adaptive placement, a few minutes.')
+        : rec.type === 'boost' ? (playful() ? 'This is where a little practice helps the most!' : `Where ${esc(k.name.split(' ')[0])}'s practice will help most right now.`)
+        : rec.type === 'review' ? (playful() ? 'Some skills here are ready for a refresh 🧠' : 'This subject has skills due for review to keep them sharp.')
+        : (playful() ? 'A great place to keep the momentum going!' : 'Recommended by your recent progress.');
       return `<div class="up-next" data-upnext="${rec.subject}" data-place="${rec.type === 'place' ? 1 : 0}">
         <div class="un-emoji">${s.emoji}</div>
         <div class="un-text"><span class="un-label">${playful() ? '🐎 UP NEXT' : 'UP NEXT'}</span><b>${title}</b><span class="un-sub">${sub}</span></div>
@@ -1869,7 +1872,10 @@ route('lesson', async (subject, mode, anchor) => {
     try {
       // Keep the mission on one skill: once anchored, ask the server for that same skill
       // until it's mastered (then it hands us a new skill and we re-anchor below).
-      const q = session.focusSkill ? `?focus=${encodeURIComponent(session.focusSkill)}` : '';
+      const params = [];
+      if (session.focusSkill) params.push(`focus=${encodeURIComponent(session.focusSkill)}`);
+      if (session.hardNext) { params.push('boost=1'); session.hardNext = false; }  // "level me up" → harder item (P1.4)
+      const q = params.length ? '?' + params.join('&') : '';
       const data = await api(`/learn/${kidId}/next/${subject}${q}`);
       // Anchor to the served skill (a labeled retention "Memory Check" never re-anchors,
       // so a spaced-review question doesn't derail the mission's focus).
@@ -1878,23 +1884,35 @@ route('lesson', async (subject, mode, anchor) => {
     } catch (e) {
       if (e.status === 402) { renderPaywall(e.data && e.data.reason); return; }
       if (e.status === 401) { toast('Please log back in to keep going!'); location.hash = '#kid-login'; return; }
-      // Never leave a kid stuck: one auto-retry, then a friendly tap-to-retry card.
-      try {
-        await new Promise(r => setTimeout(r, 800));
-        const q = session.focusSkill ? `?focus=${encodeURIComponent(session.focusSkill)}` : '';
-        const data = await api(`/learn/${kidId}/next/${subject}${q}`);
-        if (data && data.skill && data.skill.id && data.mode !== 'retention') session.focusSkill = data.skill.id;
-        render(data);
-      } catch (e2) {
-        if (e2.status === 401) { toast('Please log back in to keep going!'); location.hash = '#kid-login'; return; }
-        app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="card center">
-          <div class="big-emoji">🐎</div><h2>Whoa, quick water break!</h2>
-          <p class="muted" style="margin:10px 0 18px">The next question didn't load. Your progress is saved, tap below to keep going.</p>
-          <button class="btn green" id="retry-q">Keep Going →</button>
-          <button class="btn ghost small" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px" onclick="location.hash='#home'">Back to Subjects</button>
-        </div></div>`);
-        wireChrome();
-        $('#retry-q').onclick = () => { Sound.click(); nextQuestion(); };
+      // Never leave a kid stuck. Transient failures (server restart mid-deploy, a flaky generator,
+      // a dropped connection) should self-heal: retry up to 3x with backoff BEFORE showing the
+      // recovery card (P1.1). Log structured context so a real failure is diagnosable.
+      const started = Date.now();
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await new Promise(r => setTimeout(r, [500, 1200, 2500][attempt - 1]));
+          const params = [];
+          if (session.focusSkill) params.push(`focus=${encodeURIComponent(session.focusSkill)}`);
+          if (session.hardNext) { params.push('boost=1'); session.hardNext = false; }
+          const data = await api(`/learn/${kidId}/next/${subject}${params.length ? '?' + params.join('&') : ''}`);
+          if (data && data.skill && data.skill.id && data.mode !== 'retention') session.focusSkill = data.skill.id;
+          try { console.info('[gallop] next-question recovered', { subject, focusSkill: session.focusSkill, attempt, waitedMs: Date.now() - started }); } catch (_) {}
+          return render(data);
+        } catch (e2) {
+          if (e2.status === 401) { toast('Please log back in to keep going!'); location.hash = '#kid-login'; return; }
+          if (e2.status === 402) { renderPaywall(e2.data && e2.data.reason); return; }
+          try { console.warn('[gallop] next-question load failed', { subject, focusSkill: session.focusSkill, attempt, status: e2.status || 'network', qNum: session.n }); } catch (_) {}
+          if (attempt === 3) {
+            app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="card center">
+              <div class="big-emoji">🐎</div><h2>Whoa, quick water break!</h2>
+              <p class="muted" style="margin:10px 0 18px">The next question didn't load. Your progress is saved, tap below to keep going.</p>
+              <button class="btn green" id="retry-q">Keep Going →</button>
+              <button class="btn ghost small" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px" onclick="location.hash='#home'">Back to Subjects</button>
+            </div></div>`);
+            wireChrome();
+            $('#retry-q').onclick = () => { Sound.click(); nextQuestion(); };
+          }
+        }
       }
     }
   }
@@ -2001,10 +2019,15 @@ route('lesson', async (subject, mode, anchor) => {
       btn.textContent = playful() ? (down ? '🐴 One sec…' : '🚀 One sec…') : 'Adjusting…';
       try {
         const r = await api(`/learn/${kidId}/level-shift/${subject}`, { method: 'POST', body: { delta } });
-        // Keep the grade name out of the child's view unless the parent chose to reveal it.
+        // Move OFF the current skill so the next item is genuinely different, not the same skill
+        // with new numbers, and (on level-up) serve it noticeably harder so the change is visible.
+        session.focusSkill = null;
+        if (!down) session.hardNext = true;
+        // Confirm what changed. Show the grade only if the parent revealed it; otherwise name the
+        // concrete change in difficulty so the child can see Gallop listened (P1.4).
         const msg = showLevel()
-          ? (playful() ? (down ? `🌈 Okay! Easier ${r.levelName} questions coming up.` : `🚀 Nice! Stepping up to ${r.levelName} questions.`) : `Level set to ${r.levelName}.`)
-          : (playful() ? (down ? `🌈 Okay! Easier questions coming up.` : `🚀 Nice! Stepping it up!`) : (down ? `Easing the difficulty.` : `Raising the difficulty.`));
+          ? (playful() ? (down ? `🌈 Okay! Easier ${r.levelName} questions coming up.` : `🚀 Moving up to ${r.levelName} — these get harder!`) : `Level set to ${r.levelName}. ${down ? 'Easier' : 'Harder'} questions next.`)
+          : (playful() ? (down ? `🌈 Okay! Easier questions coming up.` : `🚀 Leveling up — here comes a tougher one!`) : (down ? `Easing the difficulty — simpler questions next.` : `Leveling up — a harder question next.`));
         toastAction(msg, playful() ? '↩︎ Undo' : 'Undo', () => levelShift(-delta));
         nextQuestion();
       } catch (e) {
@@ -2786,11 +2809,15 @@ function computeDoNext(r) {
   // subjects at this week's pace. Deliberately conservative and always framed as an estimate.
   let eta = null;
   const perSubjWeekly = (r.weekAnswers || 0) / placed.length;
-  if (remaining > 0 && perSubjWeekly >= 8 && s.progress && !s.progress.atMaxGrade && s.nextGradeName) {
+  // Only project a timeline once there's enough STABLE evidence, and present a RANGE rather than a
+  // single falsely-precise number (P1.2). No estimate when the child hasn't demonstrated real
+  // activity/mastery in the subject yet — "~21 weeks" with 0 skills mastered reads as made up.
+  const enoughEvidence = s.progress && (s.progress.totalAnswered || 0) >= 20 && s.progress.atLevelMastered >= 1;
+  if (remaining > 0 && perSubjWeekly >= 8 && enoughEvidence && !s.progress.atMaxGrade && s.nextGradeName) {
     const acc = Math.max(s.accuracy || 0.7, 0.4);
     const skillsPerWeek = Math.max(0.15, (perSubjWeekly * acc) / 15);
-    const wks = Math.round(remaining / skillsPerWeek);
-    if (wks >= 1 && wks <= 40) eta = wks;
+    const wks = remaining / skillsPerWeek;
+    if (wks >= 1 && wks <= 40) eta = { lo: Math.max(1, Math.floor(wks * 0.7)), hi: Math.max(2, Math.ceil(wks * 1.4)) };
   }
   return { s, concept, remaining, eta };
 }
@@ -2803,7 +2830,7 @@ function doNextCard(r, k) {
     <div class="dn-head">🧭 Do this next</div>
     <p class="dn-focus">Put this week's attention on <b>${esc(s.label)}</b>${conceptLine}.</p>
     <p class="dn-action">At home: ask ${esc(k.name)} to <b>teach you</b> how ${esc(concept)} works. Explaining it out loud is one of the fastest ways to lock a skill in — and it shows you instantly what's clicked and what hasn't.</p>
-    ${remaining > 0 && s.nextGradeName ? `<p class="dn-eta"><b>${remaining}</b> more ${esc(s.levelName)} skill${remaining === 1 ? '' : 's'} to reach <b>${esc(s.nextGradeName)}</b>${eta ? ` — about <b>~${eta} week${eta === 1 ? '' : 's'}</b> at this week's pace` : ''}.</p>` : ''}
+    ${remaining > 0 && s.nextGradeName ? `<p class="dn-eta"><b>${remaining}</b> more ${esc(s.levelName)} skill${remaining === 1 ? '' : 's'} to reach <b>${esc(s.nextGradeName)}</b>${eta ? (eta.lo === eta.hi ? ` — roughly <b>${eta.lo} week${eta.lo === 1 ? '' : 's'}</b> at this week's pace` : ` — roughly <b>${eta.lo}–${eta.hi} weeks</b> at this week's pace`) : ''}.</p>` : ''}
   </div>`;
 }
 

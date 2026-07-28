@@ -547,11 +547,13 @@ router.get('/learn/:kidId/next/:subject', auth.requireKid, auth.requireActiveSub
   // one skill until it's mastered (tester finding #1). Sanitize to a plausible skill id.
   const focusRaw = typeof req.query.focus === 'string' ? req.query.focus.slice(0, 64) : '';
   const focusSkill = /^[\w.\-]+$/.test(focusRaw) ? focusRaw : '';
+  // "Too easy? Level me up" sends ?boost=1 so the very next item is served harder (P1.4).
+  const hard = req.query.boost === '1';
   // A single flaky generator must never freeze a kid's session — retry, then fail soft.
   // A truthy activity whose question failed to generate (question:null) still counts as a
   // miss here, otherwise indexing qn.choices below would throw a 500 instead of the soft 503.
   for (let attempt = 0; attempt < 3 && !(activity && activity.question); attempt++) {
-    try { activity = adaptive.nextActivity(req.kid.id, subject, { focusSkill }); } catch (e) { activity = null; }
+    try { activity = adaptive.nextActivity(req.kid.id, subject, { focusSkill, hard }); } catch (e) { activity = null; }
   }
   if (!activity || !activity.question) return res.status(503).json({ error: 'Hiccup loading the next question — tap to try again!' });
   const qn = activity.question;

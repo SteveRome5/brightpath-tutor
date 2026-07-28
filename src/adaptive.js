@@ -327,6 +327,9 @@ function nextActivity(kidId, subject, opts = {}) {
     // stays engaging without knocking the child's mastery back down.
     d = Math.max(0.15, Math.min(0.85, chosen.st.mastery + bump));
   }
+  // Explicit "Too easy? Level me up" request — serve a clearly harder item so the child SEES the
+  // difficulty change, instead of a same-looking intro question at the new grade (P1.4).
+  if (opts.hard) { d = Math.max(d, 0.8); if (mode === 'learn') mode = 'stretch'; }
   const question = content.generateQuestion(subject, chosen.skill.id, d, recentSet(kidId, subject));
   if (question) noteRecent(kidId, subject, question.prompt);
   return {
@@ -801,6 +804,15 @@ function reportCard(kidId) {
       totalAnswered: agg.n || 0, totalCorrect: agg.c || 0,
       atMaxGrade: curLvl >= maxGrade(sub)
     };
+    // ---- Contradiction guards (P1.2) ----
+    // A verdict must be consistent with demonstrated mastery and a real body of evidence. This
+    // prevents the confusing combination the QA saw: "Excelling" alongside 0 of N skills mastered
+    // and a far-below-grade score. High recent accuracy on a handful of easy items is NOT excelling.
+    if (state.placed) {
+      const thin = (progress.totalAnswered || 0) < 20;
+      if (status === 'excelling' && progress.mastered === 0) status = 'on-track';
+      if ((status === 'excelling' || status === 'on-track') && progress.atLevelMastered === 0 && thin) status = 'developing';
+    }
     return {
       subject: sub, label: subjectLabel(sub), level: state.level, levelName: gradeName(Math.round(state.level)),
       placed: !!state.placed, avgMastery: avg, letter: letterGrade(agg.n ? (agg.c / agg.n) : null),
