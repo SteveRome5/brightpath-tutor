@@ -213,63 +213,89 @@
   const MEMORY_SETS = {
     spanish: [['🐶', 'perro'], ['🐱', 'gato'], ['🍎', 'manzana'], ['💧', 'agua'], ['🥛', 'leche'], ['🧀', 'queso'], ['🐟', 'pez'], ['🐴', 'caballo'], ['🍞', 'pan'], ['🐦', 'pájaro']],
     math: [['3×4', '12'], ['6×7', '42'], ['8×8', '64'], ['9×6', '54'], ['12÷4', '3'], ['45÷9', '5'], ['7+8', '15'], ['16−9', '7'], ['5×9', '45'], ['11×11', '121']],
-    words: [['🌞', 'sun'], ['🌈', 'rainbow'], ['🦋', 'butterfly'], ['🌊', 'ocean'], ['⭐', 'star'], ['🌸', 'flower'], ['🌙', 'moon'], ['🔥', 'fire'], ['❄️', 'snow'], ['🌳', 'tree']]
+    words: [['🌞', 'sun'], ['🌈', 'rainbow'], ['🦋', 'butterfly'], ['🌊', 'ocean'], ['⭐', 'star'], ['🌸', 'flower'], ['🌙', 'moon'], ['🔥', 'fire'], ['❄️', 'snow'], ['🌳', 'tree']],
+    animals: [['🐶', 'dog'], ['🐱', 'cat'], ['🦁', 'lion'], ['🐘', 'elephant'], ['🦒', 'giraffe'], ['🐸', 'frog'], ['🐧', 'penguin'], ['🦊', 'fox'], ['🐢', 'turtle'], ['🐝', 'bee']]
   };
   function startMemory() {
-    const setName = ['spanish', 'math', 'words'][Math.floor(Math.random() * 3)];
-    const pairs = MEMORY_SETS[setName].slice().sort(() => Math.random() - .5).slice(0, 6);
-    const cards = pairs.flatMap(([a, b], i) => [{ v: a, p: i }, { v: b, p: i }]).sort(() => Math.random() - .5);
-    let flipped = [], matched = new Set(), moves = 0, lock = false;
-    const t0 = Date.now();
-    const setLabel = setName === 'spanish' ? '🌎 Spanish' : setName === 'math' ? '🔢 Math Facts' : '📚 Words';
-    const cardEl = i => document.querySelector(`.mem-card[data-i="${i}"]`);
-    function setMoves() { const m = $('#mem-moves'); if (m) m.textContent = moves; }
-    function render() {
-      app().innerHTML = topbar(`<div class="container" style="max-width:640px">
-        <div class="lesson-top"><b>🃏 Memory Meadow — ${setLabel}</b><b>Moves: <span id="mem-moves">${moves}</span></b></div>
-        <div class="mem-grid">
-          ${cards.map((c, i) => `
-            <button class="mem-card" data-i="${i}" aria-label="card">
-              <div class="mem-inner">
-                <div class="mem-face mem-front"><span>🐎</span></div>
-                <div class="mem-face mem-back"><span>${esc(c.v)}</span></div>
-              </div>
-            </button>`).join('')}
+    // Difficulty picker up front (more pairs = tougher + higher score ceiling), then a
+    // surprise theme each round so it never feels the same twice.
+    function intro() {
+      app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center" style="padding:26px">
+        <div class="big-emoji">🃏</div><h2>Memory Meadow</h2>
+        <p class="muted" style="margin:6px 0 4px">Match every pair in as few flips as you can — and chain matches for a combo bonus!</p>
+        <div class="mem-diffs">
+          <button class="btn green mem-diff" data-n="4">🌱 Easy<small>4 pairs</small></button>
+          <button class="btn sun mem-diff" data-n="6">⭐ Medium<small>6 pairs</small></button>
+          <button class="btn coral mem-diff" data-n="8">🔥 Hard<small>8 pairs</small></button>
         </div>
-        <p class="game-hint">Flip two cards — match each picture or problem with its pair!</p>
-      </div>`);
+        <p class="muted" style="margin-top:14px;font-size:.85rem">🎲 Surprise theme every round — Spanish, math, words or animals!</p>
+        <button class="btn ghost small" style="margin-top:10px;color:#1A5C38;border-color:#1A5C38" onclick="location.hash='#play'">← Back to Play Zone</button>
+      </div></div>`);
       wireChrome();
-      document.querySelectorAll('.mem-card').forEach(el => el.onclick = () => flip(Number(el.dataset.i)));
+      document.querySelectorAll('.mem-diff').forEach(b => b.onclick = () => { Sound.click(); play(Number(b.dataset.n)); });
     }
-    function flip(i) {
-      if (lock || flipped.includes(i) || matched.has(cards[i].p)) return;
-      Sound.click();
-      flipped.push(i);
-      const el = cardEl(i); if (el) el.classList.add('is-up');
-      if (flipped.length === 2) {
-        moves++; setMoves();
-        const [a, b] = flipped;
-        if (cards[a].p === cards[b].p && a !== b) {
-          matched.add(cards[a].p); Sound.correct(); flipped = [];
-          setTimeout(() => { [a, b].forEach(k => { const e = cardEl(k); if (e) e.classList.add('is-matched'); }); Confetti.burst(24); }, 260);
-          if (matched.size === 6) {
-            const secs = Math.round((Date.now() - t0) / 1000);
-            const score = Math.max(10, 200 - moves * 10 - secs);
-            setTimeout(() => finishGame('memory', score, 'All pairs matched! 🧠', `${moves} moves in ${secs} seconds. Fewer moves = bigger score!`), 900);
+    function play(pairsN) {
+      const setName = ['spanish', 'math', 'words', 'animals'][Math.floor(Math.random() * 4)];
+      const pairs = MEMORY_SETS[setName].slice().sort(() => Math.random() - .5).slice(0, pairsN);
+      const cards = pairs.flatMap(([a, b], i) => [{ v: a, p: i }, { v: b, p: i }]).sort(() => Math.random() - .5);
+      let flipped = [], matched = new Set(), moves = 0, lock = false, streak = 0, bestStreak = 0;
+      const t0 = Date.now();
+      const setLabel = { spanish: '🌎 Spanish', math: '🔢 Math Facts', words: '📚 Words', animals: '🐾 Animals' }[setName];
+      const cardEl = i => document.querySelector(`.mem-card[data-i="${i}"]`);
+      function setMoves() { const m = $('#mem-moves'); if (m) m.textContent = moves; }
+      function render() {
+        app().innerHTML = topbar(`<div class="container" style="max-width:640px">
+          <div class="lesson-top"><b>🃏 Memory Meadow — ${setLabel}</b><b><span id="mem-combo" class="mem-combo${streak >= 2 ? ' show' : ''}">🔥 ×${streak}</span> Moves: <span id="mem-moves">${moves}</span></b></div>
+          <div class="mem-grid mem-grid-${pairsN}">
+            ${cards.map((c, i) => `
+              <button class="mem-card" data-i="${i}" aria-label="card">
+                <div class="mem-inner">
+                  <div class="mem-face mem-front"><span>🐎</span></div>
+                  <div class="mem-face mem-back"><span>${esc(c.v)}</span></div>
+                </div>
+              </button>`).join('')}
+          </div>
+          <p class="game-hint">Flip two cards to find a matching pair — match twice in a row for a 🔥 combo!</p>
+        </div>`);
+        wireChrome();
+        document.querySelectorAll('.mem-card').forEach(el => el.onclick = () => flip(Number(el.dataset.i)));
+      }
+      function flip(i) {
+        if (lock || flipped.includes(i) || matched.has(cards[i].p)) return;
+        Sound.click();
+        flipped.push(i);
+        const el = cardEl(i); if (el) el.classList.add('is-up');
+        if (flipped.length === 2) {
+          moves++; setMoves();
+          const [a, b] = flipped;
+          if (cards[a].p === cards[b].p && a !== b) {
+            matched.add(cards[a].p); Sound.correct(); flipped = [];
+            streak++; bestStreak = Math.max(bestStreak, streak);
+            const cb = $('#mem-combo'); if (cb) { cb.textContent = `🔥 ×${streak}`; cb.classList.toggle('show', streak >= 2); }
+            if (streak >= 2) toast(`🔥 ${streak} in a row! +${streak * 5}`);
+            setTimeout(() => { [a, b].forEach(k => { const e = cardEl(k); if (e) e.classList.add('is-matched'); }); Confetti.burst(streak >= 2 ? 40 : 24); }, 260);
+            if (matched.size === pairsN) {
+              const secs = Math.round((Date.now() - t0) / 1000);
+              const perfect = pairsN;                                   // fewest possible flips
+              const stars = moves <= Math.ceil(perfect * 1.4) ? 3 : moves <= perfect * 2 ? 2 : 1;
+              const score = Math.max(20, pairsN * 40 + bestStreak * 10 - (moves - perfect) * 6 - secs);
+              const starStr = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+              setTimeout(() => finishGame('memory', score, `${starStr}  All ${pairsN} pairs matched!`, `${moves} flips in ${secs}s · best combo ×${bestStreak}. ${stars === 3 ? 'Perfect memory! 🧠' : 'Fewer flips = more stars — try Hard for a bigger score!'}`), 900);
+            }
+          } else {
+            lock = true; Sound.wrong(); streak = 0;
+            const cb = $('#mem-combo'); if (cb) cb.classList.remove('show');
+            setTimeout(() => { [a, b].forEach(k => { const e = cardEl(k); if (e) e.classList.add('is-wrong'); }); }, 260);
+            setTimeout(() => {
+              [a, b].forEach(k => { const e = cardEl(k); if (e) e.classList.remove('is-up', 'is-wrong'); });
+              flipped = []; lock = false;
+            }, 950);
           }
-        } else {
-          lock = true; Sound.wrong();
-          setTimeout(() => {
-            [a, b].forEach(k => { const e = cardEl(k); if (e) e.classList.add('is-wrong'); });
-          }, 260);
-          setTimeout(() => {
-            [a, b].forEach(k => { const e = cardEl(k); if (e) e.classList.remove('is-up', 'is-wrong'); });
-            flipped = []; lock = false;
-          }, 950);
         }
       }
+      render();
     }
-    render();
+    intro();
   }
 
   // ======================= WORD SEARCH =======================
@@ -586,6 +612,7 @@
     const grade = State.me.kid.grade || 0;
     const DURATION = 60;
     let score = 0, combo = 0, best = 0, answered = 0, correct = 0, timeLeft = DURATION, timer = null, over = false;
+    const MILES = [50, 100, 150, 200, 300, 400]; const hitMiles = new Set();  // score milestones → big celebration
     function makeQ() {
       const r = Math.random();
       if (grade <= 1) {
@@ -640,7 +667,7 @@
           <div class="combo-badge ${combo >= 3 ? 'show' : ''}" id="bz-combo">🔥 COMBO ×<span>${combo}</span></div>
           <div class="blitz-q" id="bz-q">${qn.t} = ?</div>
           <div class="blitz-choices">${ch.map(c => `<button class="btn blitz-btn" data-v="${c}">${c}</button>`).join('')}</div>
-          <p class="muted" style="margin-top:12px">Combos of 3+ score <b>DOUBLE</b> points! 🔥</p>
+          ${hot ? `<p class="bz-rush">⚡ FINAL RUSH — every answer scores DOUBLE!</p>` : `<p class="muted" style="margin-top:12px">Combos of 3+ score <b>DOUBLE</b> points! 🔥</p>`}
         </div>
       </div>`);
       wireChrome();
@@ -650,13 +677,16 @@
         const right = Number(b.dataset.v) === qn.ans;
         if (right) {
           correct++; combo++; best = Math.max(best, combo);
-          const gain = combo >= 3 ? 20 : 10; score += gain;
+          const rush = timeLeft <= 10;                          // FINAL RUSH: last 10s score double
+          let gain = combo >= 3 ? 20 : 10; if (rush) gain *= 2;
+          score += gain;
           Sound.correct();
           b.classList.add('right');
-          floatGain(b, '+' + gain);
+          floatGain(b, '+' + gain + (rush ? ' ⚡' : ''));
           const card = document.querySelector('.bz-card'); if (card) { card.classList.remove('juice'); void card.offsetWidth; card.classList.add('juice'); }
           if (combo === 3) Confetti.burst(40);
           if (combo >= 3 && combo % 5 === 0) Confetti.burst(60);
+          for (const m of MILES) { if (score >= m && !hitMiles.has(m)) { hitMiles.add(m); Confetti.burst(90); toast(`🎯 ${m} points!`); } }
         } else {
           combo = 0; Sound.wrong();
           b.classList.add('wrong');
