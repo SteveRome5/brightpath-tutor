@@ -705,6 +705,10 @@ body[data-theme="academy"] .pill.focus { background: #3a2f1d; color: #e6b877; }
 .badge-item { background: var(--accent-soft); color: #4d3c07; border-radius: 10px; padding: 9px 13px; font-weight: 600; font-size: .88rem; }
 body[data-theme="academy"] .badge-item { background: #33301f; color: #e6d9a8; }
 .cert { border: 2px solid var(--accent); border-radius: 12px; padding: 14px 18px; margin-bottom: 10px; background: var(--card-bg); }
+/* .cert renders as a real <button> for keyboard/AT access — reset native button chrome so it
+   still looks like the card it was, full-width and left-aligned, with a visible focus ring. */
+button.cert { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+button.cert:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
 
 /* PIN pad */
 .pinpad { display: grid; grid-template-columns: repeat(3, 76px); gap: 10px; justify-content: center; margin-top: 16px; }

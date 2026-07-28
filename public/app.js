@@ -3060,7 +3060,7 @@ route('report', async (kidId) => {
       <h3>🎓 Certificates</h3>
       <div style="margin-top:10px">
         ${r.certificates.length ? r.certificates.map(c => `
-          <div class="cert" style="cursor:pointer" data-cert="${c.id}"><b>🎓 ${esc(c.title)}</b><br><span class="muted">Awarded ${esc(c.issued_at.slice(0, 10))} · tap to view & print the certificate 🖨️</span></div>`).join('')
+          <button type="button" class="cert" data-cert="${c.id}" aria-label="View and print the ${esc(c.title)} certificate, awarded ${esc(c.issued_at.slice(0, 10))}"><b>🎓 ${esc(c.title)}</b><br><span class="muted">Awarded ${esc(c.issued_at.slice(0, 10))} · tap to view & print the certificate 🖨️</span></button>`).join('')
         : '<p class="muted">Complete every skill in a grade level to earn a printable certificate!</p>'}
       </div>
     </div>
@@ -3850,15 +3850,30 @@ route('parent', async () => {
   if (State.me.role !== 'parent') { location.hash = '#login'; return; }
   const me = State.me;
   const p = me.parent;
-  const trialDays = Math.max(0, Math.round((new Date(String(p.trial_ends || '').replace(' ', 'T') + 'Z') - Date.now()) / 86400000));
+  // Trial boundary (P0-4): use the exact expiration timestamp and CEIL the days, so "expires
+  // today" (hours remaining) never rounds to a false "Trial ended". The server's access check
+  // uses this same timestamp, so client copy and authorization agree. Show the exact local time.
+  const trialEndDate = new Date(String(p.trial_ends || '').replace(' ', 'T') + 'Z');
+  const msLeft = isNaN(trialEndDate) ? 0 : (trialEndDate - Date.now());
+  const trialDays = Math.max(0, Math.ceil(msLeft / 86400000));
+  const trialEndLocal = isNaN(trialEndDate) ? '' : trialEndDate.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  // Never expose raw billing statuses (past_due, canceled…) to parents (6.1).
+  const INACTIVE_COPY = {
+    past_due: '🔒 Payment issue — update your card to restore access',
+    canceled: '🔒 Subscription canceled — your children\'s progress is saved',
+    unpaid: '🔒 Payment needed to restore access',
+    incomplete: '🔒 Subscription setup wasn\'t finished'
+  };
   const subLine = p.sub_status === 'active'
     ? `✅ ${esc((me.plans[p.sub_plan] || {}).name || 'Subscribed')} plan active`
     : p.sub_status === 'trial'
-      ? (trialDays > 0 ? `⏳ Free trial, ${trialDays} day${trialDays === 1 ? '' : 's'} left` : '🔒 Trial ended')
-      : `🔒 Subscription ${esc(p.sub_status)}`;
+      ? (msLeft > 0
+          ? (trialDays <= 1 ? `⏳ Free trial — access until ${esc(trialEndLocal)}` : `⏳ Free trial · ${trialDays} days left (until ${esc(trialEndLocal)})`)
+          : '🔒 Trial ended')
+      : (INACTIVE_COPY[p.sub_status] || '🔒 Subscription inactive');
 
-  const trialUrgent = p.sub_status === 'trial' && trialDays > 0 && trialDays <= 3;
-  const trialEnded = p.sub_status === 'trial' && trialDays <= 0;
+  const trialUrgent = p.sub_status === 'trial' && msLeft > 0 && trialDays <= 3;
+  const trialEnded = p.sub_status === 'trial' && msLeft <= 0;
   app().innerHTML = topbar(`<div class="container">
     <div class="dash-welcome" style="margin-bottom:14px"><h1>Welcome, ${esc(p.name)} 👋</h1><p>${subLine} ${me.billingMode === 'demo' ? '· <i>(demo billing, add Stripe keys to charge real cards)</i>' : ''}</p></div>
     ${trialUrgent ? `<div class="trial-banner">
@@ -4199,12 +4214,20 @@ route('parent', async () => {
     pvx.disabled = true; const orig = pvx.textContent; pvx.textContent = 'Preparing…';
     try {
       const res = await fetch('/api/privacy/export', { credentials: 'same-origin' });
+      // Never claim success on a failed response (P0-8): a 401/403/500 must not download an error
+      // body saved as ".json" while a green toast says it worked.
+      if (!res.ok) throw new Error('status ' + res.status);
       const blob = await res.blob();
+      if (!blob || blob.size === 0) throw new Error('empty file');
+      const ct = res.headers.get('content-type') || '';
+      if (ct && !/json|octet-stream|text\/plain/i.test(ct)) throw new Error('unexpected type ' + ct);
+      const stamp = new Date().toISOString().slice(0, 10);
+      const fname = `gallop-data-export-${stamp}.json`;
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'gallop-my-data.json';
+      const a = document.createElement('a'); a.href = url; a.download = fname;
       document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-      toast('✓ Your data downloaded as gallop-my-data.json');
-    } catch (e) { toast('Could not prepare the download. Please try again.'); }
+      toast('✓ Your data downloaded as ' + fname);
+    } catch (e) { toast('Could not prepare the export — nothing was downloaded. Please try again, or email support@learnwithgallop.com.'); }
     pvx.disabled = false; pvx.textContent = orig;
   };
   const fam = $('#sub-family'), solo = $('#sub-solo'), portal = $('#sub-portal');
