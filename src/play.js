@@ -421,7 +421,9 @@ router.get('/buddies/manage', auth.requireParent, (req, res) => {
       const o = db.prepare('SELECT name FROM kids WHERE id=?').get(otherId);
       return { buddyId: otherId, buddyName: o ? o.name : 'buddy', since: p.created_at };
     });
-    const pending = db.prepare("SELECT code, created_at, datetime(created_at,'+14 days') AS expires FROM buddy_invites WHERE kid_id=? ORDER BY created_at DESC").all(k.id);
+    // Only list codes that are still redeemable (<14 days) — matches /buddies/accept, so a parent
+    // never sees an expired code shown as "pending" with a past expiry it can no longer be used for.
+    const pending = db.prepare("SELECT code, created_at, datetime(created_at,'+14 days') AS expires FROM buddy_invites WHERE kid_id=? AND created_at > datetime('now','-14 days') ORDER BY created_at DESC").all(k.id);
     return { kidId: k.id, name: k.name, buddies, pending };
   });
   res.json({ kids: out });
