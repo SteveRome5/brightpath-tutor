@@ -2541,3 +2541,19 @@ body[data-theme="academy"] .together-bar { background: #2a2440; color: #d8cdf5; 
 .add-learner-sum::-webkit-details-marker { display: none; }
 .add-learner-sum::before { content: '▸ '; }
 .add-learner[open] .add-learner-sum::before { content: '▾ '; }
+/* Cooperative family week (replaces the sibling leaderboard) */
+.fam-total { background: color-mix(in srgb, var(--brand) 8%, transparent); border-radius: 10px; padding: 10px 14px; font-size: .95rem; margin-bottom: 12px; }
+.fam-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.fam-bar { height: 7px; background: var(--soft-bg); border-radius: 999px; overflow: hidden; margin-top: 5px; }
+.fam-fill { height: 100%; background: linear-gradient(90deg, #3ca03c, #2ea060); border-radius: 999px; }
+.fam-done { font-size: .78rem; font-weight: 700; color: #1f8a5f; }
+/* Loading skeleton cards */
+.snap-skel { min-height: 130px; }
+.skel-line { height: 11px; border-radius: 6px; margin: 9px 0; background: linear-gradient(90deg, rgba(0,0,0,.06) 25%, rgba(0,0,0,.11) 37%, rgba(0,0,0,.06) 63%); background-size: 400% 100%; animation: skel 1.3s ease-in-out infinite; }
+body[data-theme="academy"] .skel-line { background: linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.12) 37%, rgba(255,255,255,.06) 63%); background-size: 400% 100%; }
+@keyframes skel { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .skel-line { animation: none; } }
+/* Modal overlay (destructive-action confirmations) */
+.modal-overlay { position: fixed; inset: 0; background: rgba(20,26,38,.55); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 18px; }
+.modal-card { background: var(--card-bg, #fff); color: var(--chrome-text, #1e2530); border-radius: 16px; padding: 22px 22px 20px; max-width: 440px; width: 100%; box-shadow: 0 20px 60px -20px rgba(0,0,0,.5); }
+body[data-theme="academy"] .modal-card { background: #1e2438; color: #e6ddc4; }

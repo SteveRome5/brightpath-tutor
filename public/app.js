@@ -3944,9 +3944,10 @@ route('parent', async () => {
       <button class="ptab-btn" data-ptab="account" role="tab" aria-selected="false">⚙️ Account</button>
     </div>
     <div class="ptab-panel" data-ptab="today">
-      <div id="kid-snapshots" style="margin-bottom:16px"></div>
+      <div id="kid-snapshots" style="margin-bottom:16px">${me.kids.length ? `<div class="dash-grid" style="gap:14px">${me.kids.map(k => `<div class="card snap-skel"><div style="display:flex;align-items:center;gap:10px"><span class="avatar-sm">${avatarHTML(k)}</span><b>${esc(k.name)}</b></div><div class="skel-line" style="width:55%"></div><div class="skel-line" style="width:88%"></div><div class="skel-line" style="width:42%"></div><p class="muted" style="font-size:.82rem;margin-top:6px">Loading today's progress…</p></div>`).join('')}</div>` : ''}</div>
     </div>
     <div class="ptab-panel" data-ptab="progress" hidden>
+      <div id="family-week" style="margin-bottom:16px"></div>
       <div id="monthly-recap" style="margin-bottom:16px"></div>
       <p class="muted" style="font-size:.88rem">Open any child's full report or printable weekly summary from their card in <b>Today</b> or <b>Family</b>.</p>
     </div>
@@ -4024,7 +4025,6 @@ route('parent', async () => {
       </div>
     </div>
     <div class="ptab-panel" data-ptab="account" hidden>
-        <div id="family-week"></div>
         <div class="card">
           <h3>💳 Subscription</h3>
           <p class="muted" style="margin:8px 0 14px">${subLine}</p>
@@ -4251,8 +4251,55 @@ route('parent', async () => {
   document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => enterKid(Number(b.dataset.start)));
   document.querySelectorAll('[data-report]').forEach(b => b.onclick = () => location.hash = '#report/' + b.dataset.report);
   document.querySelectorAll('[data-weekly]').forEach(b => b.onclick = () => location.hash = '#weekly/' + b.dataset.weekly);
-  document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
-    if (confirm('Remove this learner and all their progress?')) { await api('/kids/' + b.dataset.del, { method: 'DELETE' }); navigate(); }
+  // Deleting a learner is destructive and withdraws consent immediately — so it takes more than a
+  // one-tap confirm (PP-110): spell out exactly what's erased, offer a data download first, and
+  // require typing the child's name.
+  function confirmDeleteLearner(kid) {
+    const nm = kid.name;
+    const wrap = document.createElement('div');
+    wrap.className = 'modal-overlay';
+    wrap.innerHTML = `<div class="modal-card" role="dialog" aria-modal="true" aria-label="Delete ${esc(nm)}">
+      <h3 style="margin-top:0;color:#c0392b">Delete ${esc(nm)}?</h3>
+      <p style="line-height:1.55">This permanently erases <b>everything</b> for ${esc(nm)}: their profile, all progress and skill levels, streaks, badges, certificates and game scores. It also <b>withdraws your consent</b> to store their information, effective immediately. <b>This can't be undone.</b></p>
+      <div style="margin:12px 0"><button class="btn small" id="del-export">⬇️ Download my data first (includes ${esc(nm)})</button></div>
+      <label style="font-weight:600;font-size:.9rem">Type <b>${esc(nm)}</b> below to confirm</label>
+      <input id="del-confirm" placeholder="${esc(nm)}" autocomplete="off" style="width:100%;padding:10px 12px;border:1.5px solid #dfe6e9;border-radius:10px;margin:6px 0 4px;font-size:1rem" aria-label="Type the child's name to confirm deletion">
+      <div class="error-msg" id="del-err"></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn coral" id="del-go" disabled style="opacity:.5">Delete permanently</button>
+        <button class="btn ghost" id="del-cancel" style="color:#41506a;border-color:#cfd8e3">Cancel</button>
+      </div>
+    </div>`;
+    document.body.appendChild(wrap);
+    const ci = wrap.querySelector('#del-confirm'), go = wrap.querySelector('#del-go');
+    const close = () => { wrap.remove(); document.removeEventListener('keydown', onKey); };
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', onKey);
+    ci.focus();
+    ci.oninput = () => { const ok = ci.value.trim() === nm; go.disabled = !ok; go.style.opacity = ok ? '1' : '.5'; };
+    wrap.querySelector('#del-cancel').onclick = close;
+    wrap.onclick = (e) => { if (e.target === wrap) close(); };
+    wrap.querySelector('#del-export').onclick = async () => {
+      try {
+        const res = await fetch('/api/privacy/export', { credentials: 'same-origin' });
+        if (!res.ok) throw new Error('status ' + res.status);
+        const blob = await res.blob(); if (!blob || !blob.size) throw new Error('empty');
+        const stamp = new Date().toISOString().slice(0, 10);
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `gallop-data-export-${stamp}.json`;
+        document.body.appendChild(a); a.click(); a.remove();
+        toast('✓ Your data downloaded');
+      } catch (e) { toast('Could not prepare the download — try Account → Download my data, or email support.'); }
+    };
+    go.onclick = async () => {
+      if (ci.value.trim() !== nm) return;
+      go.disabled = true; go.textContent = 'Deleting…';
+      try { await api('/kids/' + kid.id, { method: 'DELETE' }); close(); toast(`${nm} was deleted.`); navigate(); }
+      catch (e) { showError('#del-err', (e && e.message) || 'Could not delete — please try again.'); go.disabled = false; go.textContent = 'Delete permanently'; }
+    };
+  }
+  document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    const kid = me.kids.find(k => String(k.id) === String(b.dataset.del));
+    if (kid) confirmDeleteLearner(kid);
   });
   document.querySelectorAll('[data-reset]').forEach(b => b.onclick = async () => {
     if (confirm('Start this learner fresh? This clears all lessons, levels, scores, badges and certificates and re-takes placement. Their name, PIN and avatar are kept. This cannot be undone.')) {
@@ -4308,21 +4355,36 @@ route('parent', async () => {
     try { const o = await api('/billing/portal', { method: 'POST' }); if (o && o.url) location.href = o.url; else toast('Could not open billing.'); }
     catch (e) { toast(e.message || 'Could not open billing right now. Please try again in a moment.'); }
   };
-  // Sibling leaderboard, only interesting with 2+ kids
+  // Family week — cooperative, NOT a ranked sibling leaderboard (kids can be different ages with
+  // different goals, and ranking by raw volume rewards speed and can embarrass a slower learner).
+  // Each child is shown against THEIR OWN weekly goal, plus a shared family total to celebrate together.
   if (me.kids.length >= 2) {
     api('/family/stats').then(({ stats }) => {
-      const medals = ['🥇', '🥈', '🥉', '🎗️'];
       const box = $('#family-week');
       if (!box) return;
+      const famTotal = stats.reduce((t, s) => t + (s.weekAnswers || 0), 0);
+      const allDone = stats.every(s => {
+        const kid = me.kids.find(k => k.name === s.name);
+        const goal = kid ? (kid.weekly_goal || 12) * 10 : 120;
+        return (s.weekAnswers || 0) >= goal;
+      });
       box.innerHTML = `<div class="card">
-        <h3>🏆 This Week at Home</h3>
-        <p class="muted" style="margin:4px 0 10px">Questions answered in the last 7 days, a little friendly sibling rivalry never hurt!</p>
-        ${stats.map((s, i) => `
-          <div class="kid-row">
-            <span style="font-size:1.3rem">${medals[i] || '⭐'}</span>
+        <h3>👨‍👩‍👧‍👦 Your Family This Week</h3>
+        <p class="muted" style="margin:4px 0 12px">Everyone works toward their <b>own</b> goal — cheer each other on, no rankings. 🎉</p>
+        <div class="fam-total">Together your family answered <b>${famTotal}</b> question${famTotal === 1 ? '' : 's'} this week 🙌${allDone ? ' — everyone hit their goal!' : ''}</div>
+        ${stats.map(s => {
+          const kid = me.kids.find(k => k.name === s.name);
+          const goal = kid ? (kid.weekly_goal || 12) * 10 : 120;
+          const pct = Math.min(100, Math.round((s.weekAnswers || 0) / goal * 100));
+          return `<div class="fam-row">
             <span class="avatar-sm">${AVATARS[s.avatar] || '🦊'}</span>
-            <div style="flex:1"><b>${esc(s.name)}</b><br><span class="muted" style="font-size:.83rem">${s.weekAnswers} answers${s.weekAccuracy != null ? ' · ' + s.weekAccuracy + '% correct' : ''} · 🔥${s.streak}</span></div>
-          </div>`).join('')}
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;justify-content:space-between;font-size:.85rem;gap:8px"><b>${esc(s.name)}</b><span class="muted">${s.weekAnswers || 0} / ${goal} · 🔥${s.streak}</span></div>
+              <div class="fam-bar"><div class="fam-fill" style="width:${pct}%"></div></div>
+              ${pct >= 100 ? `<span class="fam-done">🎉 Reached their goal!</span>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
       </div>`;
     }).catch(() => {});
   }
@@ -4617,6 +4679,25 @@ route('help', async () => {
     el.scrollIntoView({ behavior: 'smooth', block: 'end' });
     return el;
   };
+  // Instant self-service answers for the most common questions — especially cancellation, which
+  // should never route to "a person will email you" when the parent can do it themselves in one
+  // click (PP-108). Returns a ready answer, or null to fall through to the assistant.
+  function cannedAnswer(q) {
+    const s = q.toLowerCase();
+    if (/cancel|unsubscrib|stop (my )?(sub|billing|payment)|end my subscription|turn off (auto|renew)/.test(s)) {
+      return "You can cancel yourself anytime — no need to email us:\n\n1. Go to your Dashboard → Account tab → Manage Billing\n2. Choose Cancel subscription\n\nAccess continues through the period you've already paid for, and all your children's progress, streaks, badges and certificates stay saved. Monthly plans cancel anytime; an annual plan is a non-refundable 12-month term, but you can switch off its auto-renewal there so it won't renew.\n\nIf the billing page doesn't load, email support@learnwithgallop.com and we'll take care of it.";
+    }
+    if (/how much|cost|price|pricing|per month|a month/.test(s)) {
+      return "Solo is $34/month (or $348/year) for one child, and Family is $54/month ($552/year) for up to four. Both include all four subjects, the guided lessons, the games, and the parent reports. Your first 7 days are free and need no credit card.";
+    }
+    if (/log ?in|sign ?in|how does my (child|kid) (log|get)/.test(s)) {
+      return "Kids log in from any device: open the site, tap Child Login, enter your parent email, then they pick their avatar and type their 4-digit PIN. Progress syncs everywhere automatically.";
+    }
+    if (/what grade|what subject|which subject|ages|grade level|cover/.test(s)) {
+      return "Gallop covers Kindergarten through Grade 12 in Math, English, Science, and Spanish. Each child is placed at their real level in each subject, so they can be ahead in one and steady in another.";
+    }
+    return null;
+  }
   let busy = false;
   async function ask(q) {
     if (busy || !q.trim()) return;
@@ -4624,6 +4705,8 @@ route('help', async () => {
     const sg = $('#help-suggest'); if (sg) sg.style.display = 'none';
     add('you', q);
     input.value = '';
+    const canned = cannedAnswer(q);
+    if (canned) { add('bot', canned); busy = false; input.focus(); return; }
     const thinking = add('bot', '…');
     try {
       const r = await api('/support/ask', { method: 'POST', body: { question: q, name: prefillName, email: (emailEl.value || '').trim() } });
