@@ -336,7 +336,13 @@ for (const stmt of [
   "ALTER TABLE parents ADD COLUMN school_name TEXT",
   // Which class a teacher-created student belongs to (denormalized convenience; the authoritative
   // mapping is class_members). Null for family kids and unassigned students.
-  "ALTER TABLE kids ADD COLUMN class_id INTEGER"
+  "ALTER TABLE kids ADD COLUMN class_id INTEGER",
+  // Whether students may self-join a class with its join code (teacher can toggle off).
+  "ALTER TABLE classes ADD COLUMN join_enabled INTEGER DEFAULT 1",
+  // Multi-teacher schools: a teacher account may belong to a school and hold a role within it
+  // ('head' = head of school, sees every class; 'member' = a regular teacher). Null = solo teacher.
+  "ALTER TABLE parents ADD COLUMN school_id INTEGER",
+  "ALTER TABLE parents ADD COLUMN school_role TEXT"
 ]) {
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }
@@ -394,6 +400,7 @@ try {
     name TEXT NOT NULL,
     grade INTEGER,                     -- optional default grade for the class (0=K..12), null = mixed
     join_code TEXT,
+    join_enabled INTEGER DEFAULT 1,    -- students may self-join with the code (teacher can toggle)
     created_at TEXT DEFAULT (datetime('now'))
   )`);
   db.exec(`CREATE TABLE IF NOT EXISTS class_members (
@@ -404,6 +411,33 @@ try {
   )`);
   db.exec('CREATE INDEX IF NOT EXISTS idx_classes_owner ON classes(owner_id)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_class_members_class ON class_members(class_id)');
+} catch (e) {}
+
+// Teacher assignments: a focus skill (or whole subject) a teacher sets for a class.
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS class_assignments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    subject TEXT NOT NULL,
+    skill_id TEXT,
+    skill_name TEXT,
+    note TEXT,
+    active INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_assign_class ON class_assignments(class_id)');
+} catch (e) {}
+
+// Schools: a group of teacher accounts under a head of school. Members join with the school code.
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS schools (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    code TEXT,
+    head_id INTEGER REFERENCES parents(id) ON DELETE SET NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_schools_code ON schools(code)');
 } catch (e) {}
 
 // Child-privacy: custom avatar PHOTOS were retired in favor of illustrated avatars only.

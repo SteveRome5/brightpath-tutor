@@ -291,7 +291,7 @@ router.get('/auth/me', (req, res) => {
     // Teacher accounts get the class dashboard, not the family view + kid list.
     if (p.account_type === 'teacher') {
       auth.syncAdminFlag(p);
-      return res.json({ role: 'parent', parent: p, kids: [], billingMode: billing.billingMode(), plans: billing.PLANS, teacher: true });
+      return res.json({ role: 'parent', parent: p, kids: [], billingMode: billing.billingMode(), plans: billing.PLANS, teacher: true, school: schoolContext(p) });
     }
     // Grant owner/admin on any load (not only fresh login) if the email is on the
     // ADMIN_EMAILS list — so adding an owner never requires them to log out and back in.
@@ -965,6 +965,39 @@ function genJoinCode() {
   return 'C' + Date.now().toString(36).toUpperCase().slice(-5);
 }
 function genPin() { return String(Math.floor(1000 + Math.random() * 9000)); }
+function genSchoolCode() {
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  for (let attempt = 0; attempt < 12; attempt++) {
+    let c = 'S'; for (let i = 0; i < 5; i++) c += A[Math.floor(Math.random() * A.length)];
+    if (!db.prepare('SELECT 1 FROM schools WHERE code=?').get(c)) return c;
+  }
+  return 'S' + Date.now().toString(36).toUpperCase().slice(-5);
+}
+// Which teacher account ids this teacher may READ. Own always; a head of school may read every
+// member teacher's classes/students. Writes stay owner-only (checked separately).
+function readScopeIds(parent) {
+  if (parent.school_id && parent.school_role === 'head') {
+    const ids = db.prepare('SELECT id FROM parents WHERE school_id=?').all(parent.school_id).map(r => r.id);
+    return ids.length ? ids : [parent.id];
+  }
+  return [parent.id];
+}
+function classForRead(parent, id) {
+  const ids = readScopeIds(parent);
+  const ph = ids.map(() => '?').join(',');
+  return db.prepare(`SELECT * FROM classes WHERE id=? AND owner_id IN (${ph})`).get(id, ...ids);
+}
+function kidForRead(parent, kidId) {
+  const ids = readScopeIds(parent);
+  const ph = ids.map(() => '?').join(',');
+  return db.prepare(`SELECT * FROM kids WHERE id=? AND parent_id IN (${ph})`).get(kidId, ...ids);
+}
+function schoolContext(parent) {
+  if (!parent.school_id) return null;
+  const s = db.prepare('SELECT id, name, code, head_id FROM schools WHERE id=?').get(parent.school_id);
+  if (!s) return null;
+  return { id: s.id, name: s.name, code: parent.school_role === 'head' ? s.code : undefined, isHead: parent.school_role === 'head' };
+}
 
 // Build one roster row (per-student snapshot) for the class dashboard. Honest, lightweight
 // stats straight from activity — no heavy report-card computation per student.
@@ -1001,7 +1034,7 @@ function teacherRosterRow(kid, win) {
 }
 
 function classPublic(c, studentCount) {
-  return { id: c.id, name: c.name, grade: c.grade, joinCode: c.join_code, createdAt: c.created_at, studentCount };
+  return { id: c.id, name: c.name, grade: c.grade, joinCode: c.join_code, joinEnabled: c.join_enabled == null ? 1 : c.join_enabled, ownerId: c.owner_id, createdAt: c.created_at, studentCount };
 }
 
 // ---- Teacher signup (creates a school account) ----
@@ -1059,6 +1092,7 @@ router.get('/teacher/overview', requireTeacher, (req, res) => {
   }
   res.json({
     school: req.parent.school_name || null, teacherName: req.parent.name,
+    schoolCtx: schoolContext(req.parent),
     classes: out,
     totals: { students: allKids.length, classes: classes.length, activeToday, needingSupport, answersWeek }
   });
@@ -1085,7 +1119,19 @@ router.patch('/teacher/classes/:id', requireTeacher, (req, res) => {
   const grade = g === '' ? null : (g != null && Number.isFinite(Number(g)) ? Math.max(0, Math.min(12, Math.round(Number(g)))) : undefined);
   db.prepare('UPDATE classes SET name=COALESCE(?,name), grade=CASE WHEN ? THEN ? ELSE grade END WHERE id=?')
     .run(name || null, grade !== undefined ? 1 : 0, grade === undefined ? null : grade, c.id);
+  if ((req.body || {}).join_enabled != null) {
+    db.prepare('UPDATE classes SET join_enabled=? WHERE id=?').run((req.body).join_enabled ? 1 : 0, c.id);
+  }
   res.json({ ok: true });
+});
+
+// ---- Regenerate a class join code ----
+router.post('/teacher/classes/:id/regenerate-code', requireTeacher, (req, res) => {
+  const c = db.prepare('SELECT * FROM classes WHERE id=? AND owner_id=?').get(Number(req.params.id), req.parent.id);
+  if (!c) return res.status(404).json({ error: 'Class not found.' });
+  const code = genJoinCode();
+  db.prepare('UPDATE classes SET join_code=? WHERE id=?').run(code, c.id);
+  res.json({ ok: true, joinCode: code });
 });
 
 // ---- Delete a class (students remain in the account, just unassigned) ----
@@ -1103,10 +1149,10 @@ router.delete('/teacher/classes/:id', requireTeacher, (req, res) => {
 
 // ---- Class dashboard: roster + aggregates ----
 router.get('/teacher/classes/:id', requireTeacher, (req, res) => {
-  const c = db.prepare('SELECT * FROM classes WHERE id=? AND owner_id=?').get(Number(req.params.id), req.parent.id);
+  const c = classForRead(req.parent, Number(req.params.id));
   if (!c) return res.status(404).json({ error: 'Class not found.' });
   const win = timeutil.dayWindow(req.parent.tz);
-  const kids = db.prepare('SELECT k.* FROM kids k JOIN class_members m ON m.kid_id=k.id WHERE m.class_id=? AND k.parent_id=? ORDER BY k.name').all(c.id, req.parent.id);
+  const kids = db.prepare('SELECT k.* FROM kids k JOIN class_members m ON m.kid_id=k.id WHERE m.class_id=? AND k.parent_id=? ORDER BY k.name').all(c.id, c.owner_id);
   const roster = kids.map(k => teacherRosterRow(k, win));
   // Aggregates
   const withWork = roster.filter(r => r.weekAnswers > 0);
@@ -1221,7 +1267,7 @@ router.post('/teacher/students/:kidId/reset', requireTeacher, (req, res) => {
 
 // ---- Full per-student report (drill-down) ----
 router.get('/teacher/students/:kidId', requireTeacher, (req, res) => {
-  const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
+  const kid = kidForRead(req.parent, Number(req.params.kidId));
   if (!kid) return res.status(404).json({ error: 'Student not found.' });
   const win = timeutil.dayWindow(req.parent.tz);
   let card = null; try { card = adaptive.reportCard(kid.id); } catch (e) {}
@@ -1231,7 +1277,7 @@ router.get('/teacher/students/:kidId', requireTeacher, (req, res) => {
 
 // ---- Teacher launches a student session (to view or help), returning here on exit ----
 router.post('/teacher/enter-student', requireTeacher, (req, res) => {
-  const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number((req.body || {}).kidId), req.parent.id);
+  const kid = kidForRead(req.parent, Number((req.body || {}).kidId));
   if (!kid) return res.status(404).json({ error: 'Student not found.' });
   const teacherToken = req.cookies.bp_session;
   if (teacherToken) res.cookie('bp_parent_return', teacherToken, COOKIE_OPTS);
@@ -1242,10 +1288,10 @@ router.post('/teacher/enter-student', requireTeacher, (req, res) => {
 
 // ---- Roster CSV export (student logins + this-week snapshot) ----
 router.get('/teacher/classes/:id/export.csv', requireTeacher, (req, res) => {
-  const c = db.prepare('SELECT * FROM classes WHERE id=? AND owner_id=?').get(Number(req.params.id), req.parent.id);
+  const c = classForRead(req.parent, Number(req.params.id));
   if (!c) return res.status(404).send('Class not found');
   const win = timeutil.dayWindow(req.parent.tz);
-  const kids = db.prepare('SELECT k.* FROM kids k JOIN class_members m ON m.kid_id=k.id WHERE m.class_id=? AND k.parent_id=? ORDER BY k.name').all(c.id, req.parent.id);
+  const kids = db.prepare('SELECT k.* FROM kids k JOIN class_members m ON m.kid_id=k.id WHERE m.class_id=? AND k.parent_id=? ORDER BY k.name').all(c.id, c.owner_id);
   const csvCell = v => { let s = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return `"${s.replace(/"/g, '""')}"`; };
   const header = ['name', 'grade', 'status', 'week_answers', 'week_accuracy', 'minutes_week', 'streak', 'last_active', 'math_level', 'english_level', 'science_level', 'spanish_level', 'needs_help'];
   const rows = [header.join(',')];
@@ -1257,6 +1303,145 @@ router.get('/teacher/classes/:id/export.csv', requireTeacher, (req, res) => {
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', `attachment; filename="${(c.name || 'class').replace(/[^a-z0-9]+/gi, '-')}-roster.csv"`);
   res.send(rows.join('\n'));
+});
+
+// ---- Student self-join by class code (public, code-gated) ----
+const joinLimiter = rateLimit({ windowMs: 15 * 60000, max: 30, key: 'classjoin' });
+const MAX_CLASS_STUDENTS = 300;
+function findJoinableClass(code) {
+  if (!code) return null;
+  const c = db.prepare('SELECT * FROM classes WHERE join_code=?').get(String(code).trim().toUpperCase());
+  if (!c || (c.join_enabled != null && !c.join_enabled)) return null;
+  return c;
+}
+router.get('/class/join/:code', joinLimiter, (req, res) => {
+  const c = findJoinableClass(req.params.code);
+  if (!c) return res.status(404).json({ error: 'That class code isn\'t working. Double-check it with your teacher.' });
+  const owner = db.prepare('SELECT school_name FROM parents WHERE id=?').get(c.owner_id);
+  res.json({ ok: true, className: c.name, grade: c.grade, school: (owner && owner.school_name) || null });
+});
+router.post('/class/join', joinLimiter, (req, res) => {
+  const b = req.body || {};
+  const c = findJoinableClass(b.code);
+  if (!c) return res.status(404).json({ error: 'That class code isn\'t working. Double-check it with your teacher.' });
+  const name = String(b.name || '').trim().slice(0, 40);
+  if (!name) return res.status(400).json({ error: 'Enter your name to join.' });
+  const pin = String(b.pin || '').trim();
+  if (!/^\d{4}$/.test(pin)) return res.status(400).json({ error: 'Pick a 4-digit PIN you\'ll remember.' });
+  const count = db.prepare('SELECT COUNT(*) AS n FROM class_members WHERE class_id=?').get(c.id).n;
+  if (count >= MAX_CLASS_STUDENTS) return res.status(400).json({ error: 'This class is full — please ask your teacher.' });
+  const g = b.grade;
+  const grade = g != null && g !== '' && Number.isFinite(Number(g)) ? Math.max(0, Math.min(12, Math.round(Number(g)))) : (c.grade != null ? c.grade : 3);
+  const avatar = AVATARS.includes(b.avatar) ? b.avatar : AVATARS[Math.floor(Math.random() * AVATARS.length)];
+  const tx = db.transaction(() => {
+    const info = db.prepare("INSERT INTO kids (parent_id, name, pin, grade, avatar, class_id, consent_at) VALUES (?,?,?,?,?,?,datetime('now'))")
+      .run(c.owner_id, name, auth.hashPin(pin), grade, avatar, c.id);
+    db.prepare('INSERT OR IGNORE INTO class_members (class_id, kid_id) VALUES (?,?)').run(c.id, info.lastInsertRowid);
+    return info.lastInsertRowid;
+  });
+  const kidId = tx();
+  try { db.recordConsent({ parentId: c.owner_id, kidId, method: 'school-selfjoin', detail: `student self-joined class "${c.name}" with code` }); } catch (e) {}
+  const token = auth.createSession('kid', kidId);
+  res.cookie('bp_session', token, COOKIE_OPTS);
+  const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(kidId);
+  res.json({ ok: true, kid: publicKid(kid) });
+});
+
+// ---- Class assignments (teacher sets a focus skill/subject for a class) ----
+router.get('/teacher/classes/:id/assignments', requireTeacher, (req, res) => {
+  const c = classForRead(req.parent, Number(req.params.id));
+  if (!c) return res.status(404).json({ error: 'Class not found.' });
+  const rows = db.prepare('SELECT id, subject, skill_id AS skillId, skill_name AS skillName, note, created_at FROM class_assignments WHERE class_id=? AND active=1 ORDER BY created_at DESC').all(c.id);
+  res.json({ assignments: rows });
+});
+router.post('/teacher/classes/:id/assignments', requireTeacher, (req, res) => {
+  const c = db.prepare('SELECT * FROM classes WHERE id=? AND owner_id=?').get(Number(req.params.id), req.parent.id);
+  if (!c) return res.status(404).json({ error: 'Class not found.' });
+  const b = req.body || {};
+  const subject = String(b.subject || '').trim();
+  if (!TEACHER_SUBJECTS.includes(subject)) return res.status(400).json({ error: 'Pick a subject.' });
+  let skillId = b.skillId ? String(b.skillId).trim() : null;
+  let skillName = null;
+  if (skillId) {
+    const sk = content.getSkill(subject, skillId);
+    if (!sk) return res.status(400).json({ error: 'That skill isn\'t in this subject.' });
+    skillName = sk.name;
+  }
+  const note = String(b.note || '').trim().slice(0, 200) || null;
+  const info = db.prepare('INSERT INTO class_assignments (class_id, subject, skill_id, skill_name, note) VALUES (?,?,?,?,?)').run(c.id, subject, skillId, skillName, note);
+  res.json({ ok: true, assignment: { id: info.lastInsertRowid, subject, skillId, skillName, note } });
+});
+router.delete('/teacher/assignments/:aid', requireTeacher, (req, res) => {
+  const a = db.prepare('SELECT a.* FROM class_assignments a JOIN classes c ON c.id=a.class_id WHERE a.id=? AND c.owner_id=?').get(Number(req.params.aid), req.parent.id);
+  if (!a) return res.status(404).json({ error: 'Assignment not found.' });
+  db.prepare('UPDATE class_assignments SET active=0 WHERE id=?').run(a.id);
+  res.json({ ok: true });
+});
+router.get('/learn/:kidId/assignments', auth.requireKid, (req, res) => {
+  const cid = req.kid.class_id;
+  if (!cid) return res.json({ assignments: [] });
+  const rows = db.prepare('SELECT subject, skill_id AS skillId, skill_name AS skillName, note FROM class_assignments WHERE class_id=? AND active=1 ORDER BY created_at DESC LIMIT 5').all(cid);
+  res.json({ assignments: rows });
+});
+
+// ---- Schools (multi-teacher, head of school) ----
+router.post('/teacher/school/create', requireTeacher, (req, res) => {
+  if (req.parent.school_id) return res.status(400).json({ error: 'Your account is already part of a school.' });
+  const name = String((req.body || {}).name || '').trim().slice(0, 120) || (req.parent.school_name || 'My School');
+  const code = genSchoolCode();
+  const info = db.prepare('INSERT INTO schools (name, code, head_id) VALUES (?,?,?)').run(name, code, req.parent.id);
+  db.prepare("UPDATE parents SET school_id=?, school_role='head' WHERE id=?").run(info.lastInsertRowid, req.parent.id);
+  res.json({ ok: true, school: { id: info.lastInsertRowid, name, code, isHead: true } });
+});
+router.post('/teacher/school/join', requireTeacher, (req, res) => {
+  if (req.parent.school_id) return res.status(400).json({ error: 'Your account is already part of a school.' });
+  const code = String((req.body || {}).code || '').trim().toUpperCase();
+  const s = db.prepare('SELECT * FROM schools WHERE code=?').get(code);
+  if (!s) return res.status(404).json({ error: 'That school code isn\'t working — check it with your school lead.' });
+  db.prepare("UPDATE parents SET school_id=?, school_role='member' WHERE id=?").run(s.id, req.parent.id);
+  res.json({ ok: true, school: { id: s.id, name: s.name, isHead: false } });
+});
+router.post('/teacher/school/leave', requireTeacher, (req, res) => {
+  if (!req.parent.school_id) return res.json({ ok: true });
+  const s = db.prepare('SELECT * FROM schools WHERE id=?').get(req.parent.school_id);
+  const wasHead = s && s.head_id === req.parent.id;
+  db.prepare('UPDATE parents SET school_id=NULL, school_role=NULL WHERE id=?').run(req.parent.id);
+  if (wasHead) {
+    const next = db.prepare("SELECT id FROM parents WHERE school_id=? AND id!=? ORDER BY id LIMIT 1").get(s.id, req.parent.id);
+    if (next) { db.prepare('UPDATE schools SET head_id=? WHERE id=?').run(next.id, s.id); db.prepare("UPDATE parents SET school_role='head' WHERE id=?").run(next.id); }
+  }
+  res.json({ ok: true });
+});
+router.get('/teacher/school', requireTeacher, (req, res) => {
+  if (!req.parent.school_id) return res.status(404).json({ error: 'Not part of a school.' });
+  const s = db.prepare('SELECT * FROM schools WHERE id=?').get(req.parent.school_id);
+  if (!s) return res.status(404).json({ error: 'School not found.' });
+  const isHead = s.head_id === req.parent.id;
+  const win = timeutil.dayWindow(req.parent.tz);
+  const teachers = db.prepare("SELECT id, name, email, school_role FROM parents WHERE school_id=? ORDER BY (school_role='head') DESC, name").all(s.id);
+  let teacherRows = [], totals = { students: 0, classes: 0, activeToday: 0, needingSupport: 0 };
+  if (isHead) {
+    for (const t of teachers) {
+      const classes = db.prepare('SELECT * FROM classes WHERE owner_id=?').all(t.id);
+      const kids = db.prepare('SELECT id FROM kids WHERE parent_id=?').all(t.id).map(r => r.id);
+      let active = 0, support = 0;
+      for (const kid of kids) {
+        const td = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= ? AND ts < ?').get(kid, win.todayStart, win.tomorrowStart).n;
+        if (td > 0) active++;
+        const wk = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND skill_id NOT LIKE 'track:%' AND ts >= ?").get(kid, win.weekStart);
+        const strug = db.prepare('SELECT COUNT(*) AS n FROM skill_state WHERE kid_id=? AND attempts>=3 AND mastery<0.45').get(kid).n;
+        const acc = wk.n ? (wk.c || 0) / wk.n * 100 : null;
+        if (strug >= 1 || (acc != null && acc < 60)) support++;
+      }
+      teacherRows.push({
+        id: t.id, name: t.name, email: t.email, isHead: t.school_role === 'head',
+        classes: classes.map(c => ({ id: c.id, name: c.name, grade: c.grade, students: db.prepare('SELECT COUNT(*) AS n FROM class_members WHERE class_id=?').get(c.id).n })),
+        students: kids.length, activeToday: active, needingSupport: support
+      });
+      totals.students += kids.length; totals.classes += classes.length; totals.activeToday += active; totals.needingSupport += support;
+    }
+  }
+  res.json({ school: { id: s.id, name: s.name, code: isHead ? s.code : undefined, isHead }, teachers: teachers.map(t => ({ name: t.name, email: t.email, isHead: t.school_role === 'head' })), teacherRows, totals });
 });
 
 // One-click unsubscribe from lifecycle/tips emails (link in every non-receipt email).
