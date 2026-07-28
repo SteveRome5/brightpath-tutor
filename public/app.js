@@ -4596,20 +4596,22 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
         nw.addEventListener('statechange', () => {
           if (nw.state === 'installed' && navigator.serviceWorker.controller) {
             const showToast = () => {
+              if (document.querySelector('.update-bar')) return;
               const t = document.createElement('div');
-              t.className = 'gallop-toast show';
-              t.style.cursor = 'pointer';
-              t.textContent = '✨ A new version is ready — tap to refresh';
-              t.onclick = () => location.reload();
-              document.querySelectorAll('.gallop-toast').forEach(x => x.remove());
+              t.className = 'update-bar';
+              t.innerHTML = `<span>✨ A new version is ready.</span> <button class="ub-refresh">Refresh</button> <button class="ub-later" aria-label="Dismiss">Later</button>`;
+              t.querySelector('.ub-refresh').onclick = () => location.reload();
+              t.querySelector('.ub-later').onclick = () => t.remove();
               document.body.appendChild(t);
             };
-            // Don't interrupt a child mid-lesson (tester finding #8). If they're inside a
-            // lesson, teaching flow, placement, exam, or game, wait until they navigate out
-            // before offering the refresh, so progress is never disrupted.
-            const inActivity = () => /^#\/?(lesson|teach|placement|exam|play|game)/.test(location.hash || '');
+            // NEVER interrupt a child mid-activity (P2.3 / GAME-P1.6). Defer while inside any
+            // lesson, teaching flow, placement, exam, game, or any interactive kid zone, AND while
+            // any modal/celebration overlay is open — wait until they land on a safe screen. The
+            // prompt is a dismissible bottom bar, not an overlay, so it can never cover a puzzle.
+            const inActivity = () => /^#\/?(lesson|teach|placement|exam|play|game|avatar|snacks|buddies|trophies)/.test(location.hash || '')
+              || !!document.querySelector('.celebrate, .lesson-wrap, .q-card, .mm-career, .frq-parts');
             if (inActivity()) {
-              const onLeave = () => { if (!inActivity()) { window.removeEventListener('hashchange', onLeave); showToast(); } };
+              const onLeave = () => { if (!inActivity()) { window.removeEventListener('hashchange', onLeave); setTimeout(showToast, 400); } };
               window.addEventListener('hashchange', onLeave);
             } else {
               showToast();

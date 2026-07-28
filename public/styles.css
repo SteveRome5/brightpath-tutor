@@ -1918,6 +1918,19 @@ body[data-theme="academy"] .lw-passage { background: #2a2921; border-color: #4a4
   .topbar, .site-nav, nav, .sticky-cta { display: none !important; }
 }
 
+/* Non-intrusive "new version" bottom bar (never overlays an active game/lesson) */
+.update-bar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 900;
+  display: flex; align-items: center; gap: 10px; background: #16213a; color: #fff; padding: 10px 14px;
+  border-radius: 12px; box-shadow: 0 12px 30px -12px rgba(0,0,0,.5); font-size: .9rem; max-width: 92vw; }
+.update-bar button { font: inherit; font-weight: 700; border: none; border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.update-bar .ub-refresh { background: #C9A84C; color: #2a2000; }
+.update-bar .ub-later { background: transparent; color: #cdd6ea; }
+
+/* Stable Street learning-game financial disclaimer */
+.mm-disclaimer { background: #f3f7f4; border: 1px solid #dce8e0; border-radius: 12px; padding: 10px 14px;
+  font-size: .82rem; color: #41506a; line-height: 1.5; margin: 4px 0 12px; }
+.mm-disclaimer b { color: #1A5C38; }
+
 /* ===================== ADVANCED TRACK: hub, free-response, exam sim ===================== */
 .exam-ready { display: inline-block; margin-top: 6px; font-size: .72rem; font-weight: 800; color: #1a7a4a; background: #e6f7ee; padding: 2px 9px; border-radius: 999px; }
 .exam-hub-head { display: flex; align-items: center; gap: 16px; padding: 16px 0 6px; }

@@ -268,7 +268,8 @@ router.get('/play/:kidId/status', auth.requireKid, (req, res) => {
   const best = {};
   for (const g of GAMES) {
     const row = db.prepare('SELECT MAX(score) AS s, COUNT(*) AS n FROM game_scores WHERE kid_id=? AND game=?').get(kid.id, g);
-    best[g] = { best: row.s || 0, plays: row.n || 0 };
+    let att = 0; try { att = db.prepare('SELECT COUNT(*) AS n FROM game_attempts WHERE kid_id=? AND game=?').get(kid.id, g).n; } catch (e) {}
+    best[g] = { best: row.s || 0, plays: row.n || 0, attempts: Math.max(att, row.n || 0) };
   }
   res.json({ kid: kidPublic(kid), best, correctSinceToken: kid.correct_since_token || 0 });
 });
@@ -301,6 +302,7 @@ router.post('/play/:kidId/spend-token', auth.requireKid, auth.requireActiveSub, 
   const kid = db.prepare('SELECT play_tokens FROM kids WHERE id=?').get(req.kid.id);
   if ((kid.play_tokens || 0) < 1) return res.status(402).json({ error: 'no_tokens', message: 'Answer 5 questions correctly in any subject to earn a play token! 🎟️' });
   db.prepare('UPDATE kids SET play_tokens = play_tokens - 1 WHERE id=?').run(req.kid.id);
+  try { db.prepare('INSERT INTO game_attempts (kid_id, game) VALUES (?,?)').run(req.kid.id, game); } catch (e) {}
   const k = `${req.kid.id}:${game}`;
   _openPlays.set(k, Math.min(3, (_openPlays.get(k) || 0) + 1));
   const best = db.prepare('SELECT MAX(score) AS s FROM game_scores WHERE kid_id=? AND game=?').get(req.kid.id, game);

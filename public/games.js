@@ -150,14 +150,14 @@
     // the cupcake bakery. min/max are inclusive grade numbers (0 = Kindergarten).
     const grade = k.grade || 0;
     const CATALOG = [
-      { id: 'market', emoji: '📈', name: 'Stable Street', desc: 'A 12-level investing career — level up by hitting profit targets while you master diversification, dollar-cost averaging, dividends & more. Progress saves.', min: 4, max: 12 },
+      { id: 'market', emoji: '📈', name: 'Stable Street', desc: 'A 12-level investing career with a pretend portfolio — learn diversification, dollar-cost averaging, dividends & more. Play money only. Progress saves.', min: 4, max: 12 },
       { id: 'blitz', emoji: '⚡', name: 'Gallop Sprint', desc: '60 seconds. Rapid-fire questions. Build a combo — beat your best!', min: 0, max: 12 },
       { id: 'spellingbee', emoji: '🐝', name: 'Gallop Spelling Bee', desc: 'Step to the mic! Hear your word, ask for its meaning, then spell it — just like the national stage.', min: 1, max: 12 },
       { id: 'code', emoji: '🤖', name: 'Robo Logic', desc: 'Program Robo the robot to reach the star — a fresh puzzle set every time.', min: 0, max: 12 },
       { id: 'wordsearch', emoji: '🔍', name: 'Word Roundup', desc: 'Hunt hidden words in the letter jungle.', min: 0, max: 12 },
       { id: 'memory', emoji: '🃏', name: 'Memory Meadow', desc: 'Flip cards, match pairs — Spanish words, math facts & more!', min: 0, max: 12 },
-      { id: 'bakery', emoji: '🧁', name: 'Gallop Bakery', desc: 'Run the Gallop Bakery for a day — use real math to bake, price, and bank a profit!', min: 0, max: 8 },
-      { id: 'lemonade', emoji: '🍋', name: "Sunny's Lemonade Stand", desc: 'Run your own stand — buy smart, price right, bank the profit!', min: 0, max: 8 },
+      { id: 'bakery', emoji: '🧁', name: 'Gallop Bakery', desc: 'Run the Gallop Bakery for a day — use real math to bake, price, and bank a profit!', min: 3, max: 8 },
+      { id: 'lemonade', emoji: '🍋', name: "Sunny's Lemonade Stand", desc: 'Run your own stand — buy smart, price right, bank the profit!', min: 3, max: 8 },
       { id: 'art', emoji: '🎨', name: 'Doodle Barn', desc: 'Draw with step-by-step guides — so cute!', min: 0, max: 6 }
     ];
     const games = CATALOG.filter(g => grade >= g.min && grade <= g.max);
@@ -181,7 +181,7 @@
             <div class="semoji">${g.emoji}</div>
             <h3>${g.name}</h3>
             <div class="lvl">${esc(g.desc)}</div>
-            <div class="lvl" style="margin-top:6px;font-size:.85rem">🏅 Best: ${(s.best[g.id] || {}).best || 0} · Played ${(s.best[g.id] || {}).plays || 0}×</div>
+            <div class="lvl" style="margin-top:6px;font-size:.85rem">🏅 Best: ${(s.best[g.id] || {}).best || 0} · ${(s.best[g.id] || {}).plays || 0} finished${((s.best[g.id] || {}).attempts || 0) > ((s.best[g.id] || {}).plays || 0) ? ` · ${(s.best[g.id] || {}).attempts} tries` : ''}</div>
             <button class="btn sun small" style="margin-top:12px">Play (1 🎟️) →</button>
           </div>`).join('')}
       </div>
@@ -666,12 +666,23 @@
         const a = 3 + Math.floor(Math.random() * 10), b = 3 + Math.floor(Math.random() * 9);
         return r < 0.5 ? { t: `${a} × ${b}`, ans: a * b } : { t: `${a * b} ÷ ${a}`, ans: b };
       }
-      const a = 4 + Math.floor(Math.random() * 13), b = 4 + Math.floor(Math.random() * 12);
-      if (r < 0.35) return { t: `${a} × ${b}`, ans: a * b };
-      if (r < 0.6) return { t: `${a}²`, ans: a * a };
-      if (r < 0.8) return { t: `${a * b} ÷ ${b}`, ans: a };
-      const pct = [10, 20, 25, 50][Math.floor(Math.random() * 4)];
-      return { t: `${pct}% of ${a * 20}`, ans: a * 20 * pct / 100 };
+      if (grade <= 8) {
+        const a = 4 + Math.floor(Math.random() * 13), b = 4 + Math.floor(Math.random() * 12);
+        if (r < 0.35) return { t: `${a} × ${b}`, ans: a * b };
+        if (r < 0.6) return { t: `${a}²`, ans: a * a };
+        if (r < 0.8) return { t: `${a * b} ÷ ${b}`, ans: a };
+        const pct = [10, 20, 25, 50][Math.floor(Math.random() * 4)];
+        return { t: `${pct}% of ${a * 20}`, ans: a * 20 * pct / 100 };
+      }
+      // High school (grade 9–12): genuine algebra/pre-calc quick checks, not multiplication facts.
+      const a = 3 + Math.floor(Math.random() * 10), b = 2 + Math.floor(Math.random() * 8);
+      if (r < 0.20) return { t: `${a}² − ${b}`, ans: a * a - b };
+      if (r < 0.38) { const base = [2, 3, 4, 5][Math.floor(Math.random() * 4)], exp = [2, 3][Math.floor(Math.random() * 2)]; return { t: `${base}^${exp}`, ans: Math.pow(base, exp) }; }
+      if (r < 0.56) { const rt = [[121, 11], [144, 12], [169, 13], [196, 14], [225, 15], [256, 16]][Math.floor(Math.random() * 6)]; return { t: `√${rt[0]}`, ans: rt[1] }; }
+      if (r < 0.74) { const c = 2 + Math.floor(Math.random() * 6); return { t: `${a} + ${b} × ${c}`, ans: a + b * c }; }      // order of operations
+      if (r < 0.88) { const c = 1 + Math.floor(Math.random() * 9); return { t: `${a} × ${b} − ${c}`, ans: a * b - c }; }      // multi-step evaluation
+      const pct = [15, 20, 25, 40][Math.floor(Math.random() * 4)], base = (3 + Math.floor(Math.random() * 9)) * 20;
+      return { t: `${pct}% of ${base}`, ans: base * pct / 100 };
     }
     function choicesFor(qn) {
       const set = new Set([qn.ans]);
@@ -1304,8 +1315,8 @@
       tip: 'Balance a wild stock (🧬🚀) with steady ones (🌾☀️). High reward always rides with high risk.',
       days: 14, start: 1200, targetPct: 30, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true } },
     { n: 5, emoji: '📉', name: 'The Crash', concept: 'Don\'t panic-sell',
-      intro: 'Sooner or later, the whole market drops at once — a crash. It feels scary, but here\'s the secret the best investors know: crashes are temporary, and selling in a panic locks in your losses. Downturns are actually when stocks go ON SALE. Hold steady, and if you\'re brave, buy the dip.',
-      tip: 'If a crash hits, DON\'T panic-sell. Markets recover — a dip can be a discount.',
+      intro: 'Sooner or later, the whole market drops at once — a crash. It feels scary. History shows that panic-selling often locks in losses, and markets have frequently recovered over long periods — but there\'s no guarantee, and a lower price can also mean a company is actually in trouble. The steady move is usually to stick to your plan rather than react to fear.',
+      tip: 'If a crash hits, don\'t panic-sell on emotion — but a lower price isn\'t automatically a bargain. Stick to your plan.',
       days: 16, start: 1500, targetPct: 18, stocks: ['hay', 'sun', 'pix', 'nova', 'geno'], flags: { news: true, dca: true, crash: true } },
     { n: 6, emoji: '💸', name: 'Fees & Patience', concept: 'Costs of over-trading',
       intro: 'From now on, every trade costs a small $1 fee — just like the real world. Traders who buy and sell constantly bleed money on fees and often do WORSE than someone who picks well and waits. Patience is a strategy. Trade with purpose, not every single day.',
@@ -1338,15 +1349,15 @@
   ];
   const MM_GLOSSARY = [
     ['Share / Stock', 'A tiny piece of ownership in a company. Owning shares means you own a slice of that business.'],
-    ['Diversification', 'Spreading your money across many investments so one bad one can\'t hurt you much.'],
-    ['Dollar-Cost Averaging', 'Investing a fixed amount on a regular schedule, which keeps your average buy price low.'],
-    ['Risk vs Reward', 'Investments that can gain the most can also lose the most. Balance bold picks with steady ones.'],
+    ['Diversification', 'Spreading your money across many investments so one bad one hurts less. It lowers risk, but it can\'t prevent losses.'],
+    ['Dollar-Cost Averaging', 'Investing a fixed amount on a regular schedule. It helps manage the risk of trying to time the market — it doesn\'t guarantee a lower price or a profit.'],
+    ['Risk vs Reward', 'Investments that can gain the most can also lose the most. All investing involves risk — you can lose money.'],
     ['Dividend', 'A share of a company\'s profits paid to shareholders, often regularly, just for holding the stock.'],
-    ['Compounding', 'When your earnings start earning too — growth on top of growth. It snowballs over time.'],
+    ['Compounding', 'When your earnings start earning too — growth on top of growth. It can build up over long periods.'],
     ['Bull Market', 'A stretch when prices are generally rising and optimism is high.'],
-    ['Bear Market', 'A stretch when prices are generally falling. Historically, markets have always recovered eventually.'],
-    ['Interest Rates', 'The cost of borrowing money, set by a central bank. Rate changes push sectors up or down.'],
-    ['Buy the Dip', 'Buying good stocks after a drop, when they\'re effectively on sale — the opposite of panic-selling.']
+    ['Bear Market', 'A stretch when prices are generally falling. Markets have often recovered over long periods, but there\'s no guarantee, and it can take years.'],
+    ['Interest Rates', 'The cost of borrowing money, set by a central bank. Rate changes can push some sectors up or down, but nothing is certain.'],
+    ['Long-Term Investing', 'Staying invested through ups and downs rather than reacting to every price move. Time in the market matters more than timing it — though the future is never guaranteed.']
   ];
 
   // The market news arrives through a different "channel" each day so it never feels stale —
@@ -1403,10 +1414,11 @@
       <div class="kid-header" style="margin-bottom:10px">
         <canvas id="mm-hub-hero" width="52" height="46" class="mm-hub-hero"></canvas>
         <div><h1 style="margin:0">📈 Stable Street</h1>
-          <div class="muted" style="font-size:.9rem">${MM_LOOK.name}'s investing career — grow real money, one level at a time.</div>
+          <div class="muted" style="font-size:.9rem">${MM_LOOK.name}'s investing career — grow a <b>pretend portfolio</b> with play money, one level at a time.</div>
         </div>
         <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#play'">← Play Zone</button></div>
       </div>
+      <div class="mm-disclaimer">🎓 This is a learning game with <b>pretend money</b>. It teaches investing ideas, but it isn't financial advice — real investing always involves risk, and you can lose money. Diversification lowers risk but can't prevent losses, and past results don't predict the future.</div>
       <div class="mm-career">
         <div class="mm-cstat"><div class="n">${progress.graduated ? '🎓' : current}</div><div>${progress.graduated ? 'Graduate' : 'Current level'}</div></div>
         <div class="mm-cstat"><div class="n">${starTotal}<span style="color:#f4b740">★</span></div><div>Stars earned</div></div>
@@ -1693,7 +1705,7 @@
       let crashing = false;
       if (F.crash && !crashed && day >= 3 && day <= L.days - 2 && Math.random() < 0.28) {
         crashing = true; crashed = true; recover = 3;
-        flash = '📉 CRASH! The whole market is tumbling. Don\'t panic — downturns recover, and dips can be discounts. Hold steady (or buy the dip).';
+        flash = '📉 CRASH! The whole market is tumbling. Try not to panic-sell on emotion — stick to your plan. (A lower price isn\'t automatically a bargain.)';
       }
       for (const s of stocks) {
         let move = (Math.random() * 2 - 1) * s.wild;

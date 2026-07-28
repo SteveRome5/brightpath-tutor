@@ -428,6 +428,19 @@ try {
   db.exec('CREATE INDEX IF NOT EXISTS idx_assign_class ON class_assignments(class_id)');
 } catch (e) {}
 
+// Game attempts: one row each time a game is opened (a token spent), so "attempts" can be shown
+// separately from "completed rounds" (game_scores). A token disappearing while play history says
+// zero was confusing (GAME-P1.5).
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS game_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+    game TEXT NOT NULL,
+    ts TEXT DEFAULT (datetime('now'))
+  )`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_game_attempts ON game_attempts(kid_id, game)');
+} catch (e) {}
+
 // Advanced Track exam-readiness: per-student, per-track running stats for AP/Honors/Regents
 // tracks — multiple-choice practice, free-response self-scores, and best exam-simulator result.
 // Kept entirely separate from the K-12 adaptive ladder (never touches subject_state/skill_state).
