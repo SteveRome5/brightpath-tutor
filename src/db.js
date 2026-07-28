@@ -323,7 +323,11 @@ for (const stmt of [
   // via a real promotion). Distinct from the served `level`, which can be floored above true
   // ability. The Gallop Score credits sub-grade skills only up to this, so the score reflects
   // demonstrated learning rather than where the child happens to be seated. -1 = nothing cleared.
-  "ALTER TABLE subject_state ADD COLUMN demonstrated_level INTEGER DEFAULT -1"
+  "ALTER TABLE subject_state ADD COLUMN demonstrated_level INTEGER DEFAULT -1",
+  // Family time zone (IANA name, e.g. 'America/Los_Angeles'), captured from the parent's browser.
+  // Used so "today"/"this week" counts roll over at the family's local midnight instead of UTC —
+  // otherwise an evening-Pacific family sees today's questions drop to 0 once it passes UTC midnight.
+  "ALTER TABLE parents ADD COLUMN tz TEXT"
 ]) {
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }

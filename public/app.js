@@ -693,7 +693,19 @@ const Confetti = (() => {
 // ======================= state & router =======================
 const State = { me: { role: 'guest' }, lesson: null };
 
-async function refreshMe() { State.me = await api('/auth/me'); }
+async function refreshMe() {
+  State.me = await api('/auth/me');
+  // Report the browser's time zone once per parent session so "today"/"this week" counts
+  // roll over at the family's local midnight (not UTC). Best-effort, fire-and-forget.
+  if (State.me && State.me.role === 'parent' && !_tzSent) {
+    _tzSent = true;
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz) api('/me/tz', { method: 'POST', body: { tz } }).catch(() => { _tzSent = false; });
+    } catch (e) { _tzSent = false; }
+  }
+}
+let _tzSent = false;
 
 const routes = {};
 let _navRetry = null; // {key, n} — transient-failure retry state for the router

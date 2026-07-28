@@ -11,8 +11,18 @@ const mailer = require('./mailer');
 const support = require('./support');
 const newsletter = require('./newsletter');
 const inbound = require('./inbound');
+const timeutil = require('./timeutil');
 
 const router = express.Router();
+
+// The family's saved time zone (IANA), so "today"/"this week" counters roll over at the
+// family's local midnight instead of UTC. Looked up by parent id or by a kid's parent.
+function tzForParent(parentId) {
+  try { const p = db.prepare('SELECT tz FROM parents WHERE id=?').get(parentId); return p && p.tz; } catch (e) { return null; }
+}
+function tzForKid(kidId) {
+  try { const r = db.prepare('SELECT p.tz AS tz FROM kids k JOIN parents p ON p.id=k.parent_id WHERE k.id=?').get(kidId); return r && r.tz; } catch (e) { return null; }
+}
 router.use(play.router);
 const COOKIE_OPTS = { httpOnly: true, sameSite: 'lax', maxAge: 90 * 86400000, secure: process.env.NODE_ENV === 'production' };
 const AVATARS = ['fox', 'panda', 'dragon', 'unicorn', 'robot', 'astronaut', 'tiger', 'octopus'];
@@ -255,6 +265,23 @@ router.get('/auth/family-kids', pinLimiter, (req, res) => {
   res.json({ kids });
 });
 
+// The parent's browser reports its IANA time zone once per load, so "today"/"this week"
+// counters roll over at the family's real local midnight. Only saves valid zones, and only
+// when it actually changes — a no-op write otherwise. Never fails the caller.
+router.post('/me/tz', auth.requireParent, (req, res) => {
+  try {
+    const tz = (req.body || {}).tz;
+    if (tz && typeof tz === 'string') {
+      const zone = timeutil.normalizeZone(tz);
+      // normalizeZone returns the default for bogus input; only save if the input was itself valid
+      if (zone === tz && zone !== tzForParent(req.parent.id)) {
+        db.prepare('UPDATE parents SET tz=? WHERE id=?').run(zone, req.parent.id);
+      }
+    }
+  } catch (e) { /* best-effort */ }
+  res.json({ ok: true });
+});
+
 router.get('/auth/me', (req, res) => {
   const s = auth.getSession(req.cookies.bp_session);
   if (!s) return res.json({ role: 'guest' });
@@ -281,9 +308,10 @@ function publicKid(k) {
   // answered_today drives the parent "earn it" games gate (unlock after N questions today);
   // game_seconds_today drives the parent daily time cap.
   let answeredToday = 0, gameSecondsToday = 0;
-  try { answeredToday = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND date(ts)=date('now')").get(k.id).n; } catch (e) {}
+  const win = timeutil.dayWindow(tzForKid(k.id));
+  try { answeredToday = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= ? AND ts < ?').get(k.id, win.todayStart, win.tomorrowStart).n; } catch (e) {}
   try { const gt = db.prepare("SELECT seconds FROM game_time WHERE kid_id=? AND day=date('now')").get(k.id); gameSecondsToday = gt ? gt.seconds : 0; } catch (e) {}
-  return { id: k.id, name: k.name, avatar: k.avatar, avatar_config: cfg, avatar_img: k.avatar_img || null, grade: k.grade, xp: k.xp, coins: k.coins, streak: k.streak, play_tokens: k.play_tokens || 0, calendar_mode: k.calendar_mode, weekly_goal: k.weekly_goal, show_level: k.show_level || 0, games_enabled: k.games_enabled == null ? 1 : k.games_enabled, games_gate: k.games_gate == null ? 0 : k.games_gate, answered_today: answeredToday, games_time_limit: k.games_time_limit == null ? 0 : k.games_time_limit, game_seconds_today: gameSecondsToday, learn_minutes_today: learnMinutes(k.id, "date('now')") };
+  return { id: k.id, name: k.name, avatar: k.avatar, avatar_config: cfg, avatar_img: k.avatar_img || null, grade: k.grade, xp: k.xp, coins: k.coins, streak: k.streak, play_tokens: k.play_tokens || 0, calendar_mode: k.calendar_mode, weekly_goal: k.weekly_goal, show_level: k.show_level || 0, games_enabled: k.games_enabled == null ? 1 : k.games_enabled, games_gate: k.games_gate == null ? 0 : k.games_gate, answered_today: answeredToday, games_time_limit: k.games_time_limit == null ? 0 : k.games_time_limit, game_seconds_today: gameSecondsToday, learn_minutes_today: learnMinutesBetween(k.id, win.todayStart, win.tomorrowStart) };
 }
 
 // Honest "time on task" from real answer data: sum each answer's time, capped at 2 minutes
@@ -292,6 +320,17 @@ function publicKid(k) {
 function learnMinutes(kidId, sinceExpr) {
   try {
     const row = db.prepare(`SELECT COALESCE(SUM(MIN(COALESCE(time_ms,0),120000)),0) AS ms FROM activity_log WHERE kid_id=? AND ts >= ${sinceExpr}`).get(kidId);
+    return Math.round((row.ms || 0) / 60000);
+  } catch (e) { return 0; }
+}
+// Same "honest minutes" sum but bounded by explicit UTC instant strings (local-day aware).
+// `until` is optional; when given, the window is [since, until).
+function learnMinutesBetween(kidId, sinceUTC, untilUTC) {
+  try {
+    let sql = 'SELECT COALESCE(SUM(MIN(COALESCE(time_ms,0),120000)),0) AS ms FROM activity_log WHERE kid_id=? AND ts >= ?';
+    const args = [kidId, sinceUTC];
+    if (untilUTC) { sql += ' AND ts < ?'; args.push(untilUTC); }
+    const row = db.prepare(sql).get(...args);
     return Math.round((row.ms || 0) / 60000);
   } catch (e) { return 0; }
 }
@@ -403,11 +442,12 @@ router.get('/privacy/export', auth.requireParent, (req, res) => {
 router.get('/learn/subjects', (req, res) => res.json({ subjects: content.subjectMeta() }));
 
 router.get('/learn/:kidId/overview', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const owin = timeutil.dayWindow(tzForKid(req.kid.id));  // family-local "today" boundary
   const subjects = ['math', 'english', 'science', 'spanish'].map(sub => {
     const st = adaptive.getSubjectState(req.kid.id, sub);
     const meta = content.SUBJECTS[sub];
     const m = db.prepare('SELECT AVG(mastery) AS m FROM skill_state WHERE kid_id=? AND subject=? AND attempts>0').get(req.kid.id, sub);
-    const today = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND subject=? AND date(ts)=date('now')").get(req.kid.id, sub);
+    const today = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND subject=? AND ts >= ? AND ts < ?').get(req.kid.id, sub, owin.todayStart, owin.tomorrowStart);
     // attempts>0: score only skills the child has actually worked on, so the overview
     // number matches the report card instead of crediting untouched seeded skills.
     const srows = db.prepare('SELECT skill_id, mastery FROM skill_state WHERE kid_id=? AND subject=? AND attempts>0').all(req.kid.id, sub);
@@ -758,12 +798,13 @@ router.get('/family/stats', auth.requireParent, (req, res) => {
 // link so a parent can launch focused practice on it in one tap).
 router.get('/family/overview', auth.requireParent, (req, res) => {
   const STRUGGLING = 0.45;
+  const win = timeutil.dayWindow(tzForParent(req.parent.id));  // family-local day/week boundaries
   const kids = db.prepare('SELECT * FROM kids WHERE parent_id=?').all(req.parent.id);
   const out = kids.map(k => {
     // weekAnswers counts ALL work (engagement/goal); weekAccuracy excludes optional Advanced
     // Track (AP/honors) so the accuracy figure is a fair grade-level read, matching the report.
-    const w = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= datetime('now','-7 days')").get(k.id);
-    const wAcc = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND skill_id NOT LIKE 'track:%' AND ts >= datetime('now','-7 days')").get(k.id);
+    const w = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= ?').get(k.id, win.weekStart);
+    const wAcc = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND skill_id NOT LIKE 'track:%' AND ts >= ?").get(k.id, win.weekStart);
     const totalAns = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=?').get(k.id).n;
     // The skills this child is genuinely stuck on, hardest first — this is "where they need help".
     const struggles = db.prepare(
@@ -783,12 +824,12 @@ router.get('/family/overview', auth.requireParent, (req, res) => {
       }
       if (card.gallop) { gallop = card.gallop.overall; gallopDelta = (card.gallop.deltas && card.gallop.deltas.overall) || null; }
     } catch (e) {}
-    const todayAns = db.prepare("SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND date(ts)=date('now')").get(k.id).n;
+    const todayAns = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= ? AND ts < ?').get(k.id, win.todayStart, win.tomorrowStart).n;
     return {
       id: k.id, name: k.name, grade: k.grade, avatar: k.avatar, streak: k.streak, xp: k.xp,
       weekAnswers: w.n || 0, weekAccuracy: wAcc.n ? Math.round((wAcc.c || 0) / wAcc.n * 100) : null,
       weeklyGoal: (k.weekly_goal || 12) * 10, totalAnswers: totalAns, needsSetup: totalAns === 0,
-      todayAnswers: todayAns, minutesToday: learnMinutes(k.id, "date('now')"), minutesWeek: learnMinutes(k.id, "datetime('now','-7 days')"),
+      todayAnswers: todayAns, minutesToday: learnMinutesBetween(k.id, win.todayStart, win.tomorrowStart), minutesWeek: learnMinutesBetween(k.id, win.weekStart),
       overall, focus, gallop, gallopDelta
     };
   });
