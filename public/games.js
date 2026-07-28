@@ -152,6 +152,7 @@
     const CATALOG = [
       { id: 'market', emoji: '📈', name: 'Stable Street', desc: 'A 12-level investing career — level up by hitting profit targets while you master diversification, dollar-cost averaging, dividends & more. Progress saves.', min: 4, max: 12 },
       { id: 'blitz', emoji: '⚡', name: 'Gallop Sprint', desc: '60 seconds. Rapid-fire questions. Build a combo — beat your best!', min: 0, max: 12 },
+      { id: 'spellingbee', emoji: '🐝', name: 'Gallop Spelling Bee', desc: 'Step to the mic! Hear your word, ask for its meaning, then spell it — just like the national stage.', min: 1, max: 12 },
       { id: 'code', emoji: '🤖', name: 'Robo Logic', desc: 'Program Robo the robot to reach the star — a fresh puzzle set every time.', min: 0, max: 12 },
       { id: 'wordsearch', emoji: '🔍', name: 'Word Roundup', desc: 'Hunt hidden words in the letter jungle.', min: 0, max: 12 },
       { id: 'memory', emoji: '🃏', name: 'Memory Meadow', desc: 'Flip cards, match pairs — Spanish words, math facts & more!', min: 0, max: 12 },
@@ -203,7 +204,7 @@
       await startMarketHub();
       return;
     }
-    const starters = { bakery: startBakery, memory: startMemory, wordsearch: startWordSearch, code: startCode, art: startArt, lemonade: startLemonade, blitz: startBlitz };
+    const starters = { bakery: startBakery, memory: startMemory, wordsearch: startWordSearch, code: startCode, art: startArt, lemonade: startLemonade, blitz: startBlitz, spellingbee: startSpellingBee };
     const fn = starters[which];
     if (!fn) { location.hash = '#play'; return; }
     await gated(which, fn);
@@ -756,6 +757,296 @@
       }
     }, 1000);
     render();
+  }
+
+  // ======================= GALLOP SPELLING BEE =======================
+  // A real spelling-bee stage: the word is spoken aloud (never shown), the speller
+  // can ask for the definition, part of speech, or a sentence — then types the spelling,
+  // exactly like the Scripps National Spelling Bee. Four tiers of difficulty escalate
+  // from early-grade words up to genuine championship words. TTS via Voice.speak.
+  const SPELL_BANK = {
+    sprout: [ // grades 1–2
+      { w: 'apple', pos: 'noun', def: 'a round fruit with red or green skin that grows on a tree.', sen: 'She packed a shiny apple in her lunchbox.' },
+      { w: 'happy', pos: 'adjective', def: 'feeling or showing joy.', sen: 'The puppy was happy to see us come home.' },
+      { w: 'friend', pos: 'noun', def: 'a person you like and enjoy being with.', sen: 'My best friend sits next to me at school.' },
+      { w: 'water', pos: 'noun', def: 'the clear liquid we drink and that fills rivers and seas.', sen: 'Please pour me a glass of cold water.' },
+      { w: 'school', pos: 'noun', def: 'a place where children go to learn.', sen: 'We ride the bus to school every morning.' },
+      { w: 'yellow', pos: 'adjective', def: 'the color of the sun or a lemon.', sen: 'The baby duck had soft yellow feathers.' },
+      { w: 'garden', pos: 'noun', def: 'a place where flowers or vegetables are grown.', sen: 'Grandma grows tomatoes in her garden.' },
+      { w: 'pencil', pos: 'noun', def: 'a tool you write or draw with.', sen: 'He sharpened his pencil before the test.' },
+      { w: 'family', pos: 'noun', def: 'a group of people who are related to each other.', sen: 'My whole family ate dinner together.' },
+      { w: 'rabbit', pos: 'noun', def: 'a small furry animal with long ears that hops.', sen: 'A white rabbit hopped across the field.' },
+      { w: 'winter', pos: 'noun', def: 'the coldest season of the year.', sen: 'It snowed all day long in the winter.' },
+      { w: 'purple', pos: 'adjective', def: 'a color made by mixing red and blue.', sen: 'She wore a bright purple hat.' },
+      { w: 'basket', pos: 'noun', def: 'a container used to hold or carry things.', sen: 'We filled the basket with fresh berries.' },
+      { w: 'cookie', pos: 'noun', def: 'a small, sweet baked treat.', sen: 'He ate one warm cookie after lunch.' },
+      { w: 'monkey', pos: 'noun', def: 'a furry animal with a long tail that climbs trees.', sen: 'The monkey swung from branch to branch.' },
+      { w: 'window', pos: 'noun', def: 'an opening in a wall, usually filled with glass.', sen: 'Rain tapped softly on the window.' }
+    ],
+    speller: [ // grades 3–5
+      { w: 'because', pos: 'conjunction', def: 'for the reason that.', sen: 'We stayed inside because it was raining.' },
+      { w: 'library', pos: 'noun', def: 'a place where books are kept for reading or borrowing.', sen: 'She returned three books to the library.' },
+      { w: 'beautiful', pos: 'adjective', def: 'very pleasing to look at.', sen: 'The sunset was absolutely beautiful.' },
+      { w: 'chocolate', pos: 'noun', def: 'a sweet brown food made from cacao beans.', sen: 'He melted the chocolate for the cake.' },
+      { w: 'dinosaur', pos: 'noun', def: 'a very large reptile that lived long ago.', sen: 'The museum had a huge dinosaur skeleton.' },
+      { w: 'necessary', pos: 'adjective', def: 'needed; required.', sen: 'It is necessary to wear a helmet when biking.' },
+      { w: 'neighbor', pos: 'noun', def: 'a person who lives near you.', sen: 'Our friendly neighbor watered our plants.' },
+      { w: 'separate', pos: 'verb', def: 'to set or keep apart.', sen: 'Please separate the recycling from the trash.' },
+      { w: 'calendar', pos: 'noun', def: 'a chart showing the days, weeks, and months of a year.', sen: 'She circled her birthday on the calendar.' },
+      { w: 'vegetable', pos: 'noun', def: 'a plant or part of a plant used as food.', sen: 'A carrot is my favorite vegetable.' },
+      { w: 'different', pos: 'adjective', def: 'not the same as another.', sen: 'The twins wore different colored shoes.' },
+      { w: 'favorite', pos: 'adjective', def: 'liked best of all.', sen: 'Blue is my favorite color.' },
+      { w: 'sandwich', pos: 'noun', def: 'food made of filling between two slices of bread.', sen: 'He made a turkey sandwich for lunch.' },
+      { w: 'question', pos: 'noun', def: 'a sentence that asks for information.', sen: 'She raised her hand to ask a question.' },
+      { w: 'remember', pos: 'verb', def: 'to keep something in your mind.', sen: 'Try to remember your locker number.' },
+      { w: 'surprise', pos: 'noun', def: 'something unexpected.', sen: 'The party was a wonderful surprise.' }
+    ],
+    ace: [ // grades 6–8
+      { w: 'rhythm', pos: 'noun', def: 'a strong, regular repeated pattern of sound or movement.', sen: 'The drummer kept a steady rhythm.' },
+      { w: 'conscience', pos: 'noun', def: 'the inner sense of what is right and wrong.', sen: 'His guilty conscience kept him awake.' },
+      { w: 'silhouette', pos: 'noun', def: 'a dark outline of something against a lighter background.', sen: 'We saw the silhouette of a hawk at dusk.' },
+      { w: 'mischievous', pos: 'adjective', def: 'causing or fond of playful trouble.', sen: 'The mischievous kitten unrolled all the yarn.' },
+      { w: 'exaggerate', pos: 'verb', def: 'to describe something as larger or greater than it really is.', sen: 'Do not exaggerate the size of the fish you caught.' },
+      { w: 'perseverance', pos: 'noun', def: 'steady effort despite difficulty.', sen: 'Her perseverance helped her finish the race.' },
+      { w: 'accommodate', pos: 'verb', def: 'to provide room or make space for.', sen: 'The hall can accommodate five hundred guests.' },
+      { w: 'bureaucracy', pos: 'noun', def: 'a system of government with many offices and rules.', sen: 'The permit was lost in the bureaucracy.' },
+      { w: 'camouflage', pos: 'noun', def: 'coloring or covering that hides something by blending in.', sen: 'The lizard used camouflage to hide on the bark.' },
+      { w: 'connoisseur', pos: 'noun', def: 'an expert judge in matters of taste.', sen: 'She is a connoisseur of fine cheeses.' },
+      { w: 'liaison', pos: 'noun', def: 'a person who helps two groups communicate.', sen: 'He acted as the liaison between the teams.' },
+      { w: 'maneuver', pos: 'noun', def: 'a skillful or clever movement or plan.', sen: 'The pilot performed a tricky maneuver.' },
+      { w: 'privilege', pos: 'noun', def: 'a special right or advantage.', sen: 'Driving is a privilege, not a right.' },
+      { w: 'questionnaire', pos: 'noun', def: 'a set of printed questions used to gather information.', sen: 'Please fill out the questionnaire after the visit.' },
+      { w: 'reminiscent', pos: 'adjective', def: 'reminding you of something.', sen: 'The smell was reminiscent of fresh bread.' },
+      { w: 'vengeance', pos: 'noun', def: 'punishment given in return for a wrong.', sen: 'The hero sought vengeance for the crime.' }
+    ],
+    champion: [ // Scripps-level
+      { w: 'chiaroscuro', pos: 'noun', def: 'the treatment of light and shade in a work of art.', sen: 'The painting used dramatic chiaroscuro to draw the eye.' },
+      { w: 'onomatopoeia', pos: 'noun', def: 'the forming of a word that imitates the sound it names.', sen: 'Buzz and hiss are examples of onomatopoeia.' },
+      { w: 'sesquipedalian', pos: 'adjective', def: 'given to using long words.', sen: 'The professor was famous for his sesquipedalian lectures.' },
+      { w: 'prestidigitation', pos: 'noun', def: 'skillful magic tricks done with the hands; sleight of hand.', sen: 'The magician amazed us with clever prestidigitation.' },
+      { w: 'logorrhea', pos: 'noun', def: 'excessive and often uncontrollable talkativeness.', sen: 'His logorrhea made the meeting run late.' },
+      { w: 'weltschmerz', pos: 'noun', def: 'a feeling of sadness about the state of the world.', sen: 'A wave of weltschmerz washed over the poet.' },
+      { w: 'pochemuchka', pos: 'noun', def: 'a person who asks too many questions.', sen: 'The curious pochemuchka kept the guide busy all day.' },
+      { w: 'scherenschnitte', pos: 'noun', def: 'the art of cutting paper into decorative designs.', sen: 'She framed a delicate piece of scherenschnitte.' },
+      { w: 'appoggiatura', pos: 'noun', def: 'a musical note that delays the main note it precedes.', sen: 'The violinist added a graceful appoggiatura.' },
+      { w: 'nunatak', pos: 'noun', def: 'a hill or mountain peak sticking up through a glacier.', sen: 'The climbers rested on a rocky nunatak.' },
+      { w: 'gesellschaft', pos: 'noun', def: 'a society held together by practical concerns rather than close ties.', sen: 'The city felt like a cold gesellschaft to the newcomer.' },
+      { w: 'cymotrichous', pos: 'adjective', def: 'having wavy hair.', sen: 'The portrait showed a cymotrichous young woman.' },
+      { w: 'guerdon', pos: 'noun', def: 'a reward or payment.', sen: 'The knight received a fine guerdon for his bravery.' },
+      { w: 'feuilleton', pos: 'noun', def: 'a part of a newspaper set aside for light literature or reviews.', sen: 'Her short story appeared in the feuilleton.' },
+      { w: 'bougainvillea', pos: 'noun', def: 'a tropical climbing plant with brightly colored papery bracts.', sen: 'Pink bougainvillea covered the garden wall.' },
+      { w: 'chrematistic', pos: 'adjective', def: 'relating to the making of money.', sen: 'His chrematistic instincts made the shop thrive.' }
+    ]
+  };
+  const SB_TIERS = ['sprout', 'speller', 'ace', 'champion'];
+  const SB_TIER_META = {
+    sprout: { name: 'Sprout', emoji: '🌱', pts: 10, sub: 'Grades 1–2' },
+    speller: { name: 'Speller', emoji: '⭐', pts: 20, sub: 'Grades 3–5' },
+    ace: { name: 'Ace', emoji: '🐝', pts: 30, sub: 'Grades 6–8' },
+    champion: { name: 'Champion', emoji: '🏆', pts: 50, sub: 'Scripps level' }
+  };
+
+  function startSpellingBee() {
+    const grade = State.me.kid.grade || 0;
+    const PER_ROUND = 5;
+    let score = 0, streak = 0, bestStreak = 0, bees = 3, wordNum = 0, round = 1, spelled = 0;
+    let tierIdx = 0;               // current difficulty tier
+    let cur = null;                // current word object
+    const usedByTier = { sprout: new Set(), speller: new Set(), ace: new Set(), champion: new Set() };
+    let over = false;
+
+    // Suggested starting tier from the child's grade — they can pick any.
+    const suggested = grade <= 2 ? 0 : grade <= 5 ? 1 : grade <= 8 ? 2 : 3;
+
+    function pickWord(idx) {
+      const tier = SB_TIERS[idx];
+      const bank = SPELL_BANK[tier];
+      const used = usedByTier[tier];
+      const fresh = bank.filter((_, i) => !used.has(i));
+      if (!fresh.length) return null;   // pool exhausted for this tier
+      const pool = fresh;
+      const choice = pool[Math.floor(Math.random() * pool.length)];
+      used.add(bank.indexOf(choice));
+      return choice;
+    }
+
+    // Hide the word inside its example sentence with a blank of matching length.
+    function blankSentence(word, sen) {
+      const re = new RegExp('\\b' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'ig');
+      return esc(sen).replace(re, '<span class="sb-blank">' + '•'.repeat(Math.max(3, word.length)) + '</span>');
+    }
+
+    function say(text) { try { Voice.speak(text, 'en-US'); } catch (e) {} }
+
+    function intro() {
+      app().innerHTML = topbar(`<div class="container" style="max-width:600px">
+        <div class="sb-stage sb-intro">
+          <div class="sb-lights"></div>
+          <div class="sb-bee-hero">🐝</div>
+          <h1 class="sb-title">Gallop Spelling Bee</h1>
+          <p class="sb-tagline">Step up to the microphone. Listen to your word, ask for clues, then spell it just like the national stage. 🎤</p>
+          <p class="sb-pick-label">Pick your starting level:</p>
+          <div class="sb-levels">
+            ${SB_TIERS.map((t, i) => {
+      const m = SB_TIER_META[t];
+      return `<button class="sb-lvl ${i === suggested ? 'sb-suggested' : ''}" data-i="${i}">
+                <span class="sb-lvl-emoji">${m.emoji}</span>
+                <span class="sb-lvl-name">${m.name}</span>
+                <span class="sb-lvl-sub">${m.sub}</span>
+                ${i === suggested ? '<span class="sb-lvl-tag">Suggested</span>' : ''}
+              </button>`;
+    }).join('')}
+          </div>
+          <p class="sb-rules">🐝🐝🐝 Three misses and your turn ends. Every round the words get tougher. Ready?</p>
+        </div>
+      </div>`);
+      wireChrome();
+      document.querySelectorAll('.sb-lvl').forEach(b => b.onclick = () => { Sound.click(); tierIdx = Number(b.dataset.i); round = 1; next(); });
+    }
+
+    function next() {
+      if (over) return;
+      // New round every PER_ROUND words: escalate difficulty (capped at champion).
+      if (wordNum > 0 && wordNum % PER_ROUND === 0) {
+        round++;
+        if (tierIdx < SB_TIERS.length - 1) tierIdx++;
+        roundBanner();
+        return;
+      }
+      cur = pickWord(tierIdx);
+      // If this tier is exhausted, climb to the next; if the very top is dry, that's a championship win.
+      while (!cur && tierIdx < SB_TIERS.length - 1) { tierIdx++; cur = pickWord(tierIdx); }
+      if (!cur) { champion(); return; }
+      wordNum++;
+      render();
+    }
+
+    function roundBanner() {
+      const m = SB_TIER_META[SB_TIERS[tierIdx]];
+      app().innerHTML = topbar(`<div class="container" style="max-width:560px">
+        <div class="sb-stage sb-roundbanner">
+          <div class="sb-round-emoji">${m.emoji}</div>
+          <h1 class="sb-round-h">Round ${round}</h1>
+          <p class="sb-round-tier">${m.name} words · ${m.sub}</p>
+          <div class="sb-round-stats">🏅 ${score} pts · 🐝 ${bees} left · 🔥 streak ${streak}</div>
+          <button class="btn sun" id="sb-go">Next word →</button>
+        </div>
+      </div>`);
+      wireChrome();
+      Confetti.burst(70); Sound.levelup();
+      $('#sb-go').onclick = () => { Sound.click(); next(); };
+    }
+
+    function render() {
+      if (over) return;
+      const m = SB_TIER_META[SB_TIERS[tierIdx]];
+      app().innerHTML = topbar(`<div class="container" style="max-width:600px">
+        <div class="lesson-top">
+          <b>🐝 Spelling Bee${_curBest ? `<span class="hs-target">🏅 Best: ${_curBest}</span>` : ''}</b>
+          <b>Score: <span id="sb-score">${score}</span></b>
+        </div>
+        <div class="sb-stage sb-playing">
+          <div class="sb-hud">
+            <span class="sb-chip">${m.emoji} ${m.name}</span>
+            <span class="sb-chip">Round ${round} · Word ${((wordNum - 1) % PER_ROUND) + 1}/${PER_ROUND}</span>
+            <span class="sb-bees" id="sb-bees">${'🐝'.repeat(bees)}${'<span class=\'sb-gone\'>🐝</span>'.repeat(3 - bees)}</span>
+          </div>
+          <div class="sb-spotlight">
+            <div class="sb-mic">
+              <button class="sb-hearbtn" id="sb-hear" title="Hear the word">🔊</button>
+              <div class="sb-hear-label">Tap to hear your word</div>
+            </div>
+          </div>
+          ${streak >= 2 ? `<div class="sb-streak">🔥 ${streak} in a row!</div>` : ''}
+          <div class="sb-clues">
+            <button class="sb-clue" id="sb-def">📖 Definition</button>
+            <button class="sb-clue" id="sb-pos">🔤 Part of speech</button>
+            <button class="sb-clue" id="sb-sen">✍️ In a sentence</button>
+          </div>
+          <div class="sb-clue-box" id="sb-cluebox" hidden></div>
+          <form class="sb-form" id="sb-form" autocomplete="off">
+            <input class="sb-input" id="sb-answer" type="text" inputmode="text"
+              autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+              placeholder="Spell it here…" aria-label="Type your spelling">
+            <button class="btn sun sb-submit" type="submit">Spell it! ✨</button>
+          </form>
+          <p class="sb-hint" id="sb-hint">💡 ${cur.w.length} letters. Take your time — tap 🔊 as many times as you need.</p>
+        </div>
+      </div>`);
+      wireChrome();
+      const input = $('#sb-answer');
+      const box = $('#sb-cluebox');
+      function showClue(html) { box.hidden = false; box.innerHTML = html; }
+      $('#sb-hear').onclick = () => { Sound.click(); say(cur.w); };
+      $('#sb-def').onclick = () => { Sound.click(); showClue(`<b>Definition:</b> ${esc(cur.def)}`); say('Definition. ' + cur.def); };
+      $('#sb-pos').onclick = () => { Sound.click(); showClue(`<b>Part of speech:</b> ${esc(cur.pos)}`); say(cur.pos); };
+      $('#sb-sen').onclick = () => { Sound.click(); showClue(`<b>In a sentence:</b> ${blankSentence(cur.w, cur.sen)}`); say(cur.sen); };
+      $('#sb-form').onsubmit = (e) => { e.preventDefault(); judge(input.value); };
+      // Speak the word automatically when it appears, then focus the box.
+      setTimeout(() => { say(cur.w); try { input.focus(); } catch (e) {} }, 350);
+    }
+
+    function judge(raw) {
+      if (over) return;
+      const guess = (raw || '').trim().toLowerCase();
+      if (!guess) return;
+      spelled++;
+      const correct = guess === cur.w.toLowerCase();
+      const m = SB_TIER_META[SB_TIERS[tierIdx]];
+      if (correct) {
+        streak++; bestStreak = Math.max(bestStreak, streak);
+        const gain = m.pts + streak * 2;
+        score += gain;
+        Sound.correct(); Confetti.burst(streak >= 3 ? 90 : 50);
+        reveal(true, gain);
+      } else {
+        streak = 0; bees--;
+        Sound.wrong();
+        reveal(false, 0);
+      }
+    }
+
+    function reveal(correct, gain) {
+      const letters = cur.w.split('').map((ch, i) =>
+        `<span class="sb-letter ${correct ? 'ok' : 'show'}" style="animation-delay:${i * 55}ms">${esc(ch)}</span>`).join('');
+      const done = !correct && bees <= 0;
+      app().innerHTML = topbar(`<div class="container" style="max-width:600px">
+        <div class="sb-stage sb-reveal ${correct ? 'good' : 'miss'}">
+          <div class="sb-reveal-emoji">${correct ? '🎉' : (done ? '🐝' : '💛')}</div>
+          <h2 class="sb-reveal-h">${correct ? 'Correct!' : 'So close!'}</h2>
+          <div class="sb-word">${letters}</div>
+          ${correct
+          ? `<p class="sb-reveal-sub">+${gain} points${streak >= 2 ? ` · 🔥 ${streak} streak bonus!` : ''}</p>`
+          : `<p class="sb-reveal-sub">The word was spelled <b>${esc(cur.w)}</b>. ${done ? 'That was your last bee.' : `You have ${'🐝'.repeat(bees)} left.`}</p>`}
+          <div class="sb-reveal-def">${esc(cur.pos)} · ${esc(cur.def)}</div>
+          ${done
+          ? `<button class="btn sun" id="sb-finish">See your results →</button>`
+          : `<button class="btn sun" id="sb-cont">${correct ? 'Next word →' : 'Keep going →'}</button>`}
+        </div>
+      </div>`);
+      wireChrome();
+      if (done) { $('#sb-finish').onclick = () => { Sound.click(); endBee(); }; }
+      else { $('#sb-cont').onclick = () => { Sound.click(); next(); }; }
+    }
+
+    function champion() {
+      over = true;
+      score += 100; // triumph bonus for clearing every championship word
+      Confetti.burst(260); Sound.levelup(); Confetti.burst(160);
+      finishGame('spellingbee', score,
+        '🏆 SPELLING CHAMPION! 🏆',
+        `You spelled every word — all the way through the Champion round! ${spelled} words, best streak of ${bestStreak}. That is national-stage spelling. +100 champion bonus!`);
+    }
+
+    function endBee() {
+      if (over) return; over = true;
+      const topTier = SB_TIER_META[SB_TIERS[tierIdx]];
+      finishGame('spellingbee', score,
+        `${spelled} words spelled! 🐝`,
+        `You reached the ${topTier.name} round with a best streak of ${bestStreak}. Ring the bell and try to beat it!`);
+    }
+
+    intro();
   }
 
   // ======================= LEMONADE TYCOON (canvas) =======================

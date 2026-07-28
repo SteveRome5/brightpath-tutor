@@ -576,6 +576,78 @@ body[data-theme="scholar"] .bz-ring-fg, body[data-theme="academy"] .bz-ring-fg {
   font-size: 1.9rem; color: #14a37f; pointer-events: none; animation: bzFloat .7s ease forwards; text-shadow: 0 2px 6px rgba(0,0,0,.15); }
 @keyframes bzFloat { 0% { opacity: 0; transform: translate(-50%,10px) scale(.7); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%,-46px) scale(1.1); } }
 body[data-theme="junior"] .blitz-q { font-size: clamp(2.8rem, 10vw, 4rem); }
+
+/* ===================== GALLOP SPELLING BEE ===================== */
+/* A dramatic "spelling-bee stage": deep spotlight backdrop with warm honey accents.
+   All text colors are set explicitly (light on dark) so contrast never depends on theme. */
+.sb-stage { position: relative; border-radius: 22px; padding: 26px 22px 30px; overflow: hidden;
+  background: radial-gradient(120% 90% at 50% -10%, #26406b 0%, #16223f 55%, #0e1830 100%);
+  box-shadow: 0 18px 44px -22px rgba(0,0,0,.6); color: #fdf6e6; text-align: center; }
+.sb-stage .sb-lights { position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(60% 40% at 50% 0%, rgba(255,214,120,.35), rgba(255,214,120,0) 70%); }
+.sb-title, .sb-round-h, .sb-reveal-h { font-family: var(--font-display, inherit); font-weight: 800; color: #ffe6a1;
+  text-shadow: 0 3px 10px rgba(0,0,0,.35); margin: 6px 0; }
+.sb-title { font-size: clamp(1.9rem, 6vw, 2.6rem); }
+.sb-bee-hero { font-size: 3.4rem; animation: sbBob 2.4s ease-in-out infinite; filter: drop-shadow(0 6px 10px rgba(0,0,0,.35)); }
+@keyframes sbBob { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-10px) rotate(4deg); } }
+.sb-tagline { color: #e7ecf7; max-width: 460px; margin: 4px auto 14px; line-height: 1.55; }
+.sb-pick-label { color: #ffd97a; font-weight: 700; margin: 6px 0 10px; }
+.sb-levels { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; max-width: 460px; margin: 0 auto; }
+.sb-lvl { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;
+  padding: 16px 10px; border-radius: 16px; border: 2px solid rgba(255,255,255,.16); background: rgba(255,255,255,.06);
+  color: #fdf6e6; font: inherit; transition: transform .12s ease, border-color .12s ease, background .12s ease; }
+.sb-lvl:hover { transform: translateY(-3px); border-color: #ffd97a; background: rgba(255,214,120,.14); }
+.sb-lvl-emoji { font-size: 1.8rem; }
+.sb-lvl-name { font-weight: 800; font-size: 1.05rem; color: #fff; }
+.sb-lvl-sub { font-size: .8rem; color: #c7d0e4; }
+.sb-suggested { border-color: #ffd97a; background: rgba(255,214,120,.12); }
+.sb-lvl-tag { position: absolute; top: -9px; right: 8px; background: #ffd166; color: #4a3608; font-size: .66rem; font-weight: 800;
+  padding: 2px 8px; border-radius: 999px; letter-spacing: .3px; }
+.sb-rules { color: #cdd6ea; font-size: .92rem; margin-top: 16px; }
+
+.sb-hud { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px; }
+.sb-chip { background: rgba(255,255,255,.1); color: #eaf0fb; font-size: .8rem; font-weight: 700; padding: 4px 12px; border-radius: 999px; }
+.sb-bees { font-size: 1.05rem; letter-spacing: 2px; }
+.sb-bees .sb-gone { opacity: .28; filter: grayscale(1); }
+.sb-spotlight { position: relative; margin: 10px auto 6px; }
+.sb-mic { display: inline-flex; flex-direction: column; align-items: center; gap: 8px; }
+.sb-hearbtn { width: 92px; height: 92px; border-radius: 50%; border: none; cursor: pointer; font-size: 2.4rem;
+  background: radial-gradient(circle at 50% 35%, #ffe29a, #f5b53d); color: #4a3608;
+  box-shadow: 0 0 0 8px rgba(255,214,120,.18), 0 10px 26px -8px rgba(0,0,0,.5); transition: transform .12s ease; animation: sbGlow 2.2s ease-in-out infinite; }
+.sb-hearbtn:hover { transform: scale(1.06); }
+.sb-hearbtn:active { transform: scale(.96); }
+@keyframes sbGlow { 0%,100% { box-shadow: 0 0 0 8px rgba(255,214,120,.16), 0 10px 26px -8px rgba(0,0,0,.5); }
+  50% { box-shadow: 0 0 0 14px rgba(255,214,120,.28), 0 10px 30px -6px rgba(0,0,0,.5); } }
+.sb-hear-label { color: #ffd97a; font-weight: 700; font-size: .92rem; }
+.sb-streak { color: #ffcf6b; font-weight: 800; margin: 8px 0; animation: rushPulse .8s ease-in-out infinite; }
+.sb-clues { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 14px 0 8px; }
+.sb-clue { cursor: pointer; border: 1.5px solid rgba(255,255,255,.22); background: rgba(255,255,255,.07); color: #f3f6fd;
+  font: inherit; font-weight: 700; font-size: .88rem; padding: 8px 14px; border-radius: 999px; transition: background .12s ease, border-color .12s ease; }
+.sb-clue:hover { background: rgba(255,214,120,.16); border-color: #ffd97a; }
+.sb-clue-box { max-width: 480px; margin: 6px auto 4px; background: rgba(255,255,255,.96); color: #17233d;
+  border-radius: 14px; padding: 12px 16px; line-height: 1.5; text-align: left; box-shadow: 0 8px 20px -12px rgba(0,0,0,.5); }
+.sb-blank { display: inline-block; letter-spacing: 3px; color: #b08900; font-weight: 800; }
+.sb-form { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; margin: 16px auto 6px; max-width: 480px; }
+.sb-input { flex: 1 1 240px; min-width: 200px; font-size: 1.5rem; font-weight: 700; text-align: center; letter-spacing: 2px;
+  padding: 14px 16px; border-radius: 14px; border: 3px solid #ffd97a; background: #fffdf6; color: #17233d; outline: none; }
+.sb-input:focus { border-color: #ffbf3d; box-shadow: 0 0 0 4px rgba(255,214,120,.3); }
+.sb-submit { flex: 0 0 auto; }
+.sb-hint { color: #c7d0e4; font-size: .88rem; margin-top: 8px; }
+
+.sb-reveal-emoji, .sb-round-emoji, .sb-reveal .sb-reveal-emoji { font-size: 3.2rem; }
+.sb-word { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 12px 0; }
+.sb-letter { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 52px; padding: 0 8px;
+  border-radius: 10px; font-size: 2rem; font-weight: 800; background: rgba(255,255,255,.14); color: #fff;
+  opacity: 0; transform: translateY(8px); animation: sbLetter .35s ease forwards; }
+.sb-letter.ok { background: #2ecc71; color: #fff; }
+.sb-letter.show { background: #ffd166; color: #4a3608; }
+@keyframes sbLetter { to { opacity: 1; transform: translateY(0); } }
+.sb-reveal-sub { color: #eef2fb; font-weight: 600; margin: 4px 0 8px; }
+.sb-reveal-def { max-width: 440px; margin: 6px auto 16px; color: #c7d0e4; font-size: .92rem; line-height: 1.5; }
+.sb-reveal.good { background: radial-gradient(120% 90% at 50% -10%, #1e6b4a 0%, #16223f 60%, #0e1830 100%); }
+.sb-reveal.miss { background: radial-gradient(120% 90% at 50% -10%, #6b3a3a 0%, #16223f 60%, #0e1830 100%); }
+.sb-round-tier { color: #ffd97a; font-weight: 700; margin: 2px 0 6px; }
+.sb-round-stats { color: #dbe2f2; margin-bottom: 16px; }
 .dash-welcome p { color: var(--muted, #667085); }
 .explain-pop { display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 560px; }
 .explain-pop .explain-text { font-size: 1.35rem; line-height: 1.6; font-weight: 600; }
