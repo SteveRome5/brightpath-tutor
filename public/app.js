@@ -3915,8 +3915,20 @@ route('parent', async () => {
   // Trial boundary (P0-4): use the exact expiration timestamp and CEIL the days, so "expires
   // today" (hours remaining) never rounds to a false "Trial ended". The server's access check
   // uses this same timestamp, so client copy and authorization agree. Show the exact local time.
-  const trialEndDate = new Date(String(p.trial_ends || '').replace(' ', 'T') + 'Z');
-  const msLeft = isNaN(trialEndDate) ? 0 : (trialEndDate - Date.now());
+  // Mirror the server's canonical trial-expiry rule (auth.js trialEndMs): a date-only value is
+  // END-of-day UTC, so "expires today" never renders a false "Trial ended" while the day remains.
+  const _trialEndMs = (te) => {
+    if (!te) return 0;
+    const s = String(te).trim();
+    let iso;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) iso = s + 'T23:59:59.999Z';
+    else { iso = s.replace(' ', 'T'); if (!/[zZ]$|[+-]\d\d:?\d\d$/.test(iso)) iso += 'Z'; }
+    const t = Date.parse(iso);
+    return isNaN(t) ? 0 : t;
+  };
+  const _tEnd = _trialEndMs(p.trial_ends);
+  const trialEndDate = _tEnd ? new Date(_tEnd) : new Date(NaN);
+  const msLeft = _tEnd ? (_tEnd - Date.now()) : 0;
   const trialDays = Math.max(0, Math.ceil(msLeft / 86400000));
   const trialEndLocal = isNaN(trialEndDate) ? '' : trialEndDate.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   // Never expose raw billing statuses (past_due, canceled…) to parents (6.1).

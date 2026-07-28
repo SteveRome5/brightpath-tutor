@@ -160,6 +160,21 @@ function isComp(parent) {
 // Both the API gate (below) and any surface that renders access state should derive
 // from this so the parent dashboard and the child paywall never disagree (a past-due
 // parent must not see the child told "your free trial ended").
+// Canonical trial-expiry timestamp (ms since epoch), used by BOTH the access gate and any
+// surface that renders trial state, so display and enforcement can never disagree.
+// A date-only value (e.g. "2026-07-28", from an old schema default or a QA fixture) is treated
+// as the END of that day in UTC — so a trial "expiring today" grants access through the whole
+// day instead of locking at 00:00. Full "YYYY-MM-DD HH:MM:SS" timestamps are read as UTC.
+function trialEndMs(trialEnds) {
+  if (!trialEnds) return 0;
+  const s = String(trialEnds).trim();
+  let iso;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) iso = s + 'T23:59:59.999Z';
+  else { iso = s.replace(' ', 'T'); if (!/[zZ]$|[+-]\d\d:?\d\d$/.test(iso)) iso += 'Z'; }
+  const t = Date.parse(iso);
+  return isNaN(t) ? 0 : t;
+}
+
 function entitlement(parent) {
   if (!parent) return { ok: false, reason: 'no_account', message: 'No account found.' };
   // Comp/founder accounts are always entitled, independent of trial or subscription state.
@@ -167,7 +182,7 @@ function entitlement(parent) {
   // School/teacher accounts are billed separately (custom invoicing / pilots), not through the
   // self-serve Stripe path — so their students always have access, never a family paywall.
   if (parent.account_type === 'teacher') return { ok: true, reason: 'school', message: '' };
-  const trialOk = parent.sub_status === 'trial' && new Date(parent.trial_ends + 'Z') > new Date();
+  const trialOk = parent.sub_status === 'trial' && trialEndMs(parent.trial_ends) > Date.now();
   if (parent.sub_status === 'active' || trialOk) return { ok: true, reason: 'active', message: '' };
   // Not entitled — name the exact reason so every surface can speak to it honestly.
   if (parent.sub_status === 'past_due') return { ok: false, reason: 'past_due', message: "There's a problem with the payment on this account. Ask a grown-up to update it to keep learning!" };
@@ -186,4 +201,4 @@ function requireActiveSub(req, res, next) {
   return res.status(402).json({ error: 'subscription_required', reason: ent.reason, message: ent.message });
 }
 
-module.exports = { createParent, verifyParent, setPassword, hashPin, verifyPin, isLegacyPin, createSession, getSession, destroySession, requireParent, requireKid, requireActiveSub, requireAdmin, syncAdminFlag, entitlement, isComp };
+module.exports = { createParent, verifyParent, setPassword, hashPin, verifyPin, isLegacyPin, createSession, getSession, destroySession, requireParent, requireKid, requireActiveSub, requireAdmin, syncAdminFlag, entitlement, trialEndMs, isComp };
