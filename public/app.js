@@ -293,6 +293,12 @@ function startGameClock() {
   _gameClock = setInterval(_gameClockSecond, 1000);
 }
 async function _gameClockSecond() {
+  // Only the FOREGROUND game tab accrues time. Two tabs (or a duplicate left open in the
+  // background) must not each bill the same wall-clock second — a child with two tabs open for a
+  // minute should spend ~60s of allowance, not ~120s. A hidden tab neither accrues nor counts
+  // down; whichever tab is visible is the active game session. (Browsers also throttle hidden-tab
+  // timers, but we gate explicitly so the result is deterministic, not throttle-dependent.)
+  if (typeof document !== 'undefined' && document.hidden) return;
   // Persist the seconds actually played to the server every 30s (so closing/reopening keeps count).
   _gameAccum++;
   if (_gameAccum >= 30) { _postGameSeconds(_gameAccum); _gameAccum = 0; }
@@ -354,6 +360,13 @@ function _updateGameClock() {
 function _removeGameClock() { const el = document.getElementById('game-clock'); if (el) el.remove(); }
 // Leaving any game screen stops the clock (time only accrues inside #game/...).
 window.addEventListener('hashchange', () => { if (!(location.hash || '').startsWith('#game')) stopGameClock(); });
+// When a game tab goes to the background, flush its accrued seconds to the server right away so
+// nothing is lost as another tab (now the foreground session) takes over accrual.
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && _gameClock && _gameAccum > 0) { _postGameSeconds(_gameAccum); _gameAccum = 0; }
+  });
+}
 
 // --- Analytics: push funnel events to Google Tag Manager's dataLayer. GTM (container
 // GTM-N5F65TST) picks these up as triggers and forwards them to GA4 (or any tag) as
@@ -1177,7 +1190,7 @@ route('landing', async () => {
     <div class="feature-grid">
       <div class="feature reveal"><h3>An experience that grows up</h3><p>A first grader gets big friendly type and read-along storytime, where the words light up as they are read out loud. A teenager gets 15-minute focus sessions and quiet background music in a clean study space. It is the same engine underneath, dressed for a different age.</p></div>
       <div class="feature reveal"><h3>A trophy case worth chasing</h3><p>There are 33 badges to collect across six categories, a rank ladder that climbs from Foal to Thoroughbred, and progress bars that always show the next goal. Certificates mark each grade level a child finishes.</p></div>
-      <div class="feature reveal"><h3>Motivation that makes sense</h3><p>Daily quests, streaks, a built-in learning arcade, and a coin-powered Snack Shack where a child's avatar actually eats the treats they buy. There are ${Object.keys(AVATARS).length + Object.keys(ITEM_EMOJI).length} avatars, accessories, scenes, and pets to unlock, from astronauts to unicorns. Play is the reward and learning is what earns it.</p></div>
+      <div class="feature reveal"><h3>Motivation that makes sense</h3><p>Daily quests, streaks, a built-in learning arcade, and a coin-powered Snack Shack where a child's avatar actually eats the treats they buy. Explore ${Object.keys(AVATARS).length + Object.keys(ITEM_EMOJI).length} avatars, accessories, scenes, and pets — some available now, with more to unlock as you learn. Play is the reward and learning is what earns it.</p></div>
       <div class="feature reveal"><h3>Sound that was actually made for it</h3><p>Original background music, composed live in the app — warm, melodic tunes with a calmer set for teenagers and brighter ones for the younger kids, and a single tap turns it all off. None of it is stock audio.</p></div>
       <div class="feature reveal"><h3>Safe by design</h3><p>Children can only connect with buddies a parent approves. They send pre-written cheers, race each other's high scores, and team up on weekly goals where both kids win. There is no open chat and no way for strangers to reach them.</p></div>
       <div class="feature reveal"><h3>Proof for the fridge</h3><p>Printable certificates, a one-page weekly summary, a two-week activity chart, per-skill progress bars, a spreadsheet export, and the strengths and career insights. You will always know how it is going.</p></div>
