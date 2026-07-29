@@ -2714,9 +2714,14 @@ async function examFrq(kidId, track, frqId) {
   </div>`);
   wireChrome();
   $('#frq-say').onclick = () => Voice.speak(f.prompt || f.topic, vlang);
-  let scores = {};
+  let scores = {}, frqAttempted = false;
+  const frqStartMs = Date.now();
   $('#frq-reveal').onclick = () => {
     Sound.click();
+    // PRODUCT-104: gauge a genuine attempt BEFORE the model answer is revealed — typed work, or
+    // real time spent (paper-workers). A reveal-only peek won't count toward the readiness estimate.
+    const typed = [...document.querySelectorAll('.frq-work')].reduce((n, t) => n + (t.value || '').replace(/\s/g, '').length, 0);
+    frqAttempted = typed >= 15 || (Date.now() - frqStartMs) >= 25000;
     f.parts.forEach((_, i) => { const el = $('#sol-' + i); if (el) el.hidden = false; });
     $('#frq-reveal').style.display = 'none';
     $('#frq-submit').style.display = 'inline-flex';
@@ -2729,12 +2734,14 @@ async function examFrq(kidId, track, frqId) {
       $('#frq-total').innerHTML = `Your score: <b>${total} / ${f.maxPoints}</b>`;
     });
     $('#frq-total').style.display = 'block';
-    $('#frq-total').innerHTML = `Select the points you earned for each part.`;
+    $('#frq-total').innerHTML = frqAttempted
+      ? `Select the points you earned for each part.`
+      : `Select your points — but since it doesn't look like you worked this one yet, it <b>won't count toward your readiness estimate</b>. Work it first, then score yourself honestly.`;
   };
   $('#frq-submit').onclick = async () => {
     const earned = Object.values(scores).reduce((a, b) => a + b, 0);
     try {
-      const r = await api('/learn/' + kidId + '/track/frq/score', { method: 'POST', body: { trackId: track.id, frqId: f.id, pointsEarned: earned } });
+      const r = await api('/learn/' + kidId + '/track/frq/score', { method: 'POST', body: { trackId: track.id, frqId: f.id, pointsEarned: earned, attempted: frqAttempted } });
       Confetti.burst(earned >= f.maxPoints * 0.6 ? 160 : 80); Sound.levelup();
       if (State.me.kid && r.kid) State.me.kid = r.kid;
       const pct = Math.round(earned / f.maxPoints * 100);
@@ -2742,6 +2749,7 @@ async function examFrq(kidId, track, frqId) {
         <div class="big-emoji">${pct >= 80 ? '🌟' : pct >= 55 ? '💪' : '📚'}</div>
         <h2>${earned} / ${f.maxPoints} points <span style="font-size:.6em;font-weight:600;color:#8a93a3">· self-scored</span></h2>
         <p class="muted" style="margin:8px 0 16px">${pct >= 80 ? 'Outstanding free-response work. (You scored this yourself against the rubric — be honest with partial credit.)' : pct >= 55 ? 'Solid. Review the model solution for the points you missed.' : 'Free-response is the hardest part — reworking the model solution is how you level up.'}</p>
+        ${r.counted === false ? `<p class="muted" style="margin:-6px 0 16px;color:#b8860b;font-size:.9rem">📝 Practice only — this one didn't count toward your readiness estimate. Work the problem first, then score yourself to make it count.</p>` : ''}
         <button class="btn green" onclick="location.hash='#exam/${track.id}/frq'">More free-response →</button>
         <button class="btn" style="margin-left:8px" onclick="location.hash='#exam/${track.id}'">Back to ${esc(track.name.split(':').pop().trim())}</button>
       </div></div>`);

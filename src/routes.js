@@ -800,14 +800,21 @@ router.post('/learn/:kidId/track/frq/score', answerLimiter, auth.requireKid, aut
   let earned = Number((req.body || {}).pointsEarned);
   if (!Number.isFinite(earned)) earned = 0;
   earned = Math.max(0, Math.min(max, Math.round(earned)));
-  db.prepare('INSERT INTO activity_log (kid_id, subject, skill_id, correct, difficulty, time_ms) VALUES (?,?,?,?,?,?)')
-    .run(req.kid.id, meta.subject, `track:${trackId}`, earned >= max * 0.6 ? 1 : 0, 0.95, null);
-  const xp = 20 + earned * 3;
-  db.prepare('UPDATE kids SET xp = xp + ?, coins = coins + ? WHERE id=?').run(xp, Math.max(2, earned), req.kid.id);
+  // PRODUCT-104: a self-score only counts toward the AP readiness estimate when the student
+  // ACTUALLY attempted the problem (typed work, or spent real time on it before revealing). A
+  // "reveal the model answer, then award full marks" peek is logged as light practice for a small
+  // XP nudge but must NEVER inflate readiness or the constructed-response evidence count.
+  const attempted = (req.body || {}).attempted === true;
+  if (attempted) {
+    db.prepare('INSERT INTO activity_log (kid_id, subject, skill_id, correct, difficulty, time_ms) VALUES (?,?,?,?,?,?)')
+      .run(req.kid.id, meta.subject, `track:${trackId}`, earned >= max * 0.6 ? 1 : 0, 0.95, null);
+    trackProgressUpsert(req.kid.id, trackId, row => { row.frq_attempts += 1; row.frq_points += earned; row.frq_max += max; });
+  }
+  const xp = attempted ? (20 + earned * 3) : 6;
+  db.prepare('UPDATE kids SET xp = xp + ?, coins = coins + ? WHERE id=?').run(xp, attempted ? Math.max(2, earned) : 1, req.kid.id);
   try { adaptive.updateStreak(req.kid.id); } catch (e) {}
-  trackProgressUpsert(req.kid.id, trackId, row => { row.frq_attempts += 1; row.frq_points += earned; row.frq_max += max; });
   const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id);
-  res.json({ ok: true, earned, max, xpEarned: xp, kid: publicKid(kid) });
+  res.json({ ok: true, earned, max, xpEarned: xp, counted: attempted, kid: publicKid(kid) });
 });
 
 // Build an exam-simulator paper: a set of MC questions + one or more FRQs for the track.
