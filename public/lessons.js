@@ -65,6 +65,22 @@
     }
     return `<svg viewBox="0 0 64 64" width="72" height="72" role="img" aria-label="${name}">${inner}</svg>`;
   }
+  // A friendly analog clock. The hour (little) hand is drawn at its TRUE position, so at 7:30
+  // it sits between 7 and 8 — matching how a real clock looks (and the Clock Reader game).
+  function clockFaceSVG(h, m) {
+    h = ((Number(h) % 12) + 12) % 12; m = ((Number(m) || 0) % 60 + 60) % 60;
+    const cx = 78, cy = 78, R = 66;
+    const P = (deg, len) => [(cx + len * Math.sin(deg * Math.PI / 180)).toFixed(1), (cy - len * Math.cos(deg * Math.PI / 180)).toFixed(1)];
+    let ticks = '', nums = '';
+    for (let n = 0; n < 12; n++) { const [x1, y1] = P(n * 30, R - 3), [x2, y2] = P(n * 30, R - 9); ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#cdd4de" stroke-width="2"/>`; }
+    for (let n = 1; n <= 12; n++) { const [x, y] = P(n * 30, R - 17); nums += `<text x="${x}" y="${(+y + 5).toFixed(1)}" text-anchor="middle" font-size="14" font-weight="700" fill="#16213a">${n}</text>`; }
+    const [hx, hy] = P(h * 30 + m * 0.5, R - 30), [mx, my] = P(m * 6, R - 13);
+    return `<svg viewBox="0 0 156 156" width="150" height="150" role="img" aria-label="A clock showing the time">
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="#fffdf7" stroke="#1A5C38" stroke-width="3"/>${ticks}${nums}
+      <line x1="${cx}" y1="${cy}" x2="${hx}" y2="${hy}" stroke="#1A5C38" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="${cx}" y1="${cy}" x2="${mx}" y2="${my}" stroke="#C9A84C" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cx="${cx}" cy="${cy}" r="4.5" fill="#16213a"/></svg>`;
+  }
   const WIDGETS = {
     shapes(spec) {
       const items = spec.items || ['circle', 'square', 'triangle'];
@@ -114,6 +130,9 @@
     sideBySide(spec) {
       const card = (c) => `<div class="lw-sbs-card" style="border-color:${c.color || '#C9A84C'}"><div class="lw-sbs-emoji">${c.emoji || ''}</div><b>${esc(c.title || '')}</b><span>${esc(c.body || '')}</span></div>`;
       return { html: `<div class="lw-sbs">${(spec.cards || []).map(card).join('')}</div>` };
+    },
+    clock(spec) {
+      return { html: `<div class="lw-clock">${clockFaceSVG(spec.h, spec.m)}${spec.caption ? `<div class="lw-clock-cap">${esc(spec.caption)}</div>` : ''}</div>` };
     },
     // ---- interactive ----
     tapcount(spec) {
@@ -180,8 +199,9 @@
     tapPick(spec) {
       const opts = spec.options || [];
       const correct = opts.find(o => o.correct);
+      const clockTop = spec.clock ? `<div class="lw-clock">${clockFaceSVG(spec.clock.h, spec.clock.m)}</div>` : '';
       return {
-        html: `<div class="lw-pick">${opts.map((o, i) => `<button class="lw-pickbtn" data-i="${i}">${esc(o.label)}</button>`).join('')}<p class="lw-tiphint">${esc(spec.prompt || 'Tap the best answer.')}</p><p class="lw-pickfb" id="lw-pickfb" style="display:none" aria-live="polite"></p></div>`,
+        html: `<div class="lw-pick">${clockTop}${opts.map((o, i) => `<button class="lw-pickbtn" data-i="${i}">${esc(o.label)}</button>`).join('')}<p class="lw-tiphint">${esc(spec.prompt || 'Tap the best answer.')}</p><p class="lw-pickfb" id="lw-pickfb" style="display:none" aria-live="polite"></p></div>`,
         wire(box, onDone) {
           let done = false;
           const fb = box.querySelector('#lw-pickfb');
@@ -835,44 +855,37 @@
           {
             "kind": "show",
             "title": "When the big hand points to 6",
-            "body": "When the big hand points to 6, it is half past, the :30. Little hand near 7, big hand on 6, means 7:30.",
-            "say": "Big hand on twelve is o'clock. Big hand on six is thirty.",
+            "body": "When the big hand points to 6, it is half past — the :30. At 7:30 the little hand is between 7 and 8, and the big hand points to 6.",
+            "say": "Half past. The little hand is between seven and eight. The big hand is on six. Seven thirty.",
             "widget": {
-              "w": "sideBySide",
-              "cards": [
-                {
-                  "emoji": "🕕",
-                  "title": "Big hand on 12",
-                  "body": "o'clock, like 10:00.",
-                  "color": "#4a7fd6"
-                },
-                {
-                  "emoji": "🕡",
-                  "title": "Big hand on 6",
-                  "body": "thirty, like 7:30.",
-                  "color": "#e2953b"
-                }
-              ]
+              "w": "clock",
+              "h": 7,
+              "m": 30,
+              "caption": "7:30 — half past seven. See how the little hand sits between 7 and 8?"
             }
           },
           {
             "kind": "try",
             "title": "Your turn: read the clock",
-            "body": "Little hand is on 10. Big hand is on 12. What time is it?",
-            "say": "Little hand on ten, big hand on twelve. What time is it?",
+            "body": "Read the clock. Where is the little hand, and where is the big hand? What time does it say?",
+            "say": "Read the clock. What time does it say?",
             "widget": {
               "w": "tapPick",
-              "prompt": "Little hand on 10, big hand on 12. What time?",
+              "clock": { "h": 10, "m": 0 },
+              "prompt": "Read the clock above. What time is it?",
               "options": [
                 {
                   "label": "10:00",
-                  "correct": true
+                  "correct": true,
+                  "why": "Yes! Little hand on 10, big hand on 12 — 10 o'clock."
                 },
                 {
-                  "label": "12:10"
+                  "label": "12:10",
+                  "why": "Careful — the little (short) hand tells the hour. It's on 10, so the hour is 10."
                 },
                 {
-                  "label": "10:30"
+                  "label": "10:30",
+                  "why": "For 10:30 the big hand would point to 6. Here it points straight up to 12 — that's o'clock."
                 }
               ]
             }

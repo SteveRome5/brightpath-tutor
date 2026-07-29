@@ -1597,6 +1597,9 @@ body[data-theme="junior"] .lp-body { font-size: 1.24rem; }
 .lw-fraclabel span { width: 34px; height: 3px; background: var(--ink); margin: 4px 0; }
 .lw-tiphint { font-size: .95rem; color: var(--chrome-sub); text-align: center; margin-top: 10px; }
 .lw-tiphint b { color: var(--sub); }
+.lw-clock { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 6px 0 2px; }
+.lw-clock svg { filter: drop-shadow(0 3px 8px rgba(22,33,58,.12)); }
+.lw-clock-cap { font-size: .95rem; font-weight: 600; color: var(--chrome-sub); text-align: center; max-width: 320px; line-height: 1.4; }
 .lw-sbs { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .lw-sbs-card { flex: 1; min-width: 130px; max-width: 190px; text-align: center; padding: 16px 12px; border: 2px solid; border-radius: 16px; background: var(--card-bg); display: flex; flex-direction: column; gap: 4px; }
 .lw-sbs-emoji { font-size: 2.4rem; }
