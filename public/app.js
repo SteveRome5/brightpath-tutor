@@ -56,26 +56,12 @@ function toastAction(msg, actionLabel, onAction) {
 }
 
 async function api(path, opts = {}) {
-  // PRODUCT-107: bound every request with a timeout so a hung connection can't leave a stale
-  // screen forever. A timeout/network drop is surfaced as a status-less (transient) error, which
-  // navigate()'s auto-retry / "Reconnecting…" path already handles gracefully.
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), opts.timeoutMs || 25000);
-  let res;
-  try {
-    res = await fetch('/api' + path, {
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      ...opts,
-      signal: ctrl.signal,
-      body: opts.body ? JSON.stringify(opts.body) : undefined
-    });
-  } catch (e) {
-    clearTimeout(t);
-    const err = new Error(e && e.name === 'AbortError' ? 'This is taking longer than usual — check your connection.' : 'Network error — please try again.');
-    throw err; // no .status → treated as transient by navigate()
-  }
-  clearTimeout(t);
+  const res = await fetch('/api' + path, {
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) { const e = new Error(data.error || 'Request failed'); e.status = res.status; e.data = data; throw e; }
   return data;
@@ -287,7 +273,6 @@ function gamesAnsweredToday() { try { return Math.max(0, Number((State.me && Sta
 // Parent daily time cap (minutes). game_seconds_today is how much game time was tracked today.
 function gamesTimeLimitMin() { try { return Math.max(0, Number((State.me && State.me.kid && State.me.kid.games_time_limit) || 0)); } catch (e) { return 0; } }
 function gameSecondsToday() { try { return Math.max(0, Number((State.me && State.me.kid && State.me.kid.game_seconds_today) || 0)); } catch (e) { return 0; } }
-function curKidId() { try { return (State.me && State.me.kid && State.me.kid.id) || null; } catch (e) { return null; } }
 function gamesTimeExhausted() { return gamesTimeLimitMin() > 0 && gameSecondsToday() >= gamesTimeLimitMin() * 60; }
 // Games are actually playable when the arcade is on, the earn-it gate (if set) is met, AND the
 // daily time cap (if set) has not been reached.
@@ -307,12 +292,6 @@ function startGameClock() {
   _gameClock = setInterval(_gameClockSecond, 1000);
 }
 async function _gameClockSecond() {
-  // Only the FOREGROUND game tab accrues time. Two tabs (or a duplicate left open in the
-  // background) must not each bill the same wall-clock second — a child with two tabs open for a
-  // minute should spend ~60s of allowance, not ~120s. A hidden tab neither accrues nor counts
-  // down; whichever tab is visible is the active game session. (Browsers also throttle hidden-tab
-  // timers, but we gate explicitly so the result is deterministic, not throttle-dependent.)
-  if (typeof document !== 'undefined' && document.hidden) return;
   // Persist the seconds actually played to the server every 30s (so closing/reopening keeps count).
   _gameAccum++;
   if (_gameAccum >= 30) { _postGameSeconds(_gameAccum); _gameAccum = 0; }
@@ -332,27 +311,8 @@ async function _gameClockSecond() {
   }
 }
 async function _postGameSeconds(secs) {
-  const kid = curKidId();
-  if (secs <= 0 || !kid) return;
-  try {
-    const r = await api(`/play/${kid}/tick`, { method: 'POST', body: { seconds: secs } });
-    if (!r) return;
-    if (State.me && State.me.kid && typeof r.seconds_today === 'number') State.me.kid.game_seconds_today = r.seconds_today;
-    // Server is authoritative. Resync the on-screen countdown to the true remaining so that
-    // two open tabs converge on one shared allowance instead of showing divergent times — and
-    // so a tab notices when another tab has already spent today's game time. (Single-tab: the
-    // tab posts exactly what it counted, so server total == local elapsed → no visible change.)
-    if (_gameClock != null && _gameRemaining != null && typeof r.limit_seconds === 'number' && r.limit_seconds > 0) {
-      _gameRemaining = Math.max(0, r.limit_seconds - (r.seconds_today || 0));
-      _updateGameClock();
-      // The 1s loop enforces _gameRemaining<=0; nudge immediately if another tab used it all up.
-      if (_gameRemaining <= 0 && (location.hash || '').startsWith('#game')) {
-        if (_gameClock) { clearInterval(_gameClock); _gameClock = null; }
-        _removeGameClock();
-        location.hash = '#play';
-      }
-    }
-  } catch (e) {}
+  if (secs <= 0 || !kidId()) return;
+  try { const r = await api(`/play/${kidId()}/tick`, { method: 'POST', body: { seconds: secs } }); if (r && State.me && State.me.kid) State.me.kid.game_seconds_today = r.seconds_today; } catch (e) {}
 }
 function stopGameClock() {
   if (!_gameClock) return;
@@ -374,61 +334,11 @@ function _updateGameClock() {
 function _removeGameClock() { const el = document.getElementById('game-clock'); if (el) el.remove(); }
 // Leaving any game screen stops the clock (time only accrues inside #game/...).
 window.addEventListener('hashchange', () => { if (!(location.hash || '').startsWith('#game')) stopGameClock(); });
-// When a game tab goes to the background, flush its accrued seconds to the server right away so
-// nothing is lost as another tab (now the foreground session) takes over accrual.
-if (typeof document !== 'undefined') {
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden && _gameClock && _gameAccum > 0) { _postGameSeconds(_gameAccum); _gameAccum = 0; }
-  });
-}
 
 // --- Analytics: push funnel events to Google Tag Manager's dataLayer. GTM (container
 // GTM-N5F65TST) picks these up as triggers and forwards them to GA4 (or any tag) as
 // conversions. Fully guarded: if GTM/dataLayer isn't present, these are harmless no-ops.
-// Analytics funnel push. Hard no-op inside a child session (COPPA): no learner action ever
-// reaches marketing analytics. Also guarded if GTM/dataLayer isn't present.
-function gtmPush(obj) { try { if (State.me && State.me.role === 'kid') return; window.dataLayer = window.dataLayer || []; window.dataLayer.push(obj); } catch (e) {} }
-// Surface classification for ad-pixel gating (LAUNCH-003). The GTM container must initialize the
-// Meta base pixel ONLY when surface is 'public_marketing', 'signup', or 'checkout' — and NEVER on
-// 'parent_product' or 'learner' (parent portal, reports, learner pages, lessons, quizzes, AP, games).
-// Purchase attribution after an authenticated checkout return should use a server-side conversion,
-// not a browser pixel firing inside the product.
-function gallopSurface(name) {
-  const role = (State.me && State.me.role) || null;
-  if (role === 'kid') return 'learner';
-  if (/^(home|lesson|teach|placement|exam|track|play|game|avatar|snacks|buddies|trophies|student|kid)/.test(name)) return 'learner';
-  if (/^(signup|get-?started|subscribe|checkout|paywall)/.test(name)) return 'checkout';
-  if (role === 'parent' && /^(parent|report|reports|family|account|billing|settings|learner)/.test(name)) return 'parent_product';
-  return 'public_marketing';
-}
-// Emit AFTER auth state (State.me) and routing (name) have resolved, so the container gates the
-// Meta pixel on a settled surface — never firing on 'All Pages' before we know where we are. Hard
-// no-op in a child session (no analytics ever loads there).
-function emitSurfaceReady(name) {
-  try {
-    if (State.me && State.me.role === 'kid') return;
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({ event: 'surface_ready', surface: gallopSurface(name) });
-  } catch (e) {}
-}
-// First-party activation beacon — records an allowlisted event name in OUR database only (no
-// third-party tag, no learner identifier). Safe to call inside a child session; that's the whole
-// point (learner activation can't go to GTM/GA, so it comes here). Fire-and-forget.
-function track(name) { try { api('/ev', { method: 'POST', body: { name } }).catch(() => {}); } catch (e) {} }
-// Expose both to inline handlers (this file is an IIFE, so nothing is global by default).
-window.gEv = gtmPush;
-window.track = track;
-// One-time landing view with campaign attribution, so paid traffic is traceable to purchase.
-let _landingSent = false;
-function fireLandingView() {
-  if (_landingSent) return; _landingSent = true;
-  try {
-    const p = new URLSearchParams(location.search);
-    const utm = {};
-    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(k => { const v = p.get(k); if (v) utm[k] = v.slice(0, 100); });
-    gtmPush(Object.assign({ event: 'landing_view', landing: (location.hash || '#landing').split('/')[0] }, utm));
-  } catch (e) {}
-}
+function gtmPush(obj) { try { window.dataLayer = window.dataLayer || []; window.dataLayer.push(obj); } catch (e) {} }
 const PLAN_PRICE = { solo: 34, family: 54, solo_annual: 348, family_annual: 552 };
 
 // ======================= sound engine =======================
@@ -743,29 +653,8 @@ const Voice = (() => {
 function passageHTML(passage, playful) {
   const words = String(passage).split(/\s+/).map((w, i) => `<span class="pw" data-i="${i}">${esc(w)}</span>`).join(' ');
   return `<div class="passage-box"><div class="passage-head"><span class="passage-tag">📖 ${playful ? 'Storytime' : 'Read the passage'}</span>
-    <button class="btn sun small passage-read" type="button" aria-label="Read this lesson aloud">🔊 ${playful ? 'Read to me' : 'Read aloud'}</button></div>
+    <button class="btn sun small passage-read" type="button">🔊 ${playful ? 'Read to me' : 'Read aloud'}</button></div>
     <div class="passage-words">${words}</div></div>`;
-}
-
-// A friendly analog clock face for time questions (e.g. Clock Reader). The hour hand is drawn
-// at its TRUE position — at 8:30 it sits halfway between 8 and 9 — so kids read a real clock.
-function clockHTML(c) {
-  if (!c || typeof c.h !== 'number') return '';
-  const h = ((c.h % 12) + 12) % 12, m = ((c.m || 0) % 60 + 60) % 60;
-  const cx = 78, cy = 78, R = 66;
-  const P = (deg, len) => [ (cx + len * Math.sin(deg * Math.PI / 180)).toFixed(1), (cy - len * Math.cos(deg * Math.PI / 180)).toFixed(1) ];
-  let ticks = '', nums = '';
-  for (let n = 0; n < 12; n++) { const [x1, y1] = P(n * 30, R - 3), [x2, y2] = P(n * 30, R - 9); ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#cdd4de" stroke-width="2"/>`; }
-  for (let n = 1; n <= 12; n++) { const [x, y] = P(n * 30, R - 17); nums += `<text x="${x}" y="${(+y + 5).toFixed(1)}" text-anchor="middle" font-size="14" font-weight="700" fill="#16213a" font-family="Montserrat,Arial,sans-serif">${n}</text>`; }
-  const [hx, hy] = P(h * 30 + m * 0.5, R - 30);   // hour hand: short, true fractional position
-  const [mx, my] = P(m * 6, R - 13);              // minute hand: long
-  return `<div class="q-clock"><svg viewBox="0 0 156 156" width="156" height="156" role="img" aria-label="A clock showing the time">
-    <circle cx="${cx}" cy="${cy}" r="${R}" fill="#fffdf7" stroke="#1A5C38" stroke-width="3"/>
-    ${ticks}${nums}
-    <line x1="${cx}" y1="${cy}" x2="${hx}" y2="${hy}" stroke="#1A5C38" stroke-width="5.5" stroke-linecap="round"/>
-    <line x1="${cx}" y1="${cy}" x2="${mx}" y2="${my}" stroke="#C9A84C" stroke-width="3.5" stroke-linecap="round"/>
-    <circle cx="${cx}" cy="${cy}" r="4.5" fill="#16213a"/>
-  </svg></div>`;
 }
 
 // ======================= confetti =======================
@@ -804,8 +693,6 @@ const Confetti = (() => {
 // ======================= state & router =======================
 const State = { me: { role: 'guest' }, lesson: null };
 
-function isTeacher() { return !!(State.me && State.me.role === 'parent' && State.me.parent && State.me.parent.account_type === 'teacher'); }
-
 async function refreshMe() {
   State.me = await api('/auth/me');
   // Report the browser's time zone once per parent session so "today"/"this week" counts
@@ -823,10 +710,6 @@ let _tzSent = false;
 const routes = {};
 let _navRetry = null; // {key, n} — transient-failure retry state for the router
 function route(name, fn) { routes[name] = fn; }
-// PRODUCT-107: a lightweight top progress bar shown when a route transition runs long, so a slow
-// data load never looks like a frozen or stale screen.
-function showNavLoading() { let b = document.getElementById('nav-loading'); if (!b) { b = document.createElement('div'); b.id = 'nav-loading'; document.body.appendChild(b); } b.className = 'nav-loading on'; }
-function hideNavLoading() { const b = document.getElementById('nav-loading'); if (b) b.className = 'nav-loading'; }
 async function navigate() {
   const hash = location.hash.replace(/^#\/?/, '') || 'landing';
   const [name, ...args] = hash.split('/');
@@ -838,11 +721,7 @@ async function navigate() {
   const MUSIC_ZONES = ['play', 'avatar', 'snacks', 'trophies', 'buddies', 'game'];
   if (Music.on && MUSIC_ZONES.includes(name)) Music.start(currentMusicMood()); else Music.stop();
   const fn = routes[name] || routes.landing;
-  const _navStart = Date.now();
-  const _navTimer = setTimeout(showNavLoading, 400);
-  const _navDone = () => { clearTimeout(_navTimer); hideNavLoading(); const ms = Date.now() - _navStart; if (ms > 3000) { try { console.warn('[gallop] slow route "' + name + '" ' + ms + 'ms'); } catch (e) {} } };
-  try { await fn(...args); _navRetry = null; _navDone(); emitSurfaceReady(name); } catch (e) {
-    _navDone();
+  try { await fn(...args); _navRetry = null; } catch (e) {
     if (e.status === 401) { location.hash = State.me.role === 'kid' ? '#kid-login' : '#login'; return; }
     if (e.status === 402) { renderPaywall(e.data && e.data.reason); return; }
     // Transient failures — the server restarting during a deploy, or a dropped
@@ -881,11 +760,9 @@ addEventListener('hashchange', navigate);
 // ======================= shared chrome =======================
 function topbar(inner = '') {
   const me = State.me;
-  const teacher = me.role === 'parent' && me.parent && me.parent.account_type === 'teacher';
-  const homeHash = me.role === 'kid' ? '#home' : teacher ? '#teacher' : me.role === 'parent' ? '#parent' : '#';
+  const homeHash = me.role === 'kid' ? '#home' : me.role === 'parent' ? '#parent' : '#';
   let right = '';
-  if (teacher) right = `${me.parent && me.parent.is_admin ? `<button class="btn ghost small" onclick="location.hash='#admin'">🛡️ Admin</button>` : ''}<button class="btn ghost small" onclick="location.hash='#teacher'">My classes</button><button class="btn ghost small" onclick="location.hash='#help'" title="Help &amp; support">💬 Help</button><button class="btn ghost small" id="logout-btn">Log out</button>`;
-  else if (me.role === 'parent') right = `${me.parent && me.parent.is_admin ? `<button class="btn ghost small" onclick="location.hash='#admin'">🛡️ Admin</button>` : ''}<button class="btn ghost small" onclick="location.hash='#parent'">Dashboard</button><button class="btn ghost small" onclick="location.hash='#help'" title="Help &amp; support">💬 Help</button><button class="btn ghost small" id="logout-btn">Log out</button>`;
+  if (me.role === 'parent') right = `${me.parent && me.parent.is_admin ? `<button class="btn ghost small" onclick="location.hash='#admin'">🛡️ Admin</button>` : ''}<button class="btn ghost small" onclick="location.hash='#parent'">Dashboard</button><button class="btn ghost small" onclick="location.hash='#help'" title="Help &amp; support">💬 Help</button><button class="btn ghost small" id="logout-btn">Log out</button>`;
   else if (me.role === 'kid') {
     // When a child is inside a game, give them a big obvious way back to the Play Zone,
     // so they are never trapped in a game they don't want to be in.
@@ -896,7 +773,7 @@ function topbar(inner = '') {
     const parentBtn = me.parentReturn ? `<button class="btn ghost small" id="exit-kid-btn" title="Back to your parent dashboard">← Parent</button>` : '';
     right = `${exitBtn}${parentBtn}<button class="btn ghost small" onclick="location.hash='#home'">🏠 Home</button><button class="btn ghost small" onclick="location.hash='#kid-login'" title="Switch to another child">👋 Switch</button><button class="btn ghost small kid-logout" id="logout-btn">Log out</button>`;
   }
-  else right = `<button class="btn ghost small" onclick="location.hash='#kid-login'">Child Login</button><button class="btn ghost small" onclick="location.hash='#login'">Parent Login</button><button class="btn sun small" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'header'});window.__subscribeIntent=0;location.hash='#signup'">Start free — no card</button>`;
+  else right = `<button class="btn ghost small" onclick="location.hash='#kid-login'">Child Login</button><button class="btn ghost small" onclick="location.hash='#login'">Parent Login</button><button class="btn sun small" onclick="window.__subscribeIntent=1;location.hash='#signup'">Sign up now</button>`;
   return `
   <div class="topbar">
     <div class="logo" onclick="location.hash='${homeHash}'"><img src="/logo-mark.png" alt="Gallop" class="logo-img"> Gallop</div>
@@ -905,13 +782,13 @@ function topbar(inner = '') {
       <div class="sound-wrap">
         <button class="btn ghost small sound-btn" id="sound-btn" title="Sound settings" aria-label="Sound settings">${Sound.muted && !Music.on ? '🔇' : '🔊'}</button>
         <div class="sound-menu" id="sound-menu" hidden>
-          <button class="sound-opt" id="sfx-toggle" role="switch" aria-checked="${!Sound.muted}"><span>🔊 Sound effects</span><span class="sw ${Sound.muted ? '' : 'on'}" id="sfx-sw"></span></button>
-          <button class="sound-opt" id="music-toggle" role="switch" aria-checked="${!!Music.on}"><span>🎵 Background music</span><span class="sw ${Music.on ? 'on' : ''}" id="music-sw"></span></button>
+          <button class="sound-opt" id="sfx-toggle"><span>🔊 Sound effects</span><span class="sw ${Sound.muted ? '' : 'on'}" id="sfx-sw"></span></button>
+          <button class="sound-opt" id="music-toggle"><span>🎵 Background music</span><span class="sw ${Music.on ? 'on' : ''}" id="music-sw"></span></button>
           <button class="sound-opt sound-skip" id="music-skip"><span>⏭️ Next track</span><span class="muted" style="font-size:.78rem">shuffle</span></button>
         </div>
       </div>
     </div>
-  </div>${me.role === 'kid' && me.assisted ? `<div class="together-bar">👪 <b>Practicing together</b> — parent-assisted practice. It counts as engagement but won't change ${esc(me.kid ? me.kid.name : 'your child')}'s independent scores. <button class="btn small together-exit-btn" id="together-exit">← Back to Parent Dashboard</button></div>` : ''}${inner}`;
+  </div>${inner}`;
 }
 function wireChrome() {
   const sb = $('#sound-btn'), menu = $('#sound-menu');
@@ -928,32 +805,18 @@ function wireChrome() {
       wireChrome._soundCloseWired = true;
     }
     const sfxSw = $('#sfx-sw'), musicSw = $('#music-sw');
-    $('#sfx-toggle').onclick = (e) => { e.stopPropagation(); const muted = Sound.toggle(); sfxSw.classList.toggle('on', !muted); $('#sfx-toggle').setAttribute('aria-checked', String(!muted)); if (!muted) Sound.click(); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
-    $('#music-toggle').onclick = (e) => { e.stopPropagation(); const isOn = Music.toggle(currentMusicMood()); musicSw.classList.toggle('on', isOn); $('#music-toggle').setAttribute('aria-checked', String(isOn)); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
+    $('#sfx-toggle').onclick = (e) => { e.stopPropagation(); const muted = Sound.toggle(); sfxSw.classList.toggle('on', !muted); if (!muted) Sound.click(); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
+    $('#music-toggle').onclick = (e) => { e.stopPropagation(); const isOn = Music.toggle(currentMusicMood()); musicSw.classList.toggle('on', isOn); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
     const skip = $('#music-skip');
     if (skip) skip.onclick = (e) => { e.stopPropagation(); if (!Music.on) { Music.toggle(currentMusicMood()); if ($('#music-sw')) $('#music-sw').classList.add('on'); } else { Music.skip(); } };
   }
   const lb = $('#logout-btn');
-  if (lb) lb.onclick = async () => {
-    try { await api('/auth/logout', { method: 'POST' }); } catch (e) { /* clear locally regardless */ }
-    State.me = { role: 'guest' };
-    // Force a re-render to the signed-out state on EVERY route. Setting the hash alone won't fire
-    // hashchange when we're already on the landing route (logging out from the marketing page),
-    // which previously left the signed-in header visible on a shared device (P1.5).
-    try { history.replaceState(null, '', location.pathname + '#'); } catch (e) { location.hash = '#'; }
-    navigate();
-  };
-  const exitToParent = async () => {
-    // Reload back into the parent session (symmetric with enterKid). The re-boot re-initializes
-    // adult analytics cleanly and guarantees no learner state carries into the parent context.
-    try { await api('/auth/exit-kid', { method: 'POST' }); await refreshMe(); location.hash = isTeacher() ? '#teacher' : '#parent'; location.reload(); }
-    catch (e) { location.hash = '#login'; location.reload(); }
-  };
+  if (lb) lb.onclick = async () => { await api('/auth/logout', { method: 'POST' }); await refreshMe(); location.hash = '#'; };
   const xk = $('#exit-kid-btn');
-  if (xk) xk.onclick = exitToParent;
-  // Together Mode banner's "Back to Parent Dashboard" uses the same safe exit.
-  const tex = $('#together-exit');
-  if (tex) tex.onclick = exitToParent;
+  if (xk) xk.onclick = async () => {
+    try { await api('/auth/exit-kid', { method: 'POST' }); await refreshMe(); location.hash = '#parent'; }
+    catch (e) { location.hash = '#login'; }
+  };
   // Accessibility: the kid nav tiles are <div>s. Make them real buttons for keyboard
   // and screen-reader users (focusable + role + label). Enter/Space is handled globally.
   upgradeTiles();
@@ -1016,38 +879,31 @@ window.scrollToSection = function (id) { try { const e = document.getElementById
 route('landing', async () => {
   if (State.me.role === 'kid') { location.hash = '#home'; return; }
   app().innerHTML = topbar(`
-  <div class="hero hero-v2">
+  <div class="hero">
     <img src="/logo-full.png" alt="Gallop Learning Academy" class="hero-logo">
-    <div class="eyebrow">The K–12 platform where kids learn it — then live it</div>
-    <h1>Ahead in school. <span class="hl-guide">Ready for life.</span></h1>
-    <p class="hero-sub">Gallop meets your child where they are — then takes them further: adaptive lessons in <b>Math, English &amp; Reading, Science, and Spanish</b> · <b>The Lab</b>, where they run businesses and invest · and a <b>Career Center</b> that shows them where it's all heading. All three in one place.</p>
+    <div class="eyebrow">The real-world approach to K–12 tutoring · Math · English · Science · Spanish</div>
+    <h1>The tutor that teaches your child the real world — and how to use it.</h1>
+    <p class="hero-tagline">Most apps just place, drill, and advance. Gallop teaches real skills — then has kids <b>apply</b> them.</p>
+    <p>An affordable, on-demand tutor that finds your child's real level and weaves money, business, investing, and careers right into the core subjects — then makes them <b>use</b> it through games, projects, and a real stock-market simulator. Learning they'll actually reach for in real life.</p>
     <div class="hero-cta">
       ${State.me.role === 'parent'
         ? `<button class="btn hero-primary" onclick="location.hash='#parent'">Go to my dashboard →</button>`
         : `<div class="hero-cta-main">
-        <button class="btn hero-primary" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'hero_trial'});window.__subscribeIntent=0;location.hash='#signup'">Start free — no card →</button>
-        <button class="btn sun hero-secondary" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'hero_subscribe'});window.__subscribeIntent=1;location.hash='#signup'">Choose a plan now</button>
+        <button class="btn hero-primary" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start my free trial →</button>
+        <button class="btn sun hero-secondary" onclick="window.__subscribeIntent=1;location.hash='#signup'">Subscribe now</button>
       </div>
-      <p class="hero-cta-note muted">Free for 7 days · No card to start · All 4 subjects · Under $1/day on the annual plan</p>`}
+      <p class="hero-cta-note muted">Free for 7 days · No card to start · All 4 subjects · From under $1/day on the annual plan</p>`}
       <div class="hero-cta-row">
-        <button class="btn ghost" onclick="scrollToSection('tour')">▶ See The Lab in 60 seconds</button>
-        <button class="btn ghost" onclick="window.gEv&&window.gEv({event:'demo_cta_click',cta:'hero_demo'});location.hash='#demo'">Try 6 sample questions</button>
+        <button class="btn ghost" onclick="location.hash='#demo'">Try a sample lesson — no signup</button>
         <button class="btn ghost" onclick="location.hash='#kid-login'">Student sign-in</button>
-      </div>
-    </div>
-    <div class="contrast-strip reveal">Most apps place, drill, and advance. <b>Gallop teaches the skill — then hands your child a lemonade stand to run with it.</b></div>
-    <div class="hero-showcase reveal">
-      <div class="hero-device"><img src="/shots/student-home.webp" alt="A student's Gallop home base — their next lesson, streak, and progress" loading="lazy"></div>
-      <div class="gallop-badge">
-        <img src="/logo-roundel.png" class="gb-face" alt="Gallop, your child's learning guide">
-        <div class="gb-say"><b>Hi, I'm Gallop.</b> I meet your child exactly where they are — and take them further, every day.</div>
       </div>
     </div>
     <div class="hero-trust">
       <span>📏 Aligned to Common Core, NGSS &amp; ACTFL</span>
       <span>🔒 COPPA-compliant · no ads · we never sell your data</span>
-      <span class="hero-founder-link" onclick="scrollToSection('s-story')" role="button" tabindex="0" style="cursor:pointer">👨‍👩‍👧 Built by a family, not a faceless edtech company →</span>
+      <span>👨‍👩‍👧 Built by a family, not a faceless edtech company</span>
     </div>
+    <div class="hero-journey"><img src="/journey-green.png" alt="" class="journey-img"></div>
   </div>
   <div class="container">
     <div class="ps-band reveal">
@@ -1059,13 +915,8 @@ route('landing', async () => {
       <div class="ps-col ps-solution">
         <span class="ps-tag sol">THE GALLOP DIFFERENCE</span>
         <h2>We teach the real world — then make kids use it.</h2>
-        <p>Gallop — an affordable, on-demand learning guide for all four subjects that adapts to your child — then sends them into <b>The Lab</b>, where every skill becomes something real: running a business, investing in a live market, exploring a career. High-value learning they'll actually apply.</p>
+        <p>An affordable, on-demand tutor for all four subjects that adapts to your child — then sends them into <b>The Lab</b>, where every skill becomes something real: running a business, investing in a live market, exploring a career. High-value learning they'll actually apply.</p>
       </div>
-    </div>
-    <div class="academy-band reveal">
-      <h2>More than a tutor. An academy.</h2>
-      <p>A tutor helps with one subject, one hour at a time. An academy builds the whole kid. Gallop is adaptive lessons that find your child's real level in four subjects — plus <b>The Lab</b>, where skills become businesses, portfolios, and plans — plus a <b>Career Center</b> that turns strengths into direction. One subscription. From under $1 a day on the annual plan.</p>
-      <p class="academy-proof">A private tutor covers one subject for $40–80 an hour. Gallop is a whole academy — <b>from under $1 a day</b> on the annual plan.</p>
     </div>
     <div class="pillars reveal">
       <div class="pillar"><span class="pi-emoji">📚</span><b>1 · Learn it</b><p>Adaptive real-world lessons that find your child's level and teach through Math, English, Science &amp; Spanish.</p></div>
@@ -1077,24 +928,12 @@ route('landing', async () => {
       <div><b>4</b><span>Core subjects</span></div>
       <div><b>300+</b><span>Skill areas</span></div>
       <div><b>300+</b><span>Guided lessons</span></div>
-      <div><b>5,000+</b><span>Standards-aligned questions</span></div>
-    </div>
-    <div class="diff-callout reveal">
-      <div class="dc-media">
-        <img src="/shots/lemonade.webp" alt="A child running Sunny's Lemonade Stand in Gallop — setting the price, choosing how many cups to make, and banking the profit" loading="lazy">
-        <span class="dc-badge">🐴 The Gallop difference</span>
-      </div>
-      <div class="dc-copy">
-        <span class="dc-eyebrow">What makes Gallop different</span>
-        <h2>Most apps just place, drill, and advance. Gallop teaches real skills — then has kids <b>apply</b> them.</h2>
-        <p>Many skills become something your child can <b>do</b> — running a business, investing in a live-feeling market, exploring a career. That's the learning that sticks.</p>
-      </div>
+      <div><b>5,000+</b><span>Accuracy-checked questions</span></div>
     </div>
     <nav class="section-nav" aria-label="Jump to a section">
       <div class="sn-inner">
         <button class="sn-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top"><img src="/logo-mark.png" alt="" class="sn-logo-img">Gallop</button>
         <div class="sn-links">
-          <span class="sn-label" aria-hidden="true">Jump to ›</span>
           <button class="sn-link" onclick="scrollToSection('s-how')">How it works</button>
           <button class="sn-link" onclick="scrollToSection('s-lab')">The Lab</button>
           <button class="sn-link" onclick="scrollToSection('s-curriculum')">Curriculum</button>
@@ -1102,9 +941,8 @@ route('landing', async () => {
           <button class="sn-link" onclick="scrollToSection('s-story')">Our story</button>
           <button class="sn-link" onclick="scrollToSection('s-pricing')">Pricing</button>
           <button class="sn-link" onclick="scrollToSection('s-faq')">FAQ</button>
-          <a class="sn-link" href="/schools" style="text-decoration:none;display:inline-flex;align-items:center">For schools 🏫</a>
         </div>
-        <button class="btn sun small sn-cta" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'midpage'});window.__subscribeIntent=0;location.hash='#signup'">Start free — no card</button>
+        <button class="btn sun small sn-cta" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start free trial</button>
       </div>
     </nav>
     <div class="tour reveal" id="tour">
@@ -1124,7 +962,7 @@ route('landing', async () => {
           <div class="tour-slide" data-step="1"><img src="/shots/student-home.webp" alt="A student's Gallop home base with score, streak and next lesson" loading="lazy"></div>
           <div class="tour-slide" data-step="2"><img src="/shots/play-zone.webp" alt="The Gallop Play Zone arcade — Stable Street, Sunny's Lemonade Stand, Gallop Bakery, Robo Logic and more" loading="lazy"></div>
           <div class="tour-slide" data-step="3"><img src="/shots/career-explorer.webp" alt="The Gallop Career Explorer — 16 real fields from Engineering and Medicine to Entrepreneurship and the Trades" loading="lazy"></div>
-          <div class="tour-slide" data-step="4"><img src="/shots/invest-play.webp" alt="Stable Street — a child reads the market news, then buys and sells stocks in a live-feeling portfolio, learning diversification and risk" loading="lazy"></div>
+          <div class="tour-slide" data-step="4"><img src="/shots/market-mogul.webp" alt="Stable Street — a 12-level investing career teaching diversification, dollar-cost averaging, dividends and more" loading="lazy"></div>
           <div class="tour-slide" data-step="5"><img src="/shots/parent-dashboard.webp" alt="A parent dashboard showing each child's progress and where they need help" loading="lazy"></div>
         </div>
         <div class="tour-caps">
@@ -1142,7 +980,6 @@ route('landing', async () => {
     <div class="lab-section reveal" id="s-lab">
       <div class="lab-band">
         <span class="lab-eyebrow">🔬 Inside the Academy</span>
-        <span class="ab-kicker">ONLY ON GALLOP</span>
         <h2>The Lab — where learning meets the real world</h2>
         <p>This is what no other app has. Once your child learns a skill, they head into <b>The Lab</b> to actually <b>use</b> it — running businesses, investing in a live-feeling market, and discovering who they could become.</p>
       </div>
@@ -1153,7 +990,7 @@ route('landing', async () => {
           <p>Games earned by learning — Sunny's Lemonade Stand, Gallop Bakery, Robo Logic and more. Every one sneaks in real math, logic, and money skills. Parents control when they're on.</p>
         </div>
         <div class="lab-card">
-          <div class="lab-shot"><img src="/shots/invest-play.webp" alt="Stable Street — buying and selling stocks in a live-feeling market" loading="lazy"></div>
+          <div class="lab-shot"><img src="/shots/market-mogul.webp" alt="Stable Street investing game" loading="lazy"></div>
           <h3>📈 Investment Challenges</h3>
           <p>A 12-level investing career on a market that feels alive — kids learn diversification, dollar-cost averaging, dividends, and patience, all with pretend money.</p>
         </div>
@@ -1187,11 +1024,11 @@ route('landing', async () => {
       <div class="feature reveal"><div class="fnum">GRADES 6–8</div><h3>Real decisions</h3><p>Percentages show up as sale prices and interest. Reading turns into spotting a shaky argument. Science becomes a habit of testing a claim before believing it.</p></div>
       <div class="feature reveal"><div class="fnum">GRADES 9–12</div><h3>Future founders and investors</h3><p>Teenagers run a pretend portfolio in our stock-market game, follow the news, and weigh risk. Algebra becomes the math behind a margin. An essay becomes a pitch. School starts to feel like a head start.</p></div>
     </div>
-    <h2 class="section-title reveal" style="margin-bottom:6px">The Career Center <span class="ab-kicker">ONLY ON GALLOP</span></h2>
+    <h2 class="section-title reveal">See where it's all heading</h2>
     <p class="section-sub">As your child works, Gallop picks up on what they're good at and shows it to you. By the high school years, those strengths turn into real career directions with a clear sense of what to focus on next.</p>
     <div class="lp-career reveal">
       <div class="lp-career-panel">
-        <div class="lp-career-badge">Career Center · illustrative example</div>
+        <div class="lp-career-badge">Career Pathways · illustrative example</div>
         <div class="lp-strength"><span class="lp-s-name">🔬 Science</span><span class="lp-s-bar"><i style="width:82%;background:#2f78c2"></i></span><b>82</b></div>
         <div class="lp-strength"><span class="lp-s-name">🔢 Math</span><span class="lp-s-bar"><i style="width:76%;background:#5b5bd6"></i></span><b>76</b></div>
         <div class="lp-strength"><span class="lp-s-name">📚 English</span><span class="lp-s-bar"><i style="width:61%;background:#0f9d76"></i></span><b>61</b></div>
@@ -1203,8 +1040,8 @@ route('landing', async () => {
         </div>
       </div>
       <div class="lp-career-copy">
-        <h3>Strengths that open doors — the Career Center</h3>
-        <p>Gallop notices what your child is good at, then opens a window onto where it can lead. The Career Center demystifies real careers — what an architect or an engineer <em>actually does all day</em>, the range of jobs inside each field, and the classes that get you there. Because most kids (and plenty of adults) have no idea these paths even exist.</p>
+        <h3>Strengths that open doors — meet the Career Explorer</h3>
+        <p>Gallop notices what your child is good at, then opens a window onto where it can lead. The new Career Explorer demystifies real careers — what an architect or an engineer <em>actually does all day</em>, the range of jobs inside each field, and the classes that get you there. Because most kids (and plenty of adults) have no idea these paths even exist.</p>
         <ul class="lp-check">
           <li>Sixteen fields — from engineering, medicine, and AI to hospitality, the trades, the arts, and law.</li>
           <li>Real, accomplished role models in every field, each with a short story to read — from Maya Lin to José Andrés to Katherine Johnson.</li>
@@ -1216,8 +1053,8 @@ route('landing', async () => {
     <h2 class="section-title reveal">A home for accelerated learners</h2>
     <p class="section-sub">The kids who race ahead don't hit a ceiling here. Gallop has a separate Advanced Track that goes past grade level into college-level and honors work — real challenge, on demand, all year long.</p>
     <div class="feature-grid">
-      <div class="feature reveal"><div class="fnum">ADVANCED PLACEMENT</div><h3>Beyond multiple choice</h3><p>Nine AP subjects — Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English Language &amp; Literature, and Spanish — plus Honors and state test prep, each with AP-style multiple-choice practice, <b>free-response challenges</b> with worked model solutions and self-scoring rubrics, and a short <b>timed mini-mock</b> readiness check.</p></div>
-      <div class="feature reveal"><div class="fnum">HONORS &amp; BEYOND</div><h3>College-level enrichment</h3><p>Honors Precalculus, Spanish, and state-test prep, plus a per-subject progress gauge so accelerated students can see how their practice is building — all without disturbing their normal grade placement.</p></div>
+      <div class="feature reveal"><div class="fnum">ADVANCED PLACEMENT</div><h3>College-level AP practice</h3><p>Exam-style sets for AP Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English Language, English Literature, and Spanish.</p></div>
+      <div class="feature reveal"><div class="fnum">HONORS &amp; BEYOND</div><h3>Push past the standard track</h3><p>Honors-level Precalculus, Spanish, and more for students who have already mastered their grade and want to keep climbing.</p></div>
       <div class="feature reveal"><div class="fnum">EXAM READY</div><h3>Aligned to the real tests</h3><p>Practice matched to the tests that count — AP-style sets, honors work, and state test prep in math, science, and English built on rigorous state standards.</p></div>
     </div>
     <p class="section-sub reveal" style="margin-top:6px">The Advanced Track is its own space, so working ahead never disturbs a child's grade-level placement or Gallop Score. And the core high-school math ladder now runs pre-algebra, algebra, geometry, trigonometry, pre-calculus, calculus, and statistics.</p>
@@ -1234,7 +1071,7 @@ route('landing', async () => {
     <div class="feature-grid">
       <div class="feature reveal"><h3>An experience that grows up</h3><p>A first grader gets big friendly type and read-along storytime, where the words light up as they are read out loud. A teenager gets 15-minute focus sessions and quiet background music in a clean study space. It is the same engine underneath, dressed for a different age.</p></div>
       <div class="feature reveal"><h3>A trophy case worth chasing</h3><p>There are 33 badges to collect across six categories, a rank ladder that climbs from Foal to Thoroughbred, and progress bars that always show the next goal. Certificates mark each grade level a child finishes.</p></div>
-      <div class="feature reveal"><h3>Motivation that makes sense</h3><p>Daily quests, streaks, a built-in learning arcade, and a coin-powered Snack Shack where a child's avatar actually eats the treats they buy. Explore ${Object.keys(AVATARS).length + Object.keys(ITEM_EMOJI).length} avatars, accessories, scenes, and pets — some available now, with more to unlock as you learn. Play is the reward and learning is what earns it.</p></div>
+      <div class="feature reveal"><h3>Motivation that makes sense</h3><p>Daily quests, streaks, a built-in learning arcade, and a coin-powered Snack Shack where a child's avatar actually eats the treats they buy. There are 48 characters to unlock, from astronauts to unicorns. Play is the reward and learning is what earns it.</p></div>
       <div class="feature reveal"><h3>Sound that was actually made for it</h3><p>Original background music, composed live in the app — warm, melodic tunes with a calmer set for teenagers and brighter ones for the younger kids, and a single tap turns it all off. None of it is stock audio.</p></div>
       <div class="feature reveal"><h3>Safe by design</h3><p>Children can only connect with buddies a parent approves. They send pre-written cheers, race each other's high scores, and team up on weekly goals where both kids win. There is no open chat and no way for strangers to reach them.</p></div>
       <div class="feature reveal"><h3>Proof for the fridge</h3><p>Printable certificates, a one-page weekly summary, a two-week activity chart, per-skill progress bars, a spreadsheet export, and the strengths and career insights. You will always know how it is going.</p></div>
@@ -1252,7 +1089,7 @@ route('landing', async () => {
         <div class="ab-card"><span class="ab-emoji">🧁</span><b>Gallop Bakery</b><p>Run a bakery for a day: batches, pricing, making change. Math with money on the line.</p><span class="ab-tag">business math</span></div>
         <div class="ab-card"><span class="ab-emoji">🤖</span><b>Robo Logic</b><p>Program a robot step by step to reach the star — first coding logic, no typing needed.</p><span class="ab-tag">coding</span></div>
       </div>
-      <p class="ab-more">+ Gallop Sprint, Word Roundup, Memory Meadow, Spelling Bee & Doodle Barn — nine games, all earned by learning.</p>
+      <p class="ab-more">+ Gallop Sprint, Word Roundup, Memory Meadow & Doodle Barn — eight games, all earned by learning.</p>
     </div>
 
     <h2 id="s-why" class="section-title reveal">Why families choose Gallop</h2>
@@ -1263,7 +1100,7 @@ route('landing', async () => {
         <figcaption><span class="q-name">Placed per subject</span><span class="q-detail">Math · English · Science · Spanish</span></figcaption>
       </figure>
       <figure class="quote-card reveal">
-        <blockquote>Get one wrong and Gallop gives a hint and a fresh explanation, then lets your child try again — most apps just show the answer and move on. It's the difference between drilling and actually learning.</blockquote>
+        <blockquote>Get one wrong and Gallop re-teaches it a different way, then lets your child try again — most apps just show the answer and move on. It's the difference between drilling and actually learning.</blockquote>
         <figcaption><span class="q-name">It re-teaches until it clicks</span><span class="q-detail">The "Second Look" difference</span></figcaption>
       </figure>
       <figure class="quote-card reveal">
@@ -1274,22 +1111,13 @@ route('landing', async () => {
         <blockquote>A one-page weekly summary tells you, in plain language, where your child is ahead, where they're stuck, and the one thing to do this week — plus how close they are to the next grade level.</blockquote>
         <figcaption><span class="q-name">You know exactly what to do next</span><span class="q-detail">Weekly report & "Do this next"</span></figcaption>
       </figure>
-      <figure class="quote-card reveal">
-        <blockquote>Past the lessons, kids run a lemonade stand, invest through a 12-level market, and explore real careers — the hands-on money and life skills no other program builds in.</blockquote>
-        <figcaption><span class="q-name">They live what they learn</span><span class="q-detail">The Lab · business, investing & careers</span></figcaption>
-      </figure>
-      <figure class="quote-card reveal">
-        <blockquote>All four subjects, the guided lessons, the adaptive tutor, the games, and the career center come as one plan — for less than most families spend on a single subject at a center.</blockquote>
-        <figcaption><span class="q-name">Everything in one place</span><span class="q-detail">Four subjects · one simple plan</span></figcaption>
-      </figure>
     </div>
 
     <div id="s-story" class="founder-note reveal">
       <div class="founder-emoji"><img src="/logo-mark.png" alt="" class="founder-horse"></div>
       <div class="founder-body">
-        <p>Gallop started at our kitchen table. We've spent our careers building things together — a marketing agency, more than a dozen restaurants, teams of people. Steve earned his master's in hospitality and taught a university capstone course before going all-in on our businesses; he's the builder of the family, endlessly curious. Lin, who earned her law degree and always dreamed of being an entrepreneur, co-founded the interactive marketing company that grew into our nationally recognized restaurant group. If building all of that taught us one thing, it's that people rise to the level someone believes they can reach.</p>
-        <p>For both of us, this one is personal. Lin knows firsthand what fighting to catch up feels like — and promised our daughter, Margaux, would never know it. Steve has never stopped teaching himself new things, and wanted Margaux to love learning the same way — always ahead, never bored. But everything we tried for her was expensive, one-size-fits-all, and honestly a little boring. So we built something better together — Lin shaped the vision, Steve built the platform: adaptive lessons in every subject at your child's real level, and The Lab, where kids take what they've learned and live it — running businesses, investing in a live market, exploring real careers. Learning they ask for, skills they'll actually use.</p>
-        <p>There's no faceless edtech company behind Gallop. It's us — two parents who built this so learning would be a joy for our daughter, not a struggle — and who would love to help your child rise the same way.</p>
+        <p>Gallop started at our kitchen table. We've spent our careers building things — restaurants, a marketing agency, teams of people. Steve earned his master's in hospitality and went on to teach it, and Lin earned her law degree. Between us we've opened and run more than a dozen businesses, and if all of that taught us one thing, it's that people rise to the level someone believes they can reach.</p>
+        <p>When it came to our own daughter, Margaux, the tutoring we could buy didn't do that — it was expensive, one-size-fits-all, and honestly a little boring. So we built what we wanted for her: every subject in one place, teaching at her real level, turning practice into something she actually asks to do. There's no faceless edtech company behind Gallop. It's us — two parents and lifelong entrepreneurs who built this to watch our daughter succeed, and who would love to help your child do the same.</p>
         <p class="founder-sign">— Steve &amp; Lin Jerome<br><span>Founders · Gallop Learning Academy</span></p>
       </div>
     </div>
@@ -1317,28 +1145,26 @@ route('landing', async () => {
         <div class="compare-scroll"><table class="compare-table">
           <thead><tr><th></th><th class="us">Gallop</th><th>Learning centers<br><span>(Kumon, Sylvan, Mathnasium)</span></th><th>Private tutor</th></tr></thead>
           <tbody>
-            <tr><td class="cmp-feat">The Lab — business, investing &amp; career games</td><td class="us" data-label="Gallop"><b>✅ Only on Gallop</b></td><td data-label="Learning centers">❌</td><td data-label="Private tutor">❌</td></tr>
-            <tr><td class="cmp-feat">Typical cost</td><td class="us" data-label="Gallop"><b>$34–54 / mo</b></td><td data-label="Learning centers">$150–200 / mo <i>per subject</i></td><td data-label="Private tutor">$40–80 / hour</td></tr>
-            <tr><td class="cmp-feat">All 4 subjects included</td><td class="us" data-label="Gallop">✅</td><td data-label="Learning centers">❌ pay per subject</td><td data-label="Private tutor">❌ usually one</td></tr>
-            <tr><td class="cmp-feat">Adapts to each child</td><td class="us" data-label="Gallop">✅ every answer</td><td data-label="Learning centers">➖ worksheet levels</td><td data-label="Private tutor">✅ if it's a good one</td></tr>
-            <tr><td class="cmp-feat">Teaches the concept first</td><td class="us" data-label="Gallop">✅ guided lessons</td><td data-label="Learning centers">✅ in person</td><td data-label="Private tutor">✅ in person</td></tr>
-            <tr><td class="cmp-feat">Learn anytime, any device</td><td class="us" data-label="Gallop">✅ 24/7</td><td data-label="Learning centers">❌ scheduled visits</td><td data-label="Private tutor">❌ booked sessions</td></tr>
-            <tr><td class="cmp-feat">Progress reports & certificates</td><td class="us" data-label="Gallop">✅ automatic</td><td data-label="Learning centers">➖ periodic</td><td data-label="Private tutor">➖ varies</td></tr>
-            <tr><td class="cmp-feat">Strengths & career insights</td><td class="us" data-label="Gallop">✅ built in</td><td data-label="Learning centers">❌</td><td data-label="Private tutor">❌</td></tr>
-            <tr><td class="cmp-feat">Advanced track for accelerated kids</td><td class="us" data-label="Gallop">✅ AP, Honors & exam prep</td><td data-label="Learning centers">➖ extra program</td><td data-label="Private tutor">➖ varies</td></tr>
-            <tr><td class="cmp-feat">Games, rewards & motivation</td><td class="us" data-label="Gallop">✅ arcade + trophies</td><td data-label="Learning centers">❌</td><td data-label="Private tutor">❌</td></tr>
+            <tr><td>Typical cost</td><td class="us"><b>$34–54 / mo</b></td><td>$150–200 / mo <i>per subject</i></td><td>$40–80 / hour</td></tr>
+            <tr><td>All 4 subjects included</td><td class="us">✅</td><td>❌ pay per subject</td><td>❌ usually one</td></tr>
+            <tr><td>Adapts to each child</td><td class="us">✅ every answer</td><td>➖ worksheet levels</td><td>✅ if it's a good one</td></tr>
+            <tr><td>Teaches the concept first</td><td class="us">✅ guided lessons</td><td>✅ in person</td><td>✅ in person</td></tr>
+            <tr><td>Learn anytime, any device</td><td class="us">✅ 24/7</td><td>❌ scheduled visits</td><td>❌ booked sessions</td></tr>
+            <tr><td>Progress reports & certificates</td><td class="us">✅ automatic</td><td>➖ periodic</td><td>➖ varies</td></tr>
+            <tr><td>Strengths & career insights</td><td class="us">✅ built in</td><td>❌</td><td>❌</td></tr>
+            <tr><td>Advanced track for accelerated kids</td><td class="us">✅ AP, Honors & exam prep</td><td>➖ extra program</td><td>➖ varies</td></tr>
+            <tr><td>Games, rewards & motivation</td><td class="us">✅ arcade + trophies</td><td>❌</td><td>❌</td></tr>
           </tbody>
         </table></div>
-        <p class="muted center" style="font-size:.8rem;margin-top:10px">Learning centers and private tutors meet in person — a different kind of help. This table shows the cost and coverage families weigh when choosing. Comparison figures reflect commonly published U.S. rates for the named providers as of 2026 and vary by provider and location.</p>
+        <p class="muted center" style="font-size:.8rem;margin-top:10px">Learning centers and private tutors meet in person — a different kind of help. This table shows the cost and coverage families weigh when choosing. Pricing reflects commonly published U.S. rates and varies by location.</p>
       </div>
     </div>
     <div id="s-faq" class="card reveal faq" style="margin-top:40px">
       <h2 class="center" style="margin-bottom:18px">Questions parents ask</h2>
-      <details><summary>Is Gallop a replacement for school?</summary><p>No — Gallop is the <b>supplement that makes school click</b>. It's aligned to the same standards teachers use (Common Core, NGSS, ACTFL), so it reinforces exactly what your child is learning in class — placing them at their real level in each subject, re-teaching the tricky spots, and letting them get ahead when they're ready. Think of it as the practice, the patient re-explaining, and the real-world application that a busy classroom doesn't always have time for — working alongside your child's teacher, never in place of them.</p></details>
       <details><summary>Do I need a credit card to start?</summary><p>No. Your first 7 days are free, and you can set up your children and use everything without entering any payment details. We only ask for a card if you choose to continue after the trial.</p></details>
       <details><summary>What does it cost after the trial?</summary><p>Solo is $34 a month for one student, and Family is $54 a month for up to four. Prefer to save? Go annual for about 15% less — Solo is $348 a year (works out to $29/mo) and Family is $552 a year ($46/mo). Every plan includes all four subjects, the guided lessons, the adaptive tutor, the games, the career center, and the parent reports. Nothing is sold as an add-on.</p></details>
       <details><summary>What ages and subjects does it cover?</summary><p>Every grade from kindergarten through 12th, in Math, English, Science, and Spanish. Each child is placed at their real level in each subject, so a strong reader who finds math harder starts in the right spot for both. High-school math runs all the way through calculus and statistics.</p></details>
-      <details><summary>Is it aligned to academic standards?</summary><p>Yes. Every skill is mapped to a recognized standard: Common Core for Math and English, NGSS for Science, and ACTFL for Spanish — the same frameworks nearly every state builds its standards on. It's built to <b>supplement and reinforce</b> what's taught in the classroom — added practice and support alongside a teacher's instruction, not a replacement for it. Educators and administrators can see the full, skill-by-skill coverage map on our <a href="#standards">Standards Alignment</a> page. Students just see the lesson and practice; the standard codes are there for schools.</p></details>
+      <details><summary>Is it aligned to academic standards?</summary><p>Yes. Every skill is mapped to a recognized standard: Common Core for Math and English, NGSS for Science, and ACTFL for Spanish — the same frameworks most states, including New York and Nevada, build their standards on. It's built to <b>supplement and reinforce</b> what's taught in the classroom — added practice and support alongside a teacher's instruction, not a replacement for it. Educators and administrators can see the full, skill-by-skill coverage map on our <a href="#standards">Standards Alignment</a> page. Students just see the lesson and practice; the standard codes are there for schools.</p></details>
       <details><summary>What about kids who are ahead of grade level?</summary><p>They get a separate Advanced Track. Once a student has mastered their grade, they can practice college-level and honors material — AP-style sets in Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English, and Spanish, honors courses, and state test prep built on rigorous state standards (great preparation whatever state you're in). It's kept separate from grade-level work, so working ahead never changes a child's placement.</p></details>
       <details><summary>What if my child doesn't like it?</summary><p>The first 7 days are completely free and need no card, so you can let your child try the real thing before you ever pay. If it isn't a fit, do nothing and the trial simply ends — you're never charged. If you've already subscribed, cancel in one click and you keep access through the time you've paid for.</p></details>
       <details><summary>Are there real, human tutors?</summary><p>No — and that's the point. Gallop is self-paced adaptive software your child uses on their own, so there's nothing to schedule and no hourly rate. It teaches each concept with a short guided lesson, then adjusts every question to your child, which is how it covers all four subjects for a fraction of what a tutoring center charges for a single subject. Think of it as extra practice and support that reinforces what your child learns in the classroom — not a replacement for their teacher.</p></details>
@@ -1355,44 +1181,12 @@ route('landing', async () => {
     <form class="nl-form" id="nl-form"><input type="email" id="nl-email" placeholder="you@example.com" required aria-label="Email address"><button class="btn green" type="submit">Sign me up</button></form>
     <p id="nl-done" style="display:none;font-weight:700;color:var(--brand);margin-top:8px">🎉 You're on the list!</p>
   </div>
-  <div class="site-footer">© ${new Date().getFullYear()} Lotus Farms LLC · Gallop Learning Academy · Adaptive, real-world learning for grades K–12<br>
+  <div class="site-footer">© ${new Date().getFullYear()} Lotus Farms LLC · Gallop Learning Academy · Adaptive tutoring for grades K–12<br>
     <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow along on Instagram at @learnwithgallop</a><br>
-    <a href="/schools" style="color:inherit;opacity:.8">For Schools</a> · <a href="#standards" style="color:inherit;opacity:.8">Standards Alignment</a> · <a href="#help" style="color:inherit;opacity:.8">Help &amp; Support</a> · <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
+    <a href="#standards" style="color:inherit;opacity:.8">Standards Alignment</a> · <a href="#help" style="color:inherit;opacity:.8">Help &amp; Support</a> · <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
   </div>
-  ${State.me.role !== 'parent' && State.me.role !== 'kid' ? `<div class="sticky-cta"><button class="btn" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'sticky'});window.__subscribeIntent=0;location.hash='#signup'">Start free — no card →</button></div>` : ''}`);
+  ${State.me.role !== 'parent' && State.me.role !== 'kid' ? `<div class="sticky-cta"><button class="btn" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start free trial — no card →</button></div>` : ''}`);
   wireChrome();
-  // ---- funnel instrumentation (adult/public side → GTM; privacy-safe) ----
-  fireLandingView();
-  // FAQ opens: one event the first time each question is expanded.
-  document.querySelectorAll('.faq-block details, details').forEach(d => {
-    let sent = false;
-    d.addEventListener('toggle', () => { if (d.open && !sent) { sent = true; const q = d.querySelector('summary'); gtmPush({ event: 'faq_open', question: (q ? q.textContent : '').slice(0, 80) }); } });
-  });
-  // Pricing seen: fire once when the pricing section scrolls into view.
-  try {
-    const pricing = document.getElementById('s-pricing');
-    if (pricing && 'IntersectionObserver' in window) {
-      const io = new IntersectionObserver((ents) => { ents.forEach(e => { if (e.isIntersecting) { gtmPush({ event: 'pricing_view' }); io.disconnect(); } }); }, { threshold: 0.4 });
-      io.observe(pricing);
-    }
-  } catch (e) {}
-  // Section jump-nav "you are here": highlight the chip for whichever section is in view,
-  // so the bar reads as a live map of the page.
-  try {
-    const nav = document.querySelector('.section-nav');
-    if (nav && 'IntersectionObserver' in window) {
-      const map = {};
-      nav.querySelectorAll('.sn-link').forEach(l => { const mm = (l.getAttribute('onclick') || '').match(/scrollToSection\('([^']+)'\)/); if (mm) map[mm[1]] = l; });
-      const secs = Object.keys(map).map(id => document.getElementById(id)).filter(Boolean);
-      let cur = null;
-      const setActive = (id) => { if (id === cur) return; cur = id; Object.values(map).forEach(l => l.classList.remove('sn-active')); if (map[id]) map[id].classList.add('sn-active'); };
-      const spy = new IntersectionObserver((ents) => {
-        const vis = ents.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (vis[0]) setActive(vis[0].target.id);
-      }, { rootMargin: '-90px 0px -55% 0px', threshold: 0 });
-      secs.forEach(s => spy.observe(s));
-    }
-  } catch (e) {}
   // Interactive product tour: auto-advance through the six views, pause on hover, tabs jump.
   (function initTour() {
     const tour = document.getElementById('tour'); if (!tour) return;
@@ -1461,19 +1255,17 @@ const DEMO_QUESTIONS = [
 ];
 route('demo', async () => {
   let idx = 0, correct = 0;
-  gtmPush({ event: 'demo_start' }); track('demo_start');
   function render() {
     if (idx >= DEMO_QUESTIONS.length) {
       Confetti.burst(200); Sound.levelup();
-      gtmPush({ event: 'demo_complete', score: correct }); track('demo_complete');
       app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
         <div class="big-emoji">🐎</div>
         <h2>${correct}/${DEMO_QUESTIONS.length}, and that's just a sample!</h2>
-        <p class="muted" style="margin:12px 0 6px">These are just sample questions. Inside Gallop, every skill starts with a <b>guided lesson</b> that teaches the concept first, a placement check finds your child's exact level in each subject, every answer adapts what comes next, and a wrong answer is re-taught before another try.</p>
+        <p class="muted" style="margin:12px 0 6px">The real tutor goes much further: a placement quiz finds your child's exact level in each subject, every answer adapts what comes next, and correct answers earn tokens for the games arcade.</p>
         <p class="muted" style="margin-bottom:18px">All four subjects. Every grade K–12. From $34/month.</p>
-        <button class="btn green" onclick="window.gEv&&window.gEv({event:'demo_cta_click',cta:'demo_trial'});window.__subscribeIntent=0;location.hash='#signup'">Start free — no card →</button>
-        <button class="btn sun" style="margin-left:8px" onclick="window.gEv&&window.gEv({event:'demo_cta_click',cta:'demo_subscribe'});window.__subscribeIntent=1;location.hash='#signup'">Choose a plan now</button>
-        <p class="muted" style="margin-top:10px;font-size:.82rem">Your first 7 days are free and need no card. Prefer to subscribe now? Choose a plan. Either way, cancel anytime.</p>
+        <button class="btn green" onclick="window.__subscribeIntent=0;location.hash='#signup'">Start 7-Day Free Trial →</button>
+        <button class="btn sun" style="margin-left:8px" onclick="window.__subscribeIntent=1;location.hash='#signup'">Subscribe now →</button>
+        <p class="muted" style="margin-top:10px;font-size:.82rem">Free for 7 days, or subscribe today and skip the wait. Either way you can cancel anytime.</p>
         <button class="btn ghost small" style="color:var(--brand);border-color:var(--brand);margin-top:8px" onclick="location.hash='#'">Back</button>
       </div></div>`);
       wireChrome();
@@ -1487,10 +1279,10 @@ route('demo', async () => {
     for (let z = shuffled.length - 1; z > 0; z--) { const j = Math.floor(Math.random() * (z + 1));[shuffled[z], shuffled[j]] = [shuffled[j], shuffled[z]]; }
     const ansIdx = shuffled.indexOf(correctText);
     app().innerHTML = topbar(`<div class="container lesson-wrap">
-      <div class="lesson-top"><b>${qn.emoji} Sample questions — a quick taste</b>${gallopTrack(idx / DEMO_QUESTIONS.length * 100)}<b>${idx + 1}/${DEMO_QUESTIONS.length}</b></div>
+      <div class="lesson-top"><b>${qn.emoji} Sample lesson, see how Gallop teaches</b>${gallopTrack(idx / DEMO_QUESTIONS.length * 100)}<b>${idx + 1}/${DEMO_QUESTIONS.length}</b></div>
       <div class="q-card">
         <span class="q-skill" style="background:${qn.color}">${esc(qn.skill)} · ${esc(qn.grade)}</span>
-        ${qn.clock ? clockHTML(qn.clock) : ''}<div class="q-prompt">${esc(qn.prompt)}</div>
+        <div class="q-prompt">${esc(qn.prompt)}</div>
         <div class="choices">${shuffled.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
         <div class="hint-box" id="hint-box">💡 ${esc(qn.hint)}</div>
         <div class="feedback" id="feedback" aria-live="polite"></div>
@@ -1536,30 +1328,21 @@ route('signup', async () => {
         <input type="checkbox" id="f-consent" style="margin-top:3px;flex:none;width:16px;height:16px">
         <span>I am the parent or legal guardian and am 18 or older. I agree to the <a href="/terms" target="_blank" rel="noopener">Terms</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>, and I consent to Gallop collecting the limited information described there to provide the service to my child (COPPA).</span>
       </label>
-      <label style="display:flex;gap:9px;align-items:flex-start;margin-top:11px;font-size:.82rem;color:#5b6478;font-weight:400;cursor:pointer">
-        <input type="checkbox" id="f-newsletter" style="margin-top:3px;flex:none;width:16px;height:16px">
-        <span>Send me Gallop's monthly learning tips — practical ideas for keeping my child sharp. Optional, and you can unsubscribe anytime.</span>
-      </label>
       <button class="btn green" style="margin-top:16px;width:100%" id="f-go">${subscribing ? 'Continue to plans →' : 'Start Free Trial →'}</button>
       <p class="muted center" style="margin-top:10px;font-size:.85rem">${subscribing ? 'Subscribe today · Cancel anytime, one click' : '7 days free · No credit card required · Cancel anytime'}</p>
       <p class="muted center" style="margin-top:10px">Already have an account? <a href="#login">Log in</a></p>
     </div></div>`);
   wireChrome();
-  gtmPush({ event: 'signup_start', intent: subscribing ? 'subscribe' : 'trial' });
   $('#f-go').onclick = async () => {
-    if (!$('#f-consent').checked) { gtmPush({ event: 'signup_error', reason: 'consent' }); showError('#f-err', 'Please confirm you are the parent or guardian and agree to the Terms and Privacy Policy to continue.'); return; }
+    if (!$('#f-consent').checked) { showError('#f-err', 'Please confirm you are the parent or guardian and agree to the Terms and Privacy Policy to continue.'); return; }
     try {
       await api('/auth/signup', { method: 'POST', body: { name: $('#f-name').value, email: $('#f-email').value, password: $('#f-pass').value, consent: true } });
       gtmPush({ event: 'sign_up', method: 'email', intent: window.__subscribeIntent ? 'subscribe' : 'trial' });
-      // Optional newsletter opt-in — fire-and-forget into the existing newsletter list.
-      if ($('#f-newsletter') && $('#f-newsletter').checked) {
-        try { await api('/newsletter', { method: 'POST', body: { email: $('#f-email').value, source: 'signup' } }); gtmPush({ event: 'newsletter_optin', source: 'signup' }); } catch (e) {}
-      }
       await refreshMe(); Sound.levelup(); State.onboard = true;
       // Came from "Sign up now"? Go straight to plan choice → checkout, skipping the trial.
       if (window.__subscribeIntent) { window.__subscribeIntent = 0; location.hash = '#subscribe'; }
       else location.hash = '#parent';
-    } catch (e) { gtmPush({ event: 'signup_error', reason: 'api' }); showError('#f-err', e.message); }
+    } catch (e) { showError('#f-err', e.message); }
   };
 });
 
@@ -1569,44 +1352,32 @@ route('subscribe', async () => {
   if (State.me.role !== 'parent') { location.hash = '#login'; return; }
   const p = State.me.parent;
   if (p && p.sub_status === 'active') { location.hash = '#parent'; return; } // already subscribed
-  // Recommend the plan that fits THIS account: Solo for one (or zero) learners, Family for two+.
-  // Never steer a one-child family to the pricier Family plan (that reads as an upsell).
-  const learnerCount = (State.me.kids || []).length;
-  const rec = learnerCount >= 2 ? 'family' : 'solo';
-  const recNote = learnerCount >= 2
-    ? `Based on your ${learnerCount} learners, <b>Family</b> is the best fit — but you can choose either.`
-    : learnerCount === 1
-      ? `Based on your 1 learner, <b>Solo</b> is the best fit — add more children anytime and switch to Family.`
-      : `Most families with one child pick <b>Solo</b>; choose <b>Family</b> if you'll add more children (up to 4).`;
-  const familyCard = `<div class="plan-card${rec === 'family' ? ' featured' : ''}">
-          ${rec === 'family' ? '<div class="plan-badge">Best for your account</div>' : ''}
-          <h3>Family</h3>
-          <div class="plan-price"><span class="pp-month" style="display:none">$54<span>/mo</span></span><span class="pp-year">$46<span>/mo</span></span></div>
-          <p class="muted pp-note-month" style="display:none">Up to 4 children · billed monthly</p>
-          <p class="muted pp-note-year">Up to 4 children · $552/yr billed once · <b>save $96</b></p>
-          <button class="btn ${rec === 'family' ? 'green' : ''}" style="width:100%;margin-top:10px" id="sub-family">Subscribe →</button>
-        </div>`;
-  const soloCard = `<div class="plan-card${rec === 'solo' ? ' featured' : ''}">
-          ${rec === 'solo' ? '<div class="plan-badge">Best for your account</div>' : ''}
-          <h3>Solo</h3>
-          <div class="plan-price"><span class="pp-month" style="display:none">$34<span>/mo</span></span><span class="pp-year">$29<span>/mo</span></span></div>
-          <p class="muted pp-note-month" style="display:none">1 child · billed monthly</p>
-          <p class="muted pp-note-year">1 child · $348/yr billed once · <b>save $60</b></p>
-          <button class="btn ${rec === 'solo' ? 'green' : ''}" style="width:100%;margin-top:10px" id="sub-solo">Subscribe →</button>
-        </div>`;
   app().innerHTML = topbar(`<div class="container" style="max-width:560px">
     <div class="card center">
       <img src="/logo-roundel.png" alt="" style="width:76px;height:76px">
       <h2 style="margin-top:8px">Choose your plan</h2>
-      <p class="muted" style="margin:8px auto 6px;max-width:30rem">Full access to all four subjects, Gallop's adaptive guidance, the games arcade, and weekly parent reports.</p>
-      <p class="muted center rec-note" style="margin:0 auto 14px;max-width:32rem">${recNote}</p>
+      <p class="muted" style="margin:8px auto 14px;max-width:30rem">Full access to all four subjects, the adaptive tutor, the games arcade, and weekly parent reports.</p>
       <p class="muted center" style="margin:0 auto 16px;font-size:.82rem;max-width:34rem">Plans <b>auto-renew</b> by default (you can turn that off below) until you cancel. Cancel anytime in one click from your Parent Dashboard — future charges stop and you keep access through the period you've paid for.</p>
       <div class="bp-toggle" id="bp-toggle">
         <button class="bp-opt" data-bp="month">Monthly</button>
         <button class="bp-opt active" data-bp="year">Annual <span class="bp-save">save ~15%</span></button>
       </div>
       <div class="plan-grid">
-        ${rec === 'solo' ? soloCard + familyCard : familyCard + soloCard}
+        <div class="plan-card featured">
+          <div class="plan-badge">Best value</div>
+          <h3>Family</h3>
+          <div class="plan-price"><span class="pp-month" style="display:none">$54<span>/mo</span></span><span class="pp-year">$46<span>/mo</span></span></div>
+          <p class="muted pp-note-month" style="display:none">Up to 4 children · billed monthly</p>
+          <p class="muted pp-note-year">Up to 4 children · $552/yr billed once · <b>save $96</b></p>
+          <button class="btn green" style="width:100%;margin-top:10px" id="sub-family">Subscribe →</button>
+        </div>
+        <div class="plan-card">
+          <h3>Solo</h3>
+          <div class="plan-price"><span class="pp-month" style="display:none">$34<span>/mo</span></span><span class="pp-year">$29<span>/mo</span></span></div>
+          <p class="muted pp-note-month" style="display:none">1 child · billed monthly</p>
+          <p class="muted pp-note-year">1 child · $348/yr billed once · <b>save $60</b></p>
+          <button class="btn" style="width:100%;margin-top:10px" id="sub-solo">Subscribe →</button>
+        </div>
       </div>
       <label class="ar-row"><input type="checkbox" id="ar-check" checked>
         <span><b>Auto-renew</b> so your child's learning never gets interrupted. Uncheck for a one-time term that <b>won't</b> renew automatically — you'll keep full access through the period you pay for.</span></label>
@@ -1640,18 +1411,16 @@ route('login', async () => {
       <button class="btn" style="margin-top:18px;width:100%" id="f-go">Log In →</button>
       <p class="muted center" style="margin-top:12px"><a href="#forgot">Forgot password?</a></p>
       <p class="muted center" style="margin-top:4px">New here? <a href="#signup">Create an account</a> · <a href="#kid-login">Kid login</a></p>
-      <p class="muted center" style="margin-top:8px;font-size:.9rem">🏫 A school or teacher? <a href="#teacher-signup">Set up a class account</a></p>
     </div></div>`);
   wireChrome();
   const go = async () => {
     try {
       await api('/auth/login', { method: 'POST', body: { email: $('#f-email').value, password: $('#f-pass').value } });
-      await refreshMe(); location.hash = isTeacher() ? '#teacher' : '#parent';
+      await refreshMe(); location.hash = '#parent';
     } catch (e) { showError('#f-err', e.message); }
   };
   $('#f-go').onclick = go;
   $('#f-pass').addEventListener('keydown', e => e.key === 'Enter' && go());
-  const tl = $('#teacher-login-link'); if (tl) tl.onclick = (e) => { e.preventDefault(); location.hash = '#teacher-signup'; };
 });
 
 // ======================= forgot password =======================
@@ -1718,7 +1487,6 @@ route('kid-login', async () => {
       <label style="text-align:left">Family email</label><input id="k-email" type="email" value="${esc(localStorage.bp_family_email || '')}">
       <button class="btn" style="margin-top:14px" id="k-find">Find My Family →</button>
       <div class="error-msg" id="k-err"></div>
-      <p class="muted" style="margin-top:16px;border-top:1px solid #eee;padding-top:14px">🏫 Got a class code from your teacher? <a href="#join">Join your class →</a></p>
       <div id="k-kids" style="margin-top:18px"></div>
       <div id="k-pin" style="display:none">
         <h3 style="margin-top:10px">Enter your secret PIN 🤫</h3>
@@ -1773,19 +1541,6 @@ route('home', async () => {
   const data = await api(`/learn/${kidId}/overview`);
   let quests = null;
   try { quests = await api(`/learn/${kidId}/quests`); } catch (e) { /* non-critical */ }
-  let assigns = null;
-  try { const ar = await api(`/learn/${kidId}/assignments`); assigns = ar.assignments || []; } catch (e) { /* non-critical */ }
-  const SUBJ_META_H = { math: { e: '🔢', l: 'Math' }, english: { e: '📚', l: 'English' }, science: { e: '🔬', l: 'Science' }, spanish: { e: '🌎', l: 'Spanish' } };
-  const assignCard = (assigns && assigns.length) ? `
-    <div class="teacher-assign">
-      <div class="ta-head">🍎 From your teacher</div>
-      ${assigns.map(a => { const m = SUBJ_META_H[a.subject] || { e: '📘', l: a.subject }; const target = a.skillId ? `#lesson/${a.subject}/${a.skillId}` : `#lesson/${a.subject}`;
-        return `<div class="ta-item">
-          <span class="ta-emoji">${m.e}</span>
-          <div class="ta-body"><b>${esc(a.skillName || m.l + ' practice')}</b>${a.note ? `<span class="ta-note">${esc(a.note)}</span>` : `<span class="ta-note">${m.l}</span>`}</div>
-          <button class="btn sun small ta-go" data-target="${target}">Practice →</button>
-        </div>`; }).join('')}
-    </div>` : '';
   const k = data.kid;
   const questCard = quests ? `
     <div class="quest-card ${quests.allDone && !quests.claimed ? 'ready' : ''}">
@@ -1807,7 +1562,7 @@ route('home', async () => {
       <div>
         <h1>${playful() ? `Hi ${esc(k.name)}! Ready to level up? ⚡` : `Welcome back, ${esc(k.name)}.`}</h1>
         <div class="stat-chips" style="margin-top:8px">
-          ${data.gallopOverall != null ? `<span class="chip gscore-chip" title="Your Gallop Score — it grows as you truly learn">🏆 Gallop Score <b>${data.gallopOverall}</b></span>` : ''}
+          ${data.gallopOverall != null ? `<span class="chip gscore-chip" title="Your all-subjects Gallop Score — it climbs with everything you truly learn">🏆 Gallop Score <b>${data.gallopOverall}</b></span>` : ''}
           ${(() => { const r = rankFor(k.xp); return `<span class="chip rank-chip" title="${r.next ? (r.next.at - k.xp) + ' XP to ' + r.next.name : 'Top rank!'}">🏇 ${r.name}</span>`; })()}
           <span class="chip">${playful() ? '🔥 ' : ''}${k.streak}-day streak</span>
           <span class="chip">${playful() ? '⚡ ' : ''}${k.xp} XP</span>
@@ -1826,20 +1581,16 @@ route('home', async () => {
         : rec.type === 'review' ? (playful() ? `Keep ${s.label} sharp 🧠` : `${s.label}: time for a quick review`)
         : rec.type === 'more' ? (playful() ? `Keep the ${s.label} roll going 🔥` : `${s.label}: keep the momentum`)
         : (playful() ? `Fresh ${s.label} adventure awaits ✨` : `${s.label}: nothing logged today`);
-      // Copy describes WHY this subject is recommended (the subject-level reason), not a promise
-      // about the very first question's mode — the adaptive session mixes new work and review, so
-      // claiming "this is a review" while the first item is a new skill was a contradiction (P1.3).
-      const sub = rec.type === 'place' ? (playful() ? 'A quick quiz finds your perfect starting spot.' : 'Short adaptive placement, a few minutes.')
-        : rec.type === 'boost' ? (playful() ? 'This is where a little practice helps the most!' : `Where ${esc(k.name.split(' ')[0])}'s practice will help most right now.`)
-        : rec.type === 'review' ? (playful() ? 'Some skills here are ready for a refresh 🧠' : 'This subject has skills due for review to keep them sharp.')
-        : (playful() ? 'A great place to keep the momentum going!' : 'Recommended by your recent progress.');
+      const sub = rec.type === 'place' ? (playful() ? 'A quick quiz finds your perfect starting spot.' : 'Short adaptive assessment, a few minutes.')
+        : rec.type === 'boost' ? (playful() ? 'A few wins here and your skill power jumps!' : 'Targeted reps where mastery is lowest.')
+        : rec.type === 'review' ? (playful() ? 'A little review so it really sticks!' : 'A spaced-review check so mastery lasts.')
+        : (playful() ? 'Your tutor picked this just for you.' : 'Recommended by your progress data.');
       return `<div class="up-next" data-upnext="${rec.subject}" data-place="${rec.type === 'place' ? 1 : 0}">
         <div class="un-emoji">${s.emoji}</div>
         <div class="un-text"><span class="un-label">${playful() ? '🐎 UP NEXT' : 'UP NEXT'}</span><b>${title}</b><span class="un-sub">${sub}</span></div>
         <button class="btn sun" tabindex="-1" aria-hidden="true">${rec.type === 'place' ? 'Find my level →' : 'Start →'}</button>
       </div>`;
     })()}
-    ${assignCard}
     <div class="week-gallop">
       <div class="wg-head"><span>${playful() ? '🏇 This week’s gallop' : 'This week'}</span><span>${data.weekAnswers || 0} / ${(k.weekly_goal || 12) * 10} answers</span></div>
       ${gallopTrack(Math.min(100, (data.weekAnswers || 0) / ((k.weekly_goal || 12) * 10) * 100))}
@@ -1878,7 +1629,7 @@ route('home', async () => {
       <div class="zone-card" onclick="location.hash='#trophies'"><span class="zemoji">🏆</span><b>Trophy Case</b><span class="muted">${playful() ? 'Your badges, trophies & next goals!' : 'Badges, certificates & milestones'}</span></div>
       <div class="zone-card" onclick="location.hash='#buddies'"><span class="zemoji">💌</span><b>Buddies</b><span class="muted">${playful() ? 'Cheer on your friends!' : 'See your crew’s streaks and send props'}</span></div>
       ${k.grade >= 3 ? `<div class="zone-card" onclick="location.hash='#careers/${k.id}'"><span class="zemoji">🔭</span><b>Explore Futures</b><span class="muted">${playful() ? 'Discover cool jobs & the real people who do them!' : 'Real careers, what they involve, and people who do them'}</span></div>` : ''}
-      ${k.grade >= 8 ? `<div class="zone-card exam-zone" onclick="location.hash='#exam'"><span class="zemoji">🎓</span><b>Advanced Track</b><span class="muted">AP free-response, exam simulator & honors — real challenge</span></div>` : ''}
+      ${k.grade >= 8 ? `<div class="zone-card exam-zone" onclick="location.hash='#exam'"><span class="zemoji">🎓</span><b>Advanced Track</b><span class="muted">Ahead of your grade? AP, Honors & college-level practice</span></div>` : ''}
     </div>
   </div>`);
   wireChrome();
@@ -1938,7 +1689,6 @@ route('home', async () => {
   } catch (e) { /* recap is a nice-to-have */ }
   const un = document.querySelector('.up-next');
   if (un) un.onclick = () => { Sound.click(); location.hash = (un.dataset.place === '1' ? '#placement/' : '#lesson/') + un.dataset.upnext; };
-  document.querySelectorAll('.ta-go').forEach(b => b.onclick = () => { Sound.click(); location.hash = b.dataset.target; });
   document.querySelectorAll('[data-focus]').forEach(b => b.onclick = () => { Sound.click(); location.hash = '#lesson/' + b.dataset.focus + '/focus'; });
   document.querySelectorAll('.subject-card').forEach(el => el.onclick = () => {
     Sound.click();
@@ -1953,32 +1703,23 @@ route('placement', async (subject) => {
   const kidId = State.me.kid.id;
   const style = SUBJECT_STYLE[subject];
   let current = null;
-  let _placeFirstRender = true;
 
   async function step(body) {
     try {
-      // Never auto-reset on entry: placement history is persisted server-side, so posting an
-      // empty body RESUMES from the last saved answer (a fresh kid simply has an empty history
-      // and starts at question one). Only the explicit "Retake placement" action clears it.
-      const data = await api(`/learn/${kidId}/placement/${subject}`, { method: 'POST', body: body || {} });
+      const data = await api(`/learn/${kidId}/placement/${subject}`, { method: 'POST', body: body || { reset: current === null } });
       if (data.done) return finish(data);
-      // First-party activation beacon (kid session — never GTM): distinguish a fresh start from a
-      // resume of a previously-saved placement.
-      if (_placeFirstRender) { _placeFirstRender = false; track(data.progress > 0 ? 'placement_resume' : 'placement_start'); }
       current = data;
       render(data);
     } catch (e) {
       if (e.status === 402) { renderPaywall(e.data && e.data.reason); return; }
       app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="card center">
         <div class="big-emoji">🐎</div><h2>Quick hiccup!</h2>
-        <p class="muted" style="margin:10px 0 18px">That didn't load — but don't worry, <b>your progress is saved</b>. Tap below to pick up right where you left off.</p>
+        <p class="muted" style="margin:10px 0 18px">That didn't load. Tap below to continue your placement quiz.</p>
         <button class="btn green" id="retry-p">Continue →</button>
         <button class="btn ghost small" style="margin-left:8px" onclick="location.hash='#home'">🏠 Home</button>
       </div></div>`);
       wireChrome();
-      // Resume from saved state (empty body) rather than resubmitting the failed answer — if the
-      // answer never reached the server the child just re-answers the same question; no double-count.
-      $('#retry-p').onclick = () => { Sound.click(); step({}); };
+      $('#retry-p').onclick = () => { Sound.click(); step(body); };
     }
   }
   function render(data) {
@@ -1986,14 +1727,13 @@ route('placement', async (subject) => {
     app().innerHTML = topbar(`<div class="container lesson-wrap">
       <div class="lesson-top">
         <b>${style.emoji} Finding your ${esc(subject)} level…</b>
-        <span class="place-meta">Question ${data.progress + 1}${data.progress > 0 ? ' · <span class="saved-chip">Saved ✓</span>' : ''}</span>
         ${gallopTrack(Math.min(100, data.progress / 8 * 100))}
       </div>
       <div class="q-card">
         <span class="q-skill" style="background:${style.color}">${esc(qn.skillName)}</span>
         <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
         ${qn.passage ? passageHTML(qn.passage, playful()) : ''}
-        ${qn.clock ? clockHTML(qn.clock) : ''}<div class="q-prompt">${esc(qn.prompt)}</div>
+        <div class="q-prompt">${esc(qn.prompt)}</div>
         <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}
           <button class="choice idk" data-i="-1">🤷 ${playful() ? "I haven't learned this yet" : "Haven't covered this yet"}</button>
         </div>
@@ -2002,7 +1742,6 @@ route('placement', async (subject) => {
           <button class="btn green" id="place-next" disabled style="opacity:.5">Next →</button>
         </div>
         ${data.progress === 0 ? `<p class="muted" style="margin-top:14px">${playful() ? 'No guessing needed! Saying "I haven\'t learned this yet" is a SMART answer, it helps me find lessons that fit you. You can change your pick before Next.' : 'Skip anything you haven\'t covered, honest answers give you an accurate starting level. You can change your answer before pressing Next.'}</p>` : ''}
-        <p class="muted place-grade-note">🔒 This just finds your starting level — it doesn't affect your school grades, and it saves after every answer.</p>
       </div>
     </div>`);
     wireChrome();
@@ -2035,7 +1774,6 @@ route('placement', async (subject) => {
   }
   function finish(data) {
     Sound.levelup(); Confetti.burst(160);
-    track('placement_complete');
     // Only name the grade level to the child if the parent has opted to reveal it — otherwise a
     // child who placed below their grade would see it here. The engine still works at the real level.
     const heading = showLevel() ? `Level found: ${esc(data.levelName)}!` : `You're all set! 🎉`;
@@ -2065,7 +1803,6 @@ route('lesson', async (subject, mode, anchor) => {
   const FOCUS_MIN = 15;
   const SESSION_LEN = focus ? 9999 : 10;
   const session = { n: 0, correct: 0, xp: 0, startedAt: Date.now(), events: [], endAt: focus ? Date.now() + FOCUS_MIN * 60000 : null, focusSkill: anchorSkill };
-  track('lesson_start');
   let focusTimer = null;
   const fmtLeft = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
   if (focus) {
@@ -2085,10 +1822,7 @@ route('lesson', async (subject, mode, anchor) => {
     try {
       // Keep the mission on one skill: once anchored, ask the server for that same skill
       // until it's mastered (then it hands us a new skill and we re-anchor below).
-      const params = [];
-      if (session.focusSkill) params.push(`focus=${encodeURIComponent(session.focusSkill)}`);
-      if (session.hardNext) { params.push('boost=1'); session.hardNext = false; }  // "level me up" → harder item (P1.4)
-      const q = params.length ? '?' + params.join('&') : '';
+      const q = session.focusSkill ? `?focus=${encodeURIComponent(session.focusSkill)}` : '';
       const data = await api(`/learn/${kidId}/next/${subject}${q}`);
       // Anchor to the served skill (a labeled retention "Memory Check" never re-anchors,
       // so a spaced-review question doesn't derail the mission's focus).
@@ -2097,35 +1831,23 @@ route('lesson', async (subject, mode, anchor) => {
     } catch (e) {
       if (e.status === 402) { renderPaywall(e.data && e.data.reason); return; }
       if (e.status === 401) { toast('Please log back in to keep going!'); location.hash = '#kid-login'; return; }
-      // Never leave a kid stuck. Transient failures (server restart mid-deploy, a flaky generator,
-      // a dropped connection) should self-heal: retry up to 3x with backoff BEFORE showing the
-      // recovery card (P1.1). Log structured context so a real failure is diagnosable.
-      const started = Date.now();
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          await new Promise(r => setTimeout(r, [500, 1200, 2500][attempt - 1]));
-          const params = [];
-          if (session.focusSkill) params.push(`focus=${encodeURIComponent(session.focusSkill)}`);
-          if (session.hardNext) { params.push('boost=1'); session.hardNext = false; }
-          const data = await api(`/learn/${kidId}/next/${subject}${params.length ? '?' + params.join('&') : ''}`);
-          if (data && data.skill && data.skill.id && data.mode !== 'retention') session.focusSkill = data.skill.id;
-          try { console.info('[gallop] next-question recovered', { subject, focusSkill: session.focusSkill, attempt, waitedMs: Date.now() - started }); } catch (_) {}
-          return render(data);
-        } catch (e2) {
-          if (e2.status === 401) { toast('Please log back in to keep going!'); location.hash = '#kid-login'; return; }
-          if (e2.status === 402) { renderPaywall(e2.data && e2.data.reason); return; }
-          try { console.warn('[gallop] next-question load failed', { subject, focusSkill: session.focusSkill, attempt, status: e2.status || 'network', qNum: session.n }); } catch (_) {}
-          if (attempt === 3) {
-            app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="card center">
-              <div class="big-emoji">🐎</div><h2>Whoa, quick water break!</h2>
-              <p class="muted" style="margin:10px 0 18px">The next question didn't load. Your progress is saved, tap below to keep going.</p>
-              <button class="btn green" id="retry-q">Keep Going →</button>
-              <button class="btn ghost small" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px" onclick="location.hash='#home'">Back to Subjects</button>
-            </div></div>`);
-            wireChrome();
-            $('#retry-q').onclick = () => { Sound.click(); nextQuestion(); };
-          }
-        }
+      // Never leave a kid stuck: one auto-retry, then a friendly tap-to-retry card.
+      try {
+        await new Promise(r => setTimeout(r, 800));
+        const q = session.focusSkill ? `?focus=${encodeURIComponent(session.focusSkill)}` : '';
+        const data = await api(`/learn/${kidId}/next/${subject}${q}`);
+        if (data && data.skill && data.skill.id && data.mode !== 'retention') session.focusSkill = data.skill.id;
+        render(data);
+      } catch (e2) {
+        if (e2.status === 401) { toast('Please log back in to keep going!'); location.hash = '#kid-login'; return; }
+        app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="card center">
+          <div class="big-emoji">🐎</div><h2>Whoa, quick water break!</h2>
+          <p class="muted" style="margin:10px 0 18px">The next question didn't load. Your progress is saved, tap below to keep going.</p>
+          <button class="btn green" id="retry-q">Keep Going →</button>
+          <button class="btn ghost small" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px" onclick="location.hash='#home'">Back to Subjects</button>
+        </div></div>`);
+        wireChrome();
+        $('#retry-q').onclick = () => { Sound.click(); nextQuestion(); };
       }
     }
   }
@@ -2188,7 +1910,7 @@ route('lesson', async (subject, mode, anchor) => {
         <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
         ${teachLesson && !lessonDone ? `<div class="learn-banner" style="--lb:${style.color}" onclick="location.hash='#teach/${teachLesson.id}'">📖 <b>New to this skill?</b> Watch the quick lesson first <span class="lb-arrow">→</span></div>` : ''}
         ${qn.passage ? passageHTML(qn.passage, playful()) : ''}
-        ${qn.clock ? clockHTML(qn.clock) : ''}<div class="q-prompt">${esc(qn.prompt)}</div>
+        <div class="q-prompt">${esc(qn.prompt)}</div>
         ${typed ? `<div class="typed-wrap">
           <input id="typed-in" class="typed-input" inputmode="decimal" autocomplete="off" placeholder="${playful() ? 'Type your answer!' : 'Your answer'}" aria-label="Type your answer">
           <button class="btn green" id="typed-go">Check ✓</button>
@@ -2232,15 +1954,10 @@ route('lesson', async (subject, mode, anchor) => {
       btn.textContent = playful() ? (down ? '🐴 One sec…' : '🚀 One sec…') : 'Adjusting…';
       try {
         const r = await api(`/learn/${kidId}/level-shift/${subject}`, { method: 'POST', body: { delta } });
-        // Move OFF the current skill so the next item is genuinely different, not the same skill
-        // with new numbers, and (on level-up) serve it noticeably harder so the change is visible.
-        session.focusSkill = null;
-        if (!down) session.hardNext = true;
-        // Confirm what changed. Show the grade only if the parent revealed it; otherwise name the
-        // concrete change in difficulty so the child can see Gallop listened (P1.4).
+        // Keep the grade name out of the child's view unless the parent chose to reveal it.
         const msg = showLevel()
-          ? (playful() ? (down ? `🌈 Okay! Easier ${r.levelName} questions coming up.` : `🚀 Moving up to ${r.levelName} — these get harder!`) : `Level set to ${r.levelName}. ${down ? 'Easier' : 'Harder'} questions next.`)
-          : (playful() ? (down ? `🌈 Okay! Easier questions coming up.` : `🚀 Leveling up — here comes a tougher one!`) : (down ? `Easing the difficulty — simpler questions next.` : `Leveling up — a harder question next.`));
+          ? (playful() ? (down ? `🌈 Okay! Easier ${r.levelName} questions coming up.` : `🚀 Nice! Stepping up to ${r.levelName} questions.`) : `Level set to ${r.levelName}.`)
+          : (playful() ? (down ? `🌈 Okay! Easier questions coming up.` : `🚀 Nice! Stepping it up!`) : (down ? `Easing the difficulty.` : `Raising the difficulty.`));
         toastAction(msg, playful() ? '↩︎ Undo' : 'Undo', () => levelShift(-delta));
         nextQuestion();
       } catch (e) {
@@ -2327,7 +2044,6 @@ route('lesson', async (subject, mode, anchor) => {
         if (Voice.auto) Voice.speak(`${diag || ('The answer is ' + qn.choices[qn.answerIndex] + '. ' + (qn.explain || ''))}`, 'en-US');
       }
       session.n++; if (correct) session.correct++;
-      if (correct && !session._firstCorrectSent) { session._firstCorrectSent = true; track('first_correct'); }
       try {
         const res = await api(`/learn/${kidId}/answer`, {
           method: 'POST',
@@ -2423,7 +2139,6 @@ route('lesson', async (subject, mode, anchor) => {
 
   function summary() {
     if (focusTimer) clearInterval(focusTimer);
-    if (session.n > 0) track('lesson_complete');
     const denom = focus ? Math.max(1, session.n) : SESSION_LEN;
     const pct = Math.round(session.correct / denom * 100);
     const mins = Math.max(1, Math.round((Date.now() - session.startedAt) / 60000));
@@ -2453,14 +2168,13 @@ route('lesson', async (subject, mode, anchor) => {
 // ======================= exam prep (AP / Honors / Regents) =======================
 // A separate advanced track. Practice never changes a learner's grade level or
 // mastery — it's exam drilling with explanations. Reuses the lesson q-card look.
-const AP_EXAM_YEAR = 'Prep for the 2026–27 exam';
 const EXAM_ORDER = ['AP', 'Honors', 'Regents'];
 const EXAM_BLURB = {
   Regents: 'State test prep',
   AP: 'College-level AP practice',
   Honors: 'Honors-level challenge'
 };
-route('exam', async (trackId, mode, sub) => {
+route('exam', async (trackId) => {
   if (State.me.role !== 'kid') { location.hash = '#kid-login'; return; }
   // Advanced Track is for grade 8+ (same gate as the home tile) — a younger kid
   // deep-linking here goes home instead of into AP calculus.
@@ -2470,9 +2184,6 @@ route('exam', async (trackId, mode, sub) => {
   try { tracks = (await api('/learn/tracks')).tracks || []; } catch (e) { tracks = []; }
 
   if (!trackId) {
-    let prog = {};
-    try { prog = (await api('/learn/' + kidId + '/tracks/progress')).progress || {}; } catch (e) { prog = {}; }
-    window.__examProg = prog;
     if (!tracks.length) {
       app().innerHTML = topbar(`<div class="container" style="max-width:640px"><div class="card center">
         <div class="big-emoji">🎓</div><h2>The Advanced Track is warming up</h2>
@@ -2489,13 +2200,10 @@ route('exam', async (trackId, mode, sub) => {
         <div class="exam-grid">
           ${groups[exam].map(t => {
             const c = (SUBJECT_STYLE[t.subject] || {}).color || '#1A5C38';
-            const p = (window.__examProg || {})[t.id];
-            const badge = p && p.estBand ? `<span class="exam-ready" title="Estimated score from your practice (low-confidence until you've done more)">Est. ${p.estBand}/5</span>` : '';
             return `<button class="exam-card" data-track="${t.id}" style="--tc:${c}">
               <span class="exam-emoji">${t.emoji || '🎓'}</span>
               <b>${esc(t.name)}</b>
-              <span class="exam-count">${t.count} practice Q${t.frqCount ? ` · ${t.frqCount} free-response` : ''}</span>
-              ${badge}
+              <span class="exam-count">${t.count} questions</span>
             </button>`;
           }).join('')}
         </div>
@@ -2514,14 +2222,9 @@ route('exam', async (trackId, mode, sub) => {
     return;
   }
 
+  // ----- practice a specific track -----
   const track = tracks.find(t => t.id === trackId);
   if (!track) { location.hash = '#exam'; return; }
-  // Mode dispatch: hub (default), MC practice, free-response, exam simulator.
-  if (mode === 'frq') { await examFrq(kidId, track, sub); return; }
-  if (mode === 'sim') { await examSim(kidId, track); return; }
-  if (mode !== 'practice') { await examHub(kidId, track); return; }
-
-  // ----- MC practice a specific track (mode === 'practice') -----
   const style = SUBJECT_STYLE[track.subject] || { color: '#1A5C38', emoji: '🎓' };
   const SESSION_LEN = 12;
   const session = { n: 0, correct: 0, xp: 0, startedAt: Date.now(), qStart: Date.now() };
@@ -2530,17 +2233,9 @@ route('exam', async (trackId, mode, sub) => {
   async function nextQuestion() {
     if (session.n >= SESSION_LEN) return summary();
     let data = null;
-    // Retry transient load failures with backoff before the recovery screen, and log context so a
-    // real failure is diagnosable (AP-P0.4 — a Statistics load failure was seen in the premium track).
-    for (let attempt = 0; attempt < 4 && !data; attempt++) {
+    for (let attempt = 0; attempt < 3 && !data; attempt++) {
       try { data = await api(`/learn/${kidId}/track/${trackId}/next`); }
-      catch (e) {
-        if (e.status === 402) return renderPaywall && renderPaywall(e.data && e.data.reason);
-        if (e.status === 401) { toast('Please log back in to keep going!'); location.hash = '#kid-login'; return; }
-        data = null;
-        try { console.warn('[gallop] track-question load failed', { trackId, attempt, status: e.status || 'network', qNum: session.n }); } catch (_) {}
-        await new Promise(r => setTimeout(r, [400, 900, 1800][attempt] || 1800));
-      }
+      catch (e) { if (e.status === 402) return renderPaywall && renderPaywall(e.data && e.data.reason); data = null; await new Promise(r => setTimeout(r, 500)); }
     }
     if (!data || !data.question) {
       app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
@@ -2566,7 +2261,7 @@ route('exam', async (trackId, mode, sub) => {
         <span class="q-skill" style="background:${style.color}">${esc(track.exam)} · exam practice</span>
         <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
         ${qn.passage ? passageHTML(qn.passage, false) : ''}
-        ${qn.clock ? clockHTML(qn.clock) : ''}<div class="q-prompt">${esc(qn.prompt)}</div>
+        <div class="q-prompt">${esc(qn.prompt)}</div>
         <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
         <div class="hint-box" id="hint-box">💡 ${esc(qn.hint || 'Work it through step by step.')}</div>
         <div class="feedback" id="feedback" aria-live="polite"></div>
@@ -2651,8 +2346,8 @@ route('exam', async (trackId, mode, sub) => {
         <div class="sstat"><div class="n">+${session.xp}</div>XP earned</div>
         <div class="sstat"><div class="n">${mins}</div>min${mins > 1 ? 's' : ''}</div>
       </div>
-      <button class="btn green" onclick="location.hash='#exam/${trackId}/practice';location.reload()">Practice again 🔁</button>
-      <button class="btn" style="margin-left:8px" onclick="location.hash='#exam/${trackId}'">Back to ${esc(track.name.split(':').pop().trim())} →</button>
+      <button class="btn green" onclick="location.hash='#exam/${trackId}';location.reload()">Practice again 🔁</button>
+      <button class="btn" style="margin-left:8px" onclick="location.hash='#exam'">Other exams →</button>
       <button class="btn ghost small on-page" style="margin-left:8px" onclick="location.hash='#home'">Home</button>
     </div></div>`);
     wireChrome();
@@ -2660,295 +2355,6 @@ route('exam', async (trackId, mode, sub) => {
 
   await nextQuestion();
 });
-
-// ---- Advanced Track hub: readiness + choose a mode ----
-function bandColor(b) { return b >= 4 ? '#1a7a4a' : b === 3 ? '#2f5fa6' : b ? '#c2661f' : '#8a93a3'; }
-async function examHub(kidId, track) {
-  const style = SUBJECT_STYLE[track.subject] || { color: '#1A5C38' };
-  let p = null;
-  try { p = (await api('/learn/' + kidId + '/track/' + track.id + '/progress')).progress; } catch (e) { p = null; }
-  let bp = null;
-  try { bp = (await api('/learn/track/' + track.id + '/blueprint')).blueprint; } catch (e) { bp = null; }
-  const band = p && p.estBand;                 // null until the evidence threshold is met
-  const range = p && p.bandRange;
-  const gaugeText = band ? (range && range[0] !== range[1] ? `${range[0]}–${range[1]}` : `${band}`) : '—';
-  const gaugeLabel = band ? (p.confidence === 'high' ? 'Estimated score' : 'Estimated (low confidence)') : 'Keep practicing';
-  const needLine = (!band && p) ? (p.needFrq && p.needMoreMc > 0
-      ? `Answer ~${p.needMoreMc} more questions and try one free-response to unlock a score estimate.`
-      : p.needMoreMc > 0 ? `About ${p.needMoreMc} more questions to unlock a score estimate.`
-      : p.needFrq ? 'Try one free-response to unlock a score estimate.' : 'Keep practicing to build your estimate.') : '';
-  app().innerHTML = topbar(`<div class="container" style="max-width:760px">
-    <div class="tcrumb"><a href="#exam">← Advanced Track</a></div>
-    <div class="exam-hub-head" style="--tc:${style.color}">
-      <span class="exam-emoji" style="font-size:2.4rem">${track.emoji || '🎓'}</span>
-      <div style="flex:1"><h1 style="margin:0">${esc(track.name)}</h1>
-        <p class="muted" style="margin:2px 0 0">${esc(track.exam)} · ${AP_EXAM_YEAR} · ${track.count} practice MCQ available · ${track.frqCount || 0} free-response. Working here never changes your grade level — it's pure challenge.</p></div>
-    </div>
-    <div class="exam-ready-panel">
-      <div class="erp-gauge" style="--c:${bandColor(band || 0)}">
-        <div class="erp-band">${gaugeText}${band ? '<small>/5</small>' : ''}</div>
-        <div class="erp-label">${gaugeLabel}</div>
-      </div>
-      <div class="erp-stats">
-        <div><b>${band && p.readiness != null ? p.readiness + '%' : '—'}</b><span>Readiness${band ? '' : ' (locked)'}</span></div>
-        <div><b>${p && p.mcPct != null ? p.mcPct + '%' : '—'}</b><span>MCQ accuracy${p && p.mcAttempts ? ' (' + p.mcAttempts + ')' : ''}</span></div>
-        <div><b>${p && p.frqPct != null ? p.frqPct + '%' : '—'}</b><span>Free-response${p && p.frqAttempts ? ' (' + p.frqAttempts + ')' : ''} · self-scored</span></div>
-        <div><b>${p && p.bestExamScore ? p.bestExamScore + '/5' : '—'}</b><span>Best mini-mock</span></div>
-      </div>
-    </div>
-    ${needLine ? `<p class="muted" style="margin:-6px 0 14px;font-size:.86rem">🔒 ${needLine}</p>` : ''}
-    <div class="exam-modes">
-      <button class="exam-mode" data-mode="practice">
-        <span class="em-ic">📝</span><b>Multiple-choice practice</b>
-        <span class="em-sub">Adaptive-style MCQ sets with hints and full explanations. Build speed and accuracy.</span>
-      </button>
-      <button class="exam-mode ${track.frqCount ? '' : 'em-disabled'}" data-mode="frq" ${track.frqCount ? '' : 'disabled'}>
-        <span class="em-ic">✍️</span><b>Free-response ${track.frqCount ? `<span class="em-tag">${track.frqCount}</span>` : '<span class="em-soon">soon</span>'}</b>
-        <span class="em-sub">AP-style multi-part problems you work out, then <b>self-score</b> against a model solution &amp; rubric.</span>
-      </button>
-      <button class="exam-mode" data-mode="sim">
-        <span class="em-ic">⏱️</span><b>30-minute mini mock</b>
-        <span class="em-sub">A short timed diagnostic (10 MCQ + 1 free-response) — a quick readiness check, not a full-length AP exam.</span>
-      </button>
-    </div>
-    ${bp && bp.official ? `<details class="exam-format">
-      <summary>📋 Official exam format vs. what Gallop offers</summary>
-      <div class="ef-body">
-        <div class="ef-row"><span class="ef-k">Official ${esc(track.exam)} exam (${esc(bp.examYear)})</span><span class="ef-v">${bp.official.mcq} multiple-choice + ${bp.official.frq} free-response · ${Math.floor(bp.official.timeMin / 60)}h ${bp.official.timeMin % 60}m${bp.official.calc ? ' · ' + esc(bp.official.calc) : ''}</span></div>
-        <div class="ef-row"><span class="ef-k">Gallop practice now</span><span class="ef-v">${bp.gallop.mcq} practice MCQ + ${bp.gallop.frq} free-response challenges, plus a 30-minute mini mock.</span></div>
-        ${bp.gaps && bp.gaps.length ? `<div class="ef-row"><span class="ef-k">Not yet covered</span><span class="ef-v"><ul class="ef-gaps">${bp.gaps.map(g => `<li>${esc(g)}</li>`).join('')}</ul></span></div>` : ''}
-        ${bp.note ? `<p class="ef-note">${esc(bp.note)}</p>` : ''}
-        <p class="ef-note">Gallop is advanced practice and enrichment — always confirm the current exam format at <a href="${esc(bp.source)}" target="_blank" rel="noopener">College Board</a>.</p>
-      </div>
-    </details>` : ''}
-    <p class="muted" style="font-size:.8rem;margin-top:14px">Estimates are practice projections from your work here (free-response is self-scored) — not official College Board scores, and not a full-length AP exam.</p>
-  </div>`);
-  wireChrome();
-  document.querySelectorAll('.exam-mode').forEach(b => { if (!b.disabled) b.onclick = () => { Sound.click(); location.hash = '#exam/' + track.id + '/' + b.dataset.mode; }; });
-}
-
-// ---- Free-response: list, then work + reveal model solution + self-score ----
-async function examFrq(kidId, track, frqId) {
-  const style = SUBJECT_STYLE[track.subject] || { color: '#1A5C38' };
-  const vlang = track.subject === 'spanish' ? 'es-ES' : 'en-US';
-  if (!frqId) {
-    let list = [];
-    try { list = (await api('/learn/' + kidId + '/track/' + track.id + '/frqs')).frqs || []; } catch (e) { list = []; }
-    app().innerHTML = topbar(`<div class="container" style="max-width:680px">
-      <div class="tcrumb"><a href="#exam/${track.id}">← ${esc(track.name)}</a></div>
-      <h1 style="margin:6px 0 2px">Free-response</h1>
-      <p class="muted" style="margin:0 0 16px">Pick a problem. Work it fully on paper, then reveal the model solution and score yourself against the AP rubric — that's how strong students prep.</p>
-      ${list.length ? `<div class="frq-list">${list.map(f => `<button class="frq-card" data-id="${f.id}">
-        <div><b>${esc(f.topic)}</b><span class="frq-meta">${f.parts} part${f.parts > 1 ? 's' : ''} · ${f.maxPoints} points${f.essay ? ' · essay + rubric' : ''}${f.calculator === true ? ' · calculator' : f.calculator === false ? ' · no calculator' : ''}</span></div>
-        <span class="frq-go">Start →</span>
-      </button>`).join('')}</div>` : '<div class="card center"><p class="muted">Free-response for this track is coming soon.</p></div>'}
-    </div>`);
-    wireChrome();
-    document.querySelectorAll('.frq-card').forEach(b => b.onclick = () => { Sound.click(); location.hash = '#exam/' + track.id + '/frq/' + b.dataset.id; });
-    return;
-  }
-  let f = null;
-  try { f = (await api('/learn/' + kidId + '/track/' + track.id + '/frq/' + frqId)).frq; } catch (e) { f = null; }
-  if (!f) { location.hash = '#exam/' + track.id + '/frq'; return; }
-  const partsHTML = f.parts.map((pt, i) => `
-    <div class="frq-part">
-      <div class="frq-part-head"><span class="frq-part-label">${esc(pt.label)}</span><span class="frq-part-pts">${pt.points} pt${pt.points > 1 ? 's' : ''}</span></div>
-      <div class="frq-ask">${esc(pt.ask)}</div>
-      <textarea class="frq-work" data-i="${i}" rows="3" placeholder="Work / answer for ${esc(pt.label)}…"></textarea>
-      <div class="frq-solution" id="sol-${i}" hidden>
-        <div class="frq-sol-label">Model solution &amp; rubric</div>
-        <div class="frq-sol-text">${esc(pt.solution)}</div>
-        <div class="frq-score-row">Points you earned:
-          <div class="frq-pts" data-part="${i}" data-max="${pt.points}">
-            ${Array.from({ length: pt.points + 1 }, (_, v) => `<button class="frq-pt" data-v="${v}">${v}</button>`).join('')}
-          </div>
-        </div>
-      </div>
-    </div>`).join('');
-  app().innerHTML = topbar(`<div class="container" style="max-width:720px">
-    <div class="tcrumb"><a href="#exam/${track.id}/frq">← Free-response</a></div>
-    <div class="frq-head" style="--tc:${style.color}">
-      <span class="q-skill" style="background:${style.color}">${esc(track.exam)} · Free Response</span>
-      <h2 style="margin:8px 0 2px">${esc(f.topic)}</h2>
-      <span class="muted" style="font-size:.85rem">${f.maxPoints} points${f.calculator === true ? ' · calculator allowed' : f.calculator === false ? ' · no calculator' : ''}</span>
-      <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="frq-say">🔊 Read prompt</button>
-    </div>
-    ${f.prompt ? `<div class="frq-prompt">${esc(f.prompt)}</div>` : ''}
-    ${f.note ? `<div class="frq-tip">💡 ${esc(f.note)}</div>` : ''}
-    <div class="frq-parts">${partsHTML}</div>
-    <div class="frq-actions">
-      <button class="btn sun" id="frq-reveal">Reveal model solution &amp; rubric</button>
-      <button class="btn green" id="frq-submit" style="display:none">Save my score →</button>
-    </div>
-    <div class="frq-total" id="frq-total" style="display:none"></div>
-  </div>`);
-  wireChrome();
-  $('#frq-say').onclick = () => Voice.speak(f.prompt || f.topic, vlang);
-  let scores = {}, frqAttempted = false;
-  const frqStartMs = Date.now();
-  $('#frq-reveal').onclick = () => {
-    Sound.click();
-    // PRODUCT-104: gauge a genuine attempt BEFORE the model answer is revealed — typed work, or
-    // real time spent (paper-workers). A reveal-only peek won't count toward the readiness estimate.
-    const typed = [...document.querySelectorAll('.frq-work')].reduce((n, t) => n + (t.value || '').replace(/\s/g, '').length, 0);
-    frqAttempted = typed >= 15 || (Date.now() - frqStartMs) >= 25000;
-    f.parts.forEach((_, i) => { const el = $('#sol-' + i); if (el) el.hidden = false; });
-    $('#frq-reveal').style.display = 'none';
-    $('#frq-submit').style.display = 'inline-flex';
-    document.querySelectorAll('.frq-pt').forEach(btn => btn.onclick = () => {
-      const wrap = btn.closest('.frq-pts'); const part = wrap.dataset.part;
-      wrap.querySelectorAll('.frq-pt').forEach(x => x.classList.remove('sel')); btn.classList.add('sel');
-      scores[part] = Number(btn.dataset.v);
-      const total = Object.values(scores).reduce((a, b) => a + b, 0);
-      $('#frq-total').style.display = 'block';
-      $('#frq-total').innerHTML = `Your score: <b>${total} / ${f.maxPoints}</b>`;
-    });
-    $('#frq-total').style.display = 'block';
-    $('#frq-total').innerHTML = frqAttempted
-      ? `Select the points you earned for each part.`
-      : `Select your points — but since it doesn't look like you worked this one yet, it <b>won't count toward your readiness estimate</b>. Work it first, then score yourself honestly.`;
-  };
-  $('#frq-submit').onclick = async () => {
-    const earned = Object.values(scores).reduce((a, b) => a + b, 0);
-    try {
-      const r = await api('/learn/' + kidId + '/track/frq/score', { method: 'POST', body: { trackId: track.id, frqId: f.id, pointsEarned: earned, attempted: frqAttempted } });
-      Confetti.burst(earned >= f.maxPoints * 0.6 ? 160 : 80); Sound.levelup();
-      if (State.me.kid && r.kid) State.me.kid = r.kid;
-      const pct = Math.round(earned / f.maxPoints * 100);
-      app().innerHTML = topbar(`<div class="container" style="max-width:560px"><div class="card center">
-        <div class="big-emoji">${pct >= 80 ? '🌟' : pct >= 55 ? '💪' : '📚'}</div>
-        <h2>${earned} / ${f.maxPoints} points <span style="font-size:.6em;font-weight:600;color:#8a93a3">· self-scored</span></h2>
-        <p class="muted" style="margin:8px 0 16px">${pct >= 80 ? 'Outstanding free-response work. (You scored this yourself against the rubric — be honest with partial credit.)' : pct >= 55 ? 'Solid. Review the model solution for the points you missed.' : 'Free-response is the hardest part — reworking the model solution is how you level up.'}</p>
-        ${r.counted === false ? `<p class="muted" style="margin:-6px 0 16px;color:#b8860b;font-size:.9rem">📝 Practice only — this one didn't count toward your readiness estimate. Work the problem first, then score yourself to make it count.</p>` : ''}
-        <button class="btn green" onclick="location.hash='#exam/${track.id}/frq'">More free-response →</button>
-        <button class="btn" style="margin-left:8px" onclick="location.hash='#exam/${track.id}'">Back to ${esc(track.name.split(':').pop().trim())}</button>
-      </div></div>`);
-      wireChrome();
-    } catch (e) { toast(e.message || 'Could not save your score.'); }
-  };
-}
-
-// ---- 30-minute mini mock: timed MCQ + FRQ → estimated 1–5 (diagnostic, self-scored FRQ) ----
-async function examSim(kidId, track) {
-  const style = SUBJECT_STYLE[track.subject] || { color: '#1A5C38' };
-  let paper = null;
-  try { paper = await api('/learn/' + kidId + '/track/' + track.id + '/exam'); } catch (e) { paper = null; }
-  if (!paper || !paper.mc || !paper.mc.length) { toast('Could not build a mini mock right now.'); location.hash = '#exam/' + track.id; return; }
-  // Intro screen
-  app().innerHTML = topbar(`<div class="container" style="max-width:600px"><div class="card center">
-    <div class="big-emoji">⏱️</div>
-    <h2>${esc(track.name)} — 30-Minute Mini Mock</h2>
-    <p class="muted" style="margin:8px 0 6px">${paper.mc.length} multiple-choice question${paper.mc.length > 1 ? 's' : ''}${paper.frq ? ' + 1 free-response' : ''}. Suggested time: <b>${Math.round(paper.timeSuggestSec / 60)} min</b>. This is a short diagnostic, not a full-length AP exam.</p>
-    <p class="muted" style="font-size:.85rem;margin:0 0 16px">Answer the MCQ section first, then work the free-response and self-score it. You'll get an estimated 1–5 score at the end.</p>
-    <button class="btn green" id="sim-start">Start the exam →</button>
-    <button class="btn ghost small on-page" style="margin-left:8px" onclick="location.hash='#exam/${track.id}'">Cancel</button>
-  </div></div>`);
-  wireChrome();
-  const state = { i: 0, correct: 0, answers: [], startedAt: Date.now(), frqPoints: 0, frqMax: paper.frq ? paper.frq.maxPoints : 0 };
-  const vlang = track.subject === 'spanish' ? 'es-ES' : 'en-US';
-  $('#sim-start').onclick = () => { Sound.click(); mcQ(); };
-
-  function mcQ() {
-    if (state.i >= paper.mc.length) { return paper.frq ? frqSection() : finish(); }
-    const qn = paper.mc[state.i];
-    let answered = false;
-    app().innerHTML = topbar(`<div class="container lesson-wrap">
-      <div class="lesson-top"><b>${track.emoji || '🎓'} Section I · MCQ</b>${gallopTrack(state.i / paper.mc.length * 100)}<b>${state.i + 1}/${paper.mc.length}</b></div>
-      <div class="q-card">
-        <span class="q-skill" style="background:${style.color}">${esc(track.exam)} · exam mode</span>
-        ${qn.passage ? passageHTML(qn.passage, false) : ''}
-        ${qn.clock ? clockHTML(qn.clock) : ''}<div class="q-prompt">${esc(qn.prompt)}</div>
-        <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
-        <div class="feedback" id="feedback" aria-live="polite"></div>
-        <div class="lesson-actions"><button class="btn green" id="next-btn" style="display:none">Next →</button></div>
-      </div>
-    </div>`);
-    wireChrome();
-    document.querySelectorAll('.choice').forEach(b => b.onclick = () => {
-      if (answered) return; answered = true;
-      const i = Number(b.dataset.i), correct = i === qn.answerIndex;
-      document.querySelectorAll('.choice').forEach(x => x.disabled = true);
-      b.classList.add(correct ? 'correct' : 'wrong');
-      if (!correct) { const ar = document.querySelectorAll('.choice')[qn.answerIndex]; if (ar) ar.classList.add('answer-reveal'); }
-      if (correct) { state.correct++; Sound.correct(); } else Sound.wrong();
-      state.i++;
-      $('#next-btn').style.display = 'inline-flex';
-      $('#next-btn').onclick = () => { Sound.click(); mcQ(); };
-    });
-  }
-
-  function frqSection() {
-    const f = paper.frq;
-    const partsHTML = f.parts.map((pt, i) => `
-      <div class="frq-part">
-        <div class="frq-part-head"><span class="frq-part-label">${esc(pt.label)}</span><span class="frq-part-pts">${pt.points} pt${pt.points > 1 ? 's' : ''}</span></div>
-        <div class="frq-ask">${esc(pt.ask)}</div>
-        <textarea class="frq-work" rows="3" placeholder="Your work…"></textarea>
-        <div class="frq-solution" id="ssol-${i}" hidden>
-          <div class="frq-sol-label">Model solution &amp; rubric</div>
-          <div class="frq-sol-text">${esc(pt.solution)}</div>
-          <div class="frq-score-row">Points earned:
-            <div class="frq-pts" data-part="${i}">${Array.from({ length: pt.points + 1 }, (_, v) => `<button class="frq-pt" data-v="${v}">${v}</button>`).join('')}</div>
-          </div>
-        </div>
-      </div>`).join('');
-    app().innerHTML = topbar(`<div class="container" style="max-width:720px">
-      <div class="lesson-top"><b>${track.emoji || '🎓'} Section II · Free Response</b><b>${f.maxPoints} pts</b></div>
-      <div class="frq-head" style="--tc:${style.color}"><h2 style="margin:0 0 2px">${esc(f.topic)}</h2></div>
-      ${f.prompt ? `<div class="frq-prompt">${esc(f.prompt)}</div>` : ''}
-      <div class="frq-parts">${partsHTML}</div>
-      <div class="frq-actions">
-        <button class="btn sun" id="ssim-reveal">Reveal solution &amp; score</button>
-        <button class="btn green" id="ssim-finish" style="display:none">Finish exam →</button>
-      </div>
-      <div class="frq-total" id="ssim-total" style="display:none"></div>
-    </div>`);
-    wireChrome();
-    let sc = {};
-    $('#ssim-reveal').onclick = () => {
-      Sound.click();
-      f.parts.forEach((_, i) => { const el = $('#ssol-' + i); if (el) el.hidden = false; });
-      $('#ssim-reveal').style.display = 'none'; $('#ssim-finish').style.display = 'inline-flex';
-      document.querySelectorAll('.frq-pt').forEach(btn => btn.onclick = () => {
-        const wrap = btn.closest('.frq-pts'); wrap.querySelectorAll('.frq-pt').forEach(x => x.classList.remove('sel')); btn.classList.add('sel');
-        sc[wrap.dataset.part] = Number(btn.dataset.v);
-        const total = Object.values(sc).reduce((a, b) => a + b, 0);
-        $('#ssim-total').style.display = 'block'; $('#ssim-total').innerHTML = `Free-response: <b>${total} / ${f.maxPoints}</b>`;
-      });
-    };
-    $('#ssim-finish').onclick = () => { state.frqPoints = Object.values(sc).reduce((a, b) => a + b, 0); finish(); };
-  }
-
-  async function finish() {
-    let r = null;
-    try {
-      r = await api('/learn/' + kidId + '/track/exam/score', { method: 'POST', body: {
-        trackId: track.id, mcCorrect: state.correct, mcTotal: paper.mc.length,
-        frqPoints: state.frqPoints, frqMax: state.frqMax, timeMs: Date.now() - state.startedAt
-      } });
-    } catch (e) { toast(e.message || 'Could not score the exam.'); }
-    if (State.me.kid && r && r.kid) State.me.kid = r.kid;
-    const band = r ? r.band : estBandClient(state);
-    const composite = r ? r.composite : null;
-    Confetti.burst(band >= 4 ? 240 : 120); Sound.levelup();
-    const lo = Math.max(1, band - 1), hi = Math.min(5, band + 1);
-    app().innerHTML = topbar(`<div class="container" style="max-width:600px"><div class="card center">
-      <div class="big-emoji">${band >= 4 ? '🏆' : band === 3 ? '🎯' : '📚'}</div>
-      <h2>Mini-mock estimate: ${lo === hi ? band : lo + '–' + hi}/5</h2>
-      <p class="muted" style="margin:6px 0 6px">${band >= 4 ? 'Strong work on this short diagnostic.' : band === 3 ? 'A solid passing range on this short diagnostic.' : 'Good practice — keep working the units and free-response to raise it.'}</p>
-      <p class="muted" style="font-size:.82rem;margin:0 0 14px">This is one 30-minute mini mock (free-response self-scored), not a full-length AP exam — treat it as a rough check, not a prediction.</p>
-      <div class="summary-stats">
-        <div class="sstat"><div class="n">${state.correct}/${paper.mc.length}</div>MCQ</div>
-        ${state.frqMax ? `<div class="sstat"><div class="n">${state.frqPoints}/${state.frqMax}</div>free-response</div>` : ''}
-        ${composite != null ? `<div class="sstat"><div class="n">${composite}%</div>composite</div>` : ''}
-      </div>
-      <button class="btn green" onclick="location.hash='#exam/${track.id}/sim';location.reload()">New mini mock 🔁</button>
-      <button class="btn" style="margin-left:8px" onclick="location.hash='#exam/${track.id}'">Back to ${esc(track.name.split(':').pop().trim())}</button>
-    </div></div>`);
-    wireChrome();
-  }
-  function estBandClient(s) { const pct = paper.mc.length ? s.correct / paper.mc.length * 100 : 0; return pct >= 75 ? 5 : pct >= 62 ? 4 : pct >= 48 ? 3 : pct >= 33 ? 2 : 1; }
-}
 
 // ======================= report card =======================
 // Per-subject pace status, makes the adaptive guardrails visible to parents.
@@ -2977,14 +2383,16 @@ function statusNote(s) {
 // must be that same recent figure — otherwise a green "On track" can sit next to a low
 // all-time % and read as a contradiction (a parent-reported confusion we're fixing).
 function accuracyLine(s) {
-  // Every figure is explicitly labelled with its period/source so a parent never has to guess
-  // whether a number is recent or lifetime (PP-103). "Independent" = excludes parent-assisted work.
-  const qn = `${s.questionsAnswered} independent question${s.questionsAnswered === 1 ? '' : 's'}`;
-  const parts = [qn];
-  if (s.recentAccuracy != null) parts.push(`<b title="Their last ~15 independent answers">Recent:</b> ${Math.round(s.recentAccuracy * 100)}%`);
-  if (s.accuracy != null) parts.push(`<b title="Across all their independent work in this subject">All-time:</b> ${Math.round(s.accuracy * 100)}%`);
-  if (s.recentAccuracy == null && s.accuracy == null) parts.push('just getting started');
-  return parts.join(' · ');
+  const qn = `${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'}`;
+  if (s.recentAccuracy != null) {
+    const recent = Math.round(s.recentAccuracy * 100);
+    const allTime = s.accuracy != null ? Math.round(s.accuracy * 100) : null;
+    const tail = (allTime != null && Math.abs(recent - allTime) >= 10)
+      ? ` <span class="muted" style="font-size:.85rem">(${allTime}% across all their work)</span>` : '';
+    return `${qn} · ${recent}% correct lately${tail}`;
+  }
+  if (s.accuracy != null) return `${qn} · ${Math.round(s.accuracy * 100)}% accuracy`;
+  return `${qn} · just getting started`;
 }
 
 // Parent "Strengths & Future Paths" card, grows with the student. Emerging
@@ -2992,15 +2400,12 @@ function accuracyLine(s) {
 function renderCareer(c, k) {
   const SUBCOL = { math: '#5b5bd6', english: '#0f9d76', science: '#2f78c2', spanish: '#d26440' };
   const SUBEMO = { math: '🔢', english: '📚', science: '🔬', spanish: '🌎' };
-  // Only call it "Career Pathways" when we actually have the evidence to rank fit; otherwise it's
-  // an exploration of strengths/interests, never a prediction (P0-6).
-  const bandTitle = !c.enoughForFit ? '🌱 Strengths & Interests to Explore'
-    : c.band === 'pathways' ? '🎯 Career Pathways' : c.band === 'explore' ? '🧭 Strengths & Career Explorer' : '🌱 Emerging Strengths';
-  const intro = !c.enoughForFit
-    ? `Here's a look at ${esc(k.name)}'s relative strengths so far. These are interests to explore together — not a career prediction. Gallop suggests specific directions only once there's broad evidence across subjects and time.`
-    : c.band === 'pathways'
+  const bandTitle = c.band === 'pathways' ? '🎯 Career Pathways' : c.band === 'explore' ? '🧭 Strengths & Career Explorer' : '🌱 Emerging Strengths';
+  const intro = c.band === 'pathways'
     ? `Based on how ${esc(k.name)} is performing, here are career directions that fit their strengths, along with how to prepare for them in high school.`
-    : `${esc(k.name)}'s strengths are starting to point somewhere. Here's where these skills tend to lead, worth talking through together.`;
+    : c.band === 'explore'
+    ? `${esc(k.name)}'s strengths are starting to point somewhere. Here's where these skills tend to lead, worth talking through together.`
+    : `It's early, but ${esc(k.name)} is already building strengths. Here's a peek at where these skills can lead one day.`;
   if (!c.hasData) {
     return `<div class="card career-card">
       <div class="career-head"><h3>${bandTitle}</h3></div>
@@ -3035,17 +2440,10 @@ function renderCareer(c, k) {
     <div class="strength-panel">${bars}</div>
     ${strengthChips}
     ${growth}
-    ${(c.enoughForFit && c.pathways.length) ? `
-      <h4 style="margin:18px 0 10px">${c.band === 'pathways' ? 'Pathways that fit these strengths' : 'Where these skills can lead'}</h4>
-      <div class="path-grid">${paths}</div>
-      <p class="muted" style="font-size:.78rem;margin-top:10px">Based on ${c.evidence ? `${c.evidence.subjects} subjects and ${c.evidence.skills} skills practiced` : 'current work'} — a direction to explore, not a prediction. It sharpens as ${esc(k.name)} does more.</p>
-    ` : `
-      <div class="career-explore-note">
-        <b>🧭 Interests to explore</b>
-        <p class="muted" style="margin:6px 0 0">These are early <b>strengths</b>, not a career prediction. Gallop waits for broader evidence — several subjects and more skills over time — before it suggests specific career directions${c.grade != null && c.grade <= 5 ? ', which it does for older learners' : ''}. For now, notice what ${esc(k.name)} enjoys and lean into it.</p>
-      </div>`}
+    <h4 style="margin:18px 0 10px">${c.band === 'pathways' ? 'Pathways that fit these strengths' : 'Where these skills can lead'}</h4>
+    <div class="path-grid">${paths}</div>
     <div class="center" style="margin-top:14px"><button class="btn green small no-print" onclick="location.hash='#careers/${k.id}'">🔭 Open the Career Explorer — real jobs & role models →</button></div>
-    <p class="muted" style="font-size:.78rem;margin-top:12px">These reflect ${esc(k.name)}'s skill levels and accuracy across subjects. They sharpen as more work is completed and update automatically as ${esc(k.name)} grows.</p>
+    <p class="muted" style="font-size:.78rem;margin-top:12px">These suggestions come from ${esc(k.name)}'s skill levels and accuracy across subjects. They sharpen as more work is completed and update automatically as ${esc(k.name)} grows.</p>
   </div>`;
 }
 
@@ -3070,67 +2468,24 @@ function computeDoNext(r) {
   // subjects at this week's pace. Deliberately conservative and always framed as an estimate.
   let eta = null;
   const perSubjWeekly = (r.weekAnswers || 0) / placed.length;
-  // Only project a timeline once there's enough STABLE evidence, and present a RANGE rather than a
-  // single falsely-precise number (P1.2). No estimate when the child hasn't demonstrated real
-  // activity/mastery in the subject yet — "~21 weeks" with 0 skills mastered reads as made up.
-  const enoughEvidence = s.progress && (s.progress.totalAnswered || 0) >= 20 && s.progress.atLevelMastered >= 1;
-  if (remaining > 0 && perSubjWeekly >= 8 && enoughEvidence && !s.progress.atMaxGrade && s.nextGradeName) {
+  if (remaining > 0 && perSubjWeekly >= 8 && s.progress && !s.progress.atMaxGrade && s.nextGradeName) {
     const acc = Math.max(s.accuracy || 0.7, 0.4);
     const skillsPerWeek = Math.max(0.15, (perSubjWeekly * acc) / 15);
-    const wks = remaining / skillsPerWeek;
-    if (wks >= 1 && wks <= 40) eta = { lo: Math.max(1, Math.floor(wks * 0.7)), hi: Math.max(2, Math.ceil(wks * 1.4)) };
+    const wks = Math.round(remaining / skillsPerWeek);
+    if (wks >= 1 && wks <= 40) eta = wks;
   }
   return { s, concept, remaining, eta };
-}
-// A specific, <5-minute, no-materials home activity tied to the actual skill/concept — never the
-// generic "ask them to teach you." Keyword-matched to the focus skill, with a concrete fallback per
-// subject so a parent always gets something usable (PP-102).
-const PARENT_ACTIONS = [
-  // Math
-  { subj: 'math', kw: /fraction|numerator|denominator|equivalent/i, a: n => `Grab food you can split — a sandwich, crackers, an orange. Cut it into equal parts and ask ${n} to name the fraction of one piece ("1 of 4 is one-fourth"). Split a second thing into more pieces and ask if a half is still a half.` },
-  { subj: 'math', kw: /multipl|times|product|array/i, a: n => `Pick a number 2–9 and count up by it together out loud, tapping fingers (3, 6, 9, 12…). Then ask ${n} two facts out of order ("what's 3 × 7?"). Two minutes builds the recall.` },
-  { subj: 'math', kw: /divi|quotient|share/i, a: n => `Deal a pile of small items (coins, grapes) into equal groups and ask ${n} how many are in each. "12 shared by 3 is 4" — division you can see.` },
-  { subj: 'math', kw: /place value|hundred|tens|ones|digit|round/i, a: n => `Say a 3-digit number and ask ${n} which digit is in the tens place, then the hundreds. Ask what the "5" is worth in 350 versus 305.` },
-  { subj: 'math', kw: /percent|discount|tax|tip/i, a: n => `At the next "25% off" sign, ask ${n} what you'd actually pay on a $40 item. Real discounts make percent click.` },
-  { subj: 'math', kw: /decimal|money|dollar/i, a: n => `Use coins: 3 dimes is $0.30, 3 pennies is $0.03. Ask ${n} to build a price and read it aloud.` },
-  { subj: 'math', kw: /add|sum|plus/i, a: n => `Use scores or prices: "you have 8, you get 5 more — how many?" Ask ${n} to count on from the bigger number.` },
-  { subj: 'math', kw: /subtract|minus|difference|takeaway/i, a: n => `Play store: it costs 7, you pay 10 — how much change? Let ${n} count up from 7 to 10.` },
-  { subj: 'math', kw: /geometry|angle|shape|area|perimeter|volume/i, a: n => `Walk a room and spot right angles together. For area, ask ${n} how many floor tiles would cover a rug.` },
-  { subj: 'math', kw: /.*/, a: n => `Ask ${n} to walk you out loud through one problem from today — where they pause is exactly the spot to slow down and try one more together.` },
-  // English
-  { subj: 'english', kw: /vowel|phonic|sound|blend|rhyme|spell/i, a: n => `Say three short words aloud (cat, bed, pig). Ask ${n} for the middle (vowel) sound in each, then to think of one more word with that sound.` },
-  { subj: 'english', kw: /inference|infer|conclusion|clue|predict/i, a: n => `Read a few sentences from any book and ask: "How do you think the character feels — and what clue tells you?" Naming the clue is the whole skill.` },
-  { subj: 'english', kw: /main idea|summar|theme|central/i, a: n => `After a page or a short video, ask ${n} to say what it was mostly about in ONE sentence. Squeezing it small is the skill.` },
-  { subj: 'english', kw: /vocab|synonym|antonym|context|meaning/i, a: n => `Pick one new word ${n} read today. Ask them to use it in a sentence about your family, then name a word that means the opposite.` },
-  { subj: 'english', kw: /figurative|simile|metaphor|hyperbole|idiom/i, a: n => `Say "I'm so hungry I could eat a horse" and ask ${n} if it's literally true — and what it really means. That's figurative language.` },
-  { subj: 'english', kw: /grammar|noun|verb|adjective|sentence|punctuation|tense/i, a: n => `Point at things around you: ask ${n} for a noun (the thing) and a verb (what it does) — "the dog… runs" — then add an adjective ("the fluffy dog").` },
-  { subj: 'english', kw: /.*/, a: n => `Have ${n} read one short paragraph aloud to you, then ask one "why" or "how do you know" question about it. Talking it through is where reading sticks.` },
-  // Science
-  { subj: 'science', kw: /matter|solid|liquid|gas|state|melt|freeze/i, a: n => `Point out water as ice, liquid, and steam around the house. Ask ${n} which is solid, liquid, gas — and what makes it change.` },
-  { subj: 'science', kw: /plant|photosynth|life cycle|animal|habitat|ecosystem/i, a: n => `Look at a plant or pet together and ask ${n} what it needs to live, and one way it fits where it lives.` },
-  { subj: 'science', kw: /force|motion|energy|gravity|friction|magnet/i, a: n => `Roll a toy on carpet, then a smooth floor, and ask ${n} why one stops sooner. That's friction.` },
-  { subj: 'science', kw: /weather|water cycle|climate|rain|cloud/i, a: n => `On the next rainy or sunny day, ask ${n} where rain comes from — trace water from a puddle up to a cloud and back.` },
-  { subj: 'science', kw: /.*/, a: n => `Pick one thing ${n} learned today and go find an example of it in your home or yard. Spotting the science in real life is what makes it stick.` },
-  // Spanish
-  { subj: 'spanish', kw: /.*/, a: n => `Label three things in your home out loud in Spanish with ${n} (la mesa, la silla, la puerta) and use each in a tiny sentence. Five minutes of naming really sticks.` }
-];
-function parentAction(subject, concept, name) {
-  const c = String(concept || '');
-  const hit = PARENT_ACTIONS.find(e => e.subj === subject && e.kw.test(c))
-    || PARENT_ACTIONS.find(e => e.subj === subject && e.kw.source === '.*');
-  return hit ? hit.a(name) : `Ask ${name} to walk you through one problem out loud — where they pause is the spot to practice together.`;
 }
 function doNextCard(r, k) {
   const dn = computeDoNext(r);
   if (!dn) return '';
   const { s, concept, remaining, eta } = dn;
   const conceptLine = concept && concept !== s.label ? `, especially <b>${esc(concept)}</b>` : '';
-  const action = parentAction(s.subject, concept, esc(k.name.split(' ')[0]));
   return `<div class="do-next">
     <div class="dn-head">🧭 Do this next</div>
-    <p class="dn-focus">Put this week's attention on <b>${esc(s.label)}</b>${conceptLine}. <span class="muted" style="font-weight:400">(Chosen because it's ${esc(k.name.split(' ')[0])}'s lowest-mastery focus skill right now.)</span></p>
-    <p class="dn-action"><b>Try this at home (5 min):</b> ${action}</p>
-    ${remaining > 0 && s.nextGradeName ? `<p class="dn-eta"><b>${remaining}</b> more ${esc(s.levelName)} skill${remaining === 1 ? '' : 's'} to reach <b>${esc(s.nextGradeName)}</b>${eta ? (eta.lo === eta.hi ? ` — roughly <b>${eta.lo} week${eta.lo === 1 ? '' : 's'}</b> at this week's pace` : ` — roughly <b>${eta.lo}–${eta.hi} weeks</b> at this week's pace`) : ''}.</p>` : ''}
+    <p class="dn-focus">Put this week's attention on <b>${esc(s.label)}</b>${conceptLine}.</p>
+    <p class="dn-action">At home: ask ${esc(k.name)} to <b>teach you</b> how ${esc(concept)} works. Explaining it out loud is one of the fastest ways to lock a skill in — and it shows you instantly what's clicked and what hasn't.</p>
+    ${remaining > 0 && s.nextGradeName ? `<p class="dn-eta"><b>${remaining}</b> more ${esc(s.levelName)} skill${remaining === 1 ? '' : 's'} to reach <b>${esc(s.nextGradeName)}</b>${eta ? ` — about <b>~${eta} week${eta === 1 ? '' : 's'}</b> at this week's pace` : ''}.</p>` : ''}
   </div>`;
 }
 
@@ -3138,7 +2493,6 @@ route('report', async (kidId) => {
   const r = await api(`/learn/${kidId}/report`);
   const k = r.kid;
   const isParent = State.me.role === 'parent';
-  if (isParent) { gtmPush({ event: 'parent_report_view' }); track('parent_report_view'); }
   app().innerHTML = topbar(`<div class="container">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
@@ -3155,16 +2509,14 @@ route('report', async (kidId) => {
         <div class="gh-num">${r.gallop.overall}</div>
         <div class="gh-meta">
           <b>Gallop Score</b>${r.gallop.deltas && r.gallop.deltas.overall > 0 ? ` <span class="gs-up">▲ +${r.gallop.deltas.overall} this week</span>` : ''}
-          <span class="gh-sub">${(r.gallop.measured != null && r.gallop.expected && r.gallop.measured < r.gallop.expected)
-            ? `Average of <b>${r.gallop.measured} of ${r.gallop.expected} subjects</b> measured so far — it fills in as ${esc(k.name)} places into the rest.`
-            : `${esc(k.name)}'s score across all ${r.gallop.expected || 4} subjects.`} It's based on repeated, independent practice; Gallop looks for consistent evidence before confirming mastery.</span>
+          <span class="gh-sub">${esc(k.name)}'s all-subjects number. It climbs only with real understanding, never by lucky guesses.</span>
         </div>
       </div>
       ${isParent ? `<details class="gs-explain"><summary>What is a Gallop Score, and will it go up? 🐎</summary>
         <div class="gs-explain-body">
-          <p>The Gallop Score is a single number, from <b>200 to 1200</b>, that summarizes the independent work Gallop has enough evidence to evaluate. It may cover some or all of ${esc(k.name)}'s subjects, and it grows as they learn. Think of it like a credit score for learning — built only from work ${esc(k.name)} does on their own, so activities you do together don't affect it.</p>
-          <p><b>Mostly it rises as they progress.</b> Two things push it up: unlocking new skills, and deepening the skills they already have. Harder, higher-grade skills are worth more points, and a skill only pays out its full value once ${esc(k.name)} has genuinely mastered it — so the score rewards understanding that sticks rather than a lucky streak. Because recent work counts, the score can dip a little if accuracy slips for a while, then climb again as it recovers. That movement is the score staying honest.</p>
-          <p class="muted" style="font-size:.9rem;margin-bottom:0">Rough guide: ~200 is just starting out, ~700 is solid mid-elementary, and 1000+ is high-school-level command — these are Gallop's own progress estimates, not a nationally-normed test score. Each subject shows its own score below, and once there's enough recent evidence, the grade level it lines up with.</p>
+          <p>The Gallop Score is a single number, from <b>200 to 1200</b>, that sums up how much ${esc(k.name)} has truly learned across every subject. Think of it like a credit score for learning: one glanceable number that only moves up when the learning is real.</p>
+          <p><b>Yes — it rises as they progress.</b> Two things push it up: unlocking new skills, and deepening the skills they already have. Harder, higher-grade skills are worth more points, and a skill only pays out its full value once ${esc(k.name)} has genuinely mastered it. That's why it can't be inflated by guessing or racing through — the only way up is understanding that sticks.</p>
+          <p class="muted" style="font-size:.9rem;margin-bottom:0">Rough guide: ~200 is just starting out, ~700 is solid mid-elementary, and 1000+ is high-school-level command. Each subject shows its own score below, plus the school grade it lines up with.</p>
         </div>
       </details>` : ''}` : ''}
       ${isParent && r.gradeScale ? `<p class="muted" style="font-size:.8rem;margin-top:8px">Letter grades reflect accuracy · Scale: ${esc(r.gradeScale)}</p>` : ''}
@@ -3176,15 +2528,12 @@ route('report', async (kidId) => {
             <div class="subj-score">
               <div class="ss-num" style="color:${SUBJECT_STYLE[s.subject].color}">${s.gallopScore != null ? s.gallopScore : '—'}</div>
               <div class="ss-cap">Gallop Score${s.gallopScore != null && r.gallop.deltas && r.gallop.deltas[s.subject] > 0 ? ` · <span class="gs-up">+${r.gallop.deltas[s.subject]}</span>` : ''}</div>
-              ${isParent ? (s.gradeEstimateReady && s.gradeEquiv
-                ? `<div class="ss-grade" title="Grade level of mastery ${esc(k.name)} has proven so far, based on real evidence across the grade. Different from Working level (where they learn now).">≈ ${esc(s.gradeEquiv.label)}${s.letter && s.letter !== '—' ? ` · ${esc(s.letter)}` : ''}</div>`
-                : (s.placed ? `<div class="ss-grade ss-grade-pending" title="A grade-level estimate appears once there's enough evidence across this grade's skills. Until then we show the working level only.">Estimate building${s.gradeCoverage && s.gradeCoverage.total ? ` · ${s.gradeCoverage.practiced}/${s.gradeCoverage.total} skills` : ''}</div>` : '')) : ''}
+              ${isParent && s.gradeEquiv ? `<div class="ss-grade" title="Grade level of mastery ${esc(k.name)} has proven so far — climbs as they practice. Different from Working level (where they learn now).">≈ ${esc(s.gradeEquiv.label)}${s.letter && s.letter !== '—' ? ` · ${esc(s.letter)}` : ''}</div>` : ''}
             </div>
           </div>
           ${s.placed ? `
             <p class="muted" style="margin:6px 0">${isParent ? `${accuracyLine(s)}${statusNote(s)}` : `${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} done. Keep it up, you're growing!`}</p>
-            ${isParent ? `<p class="muted" style="margin:2px 0 8px;font-size:.9rem">Working level: <b>${esc(s.levelName)}</b>${s.enrolledGrade != null ? ` · enrolled in <b>${s.enrolledGrade === 0 ? 'Kindergarten' : 'Grade ' + s.enrolledGrade}</b>` : ''}${s.levelSetByParent ? ` · <span style="color:var(--brand)">✋ set by you${s.levelSetAt ? ' on ' + esc(s.levelSetAt) : ''}</span> <span class="muted">(manage in ✏️ Edit)</span>` : ''}</p>` : ''}
-            ${isParent && s.assistedAnswers > 0 ? `<p class="muted" style="margin:2px 0 8px;font-size:.85rem">👪 Practiced together: <b>${s.assistedAnswers}</b> — counted as engagement, kept out of the independent scores above.</p>` : ''}
+            ${isParent ? `<p class="muted" style="margin:2px 0 8px;font-size:.9rem">Working level: <b>${esc(s.levelName)}</b>${s.enrolledGrade != null ? ` · enrolled in <b>${s.enrolledGrade === 0 ? 'Kindergarten' : 'Grade ' + s.enrolledGrade}</b>` : ''}</p>` : ''}
             ${isParent && s.placementNote ? `<p class="place-note"><b>Why we started here:</b> ${esc(s.placementNote)}</p>` : ''}
             ${isParent && s.placementMissed && s.placementMissed.length ? `<p class="place-note" style="background:#fff6ec;border-color:#f0d9bd"><b>Missed on the placement quiz:</b> ${s.placementMissed.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')} <span class="muted" style="font-size:.85rem">— these are just the concepts to keep an eye on; ${esc(k.name)} gets extra practice on them automatically.</span></p>` : ''}
             ${isParent && s.progress ? `
@@ -3193,7 +2542,7 @@ route('report', async (kidId) => {
               <div class="advance-track"><div class="advance-fill" style="width:${s.progress.atLevelTotal ? Math.round(s.progress.atLevelMastered / s.progress.atLevelTotal * 100) : 0}%"></div></div>
               ${s.progress.atMaxGrade
                 ? `<p class="advance-note">${esc(k.name)} is at the top grade for ${esc(s.label)} — now deepening mastery across every skill.</p>`
-                : `<p class="advance-note">To advance to <b>${esc(s.nextGradeName || 'the next grade')}</b>, ${esc(k.name)} masters all <b>${s.progress.atLevelTotal}</b> ${esc(s.levelName)} skills — each at <b>80%+ mastery</b> with <b>85%+ recent accuracy</b>${s.progress.atLevelTotal > 0 && s.progress.atLevelMastered >= s.progress.atLevelTotal ? ' — all mastered, advancement is close! 🎉' : (s.progress.atLevelTotal - s.progress.atLevelMastered) > 0 ? ` — <b>${s.progress.atLevelTotal - s.progress.atLevelMastered}</b> to go.` : '.'}</p>`}
+                : `<p class="advance-note">To advance to <b>${esc(s.nextGradeName || 'the next grade')}</b>, ${esc(k.name)} masters all <b>${s.progress.atLevelTotal}</b> ${esc(s.levelName)} skills at 85%+ accuracy${s.progress.atLevelTotal > 0 && s.progress.atLevelMastered >= s.progress.atLevelTotal ? ' — all mastered, advancement is close! 🎉' : (s.progress.atLevelTotal - s.progress.atLevelMastered) > 0 ? ` — <b>${s.progress.atLevelTotal - s.progress.atLevelMastered}</b> to go.` : '.'}</p>`}
             </div>` : ''}
             ${s.strengths.length ? `<p>💪 Strengths: ${s.strengths.map(x => `<span class="pill strength">${esc(x)}</span>`).join(' ')}</p>` : ''}
             ${s.focusAreas.length ? `<p style="margin-top:6px">🎯 Focus areas (getting extra help): ${s.focusAreas.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')}</p>` : ''}
@@ -3216,9 +2565,9 @@ route('report', async (kidId) => {
       ${isParent ? `<details class="method-box">
         <summary>📋 How these numbers work — and why you can trust them</summary>
         <div class="method-body">
-          <p><b>Placement is measured, not assumed.</b> Each subject begins with a short adaptive assessment that finds the right starting level — where ${esc(k.name)} is challenged but not overwhelmed. It's based on the questions ${esc(k.name)} actually answers, not their age or enrolled grade.</p>
+          <p><b>Placement is measured, not assumed.</b> Each subject begins with a short adaptive assessment that finds the exact grade level where ${esc(k.name)} is challenged but not overwhelmed. Nothing here is estimated from age or enrolled grade alone — every figure is backed by questions ${esc(k.name)} actually answered.</p>
           <p><b>Advancement is earned.</b> To move up a grade, ${esc(k.name)} must master <i>every</i> skill at their current grade (80%+ mastery on each) <i>and</i> sustain 85%+ accuracy on recent work — never a lucky streak. The "Skills at [grade]" bar above each subject shows exactly how close they are. If work slips well below grade level, we quietly ease the difficulty and add practice instead of pushing ahead.</p>
-          <p><b>Accuracy &amp; letter grades</b> are the percent of questions at ${esc(k.name)}'s working grade level answered correctly, on the standard scale (${esc(r.gradeScale)}). Practice above or below that level still helps them learn, but only grade-level questions count toward the letter grade. "Correct lately" reflects the most recent ~15 answers; the all-time figure is shown alongside when it differs. Optional Advanced Track (AP/honors) practice is kept separate and never affects these.</p>
+          <p><b>Accuracy &amp; letter grades</b> are simply the percent of grade-level questions answered correctly, on the standard scale (${esc(r.gradeScale)}). "Correct lately" reflects the most recent ~15 answers; the all-time figure is shown alongside when it differs. Optional Advanced Track (AP/honors) practice is kept separate and never affects these.</p>
           <p><b>The Gallop Score &amp; grade-equivalent</b> are Gallop's own estimate of how much ${esc(k.name)} has demonstrated on the platform — they deepen as skills are practiced and proven. They're a progress measure for tracking growth over time, not a nationally-normed test score.</p>
           <p><b>Working level vs. Gallop Score.</b> Working level is where ${esc(k.name)} practices right now; the Gallop Score's grade is the mastery they've proven so far. Early on the score sits a little lower and rises to meet their working level. Similarly, the "Skills at [grade]" bar counts only that grade's skills, so a mastered easier skill can appear under Strengths without counting toward the current grade's total.</p>
         </div>
@@ -3230,13 +2579,6 @@ route('report', async (kidId) => {
       const total = H.reduce((t, x) => t + x.answers, 0);
       const corr = H.reduce((t, x) => t + x.correct, 0);
       const activeDays = H.filter(x => x.answers > 0).length;
-      // Accessible text alternative for the chart: overall summary, trend, and per-day breakdown.
-      const pctAll = total ? Math.round(corr / total * 100) : 0;
-      const _fh = H.slice(0, Math.ceil(H.length / 2)).reduce((t, x) => t + x.answers, 0);
-      const _lh = H.slice(Math.ceil(H.length / 2)).reduce((t, x) => t + x.answers, 0);
-      const trendTxt = !total ? 'no activity yet' : _lh > _fh * 1.2 ? 'trending up' : _lh < _fh * 0.8 ? 'trending down' : 'holding steady';
-      const dayTxt = H.map(x => { const d = x.day.slice(5).replace('-', '/'); return x.answers ? `${d}: ${x.answers} question${x.answers === 1 ? '' : 's'}, ${Math.round(x.correct / x.answers * 100)}% correct` : `${d}: no activity`; }).join('; ');
-      const chartLabel = `Daily activity, last 14 days: ${total} questions on ${activeDays} of 14 days, ${pctAll}% correct overall, ${trendTxt}. ${dayTxt}.`;
       const bars = H.map((x, i) => {
         const h = Math.round(x.answers / max * 70);
         const acc = x.answers ? x.correct / x.answers : 0;
@@ -3247,7 +2589,7 @@ route('report', async (kidId) => {
       return `<div class="card">
         <h3>📈 Last 14 days</h3>
         <p class="muted" style="margin:4px 0 10px">${total} questions · ${total ? Math.round(corr / total * 100) : 0}% correct · active ${activeDays} of 14 days</p>
-        <svg viewBox="0 0 480 104" style="width:100%;height:auto" role="img" aria-label="${chartLabel}">${bars}</svg>
+        <svg viewBox="0 0 480 104" style="width:100%;height:auto" role="img" aria-label="Daily activity chart">${bars}</svg>
         <p class="muted" style="font-size:.78rem;margin-top:6px">Bar height = questions answered · <span style="color:#1f8a5f">■</span> 80%+ correct · <span style="color:#C9A84C">■</span> 55–79% · <span style="color:#d97b4f">■</span> below 55%</p>
       </div>`;
     })() : ''}
@@ -3261,7 +2603,7 @@ route('report', async (kidId) => {
       <h3>🎓 Certificates</h3>
       <div style="margin-top:10px">
         ${r.certificates.length ? r.certificates.map(c => `
-          <button type="button" class="cert" data-cert="${c.id}" aria-label="View and print the ${esc(c.title)} certificate, awarded ${esc(c.issued_at.slice(0, 10))}"><b>🎓 ${esc(c.title)}</b><br><span class="muted">Awarded ${esc(c.issued_at.slice(0, 10))} · tap to view & print the certificate 🖨️</span></button>`).join('')
+          <div class="cert" style="cursor:pointer" data-cert="${c.id}"><b>🎓 ${esc(c.title)}</b><br><span class="muted">Awarded ${esc(c.issued_at.slice(0, 10))} · tap to view & print the certificate 🖨️</span></div>`).join('')
         : '<p class="muted">Complete every skill in a grade level to earn a printable certificate!</p>'}
       </div>
     </div>
@@ -3301,13 +2643,7 @@ route('weekly', async (kidId) => {
       <text x="${i * 64 + 32}" y="86" font-size="10" text-anchor="middle" fill="#7d8496">${dn}</text>
       <text x="${i * 64 + 32}" y="${66 - h}" font-size="10" text-anchor="middle" fill="#16213a" font-weight="700">${x.answers || ''}</text></g>`;
   }).join('');
-  // PRODUCT-106: stars reward the child's OWN weekly plan, consistency, and quality — not raw
-  // volume (which unfairly favored older/faster kids). One star each for: learned on 3+ days,
-  // met their weekly goal, and 80%+ accuracy on a meaningful sample.
-  const goalAnswers = Math.max(10, ((k && k.weekly_goal) || 12) * 10);
-  const starWins = [activeDays >= 3, total >= goalAnswers, total >= 10 && acc >= 80];
-  const starCount = starWins.filter(Boolean).length;
-  const stars = '🌟'.repeat(starCount);
+  const stars = total >= 100 ? '🌟🌟🌟' : total >= 50 ? '🌟🌟' : total >= 15 ? '🌟' : '';
   app().innerHTML = topbar(`<div class="container" style="max-width:820px">
     <div class="cert-frame">
       <div class="cert-inner" style="padding:30px 34px 26px;text-align:left">
@@ -3325,13 +2661,12 @@ route('weekly', async (kidId) => {
           <div class="sstat"><div class="n">${activeDays}/7</div>days active</div>
           ${best && State.me.role === 'parent' ? `<div class="sstat"><div class="n">${best.letter}</div>${esc(best.label)}</div>` : ''}
         </div>
-        <p class="muted" style="font-size:.76rem;margin:2px 0 0">🌟 earned for: ${starWins[0] ? '✅' : '⬜️'} 3+ active days · ${starWins[1] ? '✅' : '⬜️'} weekly goal met · ${starWins[2] ? '✅' : '⬜️'} 80%+ accuracy</p>
         <svg viewBox="0 0 458 92" style="width:100%;height:auto;margin:8px 0" role="img" aria-label="Weekly activity chart: ${total} questions over ${activeDays} active day${activeDays === 1 ? '' : 's'}, ${acc}% correct.">${bars}</svg>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
           <div><b style="color:#1f8a5f">💪 Shining at</b><br><span class="muted" style="font-size:.9rem">${strengthList.length ? strengthList.map(esc).join('<br>') : 'Building the basics, stars incoming!'}</span></div>
-          <div><b style="color:#C9A84C">🎯 Working on</b><br><span class="muted" style="font-size:.9rem">${focusList.length ? focusList.map(esc).join('<br>') : 'No single trouble spot flagged yet — more practice will sharpen the picture.'}</span></div>
+          <div><b style="color:#C9A84C">🎯 Working on</b><br><span class="muted" style="font-size:.9rem">${focusList.length ? focusList.map(esc).join('<br>') : 'No trouble spots this week!'}</span></div>
         </div>
-        <p style="margin-top:16px;font-size:.85rem;color:#7d8496;border-top:1px dashed #ddd;padding-top:10px">${total >= goalAnswers ? `Goal smashed this week, ${esc(k.name)} — ${total} questions across ${activeDays} day${activeDays === 1 ? '' : 's'}! 🐎` : activeDays >= 3 ? `Lovely consistency, ${esc(k.name)} — ${activeDays} days of learning. Keep that streak alive! 🐎` : total > 0 ? `A good start, ${esc(k.name)} — a few more days next week and you'll reach your goal! 🐎` : `A fresh week awaits — the first quest starts today! 🐎`}</p>
+        <p style="margin-top:16px;font-size:.85rem;color:#7d8496;border-top:1px dashed #ddd;padding-top:10px">${total >= 100 ? `Outstanding week, ${esc(k.name)}, over 100 questions! The gallop is real. 🐎` : total >= 50 ? `Great consistency, ${esc(k.name)}, keep that streak alive! 🐎` : total > 0 ? `Every question counts, ${esc(k.name)}, let's pick up the pace next week! 🐎` : `A fresh week awaits, first quest starts today! 🐎`}</p>
       </div>
     </div>
     <div class="center no-print" style="margin-top:16px">
@@ -3363,7 +2698,7 @@ route('certificate', async (kidId, certId) => {
         <p class="cert-date">Awarded ${esc(date)}</p>
         <div class="cert-footer">
           <div class="cert-sig"><span class="cert-sigline"></span>Gallop Learning Academy</div>
-          <div class="cert-sig"><span class="cert-sigline"></span>Gallop — The Guide That Knows Your Kid</div>
+          <div class="cert-sig"><span class="cert-sigline"></span>The Tutor That Knows Your Kid</div>
         </div>
       </div>
     </div>
@@ -3379,9 +2714,6 @@ route('certificate', async (kidId, certId) => {
 function renderPaywall(reason) {
   // A wrong-answer teaching overlay must never sit on top of the paywall.
   document.querySelectorAll('.celebrate').forEach(el => el.remove());
-  // Funnel: paywall seen. gtmPush self-limits to non-kid (adult) sessions; the first-party
-  // beacon records both parent- and child-side paywall views for the activation funnel.
-  gtmPush({ event: 'paywall_view', reason: reason || undefined }); track('paywall_view');
   // Speak to the actual account state — a long-paying parent with a declined card
   // should not be told they were "on a free trial". The reason comes from the backend
   // 402 (single source of truth), so the child paywall matches the parent dashboard.
@@ -3392,29 +2724,15 @@ function renderPaywall(reason) {
     : r === 'canceled' ? 'This subscription is canceled'
     : r === 'no_subscription' ? 'A subscription is needed'
     : 'The free trial has ended';
-  // Recommend the plan that fits the account: Solo for one (or zero) learners, Family for two+.
-  // Show the recommended plan first and as the primary (green) button — never lead a one-child
-  // family with the pricier Family plan.
-  const _lc = (State.me.kids || []).length;
-  const _recPlan = _lc >= 2 ? 'family' : 'solo';
-  const _recLine = _lc >= 1
-    ? `<p class="muted" style="margin:0 0 12px;font-size:.85rem">For your ${_lc >= 2 ? `${_lc} learners, we suggest <b>Family</b>` : `1 learner, we suggest <b>Solo</b>`} — but choose whichever you prefer.</p>`
-    : '';
-  const _monthly = _recPlan === 'solo'
-    ? `<button class="btn green" id="sub-solo">Solo — $34/mo (1 child)</button> <button class="btn" style="margin-left:8px" id="sub-family">Family — $54/mo (up to 4)</button>`
-    : `<button class="btn green" id="sub-family">Family — $54/mo (up to 4 children)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo — $34/mo</button>`;
-  const _annual = _recPlan === 'solo'
-    ? `<button class="btn sun small" id="sub-solo-yr">Solo Annual — $29/mo ($348/yr)</button> <button class="btn ghost small" style="margin-left:8px;color:#41506a;border-color:#cfd8e3" id="sub-family-yr">Family Annual — $46/mo ($552/yr)</button>`
-    : `<button class="btn sun small" id="sub-family-yr">Family Annual — $46/mo ($552/yr)</button> <button class="btn ghost small" style="margin-left:8px;color:#41506a;border-color:#cfd8e3" id="sub-solo-yr">Solo Annual — $29/mo ($348/yr)</button>`;
   app().innerHTML = topbar(`<div class="container" style="max-width:600px"><div class="card center">
     <img src="/logo-roundel.png" alt="" style="width:84px;height:84px">
     <h2 style="margin-top:10px">${heading}</h2>
     <p class="muted" style="margin:10px 0 4px"><b>Everything is saved</b>, streaks, skill levels, badges, and certificates are waiting exactly where you left off.</p>
-    <p class="muted" style="margin:0 0 16px">Keep all four subjects, Gallop's adaptive guidance, the games arcade, buddies, and weekly parent reports, for a fraction of what a tutoring center charges for a single subject.</p>
+    <p class="muted" style="margin:0 0 16px">Keep all four subjects, the adaptive tutor, the games arcade, buddies, and weekly parent reports, for a fraction of what a tutoring center charges for a single subject.</p>
     ${State.me.role === 'parent'
-      ? `${_recLine}${_monthly}
+      ? `<button class="btn green" id="sub-family">Family — $54/mo (up to 4 children)</button> <button class="btn" style="margin-left:8px" id="sub-solo">Solo — $34/mo</button>
          <p class="muted" style="margin:14px 0 6px;font-size:.85rem">💛 Or save ~15% with an annual plan:</p>
-         ${_annual}
+         <button class="btn sun small" id="sub-family-yr">Family Annual — $46/mo ($552/yr)</button> <button class="btn ghost small" style="margin-left:8px;color:#41506a;border-color:#cfd8e3" id="sub-solo-yr">Solo Annual — $29/mo ($348/yr)</button>
          <p class="muted" style="margin-top:12px;font-size:.85rem">Auto-renews until you cancel. Monthly cancels anytime; annual is a discounted, non-refundable 12-month plan (you can still turn off its renewal).</p>`
       : `<p><b>Ask your parent to keep it going!</b></p>
          ${State.me.kid ? `<button class="btn green" id="email-parent">📧 Email my parent to subscribe</button> ` : ''}<button class="btn ghost small" style="margin-left:8px;color:#41506a;border-color:#cfd8e3" onclick="location.hash='#login'">Parent Login</button>
@@ -3459,645 +2777,23 @@ async function checkout(plan, autorenew) {
 }
 
 // ======================= parent dashboard =======================
-// ======================= TEACHER / SCHOOL DASHBOARD =======================
-const GRADE_NAMES = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-const gradeLabel = g => g == null ? 'Mixed' : (g === 0 ? 'Kindergarten' : 'Grade ' + g);
-const TSUBJ = { math: '🔢 Math', english: '📚 English', science: '🔬 Science', spanish: '🌎 Spanish' };
-const T_STATUS = {
-  'excelling': { label: 'Excelling', cls: 'ts-exc', emoji: '🌟' },
-  'on-track': { label: 'On track', cls: 'ts-ok', emoji: '✅' },
-  'needs-support': { label: 'Needs support', cls: 'ts-sup', emoji: '🎯' },
-  'inactive': { label: 'Inactive this week', cls: 'ts-ina', emoji: '💤' },
-  'not-started': { label: 'Not started', cls: 'ts-new', emoji: '🆕' }
-};
-function tStatusPill(s) { const m = T_STATUS[s] || T_STATUS['not-started']; return `<span class="ts-pill ${m.cls}">${m.emoji} ${m.label}</span>`; }
-function agoLabel(d) {
-  if (!d) return 'never';
-  const t = new Date(String(d).replace(' ', 'T') + 'Z'); if (isNaN(t)) return 'never';
-  const days = Math.floor((Date.now() - t.getTime()) / 86400000);
-  if (days <= 0) return 'today'; if (days === 1) return 'yesterday'; if (days < 7) return days + 'd ago';
-  if (days < 30) return Math.floor(days / 7) + 'w ago'; return Math.floor(days / 30) + 'mo ago';
-}
-
-// ---- Student self-join a class by code ----
-route('join', async (codeArg) => {
-  const renderCode = () => {
-    app().innerHTML = topbar(`<div class="container" style="max-width:460px">
-      <div class="card center">
-        <div class="big-emoji">🏫</div>
-        <h2>Join your class</h2>
-        <p class="muted" style="margin:6px 0 14px">Enter the class code your teacher gave you.</p>
-        <input id="jc-code" type="text" placeholder="ABC123" style="text-transform:uppercase;text-align:center;font-size:1.4rem;letter-spacing:.2em;font-weight:800" value="${esc((codeArg || '').toUpperCase())}">
-        <div class="error-msg" id="jc-err"></div>
-        <button class="btn green" style="margin-top:14px;width:100%" id="jc-next">Next →</button>
-        <p class="muted center" style="margin-top:12px"><a href="#kid-login">← Back</a></p>
-      </div></div>`);
-    wireChrome();
-    $('#jc-next').onclick = () => { const c = $('#jc-code').value.trim(); if (!c) { showError('#jc-err', 'Enter your class code.'); return; } location.hash = '#join/' + c.toUpperCase(); };
-    $('#jc-code').addEventListener('keydown', e => e.key === 'Enter' && $('#jc-next').onclick());
-  };
-  if (!codeArg) { renderCode(); return; }
-  let info;
-  try { info = await api('/class/join/' + encodeURIComponent(codeArg)); }
-  catch (e) {
-    app().innerHTML = topbar(`<div class="container" style="max-width:460px"><div class="card center">
-      <div class="big-emoji">🤔</div><h2>Hmm, that code didn't work</h2>
-      <p class="muted" style="margin:6px 0 14px">${esc(e.message || 'Double-check the class code with your teacher.')}</p>
-      <button class="btn green" onclick="location.hash='#join'">Try another code</button>
-    </div></div>`);
-    wireChrome(); return;
-  }
-  app().innerHTML = topbar(`<div class="container" style="max-width:460px">
-    <div class="card center">
-      <div class="big-emoji">🎉</div>
-      <h2>Join ${esc(info.className)}</h2>
-      <p class="muted" style="margin:6px 0 14px">${info.school ? esc(info.school) + ' · ' : ''}${info.grade != null ? gradeLabel(info.grade) : ''}<br>Set up your login below — remember your PIN!</p>
-      <label style="text-align:left">Your name</label><input id="j-name" type="text" placeholder="First name or nickname">
-      <label style="text-align:left">Your grade</label>
-      <select id="j-grade">${GRADE_NAMES.map((g, i) => `<option value="${i === 0 ? 0 : i}" ${(info.grade != null ? info.grade : 3) === (i === 0 ? 0 : i) ? 'selected' : ''}>${i === 0 ? 'Kindergarten' : 'Grade ' + i}</option>`).join('')}</select>
-      <label style="text-align:left">Pick a 4-digit PIN</label><input id="j-pin" type="text" inputmode="numeric" maxlength="4" placeholder="e.g. 2024" style="letter-spacing:.3em;text-align:center;font-weight:700">
-      <div class="error-msg" id="j-err"></div>
-      <button class="btn green" style="margin-top:14px;width:100%" id="j-go">Join &amp; start learning →</button>
-      <p class="muted center" style="margin-top:10px"><a href="#join">← Use a different code</a></p>
-    </div></div>`);
-  wireChrome();
-  const go = async () => {
-    const name = $('#j-name').value.trim(), pin = $('#j-pin').value.trim(), grade = Number($('#j-grade').value);
-    if (!name) { showError('#j-err', 'Enter your name.'); return; }
-    if (!/^\d{4}$/.test(pin)) { showError('#j-err', 'Pick a 4-digit PIN (numbers only).'); return; }
-    const btn = $('#j-go'); btn.disabled = true; btn.textContent = 'Joining…';
-    try {
-      await api('/class/join', { method: 'POST', body: { code: codeArg, name, pin, grade } });
-      await refreshMe(); Sound.levelup(); location.hash = '#home';
-    } catch (e) { showError('#j-err', e.message); btn.disabled = false; btn.textContent = 'Join & start learning →'; }
-  };
-  $('#j-go').onclick = go;
-  $('#j-pin').addEventListener('keydown', e => e.key === 'Enter' && go());
-});
-
-route('teacher-signup', async () => {
-  await refreshMe();
-  if (isTeacher()) { location.hash = '#teacher'; return; }
-  app().innerHTML = topbar(`<div class="container" style="max-width:520px">
-    <div class="card">
-      <div style="text-align:center;margin-bottom:6px"><div style="font-size:2rem">🏫</div></div>
-      <h2 style="text-align:center">Set up your school account</h2>
-      <p class="muted" style="text-align:center;margin:6px 0 18px">Create classes, add students, and see every learner's progress in one place. Free to set up — no card required.</p>
-      <label>Your name</label><input id="t-name" type="text" autocomplete="name" placeholder="Ms. Rivera">
-      <label>School / organization <span class="muted" style="font-weight:400">(optional)</span></label><input id="t-school" type="text" autocomplete="organization" placeholder="Oak Grove Academy">
-      <label>Work email</label><input id="t-email" type="email" autocomplete="email" placeholder="you@school.org">
-      <label>Password <span class="muted" style="font-weight:400">(8+ characters)</span></label><input id="t-pass" type="password" autocomplete="new-password">
-      <label class="check-row" style="display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:.9rem">
-        <input type="checkbox" id="t-consent" style="width:auto;margin-top:3px">
-        <span>I agree to the <a href="/terms" target="_blank" rel="noopener">Terms</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>, and confirm I'm authorized to create student profiles for my class.</span>
-      </label>
-      <div class="error-msg" id="t-err"></div>
-      <button class="btn green" style="margin-top:16px;width:100%" id="t-go">Create account →</button>
-      <p class="muted center" style="margin-top:12px">Already have one? <a href="#login">Log in</a></p>
-    </div></div>`);
-  wireChrome();
-  const go = async () => {
-    if (!$('#t-consent').checked) { showError('#t-err', 'Please agree to the Terms and Privacy Policy to continue.'); return; }
-    const btn = $('#t-go'); btn.disabled = true; btn.textContent = 'Creating…';
-    try {
-      await api('/teacher/signup', { method: 'POST', body: {
-        name: $('#t-name').value, school: $('#t-school').value, email: $('#t-email').value,
-        password: $('#t-pass').value, consent: true
-      } });
-      await refreshMe(); Sound.levelup(); location.hash = '#teacher';
-    } catch (e) { showError('#t-err', e.message); btn.disabled = false; btn.textContent = 'Create account →'; }
-  };
-  $('#t-go').onclick = go;
-  $('#t-pass').addEventListener('keydown', e => e.key === 'Enter' && go());
-});
-
-route('teacher', async () => {
-  await refreshMe();
-  if (State.me.role === 'kid') { location.hash = '#home'; return; }
-  if (!isTeacher()) { location.hash = State.me.role === 'parent' ? '#parent' : '#login'; return; }
-  app().innerHTML = topbar(`<div class="container"><div class="card center" style="max-width:420px;margin:40px auto"><div class="big-emoji">🏫</div><p class="muted">Loading your classes…</p></div></div>`);
-  let data;
-  try { data = await api('/teacher/overview'); } catch (e) { showError(null, e.message); return; }
-  const t = data.totals;
-  const classCards = data.classes.map(c => `
-    <div class="tclass-card" data-id="${c.id}">
-      <div class="tcc-top"><h3>${esc(c.name)}</h3><span class="tcc-grade">${gradeLabel(c.grade)}</span></div>
-      <div class="tcc-stats">
-        <span>👧 ${c.studentCount} student${c.studentCount === 1 ? '' : 's'}</span>
-        <span>⚡ ${c.activeWeek} active this week</span>
-      </div>
-      <div class="tcc-code">Join code: <b>${esc(c.joinCode || '—')}</b></div>
-      <button class="btn green small" style="margin-top:10px">Open class →</button>
-    </div>`).join('');
-  app().innerHTML = topbar(`<div class="container">
-    <div class="tdash-head">
-      <div>
-        <div class="eyebrow" style="color:var(--brand);text-transform:uppercase;letter-spacing:.12em;font-size:.76rem;font-weight:800">Teacher dashboard</div>
-        <h1 style="margin:4px 0 2px">${esc(data.school || (data.teacherName ? data.teacherName + "'s classes" : 'My classes'))}</h1>
-        <p class="muted" style="margin:0">Welcome back${data.teacherName ? ', ' + esc(data.teacherName) : ''} — here's how your students are doing.</p>
-      </div>
-    </div>
-    <div class="tstat-row">
-      <div class="tstat"><b>${t.students}</b><span>Students</span></div>
-      <div class="tstat"><b>${t.classes}</b><span>Classes</span></div>
-      <div class="tstat"><b>${t.activeToday}</b><span>Active today</span></div>
-      <div class="tstat ${t.needingSupport ? 'warn' : ''}"><b>${t.needingSupport}</b><span>Need support</span></div>
-      <div class="tstat"><b>${t.answersWeek}</b><span>Answers this week</span></div>
-    </div>
-    ${(() => {
-      const sch = data.schoolCtx;
-      if (sch && sch.isHead) return `<div class="tschool-bar"><span>🏫 <b>${esc(sch.name)}</b> · you're the head of school</span><button class="btn ghost small" id="school-open">School overview →</button></div>`;
-      if (sch) return `<div class="tschool-bar"><span>🏫 Part of <b>${esc(sch.name)}</b></span><button class="btn ghost small" id="school-open">View school</button></div>`;
-      return `<div class="tschool-bar"><span>🏫 Working with other teachers? Set up a school to see everyone's classes in one place.</span><button class="btn ghost small" id="school-setup">Set up / join a school</button></div>`;
-    })()}
-    <div class="tsec-head"><h2>Your classes</h2><button class="btn green small" id="new-class">+ New class</button></div>
-    ${data.classes.length ? `<div class="tclass-grid">${classCards}</div>` : `
-      <div class="card center" style="padding:32px">
-        <div class="big-emoji">📚</div>
-        <h3>Create your first class</h3>
-        <p class="muted" style="max-width:34rem;margin:6px auto 16px">Set up a class, add your students, and Gallop will place each one at their real level and start showing you their progress.</p>
-        <button class="btn green" id="new-class-empty">+ Create a class</button>
-      </div>`}
-  </div>`);
-  wireChrome();
-  const openClass = id => { location.hash = '#teacher-class/' + id; };
-  document.querySelectorAll('.tclass-card').forEach(el => el.onclick = () => openClass(el.dataset.id));
-  const createClass = async () => {
-    const name = prompt('Name this class (e.g. "Grade 3 Homeroom" or "Period 2 Math"):');
-    if (name == null) return;
-    if (!name.trim()) { toast('Give the class a name.'); return; }
-    const gradeStr = prompt('Default grade for this class? Enter K or 0–12, or leave blank for a mixed class:', '');
-    if (gradeStr === null) return;
-    let grade = gradeStr.trim();
-    grade = grade === '' ? null : (/^k$/i.test(grade) ? 0 : parseInt(grade, 10));
-    try { const r = await api('/teacher/classes', { method: 'POST', body: { name: name.trim(), grade } }); Sound.badge(); location.hash = '#teacher-class/' + r.class.id; }
-    catch (e) { toast(e.message); }
-  };
-  const nc = $('#new-class'); if (nc) nc.onclick = createClass;
-  const nce = $('#new-class-empty'); if (nce) nce.onclick = createClass;
-  const so = $('#school-open'); if (so) so.onclick = () => location.hash = '#teacher-school';
-  const ss = $('#school-setup'); if (ss) ss.onclick = () => teacherSchoolSetup();
-});
-
-// Set up or join a school (head vs member).
-async function teacherSchoolSetup() {
-  const wrap = document.createElement('div');
-  wrap.className = 'celebrate tadd-overlay';
-  wrap.innerHTML = `<div class="tadd-modal" onclick="event.stopPropagation()">
-    <h3 style="margin:0 0 4px">Set up or join a school</h3>
-    <p class="muted" style="margin:0 0 14px;font-size:.9rem">A school lets a group of teachers share one view. The head of school sees every teacher's classes.</p>
-    <div class="tadd-tabs"><button class="tadd-tab active" data-m="create">Create a school</button><button class="tadd-tab" data-m="join">Join with a code</button></div>
-    <div class="tadd-pane" data-m="create">
-      <label>School name</label><input id="sc-name" type="text" placeholder="Oak Grove Academy">
-      <button class="btn green" id="sc-create" style="margin-top:12px;width:100%">Create school</button>
-      <p class="muted" style="font-size:.8rem;margin-top:8px">You'll become the head of school and get a code to share with your teachers.</p>
-    </div>
-    <div class="tadd-pane" data-m="join" style="display:none">
-      <label>School code</label><input id="sc-code" type="text" placeholder="SXXXXX" style="text-transform:uppercase">
-      <button class="btn green" id="sc-join" style="margin-top:12px;width:100%">Join school</button>
-    </div>
-    <div style="text-align:right;margin-top:12px"><button class="btn ghost small" id="sc-cancel">Cancel</button></div>
-  </div>`;
-  document.body.appendChild(wrap);
-  wrap.querySelectorAll('.tadd-tab').forEach(tab => tab.onclick = () => {
-    wrap.querySelectorAll('.tadd-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active');
-    wrap.querySelectorAll('.tadd-pane').forEach(p => p.style.display = p.dataset.m === tab.dataset.m ? 'block' : 'none');
-  });
-  $('#sc-cancel').onclick = () => wrap.remove();
-  $('#sc-create').onclick = async () => {
-    try { await api('/teacher/school/create', { method: 'POST', body: { name: $('#sc-name').value } }); Sound.levelup(); wrap.remove(); location.hash = '#teacher-school'; }
-    catch (e) { toast(e.message); }
-  };
-  $('#sc-join').onclick = async () => {
-    try { await api('/teacher/school/join', { method: 'POST', body: { code: $('#sc-code').value } }); Sound.badge(); wrap.remove(); navigate(); }
-    catch (e) { toast(e.message); }
-  };
-}
-
-route('teacher-class', async (classId) => {
-  await refreshMe();
-  if (!isTeacher()) { location.hash = State.me.role === 'kid' ? '#home' : '#login'; return; }
-  app().innerHTML = topbar(`<div class="container"><div class="card center" style="max-width:420px;margin:40px auto"><div class="big-emoji">📚</div><p class="muted">Loading class…</p></div></div>`);
-  let data;
-  try { data = await api('/teacher/classes/' + classId); } catch (e) {
-    if (e.status === 404) { toast('Class not found.'); location.hash = '#teacher'; return; }
-    showError(null, e.message); return;
-  }
-  const c = data.class, a = data.aggregates;
-  const ownClass = !c.ownerId || c.ownerId === State.me.parent.id;
-  let assignData = { assignments: [] };
-  try { assignData = await api('/teacher/classes/' + classId + '/assignments'); } catch (e) { /* non-critical */ }
-  const subjAvgChips = Object.keys(a.subjectAvg).map(s => a.subjectAvg[s] != null
-    ? `<span class="tsa-chip">${TSUBJ[s]}: <b>${gradeLabel(Math.round(a.subjectAvg[s]))}</b></span>` : '').filter(Boolean).join('');
-  const assignItems = assignData.assignments.length
-    ? assignData.assignments.map(as => `<div class="tas-item"><span class="tas-emoji">${(TSUBJ[as.subject] || '📘').split(' ')[0]}</span><div class="tas-body"><b>${esc(as.skillName || (TSUBJ[as.subject] || as.subject).replace(/^\S+\s/, '') + ' practice')}</b>${as.note ? `<span class="muted"> · ${esc(as.note)}</span>` : ''}</div>${ownClass ? `<button class="btn ghost xsmall tas-del" data-id="${as.id}">Remove</button>` : ''}</div>`).join('')
-    : '<p class="muted" style="margin:6px 0 0;font-size:.88rem">No assignments yet. Set a focus skill and it appears on every student\'s home screen.</p>';
-  const rosterRows = data.roster.map(r => {
-    const lv = sub => { const s = r.subjects.find(x => x.subject === sub); return s && s.levelName ? s.levelName.replace('Grade ', 'G').replace('Kindergarten', 'K') : '—'; };
-    return `<tr data-kid="${r.id}" class="troster-row">
-      <td class="tr-name"><span class="avatar-sm" style="font-size:1.3rem">${avatarHTML(r)}</span><div><b>${esc(r.name)}</b><span class="tr-sub">${gradeLabel(r.grade)} · last active ${agoLabel(r.lastActive)}</span></div></td>
-      <td>${tStatusPill(r.status)}</td>
-      <td class="tnum">${r.weekAnswers}</td>
-      <td class="tnum">${r.weekAccuracy == null ? '—' : r.weekAccuracy + '%'}</td>
-      <td class="tnum">${r.minutesWeek || 0}m</td>
-      <td class="tlvls"><span title="Math">${lv('math')}</span><span title="English">${lv('english')}</span><span title="Science">${lv('science')}</span><span title="Spanish">${lv('spanish')}</span></td>
-      <td class="tr-help">${r.topStruggle ? `<span class="tr-flag">🎯 ${esc(r.topStruggle.name)}</span>` : '<span class="muted">—</span>'}</td>
-      <td class="tr-act"><button class="btn ghost xsmall tr-open">View →</button></td>
-    </tr>`;
-  }).join('');
-  app().innerHTML = topbar(`<div class="container">
-    <div class="tcrumb"><a href="#teacher">← My classes</a></div>
-    <div class="tdash-head">
-      <div>
-        <h1 style="margin:2px 0">${esc(c.name)}</h1>
-        <p class="muted" style="margin:0">${gradeLabel(c.grade)} · ${a.students} student${a.students === 1 ? '' : 's'} · Join code <b>${esc(c.joinCode || '—')}</b></p>
-      </div>
-      <div class="tdash-actions">
-        ${ownClass ? `<button class="btn green small" id="add-student">+ Add students</button>` : ''}
-        <button class="btn ghost small" id="print-class">🖨 Print</button>
-        <button class="btn ghost small" id="export-csv">⬇ Export CSV</button>
-        ${ownClass ? `<button class="btn ghost small" id="class-menu">⚙</button>` : ''}
-      </div>
-    </div>
-    <div class="tstat-row">
-      <div class="tstat"><b>${a.activeThisWeek}/${a.students}</b><span>Active this week</span></div>
-      <div class="tstat ${a.needingSupport ? 'warn' : ''}"><b>${a.needingSupport}</b><span>Need support</span></div>
-      <div class="tstat"><b>${a.excelling}</b><span>Excelling</span></div>
-      <div class="tstat"><b>${a.avgAccuracy == null ? '—' : a.avgAccuracy + '%'}</b><span>Avg accuracy</span></div>
-      <div class="tstat"><b>${a.answersWeek}</b><span>Answers this week</span></div>
-    </div>
-    ${subjAvgChips ? `<div class="tsa-row"><span class="muted" style="font-size:.85rem">Class average level:</span> ${subjAvgChips}</div>` : ''}
-    ${ownClass ? `<div class="tpanels">
-      <div class="tpanel">
-        <div class="tpanel-head">🔑 Student sign-in</div>
-        <p class="muted" style="margin:0 0 8px;font-size:.86rem">Students can join with this code at <b>learnwithgallop.com</b> → “Join your class”, or add them manually.</p>
-        <div class="tjoin-code">${esc(c.joinCode || '—')}</div>
-        <div class="tjoin-actions">
-          <button class="btn ghost xsmall" id="copy-link">📋 Copy join link</button>
-          <button class="btn ghost xsmall" id="regen-code">↻ New code</button>
-          <label class="tjoin-toggle"><input type="checkbox" id="join-toggle" ${c.joinEnabled ? 'checked' : ''}> Allow self-join</label>
-        </div>
-      </div>
-      <div class="tpanel">
-        <div class="tpanel-head">🎯 Assignments <button class="btn green xsmall" id="add-assign" style="float:right">+ Assign focus</button></div>
-        <div class="tas-list">${assignItems}</div>
-      </div>
-    </div>` : ''}
-    ${data.roster.length ? `
-    <div class="troster-wrap">
-      <table class="troster">
-        <thead><tr><th>Student</th><th>Status</th><th>Wk answers</th><th>Accuracy</th><th>Time</th><th>Levels (M·E·S·Sp)</th><th>Needs help</th><th></th></tr></thead>
-        <tbody>${rosterRows}</tbody>
-      </table>
-    </div>` : `
-    <div class="card center" style="padding:30px">
-      <div class="big-emoji">👋</div><h3>Add your students</h3>
-      <p class="muted" style="max-width:32rem;margin:6px auto 16px">Add students one at a time or paste a whole class list. Each gets a simple name + 4-digit PIN login, and places into their real level automatically.</p>
-      <button class="btn green" id="add-student-empty">+ Add students</button>
-    </div>`}
-  </div>`);
-  wireChrome();
-  document.querySelectorAll('.troster-row').forEach(el => el.onclick = () => location.hash = '#teacher-student/' + el.dataset.kid);
-  const exportBtn = $('#export-csv'); if (exportBtn) exportBtn.onclick = () => { window.location = '/api/teacher/classes/' + classId + '/export.csv'; };
-  const printBtn = $('#print-class'); if (printBtn) printBtn.onclick = () => location.hash = '#teacher-print-class/' + classId;
-  const openAdd = () => teacherAddStudents(classId, c);
-  const asb = $('#add-student'); if (asb) asb.onclick = openAdd;
-  const ase = $('#add-student-empty'); if (ase) ase.onclick = openAdd;
-  const copyBtn = $('#copy-link'); if (copyBtn) copyBtn.onclick = () => {
-    const link = location.origin + '/#join/' + (c.joinCode || '');
-    try { navigator.clipboard.writeText(link); toast('Join link copied! 📋'); } catch (e) { prompt('Copy this join link:', link); }
-  };
-  const regen = $('#regen-code'); if (regen) regen.onclick = async () => {
-    if (!confirm('Make a new class code? The old code will stop working for new students.')) return;
-    try { await api('/teacher/classes/' + classId + '/regenerate-code', { method: 'POST' }); toast('New code created.'); navigate(); } catch (e) { toast(e.message); }
-  };
-  const jt = $('#join-toggle'); if (jt) jt.onchange = async () => {
-    try { await api('/teacher/classes/' + classId, { method: 'PATCH', body: { join_enabled: jt.checked } }); toast(jt.checked ? 'Self-join on.' : 'Self-join off.'); } catch (e) { toast(e.message); jt.checked = !jt.checked; }
-  };
-  const addAssign = $('#add-assign'); if (addAssign) addAssign.onclick = () => teacherAssignFocus(classId);
-  document.querySelectorAll('.tas-del').forEach(b => b.onclick = async (e) => {
-    e.stopPropagation();
-    try { await api('/teacher/assignments/' + b.dataset.id, { method: 'DELETE' }); toast('Assignment removed.'); navigate(); } catch (err) { toast(err.message); }
-  });
-  const cm = $('#class-menu'); if (cm) cm.onclick = async () => {
-    const choice = prompt('Class settings — type:\n  "rename" to rename this class\n  "delete" to delete it (students are kept in your account)', '');
-    if (!choice) return;
-    if (/^rename$/i.test(choice)) {
-      const name = prompt('New class name:', c.name); if (!name || !name.trim()) return;
-      try { await api('/teacher/classes/' + classId, { method: 'PATCH', body: { name: name.trim() } }); navigate(); } catch (e) { toast(e.message); }
-    } else if (/^delete$/i.test(choice)) {
-      if (!confirm('Delete "' + c.name + '"? Your students stay in your account and can be added to another class.')) return;
-      try { await api('/teacher/classes/' + classId, { method: 'DELETE' }); toast('Class deleted.'); location.hash = '#teacher'; } catch (e) { toast(e.message); }
-    }
-  };
-});
-
-// Add-students overlay: single add + bulk paste, shows generated PIN logins to hand out.
-async function teacherAddStudents(classId, c) {
-  const wrap = document.createElement('div');
-  wrap.className = 'celebrate tadd-overlay';
-  wrap.innerHTML = `<div class="tadd-modal" onclick="event.stopPropagation()">
-    <h3 style="margin:0 0 4px">Add students to ${esc(c.name)}</h3>
-    <p class="muted" style="margin:0 0 14px;font-size:.9rem">Each student gets a simple login: their name + a 4-digit PIN (auto-generated below).</p>
-    <div class="tadd-tabs"><button class="tadd-tab active" data-m="one">One at a time</button><button class="tadd-tab" data-m="bulk">Paste a list</button></div>
-    <div class="tadd-pane" data-m="one">
-      <label>Student name</label><input id="ta-name" type="text" placeholder="First name or nickname">
-      <label>Grade</label><select id="ta-grade">${GRADE_NAMES.map((g, i) => `<option value="${i === 0 ? 0 : i}" ${(c.grade != null ? c.grade : 3) === (i === 0 ? 0 : i) ? 'selected' : ''}>${i === 0 ? 'Kindergarten' : 'Grade ' + i}</option>`).join('')}</select>
-      <button class="btn green" id="ta-add" style="margin-top:12px;width:100%">Add student</button>
-    </div>
-    <div class="tadd-pane" data-m="bulk" style="display:none">
-      <label>Paste names — one per line</label>
-      <textarea id="ta-bulk" rows="6" placeholder="Alex\nJordan\nSam"></textarea>
-      <label>Grade for all</label><select id="ta-bgrade">${GRADE_NAMES.map((g, i) => `<option value="${i === 0 ? 0 : i}" ${(c.grade != null ? c.grade : 3) === (i === 0 ? 0 : i) ? 'selected' : ''}>${i === 0 ? 'Kindergarten' : 'Grade ' + i}</option>`).join('')}</select>
-      <button class="btn green" id="ta-badd" style="margin-top:12px;width:100%">Add all students</button>
-    </div>
-    <div id="ta-created" class="tadd-created"></div>
-    <div style="text-align:right;margin-top:14px"><button class="btn ghost small" id="ta-done">Done</button></div>
-  </div>`;
-  document.body.appendChild(wrap);
-  const created = [];
-  const renderCreated = () => {
-    if (!created.length) { $('#ta-created').innerHTML = ''; return; }
-    $('#ta-created').innerHTML = `<div class="tadd-created-head">✅ Added ${created.length} — write these logins down:</div>
-      <table class="tadd-logins"><thead><tr><th>Name</th><th>PIN</th></tr></thead><tbody>
-      ${created.map(s => `<tr><td>${esc(s.name)}</td><td class="pin">${esc(s.pin)}</td></tr>`).join('')}</tbody></table>
-      <p class="muted" style="font-size:.8rem;margin:8px 0 0">Students log in at <b>Child Login</b> with their name and PIN. You can reset a PIN anytime from a student's page.</p>`;
-  };
-  wrap.querySelectorAll('.tadd-tab').forEach(tab => tab.onclick = () => {
-    wrap.querySelectorAll('.tadd-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    wrap.querySelectorAll('.tadd-pane').forEach(p => p.style.display = p.dataset.m === tab.dataset.m ? 'block' : 'none');
-  });
-  $('#ta-add').onclick = async () => {
-    const name = $('#ta-name').value.trim(); if (!name) { toast('Enter a name.'); return; }
-    const grade = Number($('#ta-grade').value);
-    try { const r = await api('/teacher/classes/' + classId + '/students', { method: 'POST', body: { name, grade } }); created.push(r.student); $('#ta-name').value = ''; $('#ta-name').focus(); Sound.badge(); renderCreated(); }
-    catch (e) { toast(e.message); }
-  };
-  $('#ta-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('#ta-add').onclick(); });
-  $('#ta-badd').onclick = async () => {
-    const names = $('#ta-bulk').value; if (!names.trim()) { toast('Paste at least one name.'); return; }
-    const grade = Number($('#ta-bgrade').value);
-    try { const r = await api('/teacher/classes/' + classId + '/import', { method: 'POST', body: { names, grade } }); created.push(...r.students); $('#ta-bulk').value = ''; Sound.levelup(); renderCreated(); }
-    catch (e) { toast(e.message); }
-  };
-  $('#ta-done').onclick = () => { wrap.remove(); navigate(); };
-}
-
-// Assign a focus skill (or whole subject) to a class.
-async function teacherAssignFocus(classId) {
-  let meta;
-  try { meta = (await api('/learn/subjects')).subjects; } catch (e) { toast('Could not load skills.'); return; }
-  const bySubject = {};
-  meta.forEach(s => { bySubject[s.subject] = s.skills || []; });
-  const wrap = document.createElement('div');
-  wrap.className = 'celebrate tadd-overlay';
-  wrap.innerHTML = `<div class="tadd-modal" onclick="event.stopPropagation()">
-    <h3 style="margin:0 0 4px">Assign a focus</h3>
-    <p class="muted" style="margin:0 0 14px;font-size:.9rem">Pick what your class should practice. It shows up on every student's home screen as “From your teacher”.</p>
-    <label>Subject</label>
-    <select id="af-subject">${['math', 'english', 'science', 'spanish'].map(s => `<option value="${s}">${TSUBJ[s]}</option>`).join('')}</select>
-    <label>Skill</label>
-    <select id="af-skill"><option value="">Whole subject (adaptive)</option></select>
-    <label>Note for students <span class="muted" style="font-weight:400">(optional)</span></label>
-    <input id="af-note" type="text" maxlength="120" placeholder="e.g. Practice before Friday's quiz">
-    <div style="display:flex;gap:8px;margin-top:14px"><button class="btn green" id="af-save" style="flex:1">Assign</button><button class="btn ghost" id="af-cancel">Cancel</button></div>
-  </div>`;
-  document.body.appendChild(wrap);
-  const fillSkills = () => {
-    const sub = $('#af-subject').value;
-    const skills = bySubject[sub] || [];
-    $('#af-skill').innerHTML = '<option value="">Whole subject (adaptive)</option>' +
-      skills.map(k => `<option value="${esc(k.id)}">${esc(k.name)}${k.grade != null ? ' (' + gradeLabel(k.grade) + ')' : ''}</option>`).join('');
-  };
-  fillSkills();
-  $('#af-subject').onchange = fillSkills;
-  $('#af-cancel').onclick = () => wrap.remove();
-  $('#af-save').onclick = async () => {
-    const body = { subject: $('#af-subject').value, skillId: $('#af-skill').value || null, note: $('#af-note').value };
-    try { await api('/teacher/classes/' + classId + '/assignments', { method: 'POST', body }); Sound.badge(); wrap.remove(); navigate(); }
-    catch (e) { toast(e.message); }
-  };
-}
-
-route('teacher-student', async (kidId) => {
-  await refreshMe();
-  if (!isTeacher()) { location.hash = State.me.role === 'kid' ? '#home' : '#login'; return; }
-  app().innerHTML = topbar(`<div class="container"><div class="card center" style="max-width:420px;margin:40px auto"><div class="big-emoji">🧑‍🎓</div><p class="muted">Loading student…</p></div></div>`);
-  let data;
-  try { data = await api('/teacher/students/' + kidId); } catch (e) {
-    if (e.status === 404) { toast('Student not found.'); location.hash = '#teacher'; return; }
-    showError(null, e.message); return;
-  }
-  const s = data.student, snap = data.snapshot, card = data.report;
-  const subjectCards = snap.subjects.map(sub => {
-    const cardSub = card && card.subjects ? (card.subjects.find(x => x.subject === sub.subject) || null) : null;
-    const acc = cardSub && cardSub.accuracy != null ? Math.round(cardSub.accuracy * 100) : null;
-    return `<div class="tss-card">
-      <div class="tss-top">${TSUBJ[sub.subject]}</div>
-      <div class="tss-lvl">${sub.placed ? esc(sub.levelName) : '<span class="muted">Not placed yet</span>'}</div>
-      ${acc != null ? `<div class="tss-acc">${acc}% accuracy</div>` : ''}
-      ${cardSub && cardSub.status && cardSub.status !== 'insufficient' ? `<div class="tss-status">${esc(String(cardSub.status).replace(/-/g, ' '))}</div>` : ''}
-    </div>`;
-  }).join('');
-  const strug = (card && card.subjects ? card.subjects : [])
-    .flatMap(su => (su.focusAreas || []).map(nm => ({ name: nm, subject: su.subject })))
-    .slice(0, 6);
-  app().innerHTML = topbar(`<div class="container" style="max-width:900px">
-    <div class="tcrumb"><a href="#teacher">My classes</a> › <a href="#teacher-class/${snap.classId || ''}" onclick="history.back();return false;">Back to class</a></div>
-    <div class="tstudent-head">
-      <span class="avatar-big" style="font-size:2.4rem">${avatarHTML(s)}</span>
-      <div style="flex:1">
-        <h1 style="margin:0 0 2px">${esc(s.name)}</h1>
-        <p class="muted" style="margin:0">${gradeLabel(s.grade)} · ${tStatusPill(snap.status)} · 🔥 ${s.streak || 0} day streak · last active ${agoLabel(s.lastActive)}</p>
-      </div>
-      <div class="tstudent-actions">
-        <button class="btn green small" id="ts-launch">▶ Open as student</button>
-        <button class="btn ghost small" id="ts-print">🖨 Printable report</button>
-        <button class="btn ghost small" id="ts-pin">🔑 Reset PIN</button>
-        <button class="btn ghost small" id="ts-reset">↺ Start fresh</button>
-      </div>
-    </div>
-    <div class="tstat-row" style="margin-top:14px">
-      <div class="tstat"><b>${snap.weekAnswers}</b><span>Answers this week</span></div>
-      <div class="tstat"><b>${snap.weekAccuracy == null ? '—' : snap.weekAccuracy + '%'}</b><span>Accuracy</span></div>
-      <div class="tstat"><b>${snap.minutesWeek || 0}m</b><span>Time this week</span></div>
-      <div class="tstat"><b>${snap.todayAnswers}</b><span>Today</span></div>
-      <div class="tstat"><b>${snap.totalAnswers}</b><span>All-time</span></div>
-    </div>
-    <h2 style="margin:22px 0 10px">By subject</h2>
-    <div class="tss-grid">${subjectCards}</div>
-    ${strug.length ? `<h2 style="margin:22px 0 10px">Where ${esc(s.name.split(' ')[0])} needs a hand</h2>
-      <div class="tstrug-list">${strug.map(f => `<div class="tstrug"><span>🎯</span><div><b>${esc(f.name || f.skillId || 'A skill')}</b>${f.subject ? `<span class="muted"> · ${TSUBJ[f.subject] || f.subject}</span>` : ''}</div></div>`).join('')}</div>` : ''}
-  </div>`);
-  wireChrome();
-  $('#ts-launch').onclick = async () => {
-    try { await api('/teacher/enter-student', { method: 'POST', body: { kidId: s.id } }); await refreshMe(); location.hash = '#home'; }
-    catch (e) { toast(e.message); }
-  };
-  const tsPrint = $('#ts-print'); if (tsPrint) tsPrint.onclick = () => location.hash = '#teacher-print/' + s.id;
-  $('#ts-pin').onclick = async () => {
-    if (!confirm('Generate a new 4-digit PIN for ' + s.name + '? Their old PIN will stop working.')) return;
-    try { const r = await api('/teacher/students/' + s.id + '/pin', { method: 'POST' }); alert(s.name + "'s new PIN is: " + r.pin + '\n\nWrite it down — you can always reset it again here.'); }
-    catch (e) { toast(e.message); }
-  };
-  $('#ts-reset').onclick = async () => {
-    if (!confirm('Start ' + s.name + ' fresh? This clears all their progress, levels, and scores. This cannot be undone.')) return;
-    try { await api('/teacher/students/' + s.id + '/reset', { method: 'POST' }); toast('Progress reset.'); navigate(); }
-    catch (e) { toast(e.message); }
-  };
-});
-
-// ---- Printable single-student report (conference-ready) ----
-route('teacher-print', async (kidId) => {
-  await refreshMe();
-  if (!isTeacher()) { location.hash = '#login'; return; }
-  let data; try { data = await api('/teacher/students/' + kidId); } catch (e) { toast('Student not found.'); location.hash = '#teacher'; return; }
-  const s = data.student, snap = data.snapshot, card = data.report;
-  const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-  const rows = snap.subjects.map(sub => {
-    const cs = card && card.subjects ? card.subjects.find(x => x.subject === sub.subject) : null;
-    const acc = cs && cs.accuracy != null ? Math.round(cs.accuracy * 100) + '%' : '—';
-    const status = cs && cs.status && cs.status !== 'insufficient' ? String(cs.status).replace(/-/g, ' ') : '—';
-    return `<tr><td>${TSUBJ[sub.subject]}</td><td>${sub.placed ? esc(sub.levelName) : 'Not placed yet'}</td><td>${acc}</td><td style="text-transform:capitalize">${esc(status)}</td></tr>`;
-  }).join('');
-  const focus = (card && card.subjects ? card.subjects : []).flatMap(su => (su.focusAreas || []).map(n => ({ n, s: su.subject }))).slice(0, 6);
-  const strengths = (card && card.subjects ? card.subjects : []).flatMap(su => (su.strengths || []).map(n => ({ n, s: su.subject }))).slice(0, 6);
-  app().innerHTML = `<div class="printwrap">
-    <div class="print-controls no-print"><button class="btn green" onclick="window.print()">🖨 Print / Save as PDF</button> <button class="btn ghost" onclick="location.hash='#teacher-student/${s.id}'">← Back</button></div>
-    <div class="printdoc">
-      <div class="pd-head"><img src="/logo-full.png" alt="Gallop" style="height:34px"><div class="pd-meta">Progress Report<br><span>${esc(today)}</span></div></div>
-      <h1 class="pd-name">${esc(s.name)}</h1>
-      <p class="pd-sub">${gradeLabel(s.grade)} · ${snap.weekAnswers} answers this week · ${snap.weekAccuracy == null ? '—' : snap.weekAccuracy + '%'} accuracy · ${snap.minutesWeek || 0} min this week · 🔥 ${s.streak || 0}-day streak</p>
-      <h2 class="pd-h2">By subject</h2>
-      <table class="pd-table"><thead><tr><th>Subject</th><th>Working level</th><th>Accuracy</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>
-      ${strengths.length ? `<h2 class="pd-h2">Strengths</h2><ul class="pd-list">${strengths.map(x => `<li>${esc(x.n)} <span class="pd-tag">${(TSUBJ[x.s] || x.s)}</span></li>`).join('')}</ul>` : ''}
-      ${focus.length ? `<h2 class="pd-h2">Areas to focus on</h2><ul class="pd-list">${focus.map(x => `<li>${esc(x.n)} <span class="pd-tag">${(TSUBJ[x.s] || x.s)}</span></li>`).join('')}</ul>` : ''}
-      <p class="pd-foot">Generated by Gallop Learning Academy · learnwithgallop.com — figures reflect the student's real practice activity.</p>
-    </div>
-  </div>`;
-});
-
-// ---- Printable whole-class summary ----
-route('teacher-print-class', async (classId) => {
-  await refreshMe();
-  if (!isTeacher()) { location.hash = '#login'; return; }
-  let data; try { data = await api('/teacher/classes/' + classId); } catch (e) { toast('Class not found.'); location.hash = '#teacher'; return; }
-  const c = data.class, a = data.aggregates;
-  const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-  const rows = data.roster.map(r => {
-    const lv = sub => { const x = r.subjects.find(y => y.subject === sub); return x && x.levelName ? x.levelName.replace('Grade ', 'G').replace('Kindergarten', 'K') : '—'; };
-    return `<tr><td>${esc(r.name)}</td><td>${gradeLabel(r.grade)}</td><td style="text-transform:capitalize">${(T_STATUS[r.status] || {}).label || r.status}</td><td>${r.weekAnswers}</td><td>${r.weekAccuracy == null ? '—' : r.weekAccuracy + '%'}</td><td>${lv('math')}·${lv('english')}·${lv('science')}·${lv('spanish')}</td><td>${r.topStruggle ? esc(r.topStruggle.name) : '—'}</td></tr>`;
-  }).join('');
-  app().innerHTML = `<div class="printwrap">
-    <div class="print-controls no-print"><button class="btn green" onclick="window.print()">🖨 Print / Save as PDF</button> <button class="btn ghost" onclick="location.hash='#teacher-class/${c.id}'">← Back</button></div>
-    <div class="printdoc">
-      <div class="pd-head"><img src="/logo-full.png" alt="Gallop" style="height:34px"><div class="pd-meta">Class Summary<br><span>${esc(today)}</span></div></div>
-      <h1 class="pd-name">${esc(c.name)}</h1>
-      <p class="pd-sub">${gradeLabel(c.grade)} · ${a.students} students · ${a.activeThisWeek} active this week · ${a.avgAccuracy == null ? '—' : a.avgAccuracy + '%'} avg accuracy · ${a.needingSupport} need support</p>
-      <table class="pd-table"><thead><tr><th>Student</th><th>Grade</th><th>Status</th><th>Wk ans</th><th>Acc.</th><th>Levels (M·E·S·Sp)</th><th>Needs help</th></tr></thead><tbody>${rows}</tbody></table>
-      <p class="pd-foot">Generated by Gallop Learning Academy · learnwithgallop.com</p>
-    </div>
-  </div>`;
-});
-
-// ---- School overview (head of school: every teacher + class) ----
-route('teacher-school', async () => {
-  await refreshMe();
-  if (!isTeacher()) { location.hash = '#login'; return; }
-  let data; try { data = await api('/teacher/school'); } catch (e) {
-    if (e.status === 404) { location.hash = '#teacher'; return; }
-    showError(null, e.message); return;
-  }
-  const sc = data.school;
-  if (!sc.isHead) {
-    app().innerHTML = topbar(`<div class="container" style="max-width:640px">
-      <div class="tcrumb"><a href="#teacher">← My classes</a></div>
-      <div class="card"><h2>🏫 ${esc(sc.name)}</h2>
-        <p class="muted">You're a member of this school. Your classes appear on your own dashboard; your head of school can see everyone's.</p>
-        <div class="tsch-teachers">${data.teachers.map(t => `<div class="tsch-teacher">${t.isHead ? '👑 ' : '👩‍🏫 '}${esc(t.name)}${t.isHead ? ' (head)' : ''}</div>`).join('')}</div>
-        <button class="btn ghost small" id="leave-school" style="margin-top:14px">Leave school</button>
-      </div></div>`);
-    wireChrome();
-    $('#leave-school').onclick = async () => { if (!confirm('Leave ' + sc.name + '? Your classes and students stay with your account.')) return; try { await api('/teacher/school/leave', { method: 'POST' }); toast('Left school.'); location.hash = '#teacher'; } catch (e) { toast(e.message); } };
-    return;
-  }
-  const t = data.totals;
-  const teacherBlocks = data.teacherRows.map(tr => `
-    <div class="tsch-block">
-      <div class="tsch-block-head"><b>${tr.isHead ? '👑 ' : ''}${esc(tr.name)}</b><span class="muted">${esc(tr.email)}</span></div>
-      <div class="tsch-block-stats">${tr.students} students · ${tr.activeToday} active today · ${tr.needingSupport} need support</div>
-      <div class="tsch-classes">${tr.classes.length ? tr.classes.map(cl => `<button class="tsch-class" data-id="${cl.id}">${esc(cl.name)} <span>${gradeLabel(cl.grade)} · ${cl.students} 👧</span></button>`).join('') : '<span class="muted" style="font-size:.85rem">No classes yet</span>'}</div>
-    </div>`).join('');
-  app().innerHTML = topbar(`<div class="container">
-    <div class="tcrumb"><a href="#teacher">← My classes</a></div>
-    <div class="tdash-head">
-      <div>
-        <div class="eyebrow" style="color:var(--brand);text-transform:uppercase;letter-spacing:.12em;font-size:.76rem;font-weight:800">School overview</div>
-        <h1 style="margin:4px 0 2px">${esc(sc.name)}</h1>
-        <p class="muted" style="margin:0">Every teacher and class in your school. Share code <b>${esc(sc.code || '')}</b> so teachers can join.</p>
-      </div>
-    </div>
-    <div class="tstat-row">
-      <div class="tstat"><b>${data.teacherRows.length}</b><span>Teachers</span></div>
-      <div class="tstat"><b>${t.classes}</b><span>Classes</span></div>
-      <div class="tstat"><b>${t.students}</b><span>Students</span></div>
-      <div class="tstat"><b>${t.activeToday}</b><span>Active today</span></div>
-      <div class="tstat ${t.needingSupport ? 'warn' : ''}"><b>${t.needingSupport}</b><span>Need support</span></div>
-    </div>
-    <div class="tsch-blocks">${teacherBlocks}</div>
-  </div>`);
-  wireChrome();
-  document.querySelectorAll('.tsch-class').forEach(b => b.onclick = () => location.hash = '#teacher-class/' + b.dataset.id);
-});
-
 route('parent', async () => {
   await refreshMe();
   if (State.me.role === 'kid') { location.hash = '#home'; return; }
-  if (isTeacher()) { location.hash = '#teacher'; return; }
   if (State.me.role !== 'parent') { location.hash = '#login'; return; }
   const me = State.me;
   const p = me.parent;
-  // Trial boundary (P0-4): use the exact expiration timestamp and CEIL the days, so "expires
-  // today" (hours remaining) never rounds to a false "Trial ended". The server's access check
-  // uses this same timestamp, so client copy and authorization agree. Show the exact local time.
-  // Mirror the server's canonical trial-expiry rule (auth.js trialEndMs): a date-only value is
-  // the END of that day in the parent's own timezone — and the browser's local zone IS the
-  // parent's zone — so `new Date(y,m,d,23,59,59)` (local) matches the server's account-tz cutoff.
-  // "Expires today" then means 11:59 PM local, never a false "Trial ended" earlier in the day.
-  const _trialEndMs = (te) => {
-    if (!te) return 0;
-    const s = String(te).trim();
-    const md = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-    if (md) return new Date(+md[1], +md[2] - 1, +md[3], 23, 59, 59, 999).getTime();
-    let iso = s.replace(' ', 'T'); if (!/[zZ]$|[+-]\d\d:?\d\d$/.test(iso)) iso += 'Z';
-    const t = Date.parse(iso);
-    return isNaN(t) ? 0 : t;
-  };
-  const _tEnd = _trialEndMs(p.trial_ends);
-  const trialEndDate = _tEnd ? new Date(_tEnd) : new Date(NaN);
-  const msLeft = _tEnd ? (_tEnd - Date.now()) : 0;
-  const trialDays = Math.max(0, Math.ceil(msLeft / 86400000));
-  const trialEndLocal = isNaN(trialEndDate) ? '' : trialEndDate.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-  // Never expose raw billing statuses (past_due, canceled…) to parents (6.1).
-  const INACTIVE_COPY = {
-    past_due: '🔒 Payment issue — update your card to restore access',
-    canceled: '🔒 Subscription canceled — your children\'s progress is saved',
-    unpaid: '🔒 Payment needed to restore access',
-    incomplete: '🔒 Subscription setup wasn\'t finished'
-  };
+  const trialDays = Math.max(0, Math.round((new Date(String(p.trial_ends || '').replace(' ', 'T') + 'Z') - Date.now()) / 86400000));
   const subLine = p.sub_status === 'active'
     ? `✅ ${esc((me.plans[p.sub_plan] || {}).name || 'Subscribed')} plan active`
     : p.sub_status === 'trial'
-      ? (msLeft > 0
-          ? (trialDays <= 1 ? `⏳ Free trial — access until ${esc(trialEndLocal)}` : `⏳ Free trial · ${trialDays} days left (until ${esc(trialEndLocal)})`)
-          : '🔒 Trial ended')
-      : (INACTIVE_COPY[p.sub_status] || '🔒 Subscription inactive');
+      ? (trialDays > 0 ? `⏳ Free trial, ${trialDays} day${trialDays === 1 ? '' : 's'} left` : '🔒 Trial ended')
+      : `🔒 Subscription ${esc(p.sub_status)}`;
 
-  const trialUrgent = p.sub_status === 'trial' && msLeft > 0 && trialDays <= 3;
-  const trialEnded = p.sub_status === 'trial' && msLeft <= 0;
+  const trialUrgent = p.sub_status === 'trial' && trialDays > 0 && trialDays <= 3;
+  const trialEnded = p.sub_status === 'trial' && trialDays <= 0;
   app().innerHTML = topbar(`<div class="container">
-    <div class="dash-welcome" style="margin-bottom:14px"><h1>Welcome, ${esc(p.name)} 👋</h1><p>${subLine} ${me.billingMode === 'demo' ? '· <i>(demo billing, add Stripe keys to charge real cards)</i>' : ''}</p></div>
+    <div class="dash-welcome" style="margin-bottom:14px"><h1>Welcome, ${esc(p.name)} 👋</h1><p>${subLine} ${me.billingMode === 'demo' && me.parent && me.parent.is_admin ? '· <i>(demo billing, add Stripe keys to charge real cards)</i>' : ''}</p></div>
     ${trialUrgent ? `<div class="trial-banner">
       <div><b>⏳ Your free trial ends in ${trialDays} day${trialDays === 1 ? '' : 's'}.</b><br>
       <span>All progress, streaks, badges and certificates are saved, subscribing keeps the gallop going without missing a day.</span></div>
@@ -4115,21 +2811,9 @@ route('parent', async () => {
       <span>Update your card to keep your subscription active — you won't be charged twice.</span></div>
       <div style="white-space:nowrap"><button class="btn sun" id="tb-portal">Update payment method</button></div>
     </div>` : ''}
-    <div class="ptabs" role="tablist" aria-label="Parent dashboard sections">
-      <button class="ptab-btn active" data-ptab="today" role="tab" aria-selected="true">📅 Today</button>
-      <button class="ptab-btn" data-ptab="progress" role="tab" aria-selected="false">📈 Progress</button>
-      <button class="ptab-btn" data-ptab="family" role="tab" aria-selected="false">👨‍👩‍👧 Family</button>
-      <button class="ptab-btn" data-ptab="account" role="tab" aria-selected="false">⚙️ Account</button>
-    </div>
-    <div class="ptab-panel" data-ptab="today">
-      <div id="kid-snapshots" style="margin-bottom:16px">${me.kids.length ? `<div class="dash-grid" style="gap:14px">${me.kids.map(k => `<div class="card snap-skel"><div style="display:flex;align-items:center;gap:10px"><span class="avatar-sm">${avatarHTML(k)}</span><b>${esc(k.name)}</b></div><div class="skel-line" style="width:55%"></div><div class="skel-line" style="width:88%"></div><div class="skel-line" style="width:42%"></div><p class="muted" style="font-size:.82rem;margin-top:6px">Loading today's progress…</p></div>`).join('')}</div>` : ''}</div>
-    </div>
-    <div class="ptab-panel" data-ptab="progress" hidden>
-      <div id="family-week" style="margin-bottom:16px"></div>
-      <div id="monthly-recap" style="margin-bottom:16px"></div>
-      <p class="muted" style="font-size:.88rem">Open any child's full report or printable weekly summary from their card in <b>Today</b> or <b>Family</b>.</p>
-    </div>
-    <div class="ptab-panel" data-ptab="family" hidden>
+    <div id="kid-snapshots" style="margin-bottom:16px"></div>
+    <div id="monthly-recap" style="margin-bottom:16px"></div>
+    <div class="dash-grid">
       <div class="card">
         <h3>👧 Your Learners</h3>
         <div id="kid-list" style="margin-top:12px">
@@ -4149,13 +2833,7 @@ route('parent', async () => {
                 <div><label>Name</label><input class="ke-name" value="${esc(k.name)}"></div>
                 <div><label>Grade</label><select class="ke-grade">${['K', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((g, i) => `<option value="${i}" ${k.grade === i ? 'selected' : ''}>${g === 'K' ? 'K' : g}</option>`).join('')}</select></div>
                 <div><label>PIN</label><input class="ke-pin" maxlength="4" inputmode="numeric" placeholder="unchanged"></div>
-                <div><label>Weekly goal</label><select class="ke-goal">${[
-                  { g: 6, lbl: 'Gentle · ~3 short days (60/wk)' },
-                  { g: 9, lbl: 'Light · ~3–4 days (90/wk)' },
-                  { g: 12, lbl: 'Recommended · ~4 days (120/wk)' },
-                  { g: 15, lbl: 'Focused · ~5 days (150/wk)' },
-                  { g: 20, lbl: 'Ambitious · ~5 days (200/wk)' }
-                ].map(o => `<option value="${o.g}" ${(k.weekly_goal || 12) === o.g ? 'selected' : ''}>${o.lbl}</option>`).join('')}</select><span class="muted" style="font-size:.78rem;display:block;margin-top:4px">A few steady days beats one long cram. About 15–20 min a day is plenty.</span></div>
+                <div><label>Weekly goal</label><select class="ke-goal">${[6, 9, 12, 15, 20].map(g => `<option value="${g}" ${(k.weekly_goal || 12) === g ? 'selected' : ''}>${g * 10} answers/wk</option>`).join('')}</select></div>
                 <div><label>Schedule</label><select class="ke-cal">${['traditional', 'yearround', 'homeschool'].map(c => `<option value="${c}" ${k.calendar_mode === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
               </div>
               <label class="ke-showlevel"><input type="checkbox" class="ke-showlevel-cb" ${k.show_level ? 'checked' : ''}>
@@ -4173,24 +2851,17 @@ route('parent', async () => {
             </div>
             <div class="kid-games" id="games-${k.id}" style="display:none">
               <div class="kg-head">🎮 Games for ${esc(k.name.split(' ')[0])}</div>
-              <div class="kg-presets">
-                <span class="muted" style="font-size:.82rem;width:100%">Quick presets:</span>
-                <button type="button" class="btn ghost small kg-preset" data-on="1" data-gate="5" data-limit="30" aria-pressed="false">⚖️ Balanced</button>
-                <button type="button" class="btn ghost small kg-preset" data-on="1" data-gate="15" data-limit="20" aria-pressed="false">📚 Learning-focused</button>
-                <button type="button" class="btn ghost small kg-preset" data-on="1" data-gate="0" data-limit="0" aria-pressed="false">♾️ Always available</button>
-                <button type="button" class="btn ghost small kg-preset" data-on="0" data-gate="0" data-limit="0" aria-pressed="false">🚫 Games off</button>
-              </div>
               <label class="kg-toggle"><input type="checkbox" class="kg-on-cb" ${k.games_enabled == null || k.games_enabled ? 'checked' : ''}>
                 <span><b>Play Zone arcade</b><br><span class="muted" style="font-size:.83rem">The break games. On for the full experience, or off for a pure-learning setup with no games at all.</span></span>
               </label>
-              <div class="kg-sub">🎟️ <b>Earn it:</b> unlock games after <input type="number" class="kg-gate-inp" min="0" max="100" value="${k.games_gate || 0}" aria-label="Questions ${esc(k.name)} must answer each day before games unlock (0 for always available)"> questions answered that day <span class="muted" style="font-size:.83rem">— 0 = always available.</span></div>
-              <div class="kg-sub">⏰ <b>Daily limit:</b> at most <input type="number" class="kg-time-inp" min="0" max="240" value="${k.games_time_limit || 0}" aria-label="Daily game-time limit for ${esc(k.name)} in minutes (0 for no limit)"> minutes of games per day <span class="muted" style="font-size:.83rem">— 0 = no limit. Kids see a countdown while they play.</span></div>
+              <div class="kg-sub">🎟️ <b>Earn it:</b> unlock games after <input type="number" class="kg-gate-inp" min="0" max="100" value="${k.games_gate || 0}"> questions answered that day <span class="muted" style="font-size:.83rem">— 0 = always available.</span></div>
+              <div class="kg-sub">⏰ <b>Daily limit:</b> at most <input type="number" class="kg-time-inp" min="0" max="240" value="${k.games_time_limit || 0}"> minutes of games per day <span class="muted" style="font-size:.83rem">— 0 = no limit. Kids see a countdown while they play.</span></div>
               <div class="error-msg kg-err"></div>
               <button class="btn small green" data-save-games="${k.id}" style="margin-top:10px">Save games settings ✓</button>
               <button class="btn ghost small" data-cancel-games="${k.id}" style="color:#7f8c9b;border-color:#dfe6e9;margin-left:8px;margin-top:10px">Close</button>
             </div>`).join('') : '<p class="muted">Add your first learner below! 👇</p>'}
         </div>
-        <details class="add-learner"${me.kids.length ? '' : ' open'}><summary class="add-learner-sum">➕ Add a learner</summary>
+        <h4 style="margin-top:18px">Add a learner</h4>
         <label>Name</label><input id="nk-name" placeholder="e.g. Margaux">
         <label>Grade</label><select id="nk-grade">${['K', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((g, i) => `<option value="${i}">${g === 'K' ? 'Kindergarten' : 'Grade ' + g}</option>`).join('')}</select>
         <label>4-digit PIN (their fun password)</label><input id="nk-pin" maxlength="4" inputmode="numeric" placeholder="e.g. 2019">
@@ -4212,10 +2883,9 @@ route('parent', async () => {
         </label>
         <div class="error-msg" id="nk-err"></div>
         <button class="btn green" style="margin-top:14px;width:100%" id="nk-go">Add Learner ✨</button>
-        </details>
       </div>
-    </div>
-    <div class="ptab-panel" data-ptab="account" hidden>
+      <div>
+        <div id="family-week"></div>
         <div class="card">
           <h3>💳 Subscription</h3>
           <p class="muted" style="margin:8px 0 14px">${subLine}</p>
@@ -4280,63 +2950,22 @@ route('parent', async () => {
           <select id="bd-kid2">${me.kids.map(k => `<option value="${k.id}">${esc(k.name)}</option>`).join('')}</select>
           <div class="error-msg" id="bd-err"></div>
           <button class="btn green small" style="margin-top:8px" id="bd-accept">Link Buddies ✨</button>
-          <div id="bd-manage" style="margin-top:16px"></div>
-          <p class="muted" style="font-size:.8rem;margin-top:10px">Codes are single-use and expire in 14 days. You can revoke a code or disconnect a buddy anytime below — the connection ends immediately for both children.</p>
         </div>
         <div class="card">
           <h3>🧭 How the tutor works</h3>
           <p class="muted" style="margin-top:8px;line-height:1.6">Each subject starts with a short <b>placement quiz</b>, so a child can be working at a fourth-grade level in reading and a second-grade level in math at the same time. Every answer updates what we know about their skills. Strong ones move faster; shaky ones get gentler questions, more hints, and extra practice. Finishing a whole grade level earns a <b>certificate</b>. Correct answers also earn <b>play tokens</b> for the arcade, so the learning always comes first.</p>
         </div>
       </div>
+    </div>
   </div>`);
   wireChrome();
-  // Parent dashboard tabs: Today / Progress / Family / Account. Panels are all in the DOM (so the
-  // async snapshot/recap loaders and every button handler keep working); we just toggle visibility.
-  (function initParentTabs() {
-    const btns = document.querySelectorAll('.ptab-btn');
-    const panels = document.querySelectorAll('.ptab-panel');
-    btns.forEach(btn => btn.onclick = () => {
-      const t = btn.dataset.ptab;
-      btns.forEach(b => { const on = b === btn; b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
-      panels.forEach(p => { p.hidden = (p.dataset.ptab !== t); });
-      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
-    });
-  })();
   const bdc = $('#bd-create'), bda = $('#bd-accept');
-  async function renderBuddyManage() {
-    const box = $('#bd-manage'); if (!box) return;
-    let data; try { data = await api('/buddies/manage'); } catch (e) { return; }
-    const kids = (data && data.kids) || [];
-    const anyBuddies = kids.some(k => k.buddies.length), anyPending = kids.some(k => k.pending.length);
-    if (!anyBuddies && !anyPending) { box.innerHTML = ''; return; }
-    box.innerHTML = kids.filter(k => k.buddies.length || k.pending.length).map(k => `
-      <div class="bd-kidblock">
-        <b>${esc(k.name)}</b>
-        ${k.buddies.map(bd => `<div class="bd-row"><span>🤝 ${esc(bd.buddyName)}</span><button class="btn ghost small bd-disc" data-kid="${k.kidId}" data-buddy="${bd.buddyId}" style="color:#b0532f;border-color:#ecccc0">Disconnect</button></div>`).join('')}
-        ${k.pending.map(p => `<div class="bd-row"><span class="muted">🎫 Code <b>${esc(p.code)}</b> · pending · expires ${esc((p.expires || '').slice(0, 10))}</span><button class="btn ghost small bd-revoke" data-code="${esc(p.code)}" style="color:#7f8c9b;border-color:#dfe6e9">Revoke</button></div>`).join('')}
-      </div>`).join('');
-    box.querySelectorAll('.bd-disc').forEach(btn => btn.onclick = async () => {
-      if (!confirm('Disconnect these buddies? The connection ends immediately for both children, and pending cheers between them are cleared.')) return;
-      try { await api('/buddies/disconnect', { method: 'POST', body: { kidId: Number(btn.dataset.kid), buddyId: Number(btn.dataset.buddy) } }); toast('Buddies disconnected.'); renderBuddyManage(); }
-      catch (e) { toast(e.message || 'Could not disconnect.'); }
-    });
-    box.querySelectorAll('.bd-revoke').forEach(btn => btn.onclick = async () => {
-      try { await api('/buddies/invite/revoke', { method: 'POST', body: { code: btn.dataset.code } }); toast('Code revoked.'); renderBuddyManage(); }
-      catch (e) { toast(e.message || 'Could not revoke.'); }
-    });
-  }
-  renderBuddyManage();
   if (bdc) bdc.onclick = async () => {
-    try { const r = await api('/buddies/invite', { method: 'POST', body: { kidId: Number($('#bd-kid').value) } }); $('#bd-code').textContent = '🎫 ' + r.code; Sound.badge(); renderBuddyManage(); }
+    try { const r = await api('/buddies/invite', { method: 'POST', body: { kidId: Number($('#bd-kid').value) } }); $('#bd-code').textContent = '🎫 ' + r.code; Sound.badge(); }
     catch (e) { showError('#bd-err', e.message); }
   };
   if (bda) bda.onclick = async () => {
-    const code = ($('#bd-input').value || '').trim().toUpperCase();
-    const kidName = $('#bd-kid2').selectedOptions[0] ? $('#bd-kid2').selectedOptions[0].textContent : 'your child';
-    if (!code) { showError('#bd-err', 'Enter the 6-character code the other family shared with you.'); return; }
-    // Confirmation before linking — a parent-approved connection should be a deliberate action.
-    if (!confirm(`Link ${kidName} as buddies using code ${code}? They'll see each other's streaks and badges and can send pre-written cheers — no open chat. You can disconnect anytime.`)) return;
-    try { const r = await api('/buddies/accept', { method: 'POST', body: { code, kidId: Number($('#bd-kid2').value) } }); $('#bd-input').value = ''; Sound.levelup(); Confetti.burst(100); toast('Connected with ' + r.buddyName + '! 🎉'); renderBuddyManage(); }
+    try { const r = await api('/buddies/accept', { method: 'POST', body: { code: $('#bd-input').value, kidId: Number($('#bd-kid2').value) } }); $('#bd-input').value = ''; Sound.levelup(); Confetti.burst(100); alert('Connected with ' + r.buddyName + '! 🎉'); }
     catch (e) { showError('#bd-err', e.message); }
   };
 
@@ -4346,38 +2975,23 @@ route('parent', async () => {
     el.classList.add('sel'); avatar = el.dataset.a; Sound.click();
   });
   $('#nk-go').onclick = async () => {
-    // Validate ALL required fields in one pass (P1.6): mark each invalid field with aria-invalid,
-    // summarize every problem at once, focus the first invalid field, and keep entered values.
-    const nameEl = $('#nk-name'), pinEl = $('#nk-pin'), consentEl = $('#nk-consent');
-    [nameEl, pinEl, consentEl].forEach(el => el && (el.removeAttribute('aria-invalid'), el.setAttribute('aria-describedby', 'nk-err')));
-    const kidName = nameEl.value.trim();
-    const errs = [];
-    if (!kidName) errs.push({ el: nameEl, msg: 'Enter your child’s name (first name or nickname).' });
-    if (!/^\d{4}$/.test(pinEl.value.trim())) errs.push({ el: pinEl, msg: 'The PIN must be exactly 4 digits.' });
-    if (consentEl && !consentEl.checked) errs.push({ el: consentEl, msg: 'Check the box to confirm parental consent.' });
-    if (errs.length) {
-      errs.forEach(e => e.el && e.el.setAttribute('aria-invalid', 'true'));
-      showError('#nk-err', errs.length === 1 ? errs[0].msg : 'Please fix the following: ' + errs.map(e => e.msg).join(' '));
-      if (errs[0].el) errs[0].el.focus();
-      return;
-    }
     try {
+      const consentEl = $('#nk-consent');
+      if (consentEl && !consentEl.checked) { showError('#nk-err', 'Please check the box to confirm parental consent.'); return; }
       const wasFirst = me.kids.length === 0;
-      const r = await api('/kids', { method: 'POST', body: { name: kidName, grade: Number($('#nk-grade').value), pin: pinEl.value.trim(), avatar, calendar_mode: $('#nk-cal').value, consent: true } });
+      const kidName = $('#nk-name').value.trim();
+      const r = await api('/kids', { method: 'POST', body: { name: kidName, grade: Number($('#nk-grade').value), pin: $('#nk-pin').value, avatar, calendar_mode: $('#nk-cal').value, consent: true } });
       Sound.badge();
-      gtmPush({ event: 'learner_added', first: !!wasFirst }); track('learner_added');
       if (wasFirst) { timeToGallop(r.kidId, kidName); return; }
       navigate();
     } catch (e) { showError('#nk-err', e.message); }
   };
-  async function enterKid(kidId, dest, together) {
-    await api('/auth/enter-kid', { method: 'POST', body: { kidId, together: !!together } });
+  async function enterKid(kidId, dest) {
+    await api('/auth/enter-kid', { method: 'POST', body: { kidId } });
+    await refreshMe();
     Sound.levelup();
-    // Full reload into the child session. This is the privacy boundary: the learner page re-boots
-    // with role 'kid', so marketing/analytics tags (which may have loaded on the parent page) are
-    // never present in the child experience (COPPA). The reload also clears any adult-side state.
     location.hash = dest || '#home';
-    location.reload();
+    if (location.hash === (dest || '#home')) navigate();
   }
   // "Time to Gallop!", straight from signup into learning, no re-login needed.
   function timeToGallop(kidId, kidName) {
@@ -4408,15 +3022,14 @@ route('parent', async () => {
     if (!box) return;
     try {
       const r = await api('/kids/' + kidId + '/levels');
-      box.innerHTML = `<b style="font-size:.85rem">📚 Set working level <span class="muted" style="font-weight:400">— if a subject is placed wrong, pick the right grade here and Gallop holds it there. You can hand it back to adaptive placement anytime.</span></b>
+      box.innerHTML = `<b style="font-size:.85rem">📚 Set working level <span class="muted" style="font-weight:400">— if a subject is placed wrong, pick the right grade here and Gallop locks to it (it won't drift back).</span></b>
         <div class="lvl-rows">${r.levels.map(l => `
           <div class="lvl-row">
             <span class="lvl-sub">${esc(l.label)}</span>
             ${l.placed ? `<select class="lvl-sel" data-lvl-kid="${kidId}" data-lvl-sub="${l.subject}">
               ${Array.from({ length: l.max + 1 }, (_, g) => `<option value="${g}" ${g === l.level ? 'selected' : ''}>${g === 0 ? 'Kindergarten' : 'Grade ' + g}</option>`).join('')}
             </select>` : `<span class="lvl-name muted">${esc(l.levelName)}</span>`}
-          </div>
-          ${l.setByParent ? `<div class="lvl-prov"><span class="muted">✋ Set by you${l.setAt ? ' on ' + esc(l.setAt) : ''}${l.prevAdaptive ? ` · Gallop had ${esc(l.prevAdaptive)}` : ''}</span> <button class="btn ghost small lvl-adaptive" data-lvl-kid="${kidId}" data-lvl-sub="${l.subject}" style="color:var(--brand);border-color:var(--brand)">↩ Return to Gallop's adaptive placement</button></div>` : ''}`).join('')}</div>`;
+          </div>`).join('')}</div>`;
       box.querySelectorAll('.lvl-sel').forEach(sel => sel.onchange = async () => {
         const kid = sel.dataset.lvlKid, subject = sel.dataset.lvlSub, level = Number(sel.value);
         sel.disabled = true;
@@ -4425,14 +3038,6 @@ route('parent', async () => {
           Sound.badge(); toast(`${subject.charAt(0).toUpperCase() + subject.slice(1)} set to ${res.levelName}.`);
           loadLevels(Number(kid));
         } catch (e) { sel.disabled = false; }
-      });
-      box.querySelectorAll('.lvl-adaptive').forEach(btn => btn.onclick = async () => {
-        const kid = btn.dataset.lvlKid, subject = btn.dataset.lvlSub;
-        try {
-          const res = await api('/kids/' + kid + '/level/adaptive', { method: 'POST', body: { subject } });
-          Sound.badge(); toast(`${subject.charAt(0).toUpperCase() + subject.slice(1)} back to adaptive${res.levelName ? ' at ' + res.levelName : ''}.`);
-          loadLevels(Number(kid));
-        } catch (e) { toast(e.message || 'Could not switch back.'); }
       });
     } catch (e) { box.innerHTML = ''; }
   }
@@ -4450,16 +3055,6 @@ route('parent', async () => {
     if (el) { el.style.display = el.style.display === 'none' ? 'block' : 'none'; Sound.click(); }
   });
   document.querySelectorAll('[data-cancel-games]').forEach(b => b.onclick = () => { const el = $('#games-' + b.dataset.cancelGames); if (el) el.style.display = 'none'; });
-  // Game-control presets (PP-107): one tap fills the on/off, earn-it gate, and daily limit.
-  document.querySelectorAll('.kg-preset').forEach(btn => btn.onclick = () => {
-    const box = btn.closest('.kid-games'); if (!box) return;
-    box.querySelector('.kg-on-cb').checked = btn.dataset.on === '1';
-    box.querySelector('.kg-gate-inp').value = btn.dataset.gate;
-    box.querySelector('.kg-time-inp').value = btn.dataset.limit;
-    box.querySelectorAll('.kg-preset').forEach(x => { const sel = x === btn; x.classList.toggle('on', sel); x.setAttribute('aria-pressed', String(sel)); });
-    Sound.click();
-    toast('Preset applied — press “Save games settings” to keep it.');
-  });
   document.querySelectorAll('[data-save-games]').forEach(b => b.onclick = async () => {
     const box = $('#games-' + b.dataset.saveGames);
     const body = {
@@ -4491,55 +3086,8 @@ route('parent', async () => {
   document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => enterKid(Number(b.dataset.start)));
   document.querySelectorAll('[data-report]').forEach(b => b.onclick = () => location.hash = '#report/' + b.dataset.report);
   document.querySelectorAll('[data-weekly]').forEach(b => b.onclick = () => location.hash = '#weekly/' + b.dataset.weekly);
-  // Deleting a learner is destructive and withdraws consent immediately — so it takes more than a
-  // one-tap confirm (PP-110): spell out exactly what's erased, offer a data download first, and
-  // require typing the child's name.
-  function confirmDeleteLearner(kid) {
-    const nm = kid.name;
-    const wrap = document.createElement('div');
-    wrap.className = 'modal-overlay';
-    wrap.innerHTML = `<div class="modal-card" role="dialog" aria-modal="true" aria-label="Delete ${esc(nm)}">
-      <h3 style="margin-top:0;color:#c0392b">Delete ${esc(nm)}?</h3>
-      <p style="line-height:1.55">This permanently erases <b>everything</b> for ${esc(nm)}: their profile, all progress and skill levels, streaks, badges, certificates and game scores. It also <b>withdraws your consent</b> to store their information, effective immediately. <b>This can't be undone.</b></p>
-      <div style="margin:12px 0"><button class="btn small" id="del-export">⬇️ Download my data first (includes ${esc(nm)})</button></div>
-      <label style="font-weight:600;font-size:.9rem">Type <b>${esc(nm)}</b> below to confirm</label>
-      <input id="del-confirm" placeholder="${esc(nm)}" autocomplete="off" style="width:100%;padding:10px 12px;border:1.5px solid #dfe6e9;border-radius:10px;margin:6px 0 4px;font-size:1rem" aria-label="Type the child's name to confirm deletion">
-      <div class="error-msg" id="del-err"></div>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <button class="btn coral" id="del-go" disabled style="opacity:.5">Delete permanently</button>
-        <button class="btn ghost" id="del-cancel" style="color:#41506a;border-color:#cfd8e3">Cancel</button>
-      </div>
-    </div>`;
-    document.body.appendChild(wrap);
-    const ci = wrap.querySelector('#del-confirm'), go = wrap.querySelector('#del-go');
-    const close = () => { wrap.remove(); document.removeEventListener('keydown', onKey); };
-    function onKey(e) { if (e.key === 'Escape') close(); }
-    document.addEventListener('keydown', onKey);
-    ci.focus();
-    ci.oninput = () => { const ok = ci.value.trim() === nm; go.disabled = !ok; go.style.opacity = ok ? '1' : '.5'; };
-    wrap.querySelector('#del-cancel').onclick = close;
-    wrap.onclick = (e) => { if (e.target === wrap) close(); };
-    wrap.querySelector('#del-export').onclick = async () => {
-      try {
-        const res = await fetch('/api/privacy/export', { credentials: 'same-origin' });
-        if (!res.ok) throw new Error('status ' + res.status);
-        const blob = await res.blob(); if (!blob || !blob.size) throw new Error('empty');
-        const stamp = new Date().toISOString().slice(0, 10);
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `gallop-data-export-${stamp}.json`;
-        document.body.appendChild(a); a.click(); a.remove();
-        toast('✓ Your data downloaded');
-      } catch (e) { toast('Could not prepare the download — try Account → Download my data, or email support.'); }
-    };
-    go.onclick = async () => {
-      if (ci.value.trim() !== nm) return;
-      go.disabled = true; go.textContent = 'Deleting…';
-      try { await api('/kids/' + kid.id, { method: 'DELETE' }); close(); toast(`${nm} was deleted.`); navigate(); }
-      catch (e) { showError('#del-err', (e && e.message) || 'Could not delete — please try again.'); go.disabled = false; go.textContent = 'Delete permanently'; }
-    };
-  }
-  document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
-    const kid = me.kids.find(k => String(k.id) === String(b.dataset.del));
-    if (kid) confirmDeleteLearner(kid);
+  document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    if (confirm('Remove this learner and all their progress?')) { await api('/kids/' + b.dataset.del, { method: 'DELETE' }); navigate(); }
   });
   document.querySelectorAll('[data-reset]').forEach(b => b.onclick = async () => {
     if (confirm('Start this learner fresh? This clears all lessons, levels, scores, badges and certificates and re-takes placement. Their name, PIN and avatar are kept. This cannot be undone.')) {
@@ -4569,20 +3117,12 @@ route('parent', async () => {
     pvx.disabled = true; const orig = pvx.textContent; pvx.textContent = 'Preparing…';
     try {
       const res = await fetch('/api/privacy/export', { credentials: 'same-origin' });
-      // Never claim success on a failed response (P0-8): a 401/403/500 must not download an error
-      // body saved as ".json" while a green toast says it worked.
-      if (!res.ok) throw new Error('status ' + res.status);
       const blob = await res.blob();
-      if (!blob || blob.size === 0) throw new Error('empty file');
-      const ct = res.headers.get('content-type') || '';
-      if (ct && !/json|octet-stream|text\/plain/i.test(ct)) throw new Error('unexpected type ' + ct);
-      const stamp = new Date().toISOString().slice(0, 10);
-      const fname = `gallop-data-export-${stamp}.json`;
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = fname;
+      const a = document.createElement('a'); a.href = url; a.download = 'gallop-my-data.json';
       document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-      toast('✓ Your data downloaded as ' + fname);
-    } catch (e) { toast('Could not prepare the export — nothing was downloaded. Please try again, or email support@learnwithgallop.com.'); }
+      toast('✓ Your data downloaded as gallop-my-data.json');
+    } catch (e) { toast('Could not prepare the download. Please try again.'); }
     pvx.disabled = false; pvx.textContent = orig;
   };
   const fam = $('#sub-family'), solo = $('#sub-solo'), portal = $('#sub-portal');
@@ -4595,36 +3135,21 @@ route('parent', async () => {
     try { const o = await api('/billing/portal', { method: 'POST' }); if (o && o.url) location.href = o.url; else toast('Could not open billing.'); }
     catch (e) { toast(e.message || 'Could not open billing right now. Please try again in a moment.'); }
   };
-  // Family week — cooperative, NOT a ranked sibling leaderboard (kids can be different ages with
-  // different goals, and ranking by raw volume rewards speed and can embarrass a slower learner).
-  // Each child is shown against THEIR OWN weekly goal, plus a shared family total to celebrate together.
+  // Sibling leaderboard, only interesting with 2+ kids
   if (me.kids.length >= 2) {
     api('/family/stats').then(({ stats }) => {
+      const medals = ['🥇', '🥈', '🥉', '🎗️'];
       const box = $('#family-week');
       if (!box) return;
-      const famTotal = stats.reduce((t, s) => t + (s.weekAnswers || 0), 0);
-      const allDone = stats.every(s => {
-        const kid = me.kids.find(k => k.name === s.name);
-        const goal = kid ? (kid.weekly_goal || 12) * 10 : 120;
-        return (s.weekAnswers || 0) >= goal;
-      });
       box.innerHTML = `<div class="card">
-        <h3>👨‍👩‍👧‍👦 Your Family This Week</h3>
-        <p class="muted" style="margin:4px 0 12px">Everyone works toward their <b>own</b> goal — cheer each other on, no rankings. 🎉</p>
-        <div class="fam-total">Together your family answered <b>${famTotal}</b> question${famTotal === 1 ? '' : 's'} this week 🙌${allDone ? ' — everyone hit their goal!' : ''}</div>
-        ${stats.map(s => {
-          const kid = me.kids.find(k => k.name === s.name);
-          const goal = kid ? (kid.weekly_goal || 12) * 10 : 120;
-          const pct = Math.min(100, Math.round((s.weekAnswers || 0) / goal * 100));
-          return `<div class="fam-row">
+        <h3>🏆 This Week at Home</h3>
+        <p class="muted" style="margin:4px 0 10px">Questions answered in the last 7 days, a little friendly sibling rivalry never hurt!</p>
+        ${stats.map((s, i) => `
+          <div class="kid-row">
+            <span style="font-size:1.3rem">${medals[i] || '⭐'}</span>
             <span class="avatar-sm">${AVATARS[s.avatar] || '🦊'}</span>
-            <div style="flex:1;min-width:0">
-              <div style="display:flex;justify-content:space-between;font-size:.85rem;gap:8px"><b>${esc(s.name)}</b><span class="muted">${s.weekAnswers || 0} / ${goal} · 🔥${s.streak}</span></div>
-              <div class="fam-bar"><div class="fam-fill" style="width:${pct}%"></div></div>
-              ${pct >= 100 ? `<span class="fam-done">🎉 Reached their goal!</span>` : ''}
-            </div>
-          </div>`;
-        }).join('')}
+            <div style="flex:1"><b>${esc(s.name)}</b><br><span class="muted" style="font-size:.83rem">${s.weekAnswers} answers${s.weekAccuracy != null ? ' · ' + s.weekAccuracy + '% correct' : ''} · 🔥${s.streak}</span></div>
+          </div>`).join('')}
       </div>`;
     }).catch(() => {});
   }
@@ -4664,10 +3189,6 @@ route('parent', async () => {
           <div style="display:flex;gap:8px;margin:12px 0 2px;flex-wrap:wrap">
             <span style="background:#eef2f7;color:#41506a;font-size:.78rem;font-weight:600;padding:3px 10px;border-radius:999px">📅 Today: ${k.todayAnswers || 0} question${(k.todayAnswers || 0) === 1 ? '' : 's'}${k.minutesToday ? ` · ⏱ ${k.minutesToday} min` : ''}</span>
           </div>
-          ${(k.todayBySubject && k.todayBySubject.length) ? `
-          <div style="display:flex;gap:6px;margin:2px 0 2px;flex-wrap:wrap">
-            ${k.todayBySubject.map(t => `<span title="${t.accuracy != null ? t.accuracy + '% correct today' : ''}" style="background:#f3f6fb;color:#4a5876;font-size:.74rem;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid #e4e9f2">${({ math: '🔢 Math', english: '📚 Reading', science: '🔬 Science', spanish: '🌎 Spanish' }[t.subject] || t.subject)}: ${t.count}${t.accuracy != null ? ` · ${t.accuracy}%` : ''}</span>`).join('')}
-          </div>` : ''}
           <div style="margin:8px 0 8px">
             <div style="display:flex;justify-content:space-between;font-size:.8rem;color:#5f6b7d;margin-bottom:4px">
               <span>This week: <b>${k.weekAnswers}</b> / ${k.weeklyGoal} answers${k.weekAccuracy != null ? ` · ${k.weekAccuracy}% correct` : ''}${k.minutesWeek ? ` · ⏱ ${k.minutesWeek} min` : ''}</span>
@@ -4678,13 +3199,16 @@ route('parent', async () => {
           ${f ? `
             <div style="background:#fdeee7;border-radius:10px;padding:10px 12px;margin:10px 0 4px">
               <div style="font-size:.82rem;color:#b0532f"><b>🎯 Needs a hand with:</b> ${esc(f.name)} <span class="muted">(${SUBJ[f.subject] || f.subject})</span></div>
-              <div style="font-size:.8rem;color:#7a5240;margin-top:6px"><b>5-min try:</b> ${parentAction(f.subject, f.name, esc(k.name.split(' ')[0]))}</div>
               <button class="btn coral small snap-focus" data-kid="${k.id}" data-subject="${f.subject}" data-skill="${esc(f.skillId)}" style="margin-top:8px">✨ Practice this together</button>
-            </div>` : (k.overall === 'developing' || k.overall === 'needs-support') ? `
-            <p class="muted" style="margin:8px 0 4px;font-size:.85rem">🔎 Gallop is still pinpointing the exact skill for ${esc(k.name.split(' ')[0])} — the next session or two will narrow it down.</p>` : (k.weekAccuracy != null && k.weekAccuracy < 70) ? `
-            <p class="muted" style="margin:8px 0 4px;font-size:.85rem">📈 No single trouble spot yet, but ${esc(k.name.split(' ')[0])}'s answers are landing around ${k.weekAccuracy}% correct this week — worth a little extra practice to firm things up. Tap Start and Gallop will lean into the shakier skills.</p>` : (k.weekAccuracy != null && k.weekAccuracy < 85) ? `
-            <p class="muted" style="margin:8px 0 4px;font-size:.85rem">👍 ${esc(k.name.split(' ')[0])} is putting in steady work — around ${k.weekAccuracy}% correct this week. A bit more practice will turn "pretty good" into "got it."</p>` : `
-            <p class="muted" style="margin:8px 0 4px;font-size:.85rem">No specific trouble spot right now — ${esc(k.name.split(' ')[0])} is moving along nicely. 🎉</p>`}
+            </div>` : `
+            <p class="muted" style="margin:8px 0 4px;font-size:.85rem">${(() => {
+              const nm = esc(k.name.split(' ')[0]);
+              const acc = k.weekAccuracy;
+              if (acc == null) return `Start a session to see where ${nm} stands.`;
+              if (acc >= 85) return `No trouble spots this week — ${nm} is doing great. 🎉`;
+              if (acc >= 70) return `${nm} is making steady progress — a little daily practice will push accuracy higher.`;
+              return `${nm} is still building accuracy — short daily sessions will help it climb.`;
+            })()}</p>`}
           <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn green small snap-start" data-kid="${k.id}">▶ Start</button>
             <button class="btn small snap-report" data-kid="${k.id}">📊 Full report</button>
@@ -4694,7 +3218,7 @@ route('parent', async () => {
     }).join('')}</div>`;
     box.querySelectorAll('.snap-start').forEach(b => b.onclick = () => enterKid(Number(b.dataset.kid)));
     box.querySelectorAll('.snap-report').forEach(b => b.onclick = () => { location.hash = '#report/' + b.dataset.kid; });
-    box.querySelectorAll('.snap-focus').forEach(b => b.onclick = () => enterKid(Number(b.dataset.kid), '#lesson/' + b.dataset.subject + '/' + b.dataset.skill, true));
+    box.querySelectorAll('.snap-focus').forEach(b => b.onclick = () => enterKid(Number(b.dataset.kid), '#lesson/' + b.dataset.subject + '/' + b.dataset.skill));
   }).catch(() => {});
 
   // Monthly growth recap — the longer arc that shows the program is paying off over time.
@@ -4777,7 +3301,7 @@ route('standards', async () => {
       </div>
       <p style="max-width:660px;margin:14px auto 2px;font-weight:600">Coverage spans <b>every Common Core math and ELA domain</b>, <b>all four NGSS science disciplines</b> — including Engineering Design — and <b>all five ACTFL goal areas</b> (the "5 C's"), Kindergarten through Grade 12.</p>
       <p class="muted" style="max-width:660px;margin:8px auto 2px">Every skill includes a short <b>guided lesson that teaches the concept before any practice</b>, and the full curriculum is searchable — so a student or teacher can look up exactly what the class is working on and get step-by-step supplemental support in seconds.</p>
-      <p class="muted" style="font-size:.8rem;margin-top:12px">Frameworks: ${Object.values(fw).map(f => esc(f.short)).join(' · ')}. Common Core — or state standards built closely on it — is used across most of the country; NGSS is the most widely adopted next-generation science standard, and ACTFL sets the national standard for world-language learning. Standard codes are shown here for educators — students simply see the lesson and practice.</p>
+      <p class="muted" style="font-size:.8rem;margin-top:12px">Frameworks: ${Object.values(fw).map(f => esc(f.short)).join(' · ')}. Common Core — or state standards built on it, as in New York and Nevada — is used across most of the country; NGSS is the most widely adopted next-generation science standard, and ACTFL sets the national standard for world-language learning. Standard codes are shown here for educators — students simply see the lesson and practice.</p>
       <div style="margin-top:12px"><button class="btn ghost small" style="color:var(--brand);border-color:var(--brand)" onclick="window.print()">🖨️ Print / save this map</button></div>
     </div>
     ${subjSections}
@@ -4809,11 +3333,7 @@ route('careers', async (kidId) => {
     for (const [sub, w] of Object.entries(f.sig || {})) { num += (strength[sub] || 0) * w; den += w; }
     return { f, match: den ? num / den : 0 };
   });
-  // PRODUCT-110: surface "great fits" only with the SAME strong-evidence gate the parent report
-  // uses (careerInsights.enoughForFit — 2+ subjects, 6+ practiced skills, grade 6+, a real lead).
-  // Below that, everything stays browsable/exploratory with no fit prediction from a thin sample.
-  const canFit = !!(career && career.enoughForFit);
-  const top = (haveStrength && canFit) ? scored.slice().sort((a, b) => b.match - a.match).filter(x => x.match >= 0.4).slice(0, 4) : [];
+  const top = haveStrength ? scored.slice().sort((a, b) => b.match - a.match).filter(x => x.match >= 0.4).slice(0, 4) : [];
   const topIds = new Set(top.map(x => x.f.id));
 
   function fieldCard(f, matched) {
@@ -4835,7 +3355,7 @@ route('careers', async (kidId) => {
       <h3 style="margin:0 0 4px">✨ Great fits for ${esc(name.split(' ')[0])}</h3>
       <p class="muted" style="margin:0 0 12px;font-size:.9rem">Based on the strengths ${esc(name.split(' ')[0])} is showing on Gallop — a starting point to explore together, never a limit.</p>
       <div class="cx-grid">${top.map(x => fieldCard(x.f, true)).join('')}</div>
-    </div>` : (kidId && !top.length ? `<div class="card"><p class="muted" style="margin:0">As ${esc(name.split(' ')[0])} answers more questions across subjects, we'll highlight the fields that fit their strengths right here. For now, explore anything that looks interesting!</p></div>` : '')}
+    </div>` : (kidId && !haveStrength ? `<div class="card"><p class="muted" style="margin:0">As ${esc(name.split(' ')[0])} answers more questions, we'll highlight the fields that fit their strengths right here. For now, explore anything that looks interesting!</p></div>` : '')}
     <div class="card">
       <h3 style="margin:0 0 12px">${top.length ? 'Explore every field' : 'Explore the fields'}</h3>
       <div class="cx-grid">${FIELDS.filter(f => !topIds.has(f.id)).map(f => fieldCard(f, false)).join('')}</div>
@@ -4925,25 +3445,6 @@ route('help', async () => {
     el.scrollIntoView({ behavior: 'smooth', block: 'end' });
     return el;
   };
-  // Instant self-service answers for the most common questions — especially cancellation, which
-  // should never route to "a person will email you" when the parent can do it themselves in one
-  // click (PP-108). Returns a ready answer, or null to fall through to the assistant.
-  function cannedAnswer(q) {
-    const s = q.toLowerCase();
-    if (/cancel|unsubscrib|stop (my )?(sub|billing|payment)|end my subscription|turn off (auto|renew)/.test(s)) {
-      return "You can cancel yourself anytime — no need to email us:\n\n1. Go to your Dashboard → Account tab → Manage Billing\n2. Choose Cancel subscription\n\nAccess continues through the period you've already paid for, and all your children's progress, streaks, badges and certificates stay saved. Monthly plans cancel anytime; an annual plan is a non-refundable 12-month term, but you can switch off its auto-renewal there so it won't renew.\n\nIf the billing page doesn't load, email support@learnwithgallop.com and we'll take care of it.";
-    }
-    if (/how much|cost|price|pricing|per month|a month/.test(s)) {
-      return "Solo is $34/month (or $348/year) for one child, and Family is $54/month ($552/year) for up to four. Both include all four subjects, the guided lessons, the games, and the parent reports. Your first 7 days are free and need no credit card.";
-    }
-    if (/log ?in|sign ?in|how does my (child|kid) (log|get)/.test(s)) {
-      return "Kids log in from any device: open the site, tap Child Login, enter your parent email, then they pick their avatar and type their 4-digit PIN. Progress syncs everywhere automatically.";
-    }
-    if (/what grade|what subject|which subject|ages|grade level|cover/.test(s)) {
-      return "Gallop covers Kindergarten through Grade 12 in Math, English, Science, and Spanish. Each child is placed at their real level in each subject, so they can be ahead in one and steady in another.";
-    }
-    return null;
-  }
   let busy = false;
   async function ask(q) {
     if (busy || !q.trim()) return;
@@ -4951,8 +3452,6 @@ route('help', async () => {
     const sg = $('#help-suggest'); if (sg) sg.style.display = 'none';
     add('you', q);
     input.value = '';
-    const canned = cannedAnswer(q);
-    if (canned) { add('bot', canned); busy = false; input.focus(); return; }
     const thinking = add('bot', '…');
     try {
       const r = await api('/support/ask', { method: 'POST', body: { question: q, name: prefillName, email: (emailEl.value || '').trim() } });
@@ -5128,10 +3627,6 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
 // ======================= boot =======================
 (async function boot() {
   try { await refreshMe(); } catch (e) { /* offline-ish */ }
-  // Analytics gate (COPPA): load marketing tags only for public/parent visitors, NEVER in a child
-  // session. Child entry forces a full reload, so a kid session always boots here as role 'kid'
-  // and GTM is never injected for the learner experience.
-  try { if (!(State.me && State.me.role === 'kid') && window.__gallopInitAnalytics) window.__gallopInitAnalytics(); } catch (e) {}
   // preload speech voices (some browsers lazy-load)
   if ('speechSynthesis' in window) speechSynthesis.getVoices();
   // installable app (iPad home screen, Chromebook, etc.) + nudge to refresh when a new
@@ -5144,22 +3639,20 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
         nw.addEventListener('statechange', () => {
           if (nw.state === 'installed' && navigator.serviceWorker.controller) {
             const showToast = () => {
-              if (document.querySelector('.update-bar')) return;
               const t = document.createElement('div');
-              t.className = 'update-bar';
-              t.innerHTML = `<span>✨ A new version is ready.</span> <button class="ub-refresh">Refresh</button> <button class="ub-later" aria-label="Dismiss">Later</button>`;
-              t.querySelector('.ub-refresh').onclick = () => location.reload();
-              t.querySelector('.ub-later').onclick = () => t.remove();
+              t.className = 'gallop-toast show';
+              t.style.cursor = 'pointer';
+              t.textContent = '✨ A new version is ready — tap to refresh';
+              t.onclick = () => location.reload();
+              document.querySelectorAll('.gallop-toast').forEach(x => x.remove());
               document.body.appendChild(t);
             };
-            // NEVER interrupt a child mid-activity (P2.3 / GAME-P1.6). Defer while inside any
-            // lesson, teaching flow, placement, exam, game, or any interactive kid zone, AND while
-            // any modal/celebration overlay is open — wait until they land on a safe screen. The
-            // prompt is a dismissible bottom bar, not an overlay, so it can never cover a puzzle.
-            const inActivity = () => /^#\/?(lesson|teach|placement|exam|play|game|avatar|snacks|buddies|trophies)/.test(location.hash || '')
-              || !!document.querySelector('.celebrate, .lesson-wrap, .q-card, .mm-career, .frq-parts');
+            // Don't interrupt a child mid-lesson (tester finding #8). If they're inside a
+            // lesson, teaching flow, placement, exam, or game, wait until they navigate out
+            // before offering the refresh, so progress is never disrupted.
+            const inActivity = () => /^#\/?(lesson|teach|placement|exam|play|game)/.test(location.hash || '');
             if (inActivity()) {
-              const onLeave = () => { if (!inActivity()) { window.removeEventListener('hashchange', onLeave); setTimeout(showToast, 400); } };
+              const onLeave = () => { if (!inActivity()) { window.removeEventListener('hashchange', onLeave); showToast(); } };
               window.addEventListener('hashchange', onLeave);
             } else {
               showToast();
