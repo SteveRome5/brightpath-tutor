@@ -254,7 +254,19 @@ const FRQ_BANKS = {
   'ap-eng-lang': [
     {
       id: 'apenglang-frq-rhetorical', topic: 'Rhetorical Analysis', difficulty: 'AP', calculator: false, essay: true,
-      prompt: 'RHETORICAL ANALYSIS. Choose a speech or non-fiction passage you know well (e.g., a famous address, an op-ed, a letter). In a well-organized essay, analyze the rhetorical choices the writer makes to achieve their purpose. After drafting, score yourself against the 6-point AP rubric below.',
+      prompt: `RHETORICAL ANALYSIS · suggested time ~40 min.
+
+On March 23, 1775, Patrick Henry rose before the Virginia Convention to urge the American colonies to arm for war with Britain. Read the excerpt from his speech below. Then write a well-organized essay that analyzes the rhetorical choices Henry makes to move his audience to act.
+
+——— PASSAGE ———
+"They tell us, sir, that we are weak — unable to cope with so formidable an adversary. But when shall we be stronger? Will it be the next week, or the next year? ... Shall we gather strength by irresolution and inaction? ...
+
+Sir, we are not weak, if we make a proper use of the means which the God of nature hath placed in our power. Three millions of people, armed in the holy cause of liberty, and in such a country as that which we possess, are invincible by any force which our enemy can send against us. ...
+
+Gentlemen may cry, Peace, Peace — but there is no peace. The war is actually begun! ... Is life so dear, or peace so sweet, as to be purchased at the price of chains and slavery? Forbid it, Almighty God! I know not what course others may take; but as for me, give me liberty, or give me death!"
+——— END PASSAGE ———
+
+Work the essay on paper or in the boxes below, then score yourself honestly against the 6-point AP rubric. (Public-domain practice passage — AP-style skill practice, not an official College Board exam.)`,
       parts: [
         { label: 'Thesis (0–1)', ask: 'Do you have a defensible thesis that analyzes the writer’s rhetorical choices (not just restating the prompt)?', points: 1,
           solution: 'Full point: a clear, defensible thesis identifying the writer’s purpose AND how rhetorical choices serve it. No point: a summary, a restatement of the prompt, or only description with no claim.' },
@@ -275,6 +287,37 @@ const FRQ_BANKS = {
         { label: 'Sophistication (0–1)', ask: 'Does the essay demonstrate sophistication of thought or a compelling command of style?', points: 1,
           solution: 'Full point: engages the complexity of the issue (e.g., tension between thinking and employability), situates it in a broader context, or sustains a vivid, persuasive style throughout.' }
       ], maxPoints: 6, note: 'A strong essay often QUALIFIES the claim rather than fully agreeing/disagreeing — that complexity supports the sophistication point.'
+    },
+    {
+      id: 'apenglang-frq-synthesis', topic: 'Synthesis (Source-Based Argument)', difficulty: 'AP', calculator: false, essay: true,
+      prompt: `SYNTHESIS · suggested time ~15 min reading + 40 min writing.
+
+Many U.S. high schools begin the day before 8:00 a.m. Some communities have proposed starting later for teenagers. Read the six sources below, then write an essay that develops your own position on whether high schools should start the school day later, SYNTHESIZING material from AT LEAST THREE of the sources for support. Cite them as Source A, Source B, etc. Do not merely summarize the sources — use them to build your argument.
+
+——— SOURCE PACKET (written for this practice set) ———
+
+Source A (Sleep science): During puberty the brain releases melatonin later at night, so most teenagers cannot easily fall asleep before about 11 p.m. Because adolescents need roughly 8–10 hours of sleep, a 7:30 a.m. start leaves the typical teen chronically short on rest — no matter how early they are told to go to bed.
+
+Source B (Superintendent's memo): After our district moved high-school start times from 7:25 to 8:35 a.m., we tracked two years of data. First-period tardies fell sharply and counselors reported far fewer students asleep in class. The change meant rerouting buses and trimming one passing period, but families adjusted within a semester.
+
+Source C (Data — attendance & grades): A summary table for three high schools that delayed their start shows, in the following year: average daily attendance rising from about 92% to 95%; first-period D and F grades falling from 14% to 9%; and fewer early-morning crashes involving teen drivers. A nearby school that kept its early start showed no comparable gains.
+
+Source D (Transportation director): Our buses run three tiered routes on one set of drivers. A later high-school start means either elementary students start earlier — six-year-olds at dark bus stops — or the district buys and staffs more buses. After-school jobs, athletics, and sibling childcare all shift too. The science may be sound, but the logistics are not free.
+
+Source E (Student op-ed): I am not lazy. I am up at 6 a.m., on the bus in the dark, and asked to analyze poetry before my brain is awake. By the time I feel alert, the day is nearly over. A later start would not buy me more screen time; it would give me the sleep my body is actually asking for.
+
+Source F (Pediatric association statement): We recommend that middle and high schools begin no earlier than 8:30 a.m. Insufficient adolescent sleep is associated with weaker academic performance, higher rates of anxiety and depression, and more motor-vehicle crashes. Aligning school hours with adolescent sleep biology is a low-cost public-health measure.
+——— END SOURCES ———
+
+Write your essay, then self-score with the rubric. (Original practice sources — AP-style skill practice, not an official College Board exam.)`,
+      parts: [
+        { label: 'Thesis (0–1)', ask: 'Do you state a defensible position on whether schools should start later (not just restating the prompt)?', points: 1,
+          solution: 'Full point: a clear, defensible thesis taking a position (yes, no, or a qualified stance). No point: no position, or only announcing the topic.' },
+        { label: 'Evidence & Commentary (0–4)', ask: 'Score your body: do you integrate at least THREE sources as evidence, with commentary that builds your own line of reasoning?', points: 4,
+          solution: '4 = consistently uses and comments on ≥3 sources to develop a clear line of reasoning (not a source-by-source summary). 3 = uses sources with some explanation, uneven. 2 = mostly summarizes sources with little argument of your own. 1 = minimal support or fewer than the required sources. Note: citing fewer than three sources caps this row at 2. Strong essays use a counter-source (e.g., Source D) and answer it.' },
+        { label: 'Sophistication (0–1)', ask: 'Does the essay show sophistication — addressing tension in the issue, broader significance, or a controlled persuasive style?', points: 1,
+          solution: 'Full point (rare): engages the complexity (e.g., weighs the logistics in Source D against the health case in A/F), situates the question in a broader context, or sustains a vivid, controlled style throughout. Not for one clever sentence.' }
+      ], maxPoints: 6, note: 'AP Lang Synthesis uses the 6-point rubric. Cite at least THREE sources by letter and SYNTHESIZE them into YOUR argument — do not summarize source by source.'
     }
   ],
 
@@ -282,7 +325,30 @@ const FRQ_BANKS = {
   'ap-eng-lit': [
     {
       id: 'apenglit-frq-poetry', topic: 'Poetry Analysis', difficulty: 'AP', calculator: false, essay: true,
-      prompt: 'POETRY ANALYSIS. Select a poem you know well. In a well-written essay, analyze how the poet uses literary techniques (e.g., imagery, structure, diction, tone, figurative language) to convey the poem’s meaning or the speaker’s complex attitude. Self-score with the AP Lit rubric.',
+      prompt: `POETRY ANALYSIS · suggested time ~40 min.
+
+Read the following poem carefully. Then write a well-organized essay analyzing how Shelley uses literary techniques — imagery, structure, diction, irony, tone — to convey a complex attitude toward power and time.
+
+——— POEM ———
+"Ozymandias" (1818) — Percy Bysshe Shelley
+
+I met a traveller from an antique land,
+Who said—"Two vast and trunkless legs of stone
+Stand in the desert. ... Near them, on the sand,
+Half sunk a shattered visage lies, whose frown,
+And wrinkled lip, and sneer of cold command,
+Tell that its sculptor well those passions read
+Which yet survive, stamped on these lifeless things,
+The hand that mocked them, and the heart that fed;
+And on the pedestal, these words appear:
+My name is Ozymandias, King of Kings;
+Look on my Works, ye Mighty, and despair!
+Nothing beside remains. Round the decay
+Of that colossal Wreck, boundless and bare
+The lone and level sands stretch far away."
+——— END POEM ———
+
+Write your essay, then self-score with the AP Lit rubric. (Public-domain poem — AP-style skill practice, not an official College Board exam.)`,
       parts: [
         { label: 'Thesis (0–1)', ask: 'Do you have a defensible thesis about how the poem creates meaning?', points: 1,
           solution: 'Full point: a defensible interpretive claim about meaning/attitude AND the means the poet uses. No point: summary of the poem or restatement of the prompt.' },
@@ -294,7 +360,21 @@ const FRQ_BANKS = {
     },
     {
       id: 'apenglit-frq-prose', topic: 'Prose Fiction Analysis', difficulty: 'AP', calculator: false, essay: true,
-      prompt: 'PROSE FICTION. Choose a novel or short story of literary merit. In a well-organized essay, analyze how the author uses characterization and one other technique to develop a central theme. Self-score with the rubric.',
+      prompt: `PROSE FICTION ANALYSIS · suggested time ~40 min.
+
+The passage below is from Kate Chopin's short story "The Story of an Hour" (1894). Louise Mallard, who has a heart condition, has just been told that her husband was killed in a train accident. Read the passage carefully. Then write a well-organized essay analyzing how Chopin uses characterization and one other technique (such as setting, irony, or point of view) to develop a complex theme.
+
+——— PASSAGE ———
+She did not hear the story as many women have heard the same, with a paralyzed inability to accept its significance. She wept at once, with sudden, wild abandonment, in her sister's arms. When the storm of grief had spent itself she went away to her room alone. She would have no one follow her.
+
+There stood, facing the open window, a comfortable, roomy armchair. Into this she sank, pressed down by a physical exhaustion that haunted her body and seemed to reach into her soul.
+
+She was young, with a fair, calm face, whose lines bespoke repression and even a certain strength. But now there was a dull stare in her eyes. ... She was beginning to recognize this thing that was approaching to possess her, and she was striving to beat it back with her will.
+
+When she abandoned herself, a little whispered word escaped her slightly parted lips. She said it over and over under her breath: "free, free, free!" ... She saw beyond that bitter moment a long procession of years to come that would belong to her absolutely.
+——— END PASSAGE ———
+
+Write your essay, then self-score with the rubric. (Public-domain passage — AP-style skill practice, not an official College Board exam.)`,
       parts: [
         { label: 'Thesis (0–1)', ask: 'Is there a defensible thesis connecting technique to theme?', points: 1,
           solution: 'Full point: a defensible claim about how characterization (and another technique) develops a theme. No point: plot summary or prompt restatement.' },
