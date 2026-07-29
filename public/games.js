@@ -173,7 +173,7 @@
         </div>
         <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#home'">← Subjects</button></div>
       </div>
-      <p class="game-hint" style="margin-bottom:14px">Each game costs 1 🎟️ — every 5 correct answers in your lessons earns a new one. Learn to play! 💪</p>
+      <p class="game-hint" style="margin-bottom:14px">Most games cost 1 🎟️ — every 5 correct answers in your lessons earns one. 🎨 Doodle Barn is always free to draw!</p>
       <div class="subject-grid">
         ${games.map(g => `
           <div class="subject-card game-card" data-g="${g.id}">
@@ -182,7 +182,7 @@
             <h3>${g.name}</h3>
             <div class="lvl">${esc(g.desc)}</div>
             <div class="lvl" style="margin-top:6px;font-size:.85rem">🏅 Best: ${(s.best[g.id] || {}).best || 0} · ${(s.best[g.id] || {}).plays || 0} finished${((s.best[g.id] || {}).attempts || 0) > ((s.best[g.id] || {}).plays || 0) ? ` · ${(s.best[g.id] || {}).attempts} tries` : ''}</div>
-            <button class="btn sun small" style="margin-top:12px">Play (1 🎟️) →</button>
+            <button class="btn sun small" style="margin-top:12px">${g.id === 'art' ? '🎨 Draw! (Free)' : 'Play (1 🎟️)'} →</button>
           </div>`).join('')}
       </div>
     </div>`);
@@ -194,6 +194,14 @@
   route('game', async (which) => {
     if (needKid()) return;
     await refreshMe();
+    // Doodle Barn is a free, always-available creative tool — no play token, no "earn it" gate,
+    // and it does NOT draw down the daily game-time cap, so a child can draw whenever they like.
+    // The parent's master Games on/off switch is still honored as a kill switch.
+    if (which === 'art') {
+      if (!gamesOn()) { location.hash = '#play'; return; }
+      startArt();
+      return;
+    }
     if (!gamesOn() || !gamesUnlocked()) { location.hash = '#play'; return; }  // respect the parent games toggle/gate/time-cap
     startGameClock();   // begin accruing game time toward the daily cap
     // Stable Street is a persistent, level-based career: opening the hub is free (progress
