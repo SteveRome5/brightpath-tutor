@@ -173,7 +173,7 @@
         </div>
         <div style="margin-left:auto"><button class="btn ghost small" onclick="location.hash='#home'">← Subjects</button></div>
       </div>
-      <p class="game-hint" style="margin-bottom:14px">Most games cost 1 🎟️ — every 5 correct answers in your lessons earns one. 🎨 Doodle Barn is always free to draw!</p>
+      <p class="game-hint" style="margin-bottom:14px">Most games cost 1 🎟️ — every 5 correct answers in your lessons earns one. 🎨 Doodle Barn &amp; 🐝 Spelling Bee are always free!</p>
       <div class="subject-grid">
         ${games.map(g => `
           <div class="subject-card game-card" data-g="${g.id}">
@@ -182,7 +182,7 @@
             <h3>${g.name}</h3>
             <div class="lvl">${esc(g.desc)}</div>
             <div class="lvl" style="margin-top:6px;font-size:.85rem">🏅 Best: ${(s.best[g.id] || {}).best || 0} · ${(s.best[g.id] || {}).plays || 0} finished${((s.best[g.id] || {}).attempts || 0) > ((s.best[g.id] || {}).plays || 0) ? ` · ${(s.best[g.id] || {}).attempts} tries` : ''}</div>
-            <button class="btn sun small" style="margin-top:12px">${g.id === 'art' ? '🎨 Draw! (Free)' : 'Play (1 🎟️)'} →</button>
+            <button class="btn sun small" style="margin-top:12px">${g.id === 'art' ? '🎨 Draw! (Free)' : g.id === 'spellingbee' ? '🐝 Spell! (Free)' : 'Play (1 🎟️)'} →</button>
           </div>`).join('')}
       </div>
     </div>`);
@@ -194,12 +194,13 @@
   route('game', async (which) => {
     if (needKid()) return;
     await refreshMe();
-    // Doodle Barn is a free, always-available creative tool — no play token, no "earn it" gate,
-    // and it does NOT draw down the daily game-time cap, so a child can draw whenever they like.
-    // The parent's master Games on/off switch is still honored as a kill switch.
-    if (which === 'art') {
+    // Free, always-available educational tools — no play token, no "earn it" gate, and they do
+    // NOT draw down the daily game-time cap: Doodle Barn (drawing) and Spelling Bee (spelling
+    // practice). The parent's master Games on/off switch is still honored as a kill switch.
+    const FREE_GAMES = { art: startArt, spellingbee: startSpellingBee };
+    if (FREE_GAMES[which]) {
       if (!gamesOn()) { location.hash = '#play'; return; }
-      startArt();
+      FREE_GAMES[which]();
       return;
     }
     if (!gamesOn() || !gamesUnlocked()) { location.hash = '#play'; return; }  // respect the parent games toggle/gate/time-cap
@@ -952,7 +953,7 @@
   function startSpellingBee() {
     const grade = State.me.kid.grade || 0;
     const PER_ROUND = 5;
-    let score = 0, streak = 0, bestStreak = 0, bees = 3, wordNum = 0, round = 1, spelled = 0;
+    let score = 0, streak = 0, bestStreak = 0, bees = 3, wordNum = 0, round = 1, spelled = 0, inBanner = false;
     let tierIdx = 0;               // current difficulty tier
     let cur = null;                // current word object
     const usedByTier = { sprout: new Set(), speller: new Set(), ace: new Set(), champion: new Set() };
@@ -1009,13 +1010,18 @@
 
     function next() {
       if (over) return;
-      // New round every PER_ROUND words: escalate difficulty (capped at champion).
-      if (wordNum > 0 && wordNum % PER_ROUND === 0) {
+      // New round every PER_ROUND words: escalate difficulty (capped at champion). Show the
+      // round banner exactly ONCE per boundary — the `inBanner` guard stops the banner's own
+      // "Next word" from re-entering this branch (which used to bump the round every click and
+      // run the counter away without ever showing a word).
+      if (wordNum > 0 && wordNum % PER_ROUND === 0 && !inBanner) {
+        inBanner = true;
         round++;
         if (tierIdx < SB_TIERS.length - 1) tierIdx++;
         roundBanner();
         return;
       }
+      inBanner = false;
       cur = pickWord(tierIdx);
       // If this tier is exhausted, climb to the next; if the very top is dry, that's a championship win.
       while (!cur && tierIdx < SB_TIERS.length - 1) { tierIdx++; cur = pickWord(tierIdx); }
