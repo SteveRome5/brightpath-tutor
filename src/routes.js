@@ -412,8 +412,12 @@ router.post('/kids', auth.requireParent, (req, res) => {
   const count = db.prepare('SELECT COUNT(*) AS n FROM kids WHERE parent_id=?').get(req.parent.id).n;
   const plan = billing.PLANS[req.parent.sub_plan] || billing.PLANS.family;
   if (count >= plan.kids) return res.status(400).json({ error: `Your ${plan.name} plan supports up to ${plan.kids} learner(s).` });
-  const info = db.prepare('INSERT INTO kids (parent_id, name, grade, pin, avatar, calendar_mode, consent_at) VALUES (?,?,?,?,?,?, datetime(\'now\'))')
-    .run(req.parent.id, cleanName, Math.max(0, Math.min(12, Math.round(Number(grade)))), auth.hashPin(String(pin)), AVATARS.includes(avatar) ? avatar : 'fox', calendar_mode || 'traditional');
+  const gradeNum = Math.max(0, Math.min(12, Math.round(Number(grade))));
+  // PRODUCT-105: age-aware default weekly goal (stored as lessons/week; x10 ≈ answers) so a
+  // kindergartner isn't defaulted to 120 answers/week like a high-schooler. Parents can change it.
+  const defaultGoal = gradeNum <= 2 ? 6 : gradeNum <= 5 ? 9 : gradeNum <= 8 ? 12 : 15;
+  const info = db.prepare('INSERT INTO kids (parent_id, name, grade, pin, avatar, calendar_mode, weekly_goal, consent_at) VALUES (?,?,?,?,?,?,?, datetime(\'now\'))')
+    .run(req.parent.id, cleanName, gradeNum, auth.hashPin(String(pin)), AVATARS.includes(avatar) ? avatar : 'fox', calendar_mode || 'traditional', defaultGoal);
   // Record the parent's affirmative consent (auditable, versioned). If they've paid, the
   // card transaction on file already stands as the stronger verifiable consent.
   db.recordConsent({ parentId: req.parent.id, parentEmail: req.parent.email, kidId: info.lastInsertRowid, method: 'checkbox', detail: 'learner-creation' });

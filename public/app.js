@@ -3231,7 +3231,13 @@ route('weekly', async (kidId) => {
       <text x="${i * 64 + 32}" y="86" font-size="10" text-anchor="middle" fill="#7d8496">${dn}</text>
       <text x="${i * 64 + 32}" y="${66 - h}" font-size="10" text-anchor="middle" fill="#16213a" font-weight="700">${x.answers || ''}</text></g>`;
   }).join('');
-  const stars = total >= 100 ? '🌟🌟🌟' : total >= 50 ? '🌟🌟' : total >= 15 ? '🌟' : '';
+  // PRODUCT-106: stars reward the child's OWN weekly plan, consistency, and quality — not raw
+  // volume (which unfairly favored older/faster kids). One star each for: learned on 3+ days,
+  // met their weekly goal, and 80%+ accuracy on a meaningful sample.
+  const goalAnswers = Math.max(10, ((k && k.weekly_goal) || 12) * 10);
+  const starWins = [activeDays >= 3, total >= goalAnswers, total >= 10 && acc >= 80];
+  const starCount = starWins.filter(Boolean).length;
+  const stars = '🌟'.repeat(starCount);
   app().innerHTML = topbar(`<div class="container" style="max-width:820px">
     <div class="cert-frame">
       <div class="cert-inner" style="padding:30px 34px 26px;text-align:left">
@@ -3249,12 +3255,13 @@ route('weekly', async (kidId) => {
           <div class="sstat"><div class="n">${activeDays}/7</div>days active</div>
           ${best && State.me.role === 'parent' ? `<div class="sstat"><div class="n">${best.letter}</div>${esc(best.label)}</div>` : ''}
         </div>
+        <p class="muted" style="font-size:.76rem;margin:2px 0 0">🌟 earned for: ${starWins[0] ? '✅' : '⬜️'} 3+ active days · ${starWins[1] ? '✅' : '⬜️'} weekly goal met · ${starWins[2] ? '✅' : '⬜️'} 80%+ accuracy</p>
         <svg viewBox="0 0 458 92" style="width:100%;height:auto;margin:8px 0" role="img" aria-label="Weekly activity chart: ${total} questions over ${activeDays} active day${activeDays === 1 ? '' : 's'}, ${acc}% correct.">${bars}</svg>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
           <div><b style="color:#1f8a5f">💪 Shining at</b><br><span class="muted" style="font-size:.9rem">${strengthList.length ? strengthList.map(esc).join('<br>') : 'Building the basics, stars incoming!'}</span></div>
           <div><b style="color:#C9A84C">🎯 Working on</b><br><span class="muted" style="font-size:.9rem">${focusList.length ? focusList.map(esc).join('<br>') : 'No single trouble spot flagged yet — more practice will sharpen the picture.'}</span></div>
         </div>
-        <p style="margin-top:16px;font-size:.85rem;color:#7d8496;border-top:1px dashed #ddd;padding-top:10px">${total >= 100 ? `Outstanding week, ${esc(k.name)}, over 100 questions! The gallop is real. 🐎` : total >= 50 ? `Great consistency, ${esc(k.name)}, keep that streak alive! 🐎` : total > 0 ? `Every question counts, ${esc(k.name)}, let's pick up the pace next week! 🐎` : `A fresh week awaits, first quest starts today! 🐎`}</p>
+        <p style="margin-top:16px;font-size:.85rem;color:#7d8496;border-top:1px dashed #ddd;padding-top:10px">${total >= goalAnswers ? `Goal smashed this week, ${esc(k.name)} — ${total} questions across ${activeDays} day${activeDays === 1 ? '' : 's'}! 🐎` : activeDays >= 3 ? `Lovely consistency, ${esc(k.name)} — ${activeDays} days of learning. Keep that streak alive! 🐎` : total > 0 ? `A good start, ${esc(k.name)} — a few more days next week and you'll reach your goal! 🐎` : `A fresh week awaits — the first quest starts today! 🐎`}</p>
       </div>
     </div>
     <div class="center no-print" style="margin-top:16px">
