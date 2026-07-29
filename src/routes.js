@@ -598,7 +598,7 @@ router.post('/learn/:kidId/placement/:subject', auth.requireKid, auth.requireAct
   const answerIdx = question.choices.indexOf(question.answer);
   res.json({
     done: false, probeGrade: result.probeGrade, progress: history.length,
-    question: { prompt: question.prompt, choices: question.choices, voice: question.voice, passage: question.passage || null, answerIndex: answerIdx, skillName: question.skillName }
+    question: { prompt: question.prompt, choices: question.choices, voice: question.voice, passage: question.passage || null, clock: question.clock || null, answerIndex: answerIdx, skillName: question.skillName }
   });
 });
 
@@ -628,6 +628,7 @@ router.get('/learn/:kidId/next/:subject', auth.requireKid, auth.requireActiveSub
       prompt: qn.prompt, choices: qn.choices, voice: qn.voice, hint: qn.hint, explain: qn.explain,
       whyWrong: qn.whyWrong || null,
       passage: qn.passage || null,
+      clock: qn.clock || null,
       answerIndex: answerIdx, skillId: qn.skillId, skillName: qn.skillName, difficulty: qn.difficulty
     }
   });
