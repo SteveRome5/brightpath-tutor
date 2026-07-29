@@ -1170,7 +1170,8 @@ const newsletterLimiter = rateLimit({ windowMs: 15 * 60000, max: 10, key: 'newsl
 router.post('/newsletter', newsletterLimiter, (req, res) => {
   const email = String((req.body || {}).email || '').toLowerCase().trim();
   if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'That email doesn\'t look right — double-check it?' });
-  try { db.prepare('INSERT OR IGNORE INTO newsletter_subs (email, source) VALUES (?, ?)').run(email, 'landing'); } catch (e) {}
+  const src = (req.body || {}).source === 'signup' ? 'signup' : 'landing';
+  try { db.prepare('INSERT OR IGNORE INTO newsletter_subs (email, source) VALUES (?, ?)').run(email, src); } catch (e) {}
   res.json({ ok: true });
 });
 
