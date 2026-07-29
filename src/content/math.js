@@ -146,11 +146,18 @@ const skills = [
       const h = rint(1, 12);
       const half = d > 0.5 && Math.random() > 0.5;
       const ans = half ? `${h}:30` : `${h}:00`;
+      const nextH = h === 12 ? 1 : h + 1;
+      // At half past, the hour (little) hand sits BETWEEN the two numbers, not on one —
+      // saying "little hand: 8" for 8:30 is wrong and confuses kids learning to read a clock.
+      const prompt = half
+        ? `Little hand: between ${h} and ${nextH}.\nBig hand: 6.\nWhat time is it? 🕐`
+        : `Little hand: on the ${h}.\nBig hand: 12.\nWhat time is it? 🕐`;
       return q({
-        prompt: `Little hand: ${h}.\nBig hand: ${half ? '6' : '12'}.\nWhat time is it? 🕐`,
+        prompt,
+        clock: { h, m: half ? 30 : 0 },
         choices: textChoices(ans, [`${h}:00`, `${h}:30`, `${(h % 12) + 1}:00`, `${(h % 12) + 1}:30`, `${h}:15`]),
         answer: ans,
-        hint: 'Big hand at 12 = o’clock. Big hand at 6 = thirty.',
+        hint: 'The big hand at 12 is o’clock. The big hand at 6 is thirty (half past).',
         explain: `That clock says ${ans}. Popcorn time! 🍿`
       });
     }

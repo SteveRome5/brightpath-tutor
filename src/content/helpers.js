@@ -72,6 +72,7 @@ function q(o) {
     whyWrong: o.whyWrong || null,
     voice: o.voice || o.prompt.replace(/[×÷]/g, m => (m === '×' ? ' times ' : ' divided by ')),
     passage: o.passage || null,
+    clock: o.clock || null,
     art: o.art || null
   };
 }
