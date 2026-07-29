@@ -1,6 +1,6 @@
 // BrightPath Math, K-12 skill tree with real-life question generators
 // Each skill: { id, name, grade, gen(d) } where d = difficulty 0..1
-const { rint, pick, shuffle, numChoices, textChoices, q, gcd, reduceFraction, isReduced, KID_NAMES, FOODS, TOYS, PLACES } = require('./helpers');
+const { rint, pick, shuffle, numChoices, textChoices, q, gcd, reduceFraction, isReduced, KID_NAMES, FOODS, TOYS, PLACES, sup } = require('./helpers');
 
 // Build 4 guaranteed-distinct "<n>π" answer choices around a correct coefficient.
 function piDistractors(coeff) {
@@ -784,29 +784,29 @@ const skills = [
         // Product rule: a^m × a^n = a^(m+n)
         const base = pick([2, 3, 5, 10, 'x']), m1 = rint(2, 5), n1 = rint(2, 5);
         return q({
-          prompt: `Simplify using exponent rules: ${base}^${m1} × ${base}^${n1}`,
-          choices: textChoices(`${base}^${m1 + n1}`, [`${base}^${m1 * n1}`, `${base}^${Math.abs(m1 - n1)}`, `${base}${base}^${m1 + n1}`, `${base}^${m1 + n1 + 1}`]),
-          answer: `${base}^${m1 + n1}`,
+          prompt: `Simplify using exponent rules: ${base}${sup(m1)} × ${base}${sup(n1)}`,
+          choices: textChoices(`${base}${sup(m1 + n1)}`, [`${base}${sup(m1 * n1)}`, `${base}${sup(Math.abs(m1 - n1))}`, `${base}${base}${sup(m1 + n1)}`, `${base}${sup(m1 + n1 + 1)}`]),
+          answer: `${base}${sup(m1 + n1)}`,
           hint: 'When multiplying like bases, ADD the exponents.',
-          explain: `${base}^${m1} × ${base}^${n1} = ${base}^(${m1}+${n1}) = ${base}^${m1 + n1}.`
+          explain: `${base}${sup(m1)} × ${base}${sup(n1)} = ${base}${sup(`${m1}+${n1}`)} = ${base}${sup(m1 + n1)}.`
         });
       }
       if (mode === 'quotient') {
         // Quotient rule: a^m ÷ a^n = a^(m−n), keep m>n
         const base = pick([2, 3, 5, 10, 'x']), n1 = rint(2, 4), m1 = n1 + rint(1, 4);
         return q({
-          prompt: `Simplify using exponent rules: ${base}^${m1} ÷ ${base}^${n1}`,
-          choices: textChoices(`${base}^${m1 - n1}`, [`${base}^${m1 + n1}`, `${base}^${m1 * n1}`, `${base}^${m1}`, `${base}^${m1 - n1 + 1}`]),
-          answer: `${base}^${m1 - n1}`,
+          prompt: `Simplify using exponent rules: ${base}${sup(m1)} ÷ ${base}${sup(n1)}`,
+          choices: textChoices(`${base}${sup(m1 - n1)}`, [`${base}${sup(m1 + n1)}`, `${base}${sup(m1 * n1)}`, `${base}${sup(m1)}`, `${base}${sup(m1 - n1 + 1)}`]),
+          answer: `${base}${sup(m1 - n1)}`,
           hint: 'When dividing like bases, SUBTRACT the exponents.',
-          explain: `${base}^${m1} ÷ ${base}^${n1} = ${base}^(${m1}−${n1}) = ${base}^${m1 - n1}.`
+          explain: `${base}${sup(m1)} ÷ ${base}${sup(n1)} = ${base}${sup(`${m1}−${n1}`)} = ${base}${sup(m1 - n1)}.`
         });
       }
       const base = pick([2, 3, 4, 5, 6, 7, 10]), e = rint(2, d > 0.5 ? 4 : 3);
       const ctx = pick([
-        `A video goes viral: each round, ${base} people each share it with ${base} new people. After ${e} rounds it reaches ${base}^${e} people. What is ${base}^${e}?`,
-        `A cell splits into ${base} every stage. After ${e} stages you have ${base}^${e} cells. What is ${base}^${e}?`,
-        `What is the value of ${base}^${e} (that is, ${base} raised to the power ${e})?`
+        `A video goes viral: each round, ${base} people each share it with ${base} new people. After ${e} rounds it reaches ${base}${sup(e)} people. What is ${base}${sup(e)}?`,
+        `A cell splits into ${base} every stage. After ${e} stages you have ${base}${sup(e)} cells. What is ${base}${sup(e)}?`,
+        `What is the value of ${base}${sup(e)} (that is, ${base} raised to the power ${e})?`
       ]);
       return q({
         prompt: ctx,
@@ -1018,8 +1018,8 @@ const skills = [
         prompt: ctx,
         choices: numChoices(ans, () => pick([ans, p * factor * n, ans / factor, p + factor * n, ans + p])),
         answer: ans,
-        hint: `Multiply the start by ${factor} once for each period: ${p} × ${factor}^${n}.`,
-        explain: `${p} × ${factor}^${n} = ${p} × ${Math.pow(factor, n)} = ${ans}.`
+        hint: `Multiply the start by ${factor} once for each period: ${p} × ${factor}${sup(n)}.`,
+        explain: `${p} × ${factor}${sup(n)} = ${p} × ${Math.pow(factor, n)} = ${ans}.`
       });
     }
   },
@@ -1031,14 +1031,14 @@ const skills = [
       const ctx = pick([
         `Earthquake and sound scales use logs. What is log base ${base} of ${val}?`,
         `What is log base ${base} of ${val}? (Ask: ${base} to what power equals ${val}?)`,
-        `Evaluate log_${base}(${val}).`
+        `Evaluate log base ${base} of ${val}.`
       ]);
       return q({
         prompt: ctx,
         choices: numChoices(e, () => pick([e, base, val / base, e + 1, e - 1])),
         answer: e,
         hint: `${base} to WHAT power gives ${val}?`,
-        explain: `${base}^${e} = ${val}, so log base ${base} of ${val} is ${e}.`
+        explain: `${base}${sup(e)} = ${val}, so log base ${base} of ${val} is ${e}.`
       });
     }
   },

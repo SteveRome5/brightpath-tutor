@@ -77,4 +77,8 @@ function q(o) {
   };
 }
 
-module.exports = { rint, pick, shuffle, numChoices, textChoices, q, gcd, reduceFraction, isReduced, KID_NAMES, FOODS, TOYS, PLACES };
+// Superscript an exponent for clean display (2^3 -> 2³, x^(n-1) -> xⁿ⁻¹). Falls back to
+// "^v" if any character has no superscript form, so nothing ever renders as a broken glyph.
+const _SUP = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻','−':'⁻','+':'⁺','(':'⁽',')':'⁾','n':'ⁿ','x':'ˣ','a':'ᵃ','b':'ᵇ','k':'ᵏ','m':'ᵐ','i':'ⁱ','j':'ʲ','t':'ᵗ'};
+function sup(v){ const s=String(v); let out=''; for(const ch of s){ if(!(ch in _SUP)) return '^'+s; out+=_SUP[ch]; } return out; }
+module.exports = { rint, pick, shuffle, numChoices, textChoices, q, gcd, reduceFraction, isReduced, KID_NAMES, FOODS, TOYS, PLACES, sup };
