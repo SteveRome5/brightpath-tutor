@@ -4730,7 +4730,11 @@ route('careers', async (kidId) => {
     for (const [sub, w] of Object.entries(f.sig || {})) { num += (strength[sub] || 0) * w; den += w; }
     return { f, match: den ? num / den : 0 };
   });
-  const top = haveStrength ? scored.slice().sort((a, b) => b.match - a.match).filter(x => x.match >= 0.4).slice(0, 4) : [];
+  // PRODUCT-110: surface "great fits" only with the SAME strong-evidence gate the parent report
+  // uses (careerInsights.enoughForFit — 2+ subjects, 6+ practiced skills, grade 6+, a real lead).
+  // Below that, everything stays browsable/exploratory with no fit prediction from a thin sample.
+  const canFit = !!(career && career.enoughForFit);
+  const top = (haveStrength && canFit) ? scored.slice().sort((a, b) => b.match - a.match).filter(x => x.match >= 0.4).slice(0, 4) : [];
   const topIds = new Set(top.map(x => x.f.id));
 
   function fieldCard(f, matched) {
@@ -4752,7 +4756,7 @@ route('careers', async (kidId) => {
       <h3 style="margin:0 0 4px">✨ Great fits for ${esc(name.split(' ')[0])}</h3>
       <p class="muted" style="margin:0 0 12px;font-size:.9rem">Based on the strengths ${esc(name.split(' ')[0])} is showing on Gallop — a starting point to explore together, never a limit.</p>
       <div class="cx-grid">${top.map(x => fieldCard(x.f, true)).join('')}</div>
-    </div>` : (kidId && !haveStrength ? `<div class="card"><p class="muted" style="margin:0">As ${esc(name.split(' ')[0])} answers more questions, we'll highlight the fields that fit their strengths right here. For now, explore anything that looks interesting!</p></div>` : '')}
+    </div>` : (kidId && !top.length ? `<div class="card"><p class="muted" style="margin:0">As ${esc(name.split(' ')[0])} answers more questions across subjects, we'll highlight the fields that fit their strengths right here. For now, explore anything that looks interesting!</p></div>` : '')}
     <div class="card">
       <h3 style="margin:0 0 12px">${top.length ? 'Explore every field' : 'Explore the fields'}</h3>
       <div class="cx-grid">${FIELDS.filter(f => !topIds.has(f.id)).map(f => fieldCard(f, false)).join('')}</div>
