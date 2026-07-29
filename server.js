@@ -7,6 +7,8 @@ const { webhookHandler } = require('./src/stripe');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+// Don't advertise the framework (removes the default `X-Powered-By: Express` header).
+app.disable('x-powered-by');
 // Behind a hosting proxy (Render/Railway/Fly), trust X-Forwarded-* so
 // secure cookies and req.protocol work correctly over HTTPS.
 // Always trust the first proxy hop: Render fronts the app with exactly one proxy, and

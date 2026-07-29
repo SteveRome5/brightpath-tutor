@@ -729,7 +729,7 @@ const Voice = (() => {
 function passageHTML(passage, playful) {
   const words = String(passage).split(/\s+/).map((w, i) => `<span class="pw" data-i="${i}">${esc(w)}</span>`).join(' ');
   return `<div class="passage-box"><div class="passage-head"><span class="passage-tag">📖 ${playful ? 'Storytime' : 'Read the passage'}</span>
-    <button class="btn sun small passage-read" type="button">🔊 ${playful ? 'Read to me' : 'Read aloud'}</button></div>
+    <button class="btn sun small passage-read" type="button" aria-label="Read this lesson aloud">🔊 ${playful ? 'Read to me' : 'Read aloud'}</button></div>
     <div class="passage-words">${words}</div></div>`;
 }
 
@@ -862,8 +862,8 @@ function topbar(inner = '') {
       <div class="sound-wrap">
         <button class="btn ghost small sound-btn" id="sound-btn" title="Sound settings" aria-label="Sound settings">${Sound.muted && !Music.on ? '🔇' : '🔊'}</button>
         <div class="sound-menu" id="sound-menu" hidden>
-          <button class="sound-opt" id="sfx-toggle"><span>🔊 Sound effects</span><span class="sw ${Sound.muted ? '' : 'on'}" id="sfx-sw"></span></button>
-          <button class="sound-opt" id="music-toggle"><span>🎵 Background music</span><span class="sw ${Music.on ? 'on' : ''}" id="music-sw"></span></button>
+          <button class="sound-opt" id="sfx-toggle" role="switch" aria-checked="${!Sound.muted}"><span>🔊 Sound effects</span><span class="sw ${Sound.muted ? '' : 'on'}" id="sfx-sw"></span></button>
+          <button class="sound-opt" id="music-toggle" role="switch" aria-checked="${!!Music.on}"><span>🎵 Background music</span><span class="sw ${Music.on ? 'on' : ''}" id="music-sw"></span></button>
           <button class="sound-opt sound-skip" id="music-skip"><span>⏭️ Next track</span><span class="muted" style="font-size:.78rem">shuffle</span></button>
         </div>
       </div>
@@ -885,8 +885,8 @@ function wireChrome() {
       wireChrome._soundCloseWired = true;
     }
     const sfxSw = $('#sfx-sw'), musicSw = $('#music-sw');
-    $('#sfx-toggle').onclick = (e) => { e.stopPropagation(); const muted = Sound.toggle(); sfxSw.classList.toggle('on', !muted); if (!muted) Sound.click(); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
-    $('#music-toggle').onclick = (e) => { e.stopPropagation(); const isOn = Music.toggle(currentMusicMood()); musicSw.classList.toggle('on', isOn); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
+    $('#sfx-toggle').onclick = (e) => { e.stopPropagation(); const muted = Sound.toggle(); sfxSw.classList.toggle('on', !muted); $('#sfx-toggle').setAttribute('aria-checked', String(!muted)); if (!muted) Sound.click(); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
+    $('#music-toggle').onclick = (e) => { e.stopPropagation(); const isOn = Music.toggle(currentMusicMood()); musicSw.classList.toggle('on', isOn); $('#music-toggle').setAttribute('aria-checked', String(isOn)); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
     const skip = $('#music-skip');
     if (skip) skip.onclick = (e) => { e.stopPropagation(); if (!Music.on) { Music.toggle(currentMusicMood()); if ($('#music-sw')) $('#music-sw').classList.add('on'); } else { Music.skip(); } };
   }
@@ -3152,6 +3152,13 @@ route('report', async (kidId) => {
       const total = H.reduce((t, x) => t + x.answers, 0);
       const corr = H.reduce((t, x) => t + x.correct, 0);
       const activeDays = H.filter(x => x.answers > 0).length;
+      // Accessible text alternative for the chart: overall summary, trend, and per-day breakdown.
+      const pctAll = total ? Math.round(corr / total * 100) : 0;
+      const _fh = H.slice(0, Math.ceil(H.length / 2)).reduce((t, x) => t + x.answers, 0);
+      const _lh = H.slice(Math.ceil(H.length / 2)).reduce((t, x) => t + x.answers, 0);
+      const trendTxt = !total ? 'no activity yet' : _lh > _fh * 1.2 ? 'trending up' : _lh < _fh * 0.8 ? 'trending down' : 'holding steady';
+      const dayTxt = H.map(x => { const d = x.day.slice(5).replace('-', '/'); return x.answers ? `${d}: ${x.answers} question${x.answers === 1 ? '' : 's'}, ${Math.round(x.correct / x.answers * 100)}% correct` : `${d}: no activity`; }).join('; ');
+      const chartLabel = `Daily activity, last 14 days: ${total} questions on ${activeDays} of 14 days, ${pctAll}% correct overall, ${trendTxt}. ${dayTxt}.`;
       const bars = H.map((x, i) => {
         const h = Math.round(x.answers / max * 70);
         const acc = x.answers ? x.correct / x.answers : 0;
@@ -3162,7 +3169,7 @@ route('report', async (kidId) => {
       return `<div class="card">
         <h3>📈 Last 14 days</h3>
         <p class="muted" style="margin:4px 0 10px">${total} questions · ${total ? Math.round(corr / total * 100) : 0}% correct · active ${activeDays} of 14 days</p>
-        <svg viewBox="0 0 480 104" style="width:100%;height:auto" role="img" aria-label="Daily activity chart">${bars}</svg>
+        <svg viewBox="0 0 480 104" style="width:100%;height:auto" role="img" aria-label="${chartLabel}">${bars}</svg>
         <p class="muted" style="font-size:.78rem;margin-top:6px">Bar height = questions answered · <span style="color:#1f8a5f">■</span> 80%+ correct · <span style="color:#C9A84C">■</span> 55–79% · <span style="color:#d97b4f">■</span> below 55%</p>
       </div>`;
     })() : ''}
@@ -4083,10 +4090,10 @@ route('parent', async () => {
               <div class="kg-head">🎮 Games for ${esc(k.name.split(' ')[0])}</div>
               <div class="kg-presets">
                 <span class="muted" style="font-size:.82rem;width:100%">Quick presets:</span>
-                <button type="button" class="btn ghost small kg-preset" data-on="1" data-gate="5" data-limit="30">⚖️ Balanced</button>
-                <button type="button" class="btn ghost small kg-preset" data-on="1" data-gate="15" data-limit="20">📚 Learning-focused</button>
-                <button type="button" class="btn ghost small kg-preset" data-on="1" data-gate="0" data-limit="0">♾️ Always available</button>
-                <button type="button" class="btn ghost small kg-preset" data-on="0" data-gate="0" data-limit="0">🚫 Games off</button>
+                <button type="button" class="btn ghost small kg-preset" data-on="1" data-gate="5" data-limit="30" aria-pressed="false">⚖️ Balanced</button>
+                <button type="button" class="btn ghost small kg-preset" data-on="1" data-gate="15" data-limit="20" aria-pressed="false">📚 Learning-focused</button>
+                <button type="button" class="btn ghost small kg-preset" data-on="1" data-gate="0" data-limit="0" aria-pressed="false">♾️ Always available</button>
+                <button type="button" class="btn ghost small kg-preset" data-on="0" data-gate="0" data-limit="0" aria-pressed="false">🚫 Games off</button>
               </div>
               <label class="kg-toggle"><input type="checkbox" class="kg-on-cb" ${k.games_enabled == null || k.games_enabled ? 'checked' : ''}>
                 <span><b>Play Zone arcade</b><br><span class="muted" style="font-size:.83rem">The break games. On for the full experience, or off for a pure-learning setup with no games at all.</span></span>
@@ -4364,7 +4371,7 @@ route('parent', async () => {
     box.querySelector('.kg-on-cb').checked = btn.dataset.on === '1';
     box.querySelector('.kg-gate-inp').value = btn.dataset.gate;
     box.querySelector('.kg-time-inp').value = btn.dataset.limit;
-    box.querySelectorAll('.kg-preset').forEach(x => x.classList.toggle('on', x === btn));
+    box.querySelectorAll('.kg-preset').forEach(x => { const sel = x === btn; x.classList.toggle('on', sel); x.setAttribute('aria-pressed', String(sel)); });
     Sound.click();
     toast('Preset applied — press “Save games settings” to keep it.');
   });
