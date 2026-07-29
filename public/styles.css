@@ -2637,3 +2637,9 @@ body[data-theme="academy"] .contrast-strip { background: rgba(95,240,160,.08); b
 .stickerbtn { width: 36px; height: 36px; border-radius: 10px; border: 2px solid transparent; background: #f3f1ea; font-size: 1.2rem; cursor: pointer; }
 .stickerbtn.sel { border-color: var(--brand, #1A5C38); background: #eef4ee; }
 .dt-actions { gap: 8px; }
+
+/* PRODUCT-107 — top progress bar for slow route transitions */
+.nav-loading { position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 9999; background: linear-gradient(90deg, var(--brand, #1A5C38), var(--accent, #C9A84C)); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+.nav-loading.on { opacity: 1; animation: navload 1.4s ease-in-out infinite; }
+@keyframes navload { 0% { width: 4%; } 55% { width: 72%; } 100% { width: 94%; } }
+@media (prefers-reduced-motion: reduce) { .nav-loading.on { animation: none; width: 40%; } }

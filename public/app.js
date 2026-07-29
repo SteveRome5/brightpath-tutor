@@ -56,12 +56,26 @@ function toastAction(msg, actionLabel, onAction) {
 }
 
 async function api(path, opts = {}) {
-  const res = await fetch('/api' + path, {
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
-    ...opts,
-    body: opts.body ? JSON.stringify(opts.body) : undefined
-  });
+  // PRODUCT-107: bound every request with a timeout so a hung connection can't leave a stale
+  // screen forever. A timeout/network drop is surfaced as a status-less (transient) error, which
+  // navigate()'s auto-retry / "Reconnecting…" path already handles gracefully.
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), opts.timeoutMs || 25000);
+  let res;
+  try {
+    res = await fetch('/api' + path, {
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      ...opts,
+      signal: ctrl.signal,
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+  } catch (e) {
+    clearTimeout(t);
+    const err = new Error(e && e.name === 'AbortError' ? 'This is taking longer than usual — check your connection.' : 'Network error — please try again.');
+    throw err; // no .status → treated as transient by navigate()
+  }
+  clearTimeout(t);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) { const e = new Error(data.error || 'Request failed'); e.status = res.status; e.data = data; throw e; }
   return data;
@@ -788,6 +802,10 @@ let _tzSent = false;
 const routes = {};
 let _navRetry = null; // {key, n} — transient-failure retry state for the router
 function route(name, fn) { routes[name] = fn; }
+// PRODUCT-107: a lightweight top progress bar shown when a route transition runs long, so a slow
+// data load never looks like a frozen or stale screen.
+function showNavLoading() { let b = document.getElementById('nav-loading'); if (!b) { b = document.createElement('div'); b.id = 'nav-loading'; document.body.appendChild(b); } b.className = 'nav-loading on'; }
+function hideNavLoading() { const b = document.getElementById('nav-loading'); if (b) b.className = 'nav-loading'; }
 async function navigate() {
   const hash = location.hash.replace(/^#\/?/, '') || 'landing';
   const [name, ...args] = hash.split('/');
@@ -799,7 +817,11 @@ async function navigate() {
   const MUSIC_ZONES = ['play', 'avatar', 'snacks', 'trophies', 'buddies', 'game'];
   if (Music.on && MUSIC_ZONES.includes(name)) Music.start(currentMusicMood()); else Music.stop();
   const fn = routes[name] || routes.landing;
-  try { await fn(...args); _navRetry = null; emitSurfaceReady(name); } catch (e) {
+  const _navStart = Date.now();
+  const _navTimer = setTimeout(showNavLoading, 400);
+  const _navDone = () => { clearTimeout(_navTimer); hideNavLoading(); const ms = Date.now() - _navStart; if (ms > 3000) { try { console.warn('[gallop] slow route "' + name + '" ' + ms + 'ms'); } catch (e) {} } };
+  try { await fn(...args); _navRetry = null; _navDone(); emitSurfaceReady(name); } catch (e) {
+    _navDone();
     if (e.status === 401) { location.hash = State.me.role === 'kid' ? '#kid-login' : '#login'; return; }
     if (e.status === 402) { renderPaywall(e.data && e.data.reason); return; }
     // Transient failures — the server restarting during a deploy, or a dropped
