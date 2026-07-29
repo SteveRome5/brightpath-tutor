@@ -1306,7 +1306,7 @@ route('landing', async () => {
             <tr><td class="cmp-feat">Games, rewards & motivation</td><td class="us" data-label="Gallop">✅ arcade + trophies</td><td data-label="Learning centers">❌</td><td data-label="Private tutor">❌</td></tr>
           </tbody>
         </table></div>
-        <p class="muted center" style="font-size:.8rem;margin-top:10px">Learning centers and private tutors meet in person — a different kind of help. This table shows the cost and coverage families weigh when choosing. Pricing reflects commonly published U.S. rates and varies by location.</p>
+        <p class="muted center" style="font-size:.8rem;margin-top:10px">Learning centers and private tutors meet in person — a different kind of help. This table shows the cost and coverage families weigh when choosing. Comparison figures reflect commonly published U.S. rates for the named providers as of 2026 and vary by provider and location.</p>
       </div>
     </div>
     <div id="s-faq" class="card reveal faq" style="margin-top:40px">
