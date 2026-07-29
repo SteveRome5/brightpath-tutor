@@ -1073,6 +1073,7 @@ route('landing', async () => {
       <div class="sn-inner">
         <button class="sn-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top"><img src="/logo-mark.png" alt="" class="sn-logo-img">Gallop</button>
         <div class="sn-links">
+          <span class="sn-label" aria-hidden="true">Jump to ›</span>
           <button class="sn-link" onclick="scrollToSection('s-how')">How it works</button>
           <button class="sn-link" onclick="scrollToSection('s-lab')">The Lab</button>
           <button class="sn-link" onclick="scrollToSection('s-curriculum')">Curriculum</button>

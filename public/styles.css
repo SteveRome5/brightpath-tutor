@@ -172,21 +172,23 @@ body[data-theme="junior"] .logo .spark { animation: float 3s ease-in-out infinit
 /* ---------- landing (pro theme) ---------- */
 /* Homepage section nav — slim, sticky jump-links. Sits below the hero and sticks to the
    top on scroll. The primary CTA stays the boldest thing on the bar. */
-.section-nav { position: sticky; top: 0; z-index: 60; margin: 8px 0 4px; background: color-mix(in srgb, var(--card-bg) 90%, transparent); backdrop-filter: saturate(1.1) blur(8px); -webkit-backdrop-filter: saturate(1.1) blur(8px); border-top: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); }
-.sn-inner { max-width: 1120px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 7px 16px; }
+.section-nav { position: sticky; top: 0; z-index: 60; margin: 8px 0 4px; background: color-mix(in srgb, var(--card-bg) 97%, transparent); backdrop-filter: saturate(1.1) blur(8px); -webkit-backdrop-filter: saturate(1.1) blur(8px); border-top: 1px solid var(--card-border); border-bottom: 1px solid color-mix(in srgb, var(--brand) 22%, var(--card-border)); box-shadow: 0 6px 16px color-mix(in srgb, var(--ink) 7%, transparent); }
+.sn-inner { max-width: 1120px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 9px 16px; }
 .sn-logo { flex: none; background: none; border: 0; cursor: pointer; font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; color: var(--brand); padding: 4px 2px; display: flex; align-items: center; gap: 7px; }
 .sn-logo-img { height: 20px; width: auto; display: block; }
-.sn-links { display: flex; gap: 2px; flex: 1; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+.sn-links { display: flex; align-items: center; gap: 7px; flex: 1; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
 .sn-links::-webkit-scrollbar { display: none; }
-.sn-link { flex: none; background: none; border: 0; cursor: pointer; white-space: nowrap; padding: 8px 12px; border-radius: 9px; font-weight: 600; font-size: .95rem; color: var(--chrome-ink); transition: background var(--dur-fast, .15s) var(--ease-out, ease), color var(--dur-fast, .15s) var(--ease-out, ease); }
-.sn-link:hover { background: var(--soft-bg); color: var(--brand); }
+.sn-label { flex: none; font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--chrome-sub); padding-right: 2px; }
+.sn-link { flex: none; background: color-mix(in srgb, var(--brand) 7%, var(--card-bg)); border: 1px solid color-mix(in srgb, var(--brand) 20%, transparent); cursor: pointer; white-space: nowrap; padding: 7px 13px; border-radius: 999px; font-weight: 700; font-size: .9rem; color: var(--brand); transition: background var(--dur-fast, .15s) var(--ease-out, ease), color var(--dur-fast, .15s) var(--ease-out, ease), border-color var(--dur-fast, .15s) var(--ease-out, ease); }
+.sn-link:hover, .sn-link:focus-visible { background: var(--brand); color: #fff; border-color: var(--brand); outline: none; }
 .sn-cta { flex: none; }
 /* Keep anchored sections clear of the sticky bar when jumped to. */
-#s-how, #s-realworld, #s-curriculum, #s-why, #s-story, #s-pricing, #s-faq { scroll-margin-top: 72px; }
+#s-how, #s-lab, #s-realworld, #s-curriculum, #s-why, #s-story, #s-pricing, #s-faq { scroll-margin-top: 84px; }
 @media (max-width: 760px) {
   .sn-logo, .sn-cta { display: none; }
-  .sn-inner { padding: 5px 8px; gap: 0; }
-  .sn-link { padding: 8px 11px; font-size: .9rem; }
+  .sn-inner { padding: 6px 8px; gap: 6px; }
+  .sn-label { display: none; }
+  .sn-link { padding: 7px 12px; font-size: .88rem; }
 }
 .hero { text-align: center; color: var(--chrome-ink); padding: 72px 20px 40px; }
 .hero .eyebrow { text-transform: uppercase; letter-spacing: .18em; font-size: .78rem; font-weight: 700; color: var(--brand); margin-bottom: 18px; }
