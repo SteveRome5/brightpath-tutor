@@ -383,6 +383,24 @@ Write your essay, then self-score with the rubric. (Public-domain passage — AP
         { label: 'Sophistication (0–1)', ask: 'Does the essay show sophistication (complexity, broader significance, style)?', points: 1,
           solution: 'Full point: engages tension/complexity in the work, connects to a broader meaning, or shows a vivid, controlled style sustained throughout.' }
       ], maxPoints: 6, note: 'Focus on the AUTHOR’S choices and their effect, not on retelling the story.'
+    },
+    {
+      id: 'apenglit-frq-argument', topic: 'Literary Argument', difficulty: 'AP', calculator: false, essay: true,
+      prompt: `LITERARY ARGUMENT · suggested time ~40 min.
+
+Many works of literature feature a character who must choose between loyalty to another person and loyalty to a belief, a cause, or their own sense of self. Choose a novel or play of literary merit in which a character faces such a conflict. Then write a well-organized essay analyzing how that conflict — and the character's choice — contributes to an interpretation of the work as a whole. Do not merely summarize the plot.
+
+You may use a work you have studied, or one from this list: Antigone · Hamlet · A Tale of Two Cities · The Adventures of Huckleberry Finn · Their Eyes Were Watching God · Beloved · The Kite Runner · A Raisin in the Sun · The Great Gatsby · The Namesake.
+
+Write your essay, then self-score with the AP Lit rubric. (This is the open-work third question, authentic to AP Lit — you choose the text. AP-style skill practice, not an official College Board exam.)`,
+      parts: [
+        { label: 'Thesis (0–1)', ask: 'Do you present a defensible interpretation of the work as a whole (not a plot summary or a restatement of the prompt)?', points: 1,
+          solution: 'Full point: a defensible interpretive claim about what the work means, tied to the character\'s conflict and choice. No point: plot summary, or only naming the conflict without an interpretation.' },
+        { label: 'Evidence & Commentary (0–4)', ask: 'Score your body: specific evidence from the chosen work and commentary that develops a line of reasoning about your interpretation.', points: 4,
+          solution: '4 = specific, well-chosen evidence AND consistent commentary that builds a clear interpretation of the whole work. 3 = evidence with some explanation, uneven. 2 = mostly plot summary with thin analysis. 1 = vague or generalized references. Reward analysis of how the conflict illuminates meaning, not retelling.' },
+        { label: 'Sophistication (0–1)', ask: 'Does the essay show sophistication — engaging complexity or tension in the work, a broader significance, or a controlled style?', points: 1,
+          solution: 'Full point (rare): explores the complexity or ambiguity of the character\'s choice, connects it to a broader idea about the work or the human condition, or sustains a persuasive, controlled voice throughout. Not for a single strong sentence.' }
+      ], maxPoints: 6, note: 'The AP Lit literary-argument question lets YOU choose the work — but the thesis must present a defensible interpretation of the whole work, not a plot summary.'
     }
   ],
 
