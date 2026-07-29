@@ -747,6 +747,27 @@ function passageHTML(passage, playful) {
     <div class="passage-words">${words}</div></div>`;
 }
 
+// A friendly analog clock face for time questions (e.g. Clock Reader). The hour hand is drawn
+// at its TRUE position — at 8:30 it sits halfway between 8 and 9 — so kids read a real clock.
+function clockHTML(c) {
+  if (!c || typeof c.h !== 'number') return '';
+  const h = ((c.h % 12) + 12) % 12, m = ((c.m || 0) % 60 + 60) % 60;
+  const cx = 78, cy = 78, R = 66;
+  const P = (deg, len) => [ (cx + len * Math.sin(deg * Math.PI / 180)).toFixed(1), (cy - len * Math.cos(deg * Math.PI / 180)).toFixed(1) ];
+  let ticks = '', nums = '';
+  for (let n = 0; n < 12; n++) { const [x1, y1] = P(n * 30, R - 3), [x2, y2] = P(n * 30, R - 9); ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#cdd4de" stroke-width="2"/>`; }
+  for (let n = 1; n <= 12; n++) { const [x, y] = P(n * 30, R - 17); nums += `<text x="${x}" y="${(+y + 5).toFixed(1)}" text-anchor="middle" font-size="14" font-weight="700" fill="#16213a" font-family="Montserrat,Arial,sans-serif">${n}</text>`; }
+  const [hx, hy] = P(h * 30 + m * 0.5, R - 30);   // hour hand: short, true fractional position
+  const [mx, my] = P(m * 6, R - 13);              // minute hand: long
+  return `<div class="q-clock"><svg viewBox="0 0 156 156" width="156" height="156" role="img" aria-label="A clock showing the time">
+    <circle cx="${cx}" cy="${cy}" r="${R}" fill="#fffdf7" stroke="#1A5C38" stroke-width="3"/>
+    ${ticks}${nums}
+    <line x1="${cx}" y1="${cy}" x2="${hx}" y2="${hy}" stroke="#1A5C38" stroke-width="5.5" stroke-linecap="round"/>
+    <line x1="${cx}" y1="${cy}" x2="${mx}" y2="${my}" stroke="#C9A84C" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="4.5" fill="#16213a"/>
+  </svg></div>`;
+}
+
 // ======================= confetti =======================
 const Confetti = (() => {
   const canvas = $('#confetti-canvas'), ctx2 = canvas.getContext('2d');
@@ -1355,6 +1376,23 @@ route('landing', async () => {
       io.observe(pricing);
     }
   } catch (e) {}
+  // Section jump-nav "you are here": highlight the chip for whichever section is in view,
+  // so the bar reads as a live map of the page.
+  try {
+    const nav = document.querySelector('.section-nav');
+    if (nav && 'IntersectionObserver' in window) {
+      const map = {};
+      nav.querySelectorAll('.sn-link').forEach(l => { const mm = (l.getAttribute('onclick') || '').match(/scrollToSection\('([^']+)'\)/); if (mm) map[mm[1]] = l; });
+      const secs = Object.keys(map).map(id => document.getElementById(id)).filter(Boolean);
+      let cur = null;
+      const setActive = (id) => { if (id === cur) return; cur = id; Object.values(map).forEach(l => l.classList.remove('sn-active')); if (map[id]) map[id].classList.add('sn-active'); };
+      const spy = new IntersectionObserver((ents) => {
+        const vis = ents.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (vis[0]) setActive(vis[0].target.id);
+      }, { rootMargin: '-90px 0px -55% 0px', threshold: 0 });
+      secs.forEach(s => spy.observe(s));
+    }
+  } catch (e) {}
   // Interactive product tour: auto-advance through the six views, pause on hover, tabs jump.
   (function initTour() {
     const tour = document.getElementById('tour'); if (!tour) return;
@@ -1452,7 +1490,7 @@ route('demo', async () => {
       <div class="lesson-top"><b>${qn.emoji} Sample questions — a quick taste</b>${gallopTrack(idx / DEMO_QUESTIONS.length * 100)}<b>${idx + 1}/${DEMO_QUESTIONS.length}</b></div>
       <div class="q-card">
         <span class="q-skill" style="background:${qn.color}">${esc(qn.skill)} · ${esc(qn.grade)}</span>
-        <div class="q-prompt">${esc(qn.prompt)}</div>
+        ${qn.clock ? clockHTML(qn.clock) : ''}<div class="q-prompt">${esc(qn.prompt)}</div>
         <div class="choices">${shuffled.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
         <div class="hint-box" id="hint-box">💡 ${esc(qn.hint)}</div>
         <div class="feedback" id="feedback" aria-live="polite"></div>
@@ -1955,7 +1993,7 @@ route('placement', async (subject) => {
         <span class="q-skill" style="background:${style.color}">${esc(qn.skillName)}</span>
         <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
         ${qn.passage ? passageHTML(qn.passage, playful()) : ''}
-        <div class="q-prompt">${esc(qn.prompt)}</div>
+        ${qn.clock ? clockHTML(qn.clock) : ''}<div class="q-prompt">${esc(qn.prompt)}</div>
         <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}
           <button class="choice idk" data-i="-1">🤷 ${playful() ? "I haven't learned this yet" : "Haven't covered this yet"}</button>
         </div>
@@ -2150,7 +2188,7 @@ route('lesson', async (subject, mode, anchor) => {
         <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
         ${teachLesson && !lessonDone ? `<div class="learn-banner" style="--lb:${style.color}" onclick="location.hash='#teach/${teachLesson.id}'">📖 <b>New to this skill?</b> Watch the quick lesson first <span class="lb-arrow">→</span></div>` : ''}
         ${qn.passage ? passageHTML(qn.passage, playful()) : ''}
-        <div class="q-prompt">${esc(qn.prompt)}</div>
+        ${qn.clock ? clockHTML(qn.clock) : ''}<div class="q-prompt">${esc(qn.prompt)}</div>
         ${typed ? `<div class="typed-wrap">
           <input id="typed-in" class="typed-input" inputmode="decimal" autocomplete="off" placeholder="${playful() ? 'Type your answer!' : 'Your answer'}" aria-label="Type your answer">
           <button class="btn green" id="typed-go">Check ✓</button>
@@ -2528,7 +2566,7 @@ route('exam', async (trackId, mode, sub) => {
         <span class="q-skill" style="background:${style.color}">${esc(track.exam)} · exam practice</span>
         <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
         ${qn.passage ? passageHTML(qn.passage, false) : ''}
-        <div class="q-prompt">${esc(qn.prompt)}</div>
+        ${qn.clock ? clockHTML(qn.clock) : ''}<div class="q-prompt">${esc(qn.prompt)}</div>
         <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
         <div class="hint-box" id="hint-box">💡 ${esc(qn.hint || 'Work it through step by step.')}</div>
         <div class="feedback" id="feedback" aria-live="polite"></div>
@@ -2819,7 +2857,7 @@ async function examSim(kidId, track) {
       <div class="q-card">
         <span class="q-skill" style="background:${style.color}">${esc(track.exam)} · exam mode</span>
         ${qn.passage ? passageHTML(qn.passage, false) : ''}
-        <div class="q-prompt">${esc(qn.prompt)}</div>
+        ${qn.clock ? clockHTML(qn.clock) : ''}<div class="q-prompt">${esc(qn.prompt)}</div>
         <div class="choices">${qn.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}</div>
         <div class="feedback" id="feedback" aria-live="polite"></div>
         <div class="lesson-actions"><button class="btn green" id="next-btn" style="display:none">Next →</button></div>

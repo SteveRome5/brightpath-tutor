@@ -181,6 +181,7 @@ body[data-theme="junior"] .logo .spark { animation: float 3s ease-in-out infinit
 .sn-label { flex: none; font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--chrome-sub); padding-right: 2px; }
 .sn-link { flex: none; background: color-mix(in srgb, var(--brand) 7%, var(--card-bg)); border: 1px solid color-mix(in srgb, var(--brand) 20%, transparent); cursor: pointer; white-space: nowrap; padding: 7px 13px; border-radius: 999px; font-weight: 700; font-size: .9rem; color: var(--brand); transition: background var(--dur-fast, .15s) var(--ease-out, ease), color var(--dur-fast, .15s) var(--ease-out, ease), border-color var(--dur-fast, .15s) var(--ease-out, ease); }
 .sn-link:hover, .sn-link:focus-visible { background: var(--brand); color: #fff; border-color: var(--brand); outline: none; }
+.sn-link.sn-active { background: var(--brand); color: #fff; border-color: var(--brand); box-shadow: 0 2px 8px color-mix(in srgb, var(--brand) 35%, transparent); }
 .sn-cta { flex: none; }
 /* Keep anchored sections clear of the sticky bar when jumped to. */
 #s-how, #s-lab, #s-realworld, #s-curriculum, #s-why, #s-story, #s-pricing, #s-faq { scroll-margin-top: 84px; }
@@ -315,6 +316,8 @@ body[data-theme="academy"] .week-gallop .wg-head { color: #8b94a7; }
 .learn-banner:hover { transform: translateY(-1px); background: color-mix(in srgb, var(--lb, #1A5C38) 18%, transparent); }
 .learn-banner .lb-arrow { margin-left: auto; font-weight: 800; }
 .q-prompt { font-size: 1.3rem; font-weight: 600; white-space: pre-line; line-height: 1.5; font-family: var(--font-body); }
+.q-clock { display: flex; justify-content: center; margin: 2px 0 12px; }
+.q-clock svg { filter: drop-shadow(0 3px 8px rgba(22,33,58,.12)); }
 /* Reading-friendly scaling: big, roomy type for early readers */
 body[data-theme="junior"] .q-prompt { font-size: 1.72rem; line-height: 1.65; letter-spacing: .01em; word-spacing: .08em; }
 body[data-theme="explorer"] .q-prompt { font-size: 1.48rem; line-height: 1.6; }
