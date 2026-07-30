@@ -2794,6 +2794,11 @@ route('parent', async () => {
   const trialEnded = p.sub_status === 'trial' && trialDays <= 0;
   app().innerHTML = topbar(`<div class="container">
     <div class="dash-welcome" style="margin-bottom:14px"><h1>Welcome, ${esc(p.name)} 👋</h1><p>${subLine} ${me.billingMode === 'demo' && me.parent && me.parent.is_admin ? '· <i>(demo billing, add Stripe keys to charge real cards)</i>' : ''}</p></div>
+    ${!p.email_verified ? `<div class="trial-banner" style="background:#8a5a00">
+      <div><b>📧 One quick step — confirm your email.</b><br>
+      <span>We sent a link to <b>${esc(p.email)}</b>. Click it to verify you're the parent or guardian; then you can add your child. This is our parental-consent check (COPPA).</span></div>
+      <div style="white-space:nowrap"><button class="btn sun" id="vb-resend">Resend link</button></div>
+    </div>` : ''}
     ${trialUrgent ? `<div class="trial-banner">
       <div><b>⏳ Your free trial ends in ${trialDays} day${trialDays === 1 ? '' : 's'}.</b><br>
       <span>All progress, streaks, badges and certificates are saved, subscribing keeps the gallop going without missing a day.</span></div>
@@ -2974,8 +2979,22 @@ route('parent', async () => {
     document.querySelectorAll('#nk-avatars .avatar-opt').forEach(x => x.classList.remove('sel'));
     el.classList.add('sel'); avatar = el.dataset.a; Sound.click();
   });
+  // COPPA email-plus: resend the verification link, wired to the banner button.
+  async function resendVerification(btn) {
+    try {
+      if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+      await api('/auth/resend-verification', { method: 'POST', body: {} });
+      if (btn) btn.textContent = 'Link sent ✓';
+      toast(`Verification link sent to ${me.parent.email}. Check your inbox (and spam).`);
+    } catch (e) { if (btn) { btn.disabled = false; btn.textContent = 'Resend link'; } toast('Could not resend right now — try again in a moment.'); }
+  }
+  if ($('#vb-resend')) $('#vb-resend').onclick = () => resendVerification($('#vb-resend'));
   $('#nk-go').onclick = async () => {
     try {
+      if (me.parent && !me.parent.email_verified) {
+        showError('#nk-err', 'Please confirm your email first — click the link we sent to ' + me.parent.email + '. That verifies parental consent before we create your child\'s profile.');
+        return;
+      }
       const consentEl = $('#nk-consent');
       if (consentEl && !consentEl.checked) { showError('#nk-err', 'Please check the box to confirm parental consent.'); return; }
       const wasFirst = me.kids.length === 0;
@@ -3661,6 +3680,15 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
         });
       });
     }).catch(() => {});
+  }
+  // COPPA email-plus: returning from the verification link (/?verified=1 or /?verify=invalid).
+  const _vp = new URLSearchParams(location.search);
+  if (_vp.get('verified') === '1') {
+    history.replaceState(null, '', location.pathname);
+    setTimeout(() => toast('✅ Email confirmed — you can now add your child.'), 300);
+  } else if (_vp.get('verify') === 'invalid') {
+    history.replaceState(null, '', location.pathname);
+    setTimeout(() => toast('That verification link is invalid or already used — use “Resend link” on your dashboard.'), 300);
   }
   // Handle the return from Stripe checkout so paying never dumps you on the homepage.
   const billing = new URLSearchParams(location.search).get('billing');
