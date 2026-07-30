@@ -330,7 +330,11 @@
       </div>`);
       wireChrome();
       const nextBtn = $('#lp-next');
-      const goNext = () => { Sound.click(); if (last) { try { localStorage['bp_lesson_' + lesson.id] = '1'; } catch (e) {} Sound.levelup(); Confetti.burst(120); const anchor = lesson.skillId ? '/' + encodeURIComponent(lesson.skillId) : ''; location.hash = '#lesson/' + lesson.subject + anchor; } else { i++; render(); } };
+      const goNext = () => { Sound.click(); if (last) { try { localStorage['bp_lesson_' + lesson.id] = '1'; } catch (e) {}
+        // Tell the server the child watched this skill's lesson — clears the Skill Drill / lessons-first
+        // gate so questions flow again. Best-effort; never blocks the hand-off to practice.
+        try { if (lesson.subject && lesson.skillId && State.me && State.me.role === 'kid') api('/learn/' + State.me.kid.id + '/lesson-seen', { method: 'POST', body: { subject: lesson.subject, skillId: lesson.skillId } }).catch(() => {}); } catch (e) {}
+        Sound.levelup(); Confetti.burst(120); const anchor = lesson.skillId ? '/' + encodeURIComponent(lesson.skillId) : ''; location.hash = '#lesson/' + lesson.subject + anchor; } else { i++; render(); } };
       const goBack = () => { Sound.click(); i = Math.max(0, i - 1); render(); };
       if ($('#lp-back')) $('#lp-back').onclick = goBack;
       $('#lp-say').onclick = () => narrate(step);

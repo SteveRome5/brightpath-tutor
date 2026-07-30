@@ -2141,25 +2141,35 @@ route('lesson', async (subject, mode, anchor) => {
   function render(data) {
     const sid = data.skill && data.skill.id;
     const teach = (window.BP.lessonForSkill && sid) ? window.BP.lessonForSkill(subject, sid) : null;
+    // HARD gate: a struggling skill in a Skill Drill (or a parent "lessons first" setting) MUST see
+    // the lesson before any question — no skip, not capped. If no lesson exists for the skill we
+    // can't gate on it, so fall through (the drill banner below still shows on the question).
+    if (data.support && data.support.requireLesson && teach) { return lessonIntro(data, teach, { hard: true, support: data.support }); }
+    // SOFT nudge (unchanged): a brand-new skill leads with its lesson, but skippable and capped.
     if (teach && !lessonDoneFor(teach) && data.mode === 'learn' && !gatedSkills.has(sid) && gatesShown < 2) { gatesShown++; return lessonIntro(data, teach); }
     renderQuestion(data);
   }
-  function lessonIntro(data, teach) {
+  function lessonIntro(data, teach, opts = {}) {
+    const hard = !!opts.hard;
+    const drill = !!(opts.support && opts.support.drill);
     app().innerHTML = topbar(`<div class="container" style="max-width:560px">
       <div class="lesson-top"><b>${style.emoji} ${style.cheer}</b></div>
       <div class="card center lesson-gate">
-        <span class="lg-badge">NEW SKILL</span>
+        <span class="lg-badge"${drill ? ' style="background:#d97b4f"' : ''}>${drill ? '💪 SKILL DRILL' : 'NEW SKILL'}</span>
         <div class="big-emoji" style="margin:8px 0 2px">📖</div>
         <h2 style="margin-bottom:4px">${esc(data.question.skillName || 'A new skill')}</h2>
-        <p class="muted" style="margin:8px auto 2px;max-width:26rem">${playful() ? 'Let’s learn it first with a quick lesson — then you’ll practice it! 💪' : 'Start with a short lesson that teaches this, then jump into the practice.'}</p>
+        <p class="muted" style="margin:8px auto 2px;max-width:26rem">${drill
+          ? (playful() ? 'This one’s been tricky — let’s learn it step by step first, then beat it together! 💪' : 'This skill has been tricky lately. Watch the short lesson, then a few practice questions to lock it in.')
+          : (playful() ? 'Let’s learn it first with a quick lesson — then you’ll practice it! 💪' : 'Start with a short lesson that teaches this, then jump into the practice.')}</p>
         <div class="lg-steps"><span class="lg-step on">📖 Lesson</span><span class="lg-arrow">→</span><span class="lg-step">✅ Practice</span></div>
         <button class="btn green lg-go" id="lg-lesson">Start the lesson →</button>
-        <div><button class="btn ghost small" id="lg-skip" style="margin-top:12px;color:var(--brand);border-color:var(--brand)">Skip to practice</button></div>
+        ${hard ? '' : `<div><button class="btn ghost small" id="lg-skip" style="margin-top:12px;color:var(--brand);border-color:var(--brand)">Skip to practice</button></div>`}
       </div>
     </div>`);
     wireChrome();
     $('#lg-lesson').onclick = () => { Sound.click(); location.hash = '#teach/' + teach.id; };
-    $('#lg-skip').onclick = () => { Sound.click(); gatedSkills.add(data.skill && data.skill.id); renderQuestion(data); };
+    const skip = $('#lg-skip');
+    if (skip) skip.onclick = () => { Sound.click(); gatedSkills.add(data.skill && data.skill.id); renderQuestion(data); };
   }
   function renderQuestion(data) {
     const qn = data.question;
@@ -2186,7 +2196,7 @@ route('lesson', async (subject, mode, anchor) => {
         <span class="q-skill" style="background:${style.color}">${esc(qn.skillName)} · ${esc(modeLabel)}</span>
         ${teachLesson ? `<button class="btn ghost small learn-this" style="float:right;color:${style.color};border-color:${style.color};margin-left:6px" onclick="location.hash='#teach/${teachLesson.id}'">📖 ${lessonDone ? 'Lesson' : 'Learn this'}</button>` : ''}
         <button class="btn ghost small" style="float:right;color:${style.color};border-color:${style.color}" id="say-btn">🔊 Read it</button>
-        ${teachLesson && !lessonDone ? `<div class="learn-banner" style="--lb:${style.color}" onclick="location.hash='#teach/${teachLesson.id}'">📖 <b>New to this skill?</b> Watch the quick lesson first <span class="lb-arrow">→</span></div>` : ''}
+        ${data.support && data.support.drill ? `<div class="learn-banner" style="--lb:#d97b4f;cursor:default">💪 <b>Skill Drill:</b> ${data.support.clearHave} of ${data.support.clearNeed} in a row to beat it — take your time, you've got this!</div>` : (teachLesson && !lessonDone ? `<div class="learn-banner" style="--lb:${style.color}" onclick="location.hash='#teach/${teachLesson.id}'">📖 <b>New to this skill?</b> Watch the quick lesson first <span class="lb-arrow">→</span></div>` : '')}
         ${qn.passage ? passageHTML(qn.passage, playful()) : ''}
         ${qn.clock ? clockHTML(qn.clock) : ''}<div class="q-prompt">${esc(qn.prompt)}</div>
         ${typed ? `<div class="typed-wrap">
@@ -2339,6 +2349,9 @@ route('lesson', async (subject, mode, anchor) => {
         (res.events || []).forEach(ev => session.events.push(ev));
         const celebration = (res.events || []).find(ev => ev.type === 'levelup' || ev.type === 'badge' || (ev.type === 'token' && gamesOn()));
         if (celebration) setTimeout(() => celebrate(celebration), 700);
+        // "You beat it!" — the child cleared a Skill Drill they'd been stuck on. Big moment.
+        const cleared = (res.events || []).find(ev => ev.type === 'drill_clear');
+        if (cleared) setTimeout(() => celebrate(cleared), celebration ? 1600 : 700);
       } catch (e) {
         // Trial/subscription lapsed mid-lesson: send them to the paywall instead of
         // silently celebrating work that was never recorded.
@@ -2410,6 +2423,9 @@ route('lesson', async (subject, mode, anchor) => {
     if (ev.type === 'levelup') {
       Sound.levelup(); Confetti.burst(220);
       div.innerHTML = `<div class="big-emoji">🏆</div><h2>LEVEL UP!</h2><p style="font-size:1.2rem">You completed ${esc(ev.certificate || 'a level')}!<br>A certificate was added for you & your parents. 🎓</p><button class="btn sun">Keep Going →</button>`;
+    } else if (ev.type === 'drill_clear') {
+      Sound.levelup(); Confetti.burst(200);
+      div.innerHTML = `<div class="big-emoji">💪</div><h2>You beat it!</h2><p style="font-size:1.2rem">You cleared the Skill Drill${ev.skillName ? ' on <b>' + esc(ev.skillName) + '</b>' : ''}.<br>That was a tricky one — and you got it. 🎉</p><button class="btn sun">Keep Going →</button>`;
     } else if (ev.type === 'token') {
       Sound.badge(); Confetti.burst(80);
       div.innerHTML = `<div class="big-emoji">🎟️</div><h2>Play Token Earned!</h2><p style="font-size:1.2rem">5 correct answers = 1 token for the Play Zone! You have ${ev.tokens}. 🕹️</p><button class="btn sun">Sweet →</button>`;
@@ -3197,13 +3213,14 @@ route('report', async (kidId) => {
             </div>` : ''}
             ${s.strengths.length ? `<p>💪 Strengths: ${s.strengths.map(x => `<span class="pill strength">${esc(x)}</span>`).join(' ')}</p>` : ''}
             ${s.focusAreas.length ? `<p style="margin-top:6px">🎯 Focus areas (getting extra help): ${s.focusAreas.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')}</p>` : ''}
+            ${isParent && s.drillSkills && s.drillSkills.length ? `<p class="place-note" style="background:#fff2ea;border-color:#f0cbb0;margin-top:6px">💪 <b>In a Skill Drill now:</b> ${s.drillSkills.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')} <span class="muted" style="font-size:.85rem">— ${esc(k.name.split(' ')[0])} kept missing ${s.drillSkills.length > 1 ? 'these' : 'this'}, so Gallop now requires the lesson first, then a short streak of correct answers to clear it. This is how we make sure a struggling skill gets fixed instead of skipped.</span></p>` : ''}
             ${isParent && s.skills && s.skills.length ? `
             <details class="skill-detail no-print">
               <summary>🔬 See all ${s.skills.length} skills</summary>
               <div class="skill-rows">
                 ${s.skills.map(sk => `
                   <div class="skill-row">
-                    <span class="sk-name">${esc(sk.name)}${sk.grade != null ? ` <span class="sk-grade">${sk.grade === 0 ? 'K' : 'G' + sk.grade}</span>` : ''}</span>
+                    <span class="sk-name">${esc(sk.name)}${sk.grade != null ? ` <span class="sk-grade">${sk.grade === 0 ? 'K' : 'G' + sk.grade}</span>` : ''}${sk.inDrill ? ` <span class="sk-grade" style="background:#d97b4f;color:#fff" title="In a Skill Drill — lesson required, then a short streak to clear">💪 DRILL</span>` : ''}</span>
                     <span class="sk-meta">${sk.attempts} tries${sk.accuracy != null ? ' · ' + Math.round(sk.accuracy * 100) + '%' : ''}</span>
                     <span class="sk-bar"><span class="sk-fill ${sk.mastery >= 0.8 ? 'hi' : sk.mastery >= 0.45 ? 'mid' : 'lo'}" style="width:${Math.round(sk.mastery * 100)}%"></span></span>
                   </div>`).join('')}
@@ -4166,6 +4183,9 @@ route('parent', async () => {
               <label class="ke-showlevel"><input type="checkbox" class="ke-showlevel-cb" ${k.show_level ? 'checked' : ''}>
                 <span><b>Show ${esc(k.name.split(' ')[0])} their grade level</b><br><span class="muted" style="font-size:.83rem">Off by default. We adapt to your child's real level in each subject, but we keep the grade number between you and us — so a child who's working below their grade never sees it and feels discouraged. You'll always see it in the report. Flip this on when you'd like to share it with ${esc(k.name.split(' ')[0])}.</span></span>
               </label>
+              <label class="ke-showlevel"><input type="checkbox" class="ke-lessonsfirst-cb" ${k.lessons_first ? 'checked' : ''}>
+                <span><b>Require the lesson before questions</b><br><span class="muted" style="font-size:.83rem">Off by default. When on, ${esc(k.name.split(' ')[0])} must watch the short lesson before practicing <b>any</b> new skill — not just ones they're struggling with. Either way, Gallop <b>always</b> steps a child who keeps missing a skill into a "Skill Drill": lesson first, then a short streak of correct answers to clear it. This stops a kid from racing to quizzes and stalling out.</span></span>
+              </label>
               <p class="muted" style="font-size:.83rem;margin:10px 0 0">🎮 Game controls (on/off, earn-it & daily limit) now live on the <b>🎮 Games</b> button above.</p>
               <div class="error-msg ke-err"></div>
               <button class="btn small green" data-save-edit="${k.id}" style="margin-top:8px">Save ✓</button>
@@ -4495,7 +4515,8 @@ route('parent', async () => {
       grade: Number(box.querySelector('.ke-grade').value),
       weekly_goal: Number(box.querySelector('.ke-goal').value),
       calendar_mode: box.querySelector('.ke-cal').value,
-      show_level: box.querySelector('.ke-showlevel-cb') && box.querySelector('.ke-showlevel-cb').checked ? 1 : 0
+      show_level: box.querySelector('.ke-showlevel-cb') && box.querySelector('.ke-showlevel-cb').checked ? 1 : 0,
+      lessons_first: box.querySelector('.ke-lessonsfirst-cb') && box.querySelector('.ke-lessonsfirst-cb').checked ? 1 : 0
     };
     const pin = box.querySelector('.ke-pin').value.trim();
     if (pin) body.pin = pin;
