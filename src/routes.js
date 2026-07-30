@@ -27,8 +27,36 @@ router.use(play.router);
 const COOKIE_OPTS = { httpOnly: true, sameSite: 'lax', maxAge: 90 * 86400000, secure: process.env.NODE_ENV === 'production' };
 const AVATARS = ['fox', 'panda', 'dragon', 'unicorn', 'robot', 'astronaut', 'tiger', 'octopus'];
 
-// In-memory placement sessions (short-lived)
-const placements = new Map(); // key `${kidId}:${subject}` -> history[]
+// Placement sessions are persisted to SQLite (placement_sessions) so an in-flight placement
+// survives a deploy, restart, reconnect, or device change — the child resumes exactly where
+// they left off instead of losing every answer (the "Quick hiccup!" data-loss bug). A thin
+// Map-like façade keeps the call sites below unchanged.
+const placements = {
+  get(key) {
+    const [kidId, subject] = splitPKey(key);
+    try {
+      const r = db.prepare('SELECT history FROM placement_sessions WHERE kid_id=? AND subject=?').get(kidId, subject);
+      if (!r) return null;
+      const h = JSON.parse(r.history);
+      return Array.isArray(h) ? h : [];
+    } catch (e) { return null; }
+  },
+  set(key, history) {
+    const [kidId, subject] = splitPKey(key);
+    try {
+      db.prepare(`INSERT INTO placement_sessions (kid_id, subject, history, updated_at)
+        VALUES (?,?,?,datetime('now'))
+        ON CONFLICT(kid_id, subject) DO UPDATE SET history=excluded.history, updated_at=datetime('now')`)
+        .run(kidId, subject, JSON.stringify(history || []));
+    } catch (e) { /* best-effort: never break the quiz on a write hiccup */ }
+  },
+  delete(key) {
+    const [kidId, subject] = splitPKey(key);
+    try { db.prepare('DELETE FROM placement_sessions WHERE kid_id=? AND subject=?').run(kidId, subject); } catch (e) {}
+  }
+};
+// keys are `${kidId}:${subject}`; subject never contains a colon (validSubject-gated).
+function splitPKey(key) { const i = String(key).indexOf(':'); return [Number(key.slice(0, i)), key.slice(i + 1)]; }
 
 // Dependency-free rate limiter for auth endpoints: caps attempts per IP+route window to
 // stop password/PIN brute-force and credential stuffing. In-memory (fine for a single
@@ -85,6 +113,34 @@ router.get('/health', (req, res) => {
   } catch (e) { return res.status(503).json({ ok: false, error: 'db' }); }
 });
 
+// First-party activation beacon. Records ONLY an allowlisted event name + timestamp — no learner
+// identifier of any kind — so learner-side activation (which must never reach GTM/GA under COPPA)
+// is still measurable as an aggregate funnel. Unknown names are silently ignored (anti-bloat).
+const EV_ALLOW = new Set([
+  'demo_start', 'demo_complete', 'placement_start', 'placement_resume', 'placement_complete',
+  'lesson_start', 'lesson_complete', 'first_correct', 'paywall_view', 'parent_report_view', 'learner_added'
+]);
+router.post('/ev', (req, res) => {
+  try {
+    const name = String((req.body && req.body.name) || '').slice(0, 40);
+    if (EV_ALLOW.has(name)) db.prepare('INSERT INTO events (name) VALUES (?)').run(name);
+  } catch (e) { /* analytics must never break a user action */ }
+  res.json({ ok: true });
+});
+
+// Owner view: aggregate activation-funnel counts over the last N days (default 30). Admin-only.
+router.get('/admin/funnel', auth.requireAdmin, (req, res) => {
+  const days = Math.min(365, Math.max(1, parseInt(req.query.days, 10) || 30));
+  try {
+    const rows = db.prepare(
+      `SELECT name, COUNT(*) AS n FROM events WHERE ts >= datetime('now', ?) GROUP BY name`
+    ).all(`-${days} days`);
+    const counts = {};
+    for (const r of rows) counts[r.name] = r.n;
+    res.json({ days, counts });
+  } catch (e) { res.status(500).json({ error: 'funnel' }); }
+});
+
 // Idempotency for answer submission: a double-tap or a network retry must not record the
 // same answer twice (which would double-move mastery / double-mint XP). The client sends a
 // per-question nonce; we remember recently-seen (kid, nonce) pairs and no-op on repeats.
@@ -124,9 +180,8 @@ router.post('/auth/signup', loginLimiter, (req, res) => {
     }
     const token = auth.createSession('parent', id);
     res.cookie('bp_session', token, COOKIE_OPTS);
-    // COPPA email-plus: new accounts must confirm control of their email (verifiable parental
-    // consent) BEFORE any child profile can be created. Issue a single-use verify token and email
-    // the link. The account exists and the parent is logged in, but /kids is gated until verified.
+    // COPPA email-plus: new accounts must confirm their email before adding a child. Issue a
+    // single-use verify token + email the link; the account is logged in but /kids is gated.
     const p0 = db.prepare('SELECT * FROM parents WHERE id=?').get(id);
     try {
       const vtoken = require('crypto').randomBytes(24).toString('hex');
@@ -160,9 +215,12 @@ router.post('/auth/enter-kid', auth.requireParent, (req, res) => {
   if (!kid) return res.status(404).json({ error: 'Learner not found.' });
   const parentToken = req.cookies.bp_session;
   if (parentToken) res.cookie('bp_parent_return', parentToken, COOKIE_OPTS);
-  const token = auth.createSession('kid', kid.id);
+  // Together Mode: the parent launched "Practice together", so flag the whole kid session assisted.
+  // Every answer in it is recorded assisted and can never move independent mastery/placement.
+  const together = !!(req.body && (req.body.together === true || req.body.together === 1 || req.body.together === '1'));
+  const token = auth.createSession('kid', kid.id, together);
   res.cookie('bp_session', token, COOKIE_OPTS);
-  res.json({ ok: true, kid: publicKid(kid) });
+  res.json({ ok: true, kid: publicKid(kid), assisted: together });
 });
 
 // Return from a parent-launched kid session back to the parent dashboard.
@@ -235,8 +293,6 @@ router.post('/auth/reset', loginLimiter, (req, res) => {
 });
 
 // ---------- COPPA email-plus: verifiable parental consent via email confirmation ----------
-// Parent clicks the link we emailed at signup. Confirming control of the email is our verifiable
-// parental consent step; we log it to the consent ledger and send a confirming ("plus") email.
 router.get('/auth/verify-email', (req, res) => {
   const token = String((req.query || {}).token || '');
   const p = token ? db.prepare('SELECT * FROM parents WHERE verify_token=?').get(token) : null;
@@ -248,7 +304,6 @@ router.get('/auth/verify-email', (req, res) => {
   }
   res.redirect('/?verified=1#parent');
 });
-// Resend the verification link on demand (rate-limited).
 router.post('/auth/resend-verification', loginLimiter, auth.requireParent, (req, res) => {
   if (req.parent.email_verified) return res.json({ ok: true, alreadyVerified: true });
   try {
@@ -322,8 +377,13 @@ router.get('/auth/me', (req, res) => {
   const s = auth.getSession(req.cookies.bp_session);
   if (!s) return res.json({ role: 'guest' });
   if (s.kind === 'parent') {
-    const p = db.prepare('SELECT id, email, name, sub_status, sub_plan, trial_ends, is_admin, email_verified FROM parents WHERE id=?').get(s.ref_id);
+    const p = db.prepare('SELECT id, email, name, sub_status, sub_plan, trial_ends, is_admin, account_type, school_name, email_verified FROM parents WHERE id=?').get(s.ref_id);
     if (!p) return res.json({ role: 'guest' });
+    // Teacher accounts get the class dashboard, not the family view + kid list.
+    if (p.account_type === 'teacher') {
+      auth.syncAdminFlag(p);
+      return res.json({ role: 'parent', parent: p, kids: [], billingMode: billing.billingMode(), plans: billing.PLANS, teacher: true, school: schoolContext(p) });
+    }
     // Grant owner/admin on any load (not only fresh login) if the email is on the
     // ADMIN_EMAILS list — so adding an owner never requires them to log out and back in.
     auth.syncAdminFlag(p);
@@ -336,7 +396,8 @@ router.get('/auth/me', (req, res) => {
   // parent session), tell the client so it can show an "Exit to parent" control.
   let parentReturn = false;
   try { const pr = auth.getSession(req.cookies.bp_parent_return); parentReturn = !!(pr && pr.kind === 'parent'); } catch (e) {}
-  res.json({ role: 'kid', kid: publicKid(kid), parentReturn });
+  const kidSess = auth.getSession(req.cookies.bp_session);
+  res.json({ role: 'kid', kid: publicKid(kid), parentReturn, assisted: !!(kidSess && kidSess.assisted) });
 });
 
 function publicKid(k) {
@@ -373,9 +434,8 @@ function learnMinutesBetween(kidId, sinceUTC, untilUTC) {
 
 // ---------- kid management (parent) ----------
 router.post('/kids', auth.requireParent, (req, res) => {
-  // COPPA email-plus gate: no child profile is created and no child data is collected until the
-  // parent has confirmed control of their email (verifiable parental consent). Existing pre-2026-07-30
-  // accounts are grandfathered verified; new trial accounts must click the emailed link first.
+  // COPPA email-plus gate: no child profile is created until the parent has confirmed their email
+  // (verifiable parental consent). Pre-2026-07-30 accounts are grandfathered verified.
   if (!req.parent.email_verified)
     return res.status(403).json({ error: 'Please confirm your email first — we sent you a verification link. This verifies parental consent before any learner profile is created.', needVerify: true });
   const { name, grade, pin, avatar, calendar_mode, consent } = req.body || {};
@@ -388,8 +448,12 @@ router.post('/kids', auth.requireParent, (req, res) => {
   const count = db.prepare('SELECT COUNT(*) AS n FROM kids WHERE parent_id=?').get(req.parent.id).n;
   const plan = billing.PLANS[req.parent.sub_plan] || billing.PLANS.family;
   if (count >= plan.kids) return res.status(400).json({ error: `Your ${plan.name} plan supports up to ${plan.kids} learner(s).` });
-  const info = db.prepare('INSERT INTO kids (parent_id, name, grade, pin, avatar, calendar_mode, consent_at) VALUES (?,?,?,?,?,?, datetime(\'now\'))')
-    .run(req.parent.id, cleanName, Math.max(0, Math.min(12, Math.round(Number(grade)))), auth.hashPin(String(pin)), AVATARS.includes(avatar) ? avatar : 'fox', calendar_mode || 'traditional');
+  const gradeNum = Math.max(0, Math.min(12, Math.round(Number(grade))));
+  // PRODUCT-105: age-aware default weekly goal (stored as lessons/week; x10 ≈ answers) so a
+  // kindergartner isn't defaulted to 120 answers/week like a high-schooler. Parents can change it.
+  const defaultGoal = gradeNum <= 2 ? 6 : gradeNum <= 5 ? 9 : gradeNum <= 8 ? 12 : 15;
+  const info = db.prepare('INSERT INTO kids (parent_id, name, grade, pin, avatar, calendar_mode, weekly_goal, consent_at) VALUES (?,?,?,?,?,?,?, datetime(\'now\'))')
+    .run(req.parent.id, cleanName, gradeNum, auth.hashPin(String(pin)), AVATARS.includes(avatar) ? avatar : 'fox', calendar_mode || 'traditional', defaultGoal);
   // Record the parent's affirmative consent (auditable, versioned). If they've paid, the
   // card transaction on file already stands as the stronger verifiable consent.
   db.recordConsent({ parentId: req.parent.id, parentEmail: req.parent.email, kidId: info.lastInsertRowid, method: 'checkbox', detail: 'learner-creation' });
@@ -570,7 +634,7 @@ router.post('/learn/:kidId/placement/:subject', auth.requireKid, auth.requireAct
   const answerIdx = question.choices.indexOf(question.answer);
   res.json({
     done: false, probeGrade: result.probeGrade, progress: history.length,
-    question: { prompt: question.prompt, choices: question.choices, voice: question.voice, passage: question.passage || null, answerIndex: answerIdx, skillName: question.skillName }
+    question: { prompt: question.prompt, choices: question.choices, voice: question.voice, passage: question.passage || null, clock: question.clock || null, answerIndex: answerIdx, skillName: question.skillName }
   });
 });
 
@@ -583,11 +647,13 @@ router.get('/learn/:kidId/next/:subject', auth.requireKid, auth.requireActiveSub
   // one skill until it's mastered (tester finding #1). Sanitize to a plausible skill id.
   const focusRaw = typeof req.query.focus === 'string' ? req.query.focus.slice(0, 64) : '';
   const focusSkill = /^[\w.\-]+$/.test(focusRaw) ? focusRaw : '';
+  // "Too easy? Level me up" sends ?boost=1 so the very next item is served harder (P1.4).
+  const hard = req.query.boost === '1';
   // A single flaky generator must never freeze a kid's session — retry, then fail soft.
   // A truthy activity whose question failed to generate (question:null) still counts as a
   // miss here, otherwise indexing qn.choices below would throw a 500 instead of the soft 503.
   for (let attempt = 0; attempt < 3 && !(activity && activity.question); attempt++) {
-    try { activity = adaptive.nextActivity(req.kid.id, subject, { focusSkill }); } catch (e) { activity = null; }
+    try { activity = adaptive.nextActivity(req.kid.id, subject, { focusSkill, hard }); } catch (e) { activity = null; }
   }
   if (!activity || !activity.question) return res.status(503).json({ error: 'Hiccup loading the next question — tap to try again!' });
   const qn = activity.question;
@@ -598,6 +664,7 @@ router.get('/learn/:kidId/next/:subject', auth.requireKid, auth.requireActiveSub
       prompt: qn.prompt, choices: qn.choices, voice: qn.voice, hint: qn.hint, explain: qn.explain,
       whyWrong: qn.whyWrong || null,
       passage: qn.passage || null,
+      clock: qn.clock || null,
       answerIndex: answerIdx, skillId: qn.skillId, skillName: qn.skillName, difficulty: qn.difficulty
     }
   });
@@ -620,7 +687,7 @@ router.post('/learn/:kidId/answer', answerLimiter, auth.requireKid, auth.require
   // request can't corrupt mastery, mint fake certificates, or inflate XP.
   let diff = Number(difficulty); diff = Number.isFinite(diff) ? Math.max(0, Math.min(1, diff)) : 0.5;
   const tRaw = Number(timeMs); const tMs = Number.isFinite(tRaw) && tRaw > 0 ? Math.min(tRaw, 600000) : null;
-  const result = adaptive.recordAnswer(req.kid.id, subject, skillId, !!correct, tMs, diff);
+  const result = adaptive.recordAnswer(req.kid.id, subject, skillId, !!correct, tMs, diff, req.assistedSession);
   const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id);
   res.json({ ...result, kid: publicKid(kid) });
 });
@@ -645,6 +712,13 @@ router.post('/learn/:kidId/notify-parent', auth.requireKid, (req, res) => {
 const trackRecent = new Map(); // `${kidId}:${trackId}` -> [recent prompts]
 
 router.get('/learn/tracks', (req, res) => res.json({ tracks: content.listTracks() }));
+
+// Official AP exam blueprint + Gallop's current coverage for a track (reference data, public).
+router.get('/learn/track/:trackId/blueprint', (req, res) => {
+  const cov = content.apCoverage(req.params.trackId);
+  if (!cov) return res.status(404).json({ error: 'No blueprint for this track.' });
+  res.json({ blueprint: cov });
+});
 
 router.get('/learn/:kidId/track/:trackId/next', auth.requireKid, auth.requireActiveSub, (req, res) => {
   const { trackId } = req.params;
@@ -680,8 +754,181 @@ router.post('/learn/:kidId/track/answer', answerLimiter, auth.requireKid, auth.r
   const xp = isCorrect ? 15 : 3;
   db.prepare('UPDATE kids SET xp = xp + ?, coins = coins + ? WHERE id=?').run(xp, isCorrect ? 2 : 0, req.kid.id);
   try { adaptive.updateStreak(req.kid.id); } catch (e) {}
+  // Update exam-readiness running MC stats for this track.
+  try {
+    trackProgressUpsert(req.kid.id, trackId, row => { row.mc_attempts += 1; if (isCorrect) row.mc_correct += 1; });
+  } catch (e) {}
   const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id);
   res.json({ ok: true, correct: isCorrect, xpEarned: xp, coinsEarned: isCorrect ? 2 : 0, kid: publicKid(kid) });
+});
+
+// ---------- Advanced Track: free-response, exam simulator, exam-readiness ----------
+// Ensure a track_progress row exists, apply a mutation, persist. Kept isolated from the ladder.
+function trackProgressRow(kidId, trackId) {
+  let r = db.prepare('SELECT * FROM track_progress WHERE kid_id=? AND track_id=?').get(kidId, trackId);
+  if (!r) {
+    db.prepare('INSERT OR IGNORE INTO track_progress (kid_id, track_id) VALUES (?,?)').run(kidId, trackId);
+    r = db.prepare('SELECT * FROM track_progress WHERE kid_id=? AND track_id=?').get(kidId, trackId);
+  }
+  return r;
+}
+function trackProgressUpsert(kidId, trackId, mutate) {
+  const r = trackProgressRow(kidId, trackId);
+  mutate(r);
+  db.prepare(`UPDATE track_progress SET mc_attempts=?, mc_correct=?, frq_attempts=?, frq_points=?, frq_max=?, best_exam_score=?, last_exam_pct=?, updated_at=datetime('now') WHERE kid_id=? AND track_id=?`)
+    .run(r.mc_attempts, r.mc_correct, r.frq_attempts, r.frq_points, r.frq_max, r.best_exam_score, r.last_exam_pct, kidId, trackId);
+  return r;
+}
+// Estimated AP score band (1..5) from a composite percent — a practice estimate, not official.
+function estBand(pct) { return pct >= 75 ? 5 : pct >= 62 ? 4 : pct >= 48 ? 3 : pct >= 33 ? 2 : 1; }
+// Evidence thresholds before we're willing to show a 1–5 estimate at all. A handful of correct
+// questions from one content slice cannot support a course-wide AP prediction (AP-P0.1), so below
+// the threshold we return estBand=null and the UI says "not enough evidence yet".
+const AP_MIN_MC = 25;         // meaningful multiple-choice sample
+const AP_MIN_FRQ = 1;         // at least one free-response attempt (self-scored)
+function readinessFor(r, trackId) {
+  const mcPct = r.mc_attempts >= 1 ? Math.round(r.mc_correct / r.mc_attempts * 100) : null;
+  const frqPct = r.frq_max >= 1 ? Math.round(r.frq_points / r.frq_max * 100) : null;
+  // Composite for the readiness bar. FRQ is SELF-SCORED, so it is discounted (weighted 0.3, not
+  // 0.55) rather than trusted like objective evidence.
+  let composite = null;
+  if (mcPct != null && frqPct != null) composite = Math.round(0.7 * mcPct + 0.3 * frqPct);
+  else composite = mcPct != null ? mcPct : frqPct;
+  // Only surface a 1–5 estimate once there's enough objective + constructed-response evidence.
+  const enough = (r.mc_attempts >= AP_MIN_MC) && (r.frq_attempts >= AP_MIN_FRQ);
+  const evidence = (r.mc_attempts || 0) + (r.frq_attempts || 0) * 3;   // FRQ counts as a bigger unit
+  const confidence = !enough ? 'insufficient' : evidence >= 80 ? 'high' : evidence >= 45 ? 'medium' : 'low';
+  const band = enough && composite != null ? estBand(composite) : null;
+  // Low confidence → present a RANGE (±1 band) rather than a single false-precise number.
+  const bandRange = band == null ? null : (confidence === 'high' ? [band, band] : [Math.max(1, band - 1), Math.min(5, band + (confidence === 'low' ? 1 : 0))]);
+  return {
+    trackId,
+    mcPct, mcAttempts: r.mc_attempts,
+    frqPct, frqAttempts: r.frq_attempts, frqPoints: r.frq_points, frqMax: r.frq_max,
+    readiness: enough ? composite : null,          // hide the % until there's enough evidence
+    estBand: band,                                 // null until the evidence threshold is met
+    bandRange, confidence,
+    needMoreMc: Math.max(0, AP_MIN_MC - (r.mc_attempts || 0)),
+    needFrq: r.frq_attempts < AP_MIN_FRQ,
+    bestExamScore: r.best_exam_score || null,
+    lastExamPct: r.last_exam_pct || null
+  };
+}
+
+// List the free-response questions available for a track (metadata only).
+router.get('/learn/:kidId/track/:trackId/frqs', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const meta = content.getTrack(req.params.trackId);
+  if (!meta) return res.status(404).json({ error: 'Unknown track' });
+  res.json({ track: { id: meta.id, name: meta.name, exam: meta.exam, subject: meta.subject }, frqs: content.listFrqs(req.params.trackId) });
+});
+
+// Full free-response question (prompt + parts + model solutions + rubric). The client keeps
+// solutions hidden until the student chooses to reveal and self-score.
+router.get('/learn/:kidId/track/:trackId/frq/:frqId', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const f = content.getFrq(req.params.trackId, req.params.frqId);
+  if (!f) return res.status(404).json({ error: 'Question not found' });
+  const meta = content.getTrack(req.params.trackId);
+  res.json({ frq: f, track: meta ? { id: meta.id, name: meta.name, exam: meta.exam, subject: meta.subject } : null });
+});
+
+// Record a free-response self-score.
+router.post('/learn/:kidId/track/frq/score', answerLimiter, auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const { trackId, frqId } = req.body || {};
+  const f = content.getFrq(trackId, frqId);
+  if (!f) return res.status(400).json({ error: 'Unknown question' });
+  const meta = content.getTrack(trackId);
+  const max = f.maxPoints;
+  let earned = Number((req.body || {}).pointsEarned);
+  if (!Number.isFinite(earned)) earned = 0;
+  earned = Math.max(0, Math.min(max, Math.round(earned)));
+  // PRODUCT-104: a self-score only counts toward the AP readiness estimate when the student
+  // ACTUALLY attempted the problem (typed work, or spent real time on it before revealing). A
+  // "reveal the model answer, then award full marks" peek is logged as light practice for a small
+  // XP nudge but must NEVER inflate readiness or the constructed-response evidence count.
+  const attempted = (req.body || {}).attempted === true;
+  if (attempted) {
+    db.prepare('INSERT INTO activity_log (kid_id, subject, skill_id, correct, difficulty, time_ms) VALUES (?,?,?,?,?,?)')
+      .run(req.kid.id, meta.subject, `track:${trackId}`, earned >= max * 0.6 ? 1 : 0, 0.95, null);
+    trackProgressUpsert(req.kid.id, trackId, row => { row.frq_attempts += 1; row.frq_points += earned; row.frq_max += max; });
+  }
+  const xp = attempted ? (20 + earned * 3) : 6;
+  db.prepare('UPDATE kids SET xp = xp + ?, coins = coins + ? WHERE id=?').run(xp, attempted ? Math.max(2, earned) : 1, req.kid.id);
+  try { adaptive.updateStreak(req.kid.id); } catch (e) {}
+  const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id);
+  res.json({ ok: true, earned, max, xpEarned: xp, counted: attempted, kid: publicKid(kid) });
+});
+
+// Build an exam-simulator paper: a set of MC questions + one or more FRQs for the track.
+router.get('/learn/:kidId/track/:trackId/exam', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const trackId = req.params.trackId;
+  const meta = content.getTrack(trackId);
+  if (!meta) return res.status(404).json({ error: 'Unknown track' });
+  const MC_N = 10;
+  const mc = [];
+  const seen = new Set();
+  for (let i = 0; i < MC_N * 4 && mc.length < MC_N; i++) {
+    let q = null; try { q = content.generateTrackQuestion(trackId, seen); } catch (e) { q = null; }
+    if (!q || !q.choices) break;
+    if (seen.has(q.prompt)) continue;
+    seen.add(q.prompt);
+    mc.push({ prompt: q.prompt, choices: q.choices, passage: q.passage || null, answerIndex: q.choices.indexOf(q.answer), explain: q.explain });
+  }
+  // One FRQ (rotate by a client-provided index if given).
+  const frqs = content.listFrqs(trackId);
+  let frq = null;
+  if (frqs.length) {
+    const idx = Math.max(0, Math.min(frqs.length - 1, Number(req.query.frq) || 0));
+    frq = content.getFrq(trackId, frqs[idx].id);
+  }
+  res.json({
+    track: { id: meta.id, name: meta.name, exam: meta.exam, subject: meta.subject },
+    mc, frq, timeSuggestSec: MC_N * 90 + (frq ? 900 : 0)
+  });
+});
+
+// Score a completed exam simulation → estimated band (1..5).
+router.post('/learn/:kidId/track/exam/score', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const b = req.body || {};
+  const trackId = String(b.trackId || '');
+  const meta = content.getTrack(trackId);
+  if (!meta) return res.status(400).json({ error: 'Unknown track' });
+  const mcTotal = Math.max(0, Number(b.mcTotal) || 0);
+  const mcCorrect = Math.max(0, Math.min(mcTotal, Number(b.mcCorrect) || 0));
+  const frqMax = Math.max(0, Number(b.frqMax) || 0);
+  const frqPoints = Math.max(0, Math.min(frqMax, Number(b.frqPoints) || 0));
+  const mcPct = mcTotal ? mcCorrect / mcTotal * 100 : null;
+  const frqPct = frqMax ? frqPoints / frqMax * 100 : null;
+  let composite;
+  // FRQ is self-scored, so discount it (0.7 MC / 0.3 FRQ) in the mini-mock result too.
+  if (mcPct != null && frqPct != null) composite = Math.round(0.7 * mcPct + 0.3 * frqPct);
+  else composite = Math.round(mcPct != null ? mcPct : (frqPct != null ? frqPct : 0));
+  const band = estBand(composite);
+  db.prepare('INSERT INTO activity_log (kid_id, subject, skill_id, correct, difficulty, time_ms) VALUES (?,?,?,?,?,?)')
+    .run(req.kid.id, meta.subject, `track:${trackId}`, composite >= 60 ? 1 : 0, 1.0, Number(b.timeMs) || null);
+  const xp = 40 + band * 15;
+  db.prepare('UPDATE kids SET xp = xp + ?, coins = coins + ? WHERE id=?').run(xp, 10, req.kid.id);
+  try { adaptive.updateStreak(req.kid.id); } catch (e) {}
+  trackProgressUpsert(req.kid.id, trackId, row => {
+    row.last_exam_pct = composite;
+    if (band > (row.best_exam_score || 0)) row.best_exam_score = band;
+    // Fold the exam's MC + FRQ into running readiness too.
+    row.mc_attempts += mcTotal; row.mc_correct += mcCorrect;
+    if (frqMax) { row.frq_attempts += 1; row.frq_points += frqPoints; row.frq_max += frqMax; }
+  });
+  const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(req.kid.id);
+  res.json({ ok: true, composite, band, mcPct: mcPct == null ? null : Math.round(mcPct), frqPct: frqPct == null ? null : Math.round(frqPct), xpEarned: xp, kid: publicKid(kid) });
+});
+
+// Exam-readiness snapshot for a track (or all tracks the student has touched).
+router.get('/learn/:kidId/track/:trackId/progress', auth.requireKid, auth.requireActiveSub, (req, res) => {
+  const r = trackProgressRow(req.kid.id, req.params.trackId);
+  res.json({ progress: readinessFor(r, req.params.trackId) });
+});
+router.get('/learn/:kidId/tracks/progress', auth.requireKid, (req, res) => {
+  const rows = db.prepare('SELECT * FROM track_progress WHERE kid_id=?').all(req.kid.id);
+  const out = {};
+  for (const r of rows) out[r.track_id] = readinessFor(r, r.track_id);
+  res.json({ progress: out });
 });
 
 // report card (kid-safe view + parent view share this)
@@ -752,10 +999,13 @@ router.get('/kids/:kidId/levels', auth.requireParent, (req, res) => {
   const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
   if (!kid) return res.status(404).json({ error: 'Learner not found.' });
   const levels = Object.keys(content.SUBJECTS).map(sub => {
-    const st = db.prepare('SELECT level, placed FROM subject_state WHERE kid_id=? AND subject=?').get(kid.id, sub);
+    const st = db.prepare('SELECT level, placed, level_src, level_set_at, prev_level FROM subject_state WHERE kid_id=? AND subject=?').get(kid.id, sub);
     return { subject: sub, label: adaptive.subjectLabel(sub), placed: !!(st && st.placed),
              level: st ? Math.round(st.level) : null,
              levelName: st && st.placed ? adaptive.gradeName(Math.round(st.level)) : 'Not placed yet',
+             setByParent: !!(st && st.level_src === 'parent'),
+             setAt: st && st.level_set_at ? String(st.level_set_at).slice(0, 10) : null,
+             prevAdaptive: st && st.prev_level != null ? adaptive.gradeName(Math.round(st.prev_level)) : null,
              max: adaptive.maxGrade(sub) };
   });
   res.json({ levels });
@@ -765,8 +1015,26 @@ router.post('/kids/:kidId/level', auth.requireParent, (req, res) => {
   if (!kid) return res.status(404).json({ error: 'Learner not found.' });
   const { subject, level } = req.body || {};
   if (!validSubject(subject) || level == null || !Number.isFinite(Number(level))) return res.status(400).json({ error: 'Need a subject and a valid level.' });
+  // Capture the level Gallop had BEFORE this manual override (only the first time, so repeated
+  // parent tweaks don't overwrite the true adaptive baseline) so "return to adaptive" can restore it.
+  const before = db.prepare('SELECT level, level_src, prev_level FROM subject_state WHERE kid_id=? AND subject=?').get(kid.id, subject);
+  const prev = before && before.level_src === 'parent' && before.prev_level != null ? before.prev_level : (before ? before.level : null);
   const newLevel = adaptive.setLevel(kid.id, subject, Number(level), { authoritative: true });
+  db.prepare("UPDATE subject_state SET level_src='parent', level_set_at=datetime('now'), prev_level=? WHERE kid_id=? AND subject=?").run(prev, kid.id, subject);
   res.json({ ok: true, level: newLevel, levelName: adaptive.gradeName(newLevel) });
+});
+// Return a subject to Gallop's adaptive placement: clear the parent override and restore the
+// adaptive level Gallop had before the manual change, so the engine continues from there (PP-106).
+router.post('/kids/:kidId/level/adaptive', auth.requireParent, (req, res) => {
+  const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
+  if (!kid) return res.status(404).json({ error: 'Learner not found.' });
+  const { subject } = req.body || {};
+  if (!validSubject(subject)) return res.status(400).json({ error: 'Need a subject.' });
+  const st = db.prepare('SELECT prev_level FROM subject_state WHERE kid_id=? AND subject=?').get(kid.id, subject);
+  if (st && st.prev_level != null) adaptive.setLevel(kid.id, subject, Math.round(st.prev_level), { authoritative: true });
+  db.prepare("UPDATE subject_state SET level_src=NULL, level_set_at=NULL, prev_level=NULL WHERE kid_id=? AND subject=?").run(kid.id, subject);
+  const cur = db.prepare('SELECT level FROM subject_state WHERE kid_id=? AND subject=?').get(kid.id, subject);
+  res.json({ ok: true, levelName: cur ? adaptive.gradeName(Math.round(cur.level)) : null });
 });
 
 // ---------- admin (owner only) ----------
@@ -845,7 +1113,7 @@ router.get('/family/overview', auth.requireParent, (req, res) => {
     // weekAnswers counts ALL work (engagement/goal); weekAccuracy excludes optional Advanced
     // Track (AP/honors) so the accuracy figure is a fair grade-level read, matching the report.
     const w = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= ?').get(k.id, win.weekStart);
-    const wAcc = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND skill_id NOT LIKE 'track:%' AND ts >= ?").get(k.id, win.weekStart);
+    const wAcc = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND skill_id NOT LIKE 'track:%' AND (assisted IS NULL OR assisted=0) AND ts >= ?").get(k.id, win.weekStart);
     const totalAns = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=?').get(k.id).n;
     // The skills this child is genuinely stuck on, hardest first — this is "where they need help".
     const struggles = db.prepare(
@@ -856,8 +1124,12 @@ router.get('/family/overview', auth.requireParent, (req, res) => {
     let overall = 'getting-started', gallop = null, gallopDelta = null;
     try {
       const card = adaptive.reportCard(k.id);
-      const st = (card.subjects || []).map(s => s.status).filter(x => x && x !== 'insufficient');
-      if (st.length) {
+      // A pace verdict needs real evidence. 'building' (subject not started) and 'insufficient'
+      // (placed but too few answers) are NO-DATA states, not "on track" — excluding them means a
+      // brand-new learner with zero answers stays 'getting-started' instead of a false green
+      // "On track" (P0-5). Only judge overall when at least one subject has a real verdict.
+      const st = (card.subjects || []).map(s => s.status).filter(x => x && x !== 'insufficient' && x !== 'building');
+      if (totalAns > 0 && st.length) {
         if (st.some(s => s === 'needs-support')) overall = 'needs-support';
         else if (st.every(s => s === 'excelling')) overall = 'excelling';
         else if (st.some(s => s === 'developing')) overall = 'developing';
@@ -866,11 +1138,17 @@ router.get('/family/overview', auth.requireParent, (req, res) => {
       if (card.gallop) { gallop = card.gallop.overall; gallopDelta = (card.gallop.deltas && card.gallop.deltas.overall) || null; }
     } catch (e) {}
     const todayAns = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= ? AND ts < ?').get(k.id, win.todayStart, win.tomorrowStart).n;
+    // Today's work split by subject (with accuracy) so a parent can see WHAT their child
+    // worked on today, not just the total — e.g. "40 Math · 30 Reading · 20 Science".
+    const todayBySubject = db.prepare(
+      'SELECT subject, COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND ts >= ? AND ts < ? GROUP BY subject ORDER BY n DESC'
+    ).all(k.id, win.todayStart, win.tomorrowStart)
+      .map(r => ({ subject: r.subject, count: r.n, accuracy: r.n ? Math.round((r.c || 0) / r.n * 100) : null }));
     return {
       id: k.id, name: k.name, grade: k.grade, avatar: k.avatar, streak: k.streak, xp: k.xp,
       weekAnswers: w.n || 0, weekAccuracy: wAcc.n ? Math.round((wAcc.c || 0) / wAcc.n * 100) : null,
       weeklyGoal: (k.weekly_goal || 12) * 10, totalAnswers: totalAns, needsSetup: totalAns === 0,
-      todayAnswers: todayAns, minutesToday: learnMinutesBetween(k.id, win.todayStart, win.tomorrowStart), minutesWeek: learnMinutesBetween(k.id, win.weekStart),
+      todayAnswers: todayAns, todayBySubject, minutesToday: learnMinutesBetween(k.id, win.todayStart, win.tomorrowStart), minutesWeek: learnMinutesBetween(k.id, win.weekStart),
       overall, focus, gallop, gallopDelta
     };
   });
@@ -929,8 +1207,550 @@ const newsletterLimiter = rateLimit({ windowMs: 15 * 60000, max: 10, key: 'newsl
 router.post('/newsletter', newsletterLimiter, (req, res) => {
   const email = String((req.body || {}).email || '').toLowerCase().trim();
   if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'That email doesn\'t look right — double-check it?' });
-  try { db.prepare('INSERT OR IGNORE INTO newsletter_subs (email, source) VALUES (?, ?)').run(email, 'landing'); } catch (e) {}
+  const src = (req.body || {}).source === 'signup' ? 'signup' : 'landing';
+  try { db.prepare('INSERT OR IGNORE INTO newsletter_subs (email, source) VALUES (?, ?)').run(email, src); } catch (e) {}
   res.json({ ok: true });
+});
+
+// B2B lead capture — the "Book a demo / request pricing" form on /schools. Stores the lead
+// durably and notifies the team by email. Rate-limited against spam. A school filling this
+// out is their own action; we only record and forward it.
+const schoolLimiter = rateLimit({ windowMs: 15 * 60000, max: 8, key: 'school' });
+router.post('/schools/inquiry', schoolLimiter, (req, res) => {
+  const b = req.body || {};
+  const clean = s => String(s == null ? '' : s).trim().slice(0, 2000);
+  const lead = {
+    school: clean(b.school), name: clean(b.name), email: clean(b.email).toLowerCase(),
+    phone: clean(b.phone), role: clean(b.role), students: clean(b.students),
+    interest: clean(b.interest), message: clean(b.message)
+  };
+  if (!lead.name || !EMAIL_RE.test(lead.email)) {
+    return res.status(400).json({ error: 'Please share your name and a valid email so we can reach you.' });
+  }
+  try {
+    db.prepare('INSERT INTO school_leads (school,name,email,phone,role,students,interest,message) VALUES (?,?,?,?,?,?,?,?)')
+      .run(lead.school, lead.name, lead.email, lead.phone, lead.role, lead.students, lead.interest, lead.message);
+  } catch (e) {}
+  try { mailer.sendSchoolLead(lead); } catch (e) {}
+  res.json({ ok: true });
+});
+
+// Admin: school leads as CSV for follow-up.
+router.get('/admin/school-leads.csv', auth.requireAdmin, (req, res) => {
+  const csvCell = v => { let s = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return `"${s.replace(/"/g, '""')}"`; };
+  const rows = db.prepare('SELECT created_at, school, name, email, phone, role, students, interest, message FROM school_leads ORDER BY id DESC').all();
+  const out = ['created_at,school,name,email,phone,role,students,interest,message',
+    ...rows.map(r => [r.created_at, r.school, r.name, r.email, r.phone, r.role, r.students, r.interest, r.message].map(csvCell).join(','))];
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="gallop-school-leads.csv"');
+  res.send(out.join('\n'));
+});
+
+// ============================================================================
+// TEACHER / SCHOOL DASHBOARD
+// A teacher account is a parents row with account_type='teacher'. It owns students
+// (kids rows, parent_id = teacher id) grouped into classes. All the adaptive engine,
+// lessons, games, and reporting are reused unchanged; only the ownership grouping and
+// the dashboard views are new. Every route is strictly scoped to the signed-in teacher.
+// ============================================================================
+const TEACHER_SUBJECTS = ['math', 'english', 'science', 'spanish'];
+
+function requireTeacher(req, res, next) {
+  const s = auth.getSession(req.cookies.bp_session);
+  if (!s || s.kind !== 'parent') return res.status(401).json({ error: 'Not signed in' });
+  const p = db.prepare('SELECT * FROM parents WHERE id=?').get(s.ref_id);
+  if (!p) return res.status(401).json({ error: 'Account not found' });
+  if (p.account_type !== 'teacher') return res.status(403).json({ error: 'This area is for school accounts.' });
+  req.parent = p;
+  next();
+}
+
+function genJoinCode() {
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous O/0/I/1
+  for (let attempt = 0; attempt < 12; attempt++) {
+    let c = ''; for (let i = 0; i < 6; i++) c += A[Math.floor(Math.random() * A.length)];
+    if (!db.prepare('SELECT 1 FROM classes WHERE join_code=?').get(c)) return c;
+  }
+  return 'C' + Date.now().toString(36).toUpperCase().slice(-5);
+}
+function genPin() { return String(Math.floor(1000 + Math.random() * 9000)); }
+function genSchoolCode() {
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  for (let attempt = 0; attempt < 12; attempt++) {
+    let c = 'S'; for (let i = 0; i < 5; i++) c += A[Math.floor(Math.random() * A.length)];
+    if (!db.prepare('SELECT 1 FROM schools WHERE code=?').get(c)) return c;
+  }
+  return 'S' + Date.now().toString(36).toUpperCase().slice(-5);
+}
+// Which teacher account ids this teacher may READ. Own always; a head of school may read every
+// member teacher's classes/students. Writes stay owner-only (checked separately).
+function readScopeIds(parent) {
+  if (parent.school_id && parent.school_role === 'head') {
+    const ids = db.prepare('SELECT id FROM parents WHERE school_id=?').all(parent.school_id).map(r => r.id);
+    return ids.length ? ids : [parent.id];
+  }
+  return [parent.id];
+}
+function classForRead(parent, id) {
+  const ids = readScopeIds(parent);
+  const ph = ids.map(() => '?').join(',');
+  return db.prepare(`SELECT * FROM classes WHERE id=? AND owner_id IN (${ph})`).get(id, ...ids);
+}
+function kidForRead(parent, kidId) {
+  const ids = readScopeIds(parent);
+  const ph = ids.map(() => '?').join(',');
+  return db.prepare(`SELECT * FROM kids WHERE id=? AND parent_id IN (${ph})`).get(kidId, ...ids);
+}
+function schoolContext(parent) {
+  if (!parent.school_id) return null;
+  const s = db.prepare('SELECT id, name, code, head_id FROM schools WHERE id=?').get(parent.school_id);
+  if (!s) return null;
+  return { id: s.id, name: s.name, code: parent.school_role === 'head' ? s.code : undefined, isHead: parent.school_role === 'head' };
+}
+
+// Build one roster row (per-student snapshot) for the class dashboard. Honest, lightweight
+// stats straight from activity — no heavy report-card computation per student.
+function teacherRosterRow(kid, win) {
+  const subjects = TEACHER_SUBJECTS.map(sub => {
+    const st = db.prepare('SELECT level, placed FROM subject_state WHERE kid_id=? AND subject=?').get(kid.id, sub);
+    return {
+      subject: sub,
+      placed: !!(st && st.placed),
+      level: st ? st.level : null,
+      levelName: st && st.placed ? adaptive.gradeName(Math.round(st.level)) : null
+    };
+  });
+  const week = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND skill_id NOT LIKE 'track:%' AND ts >= ?").get(kid.id, win.weekStart);
+  const weekAll = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= ?').get(kid.id, win.weekStart);
+  const today = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= ? AND ts < ?').get(kid.id, win.todayStart, win.tomorrowStart);
+  const struggles = db.prepare('SELECT subject, skill_id, mastery FROM skill_state WHERE kid_id=? AND attempts>=3 AND mastery<0.45 ORDER BY mastery ASC LIMIT 3').all(kid.id);
+  const topStruggle = struggles[0] ? (() => { const sk = content.getSkill(struggles[0].subject, struggles[0].skill_id); return { subject: struggles[0].subject, name: sk ? sk.name : struggles[0].skill_id }; })() : null;
+  const weekAccuracy = week.n ? Math.round((week.c || 0) / week.n * 100) : null;
+  const totalAns = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=?').get(kid.id).n;
+  let status = 'inactive';
+  if (weekAll.n > 0) {
+    if (struggles.length >= 1 || (weekAccuracy != null && weekAccuracy < 60)) status = 'needs-support';
+    else if (weekAccuracy != null && weekAccuracy >= 85) status = 'excelling';
+    else status = 'on-track';
+  } else if (totalAns === 0) status = 'not-started';
+  return {
+    id: kid.id, name: kid.name, grade: kid.grade, avatar: kid.avatar,
+    streak: kid.streak || 0, lastActive: kid.last_active_day || null,
+    subjects, weekAnswers: weekAll.n || 0, weekAccuracy,
+    todayAnswers: today.n || 0, minutesWeek: learnMinutesBetween(kid.id, win.weekStart),
+    strugglesCount: struggles.length, topStruggle, totalAnswers: totalAns, status
+  };
+}
+
+function classPublic(c, studentCount) {
+  return { id: c.id, name: c.name, grade: c.grade, joinCode: c.join_code, joinEnabled: c.join_enabled == null ? 1 : c.join_enabled, ownerId: c.owner_id, createdAt: c.created_at, studentCount };
+}
+
+// ---- Teacher signup (creates a school account) ----
+router.post('/teacher/signup', loginLimiter, (req, res) => {
+  const { email, name, password, school } = req.body || {};
+  if (!email || !name || !password || String(password).length < 8)
+    return res.status(400).json({ error: 'Need your name, email, and a password of 8+ characters.' });
+  if (!EMAIL_RE.test(String(email).trim()))
+    return res.status(400).json({ error: 'That email address doesn\'t look right — double-check it?' });
+  if ((req.body || {}).consent !== true)
+    return res.status(400).json({ error: 'Please agree to the Terms and Privacy Policy to continue.' });
+  try {
+    const id = auth.createParent(email, name, password);
+    db.prepare("UPDATE parents SET account_type='teacher', school_name=? WHERE id=?").run(String(school || '').trim().slice(0, 120) || null, id);
+    auth.syncAdminFlag(db.prepare('SELECT * FROM parents WHERE id=?').get(id));
+    try { db.recordConsent({ parentId: id, parentEmail: String(email).trim(), method: 'school-signup', detail: 'teacher account: agreed to Terms & Privacy Policy' }); } catch (e) {}
+    const token = auth.createSession('parent', id);
+    res.cookie('bp_session', token, COOKIE_OPTS);
+    res.json({ ok: true });
+  } catch (e) {
+    if (String(e).includes('UNIQUE')) {
+      const p = auth.verifyParent(email, password);
+      if (p && p.account_type === 'teacher') {
+        const token = auth.createSession('parent', p.id);
+        res.cookie('bp_session', token, COOKIE_OPTS);
+        return res.json({ ok: true, existing: true });
+      }
+      return res.status(400).json({ error: 'That email already has an account. Try logging in instead.' });
+    }
+    res.status(500).json({ error: 'Could not create the account.' });
+  }
+});
+
+// ---- Overview: all classes + org-wide stats ----
+router.get('/teacher/overview', requireTeacher, (req, res) => {
+  const win = timeutil.dayWindow(req.parent.tz);
+  const classes = db.prepare('SELECT * FROM classes WHERE owner_id=? ORDER BY created_at').all(req.parent.id);
+  const out = classes.map(c => {
+    const ids = db.prepare('SELECT kid_id FROM class_members WHERE class_id=?').all(c.id).map(r => r.kid_id);
+    let activeWeek = 0;
+    for (const kid of ids) { const n = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= ?').get(kid, win.weekStart).n; if (n > 0) activeWeek++; }
+    return { ...classPublic(c, ids.length), activeWeek };
+  });
+  // Org totals (distinct students across the teacher's account)
+  const allKids = db.prepare('SELECT id, last_active_day FROM kids WHERE parent_id=?').all(req.parent.id);
+  let activeToday = 0, needingSupport = 0, answersWeek = 0;
+  for (const k of allKids) {
+    const t = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= ? AND ts < ?').get(k.id, win.todayStart, win.tomorrowStart).n;
+    if (t > 0) activeToday++;
+    const wk = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND skill_id NOT LIKE 'track:%' AND ts >= ?").get(k.id, win.weekStart);
+    answersWeek += wk.n || 0;
+    const struggles = db.prepare('SELECT COUNT(*) AS n FROM skill_state WHERE kid_id=? AND attempts>=3 AND mastery<0.45').get(k.id).n;
+    const acc = wk.n ? (wk.c || 0) / wk.n * 100 : null;
+    if (struggles >= 1 || (acc != null && acc < 60)) needingSupport++;
+  }
+  res.json({
+    school: req.parent.school_name || null, teacherName: req.parent.name,
+    schoolCtx: schoolContext(req.parent),
+    classes: out,
+    totals: { students: allKids.length, classes: classes.length, activeToday, needingSupport, answersWeek }
+  });
+});
+
+// ---- Create a class ----
+router.post('/teacher/classes', requireTeacher, (req, res) => {
+  const name = String((req.body || {}).name || '').trim().slice(0, 80);
+  if (!name) return res.status(400).json({ error: 'Give the class a name.' });
+  const g = (req.body || {}).grade;
+  const grade = g != null && g !== '' && Number.isFinite(Number(g)) ? Math.max(0, Math.min(12, Math.round(Number(g)))) : null;
+  const code = genJoinCode();
+  const info = db.prepare('INSERT INTO classes (owner_id, name, grade, join_code) VALUES (?,?,?,?)').run(req.parent.id, name, grade, code);
+  const c = db.prepare('SELECT * FROM classes WHERE id=?').get(info.lastInsertRowid);
+  res.json({ ok: true, class: classPublic(c, 0) });
+});
+
+// ---- Rename / regrade a class ----
+router.patch('/teacher/classes/:id', requireTeacher, (req, res) => {
+  const c = db.prepare('SELECT * FROM classes WHERE id=? AND owner_id=?').get(Number(req.params.id), req.parent.id);
+  if (!c) return res.status(404).json({ error: 'Class not found.' });
+  const name = (req.body || {}).name != null ? String(req.body.name).trim().slice(0, 80) : null;
+  const g = (req.body || {}).grade;
+  const grade = g === '' ? null : (g != null && Number.isFinite(Number(g)) ? Math.max(0, Math.min(12, Math.round(Number(g)))) : undefined);
+  db.prepare('UPDATE classes SET name=COALESCE(?,name), grade=CASE WHEN ? THEN ? ELSE grade END WHERE id=?')
+    .run(name || null, grade !== undefined ? 1 : 0, grade === undefined ? null : grade, c.id);
+  if ((req.body || {}).join_enabled != null) {
+    db.prepare('UPDATE classes SET join_enabled=? WHERE id=?').run((req.body).join_enabled ? 1 : 0, c.id);
+  }
+  res.json({ ok: true });
+});
+
+// ---- Regenerate a class join code ----
+router.post('/teacher/classes/:id/regenerate-code', requireTeacher, (req, res) => {
+  const c = db.prepare('SELECT * FROM classes WHERE id=? AND owner_id=?').get(Number(req.params.id), req.parent.id);
+  if (!c) return res.status(404).json({ error: 'Class not found.' });
+  const code = genJoinCode();
+  db.prepare('UPDATE classes SET join_code=? WHERE id=?').run(code, c.id);
+  res.json({ ok: true, joinCode: code });
+});
+
+// ---- Delete a class (students remain in the account, just unassigned) ----
+router.delete('/teacher/classes/:id', requireTeacher, (req, res) => {
+  const c = db.prepare('SELECT * FROM classes WHERE id=? AND owner_id=?').get(Number(req.params.id), req.parent.id);
+  if (!c) return res.status(404).json({ error: 'Class not found.' });
+  const tx = db.transaction(() => {
+    db.prepare('UPDATE kids SET class_id=NULL WHERE class_id=? AND parent_id=?').run(c.id, req.parent.id);
+    db.prepare('DELETE FROM class_members WHERE class_id=?').run(c.id);
+    db.prepare('DELETE FROM classes WHERE id=?').run(c.id);
+  });
+  tx();
+  res.json({ ok: true });
+});
+
+// ---- Class dashboard: roster + aggregates ----
+router.get('/teacher/classes/:id', requireTeacher, (req, res) => {
+  const c = classForRead(req.parent, Number(req.params.id));
+  if (!c) return res.status(404).json({ error: 'Class not found.' });
+  const win = timeutil.dayWindow(req.parent.tz);
+  const kids = db.prepare('SELECT k.* FROM kids k JOIN class_members m ON m.kid_id=k.id WHERE m.class_id=? AND k.parent_id=? ORDER BY k.name').all(c.id, c.owner_id);
+  const roster = kids.map(k => teacherRosterRow(k, win));
+  // Aggregates
+  const withWork = roster.filter(r => r.weekAnswers > 0);
+  const avgAccuracy = withWork.length ? Math.round(withWork.reduce((a, r) => a + (r.weekAccuracy || 0), 0) / withWork.length) : null;
+  const subjectAvg = {};
+  for (const sub of TEACHER_SUBJECTS) {
+    const placed = roster.map(r => r.subjects.find(s => s.subject === sub)).filter(s => s && s.placed && s.level != null);
+    subjectAvg[sub] = placed.length ? Math.round(placed.reduce((a, s) => a + s.level, 0) / placed.length * 10) / 10 : null;
+  }
+  res.json({
+    class: classPublic(c, kids.length),
+    roster,
+    aggregates: {
+      students: roster.length,
+      activeThisWeek: withWork.length,
+      needingSupport: roster.filter(r => r.status === 'needs-support').length,
+      excelling: roster.filter(r => r.status === 'excelling').length,
+      notStarted: roster.filter(r => r.status === 'not-started').length,
+      answersWeek: roster.reduce((a, r) => a + r.weekAnswers, 0),
+      avgAccuracy, avgMinutesWeek: withWork.length ? Math.round(withWork.reduce((a, r) => a + r.minutesWeek, 0) / withWork.length) : 0,
+      subjectAvg
+    }
+  });
+});
+
+// ---- Add a student to a class (creates the learner in this teacher's account) ----
+router.post('/teacher/classes/:id/students', requireTeacher, (req, res) => {
+  const c = db.prepare('SELECT * FROM classes WHERE id=? AND owner_id=?').get(Number(req.params.id), req.parent.id);
+  if (!c) return res.status(404).json({ error: 'Class not found.' });
+  const name = String((req.body || {}).name || '').trim().slice(0, 40);
+  if (!name) return res.status(400).json({ error: 'Enter the student\'s name (a first name or nickname is fine).' });
+  const g = (req.body || {}).grade;
+  const grade = g != null && g !== '' && Number.isFinite(Number(g)) ? Math.max(0, Math.min(12, Math.round(Number(g)))) : (c.grade != null ? c.grade : 3);
+  let pin = String((req.body || {}).pin || '').trim();
+  if (pin && !/^\d{4}$/.test(pin)) return res.status(400).json({ error: 'PIN must be 4 digits.' });
+  if (!pin) pin = genPin();
+  const avatar = AVATARS.includes((req.body || {}).avatar) ? (req.body || {}).avatar : AVATARS[Math.floor(Math.random() * AVATARS.length)];
+  const tx = db.transaction(() => {
+    const info = db.prepare("INSERT INTO kids (parent_id, name, pin, grade, avatar, class_id, consent_at) VALUES (?,?,?,?,?,?,datetime('now'))")
+      .run(req.parent.id, name, auth.hashPin(pin), grade, avatar, c.id);
+    db.prepare('INSERT OR IGNORE INTO class_members (class_id, kid_id) VALUES (?,?)').run(c.id, info.lastInsertRowid);
+    return info.lastInsertRowid;
+  });
+  const kidId = tx();
+  try { db.recordConsent({ parentId: req.parent.id, parentEmail: req.parent.email, kidId, method: 'school', detail: 'student added by teacher/school' }); } catch (e) {}
+  res.json({ ok: true, student: { id: kidId, name, grade, pin } }); // pin returned once so the teacher can share the login
+});
+
+// ---- Bulk add students (one name per line) ----
+router.post('/teacher/classes/:id/import', requireTeacher, (req, res) => {
+  const c = db.prepare('SELECT * FROM classes WHERE id=? AND owner_id=?').get(Number(req.params.id), req.parent.id);
+  if (!c) return res.status(404).json({ error: 'Class not found.' });
+  let names = (req.body || {}).names;
+  if (typeof names === 'string') names = names.split(/[\n,]/);
+  if (!Array.isArray(names)) return res.status(400).json({ error: 'Provide a list of student names.' });
+  names = names.map(n => String(n || '').trim().slice(0, 40)).filter(Boolean).slice(0, 60);
+  if (!names.length) return res.status(400).json({ error: 'No names found — add one student per line.' });
+  const g = (req.body || {}).grade;
+  const grade = g != null && g !== '' && Number.isFinite(Number(g)) ? Math.max(0, Math.min(12, Math.round(Number(g)))) : (c.grade != null ? c.grade : 3);
+  const created = [];
+  const tx = db.transaction(() => {
+    for (const name of names) {
+      const pin = genPin();
+      const avatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
+      const info = db.prepare("INSERT INTO kids (parent_id, name, pin, grade, avatar, class_id, consent_at) VALUES (?,?,?,?,?,?,datetime('now'))")
+        .run(req.parent.id, name, auth.hashPin(pin), grade, avatar, c.id);
+      db.prepare('INSERT OR IGNORE INTO class_members (class_id, kid_id) VALUES (?,?)').run(c.id, info.lastInsertRowid);
+      created.push({ id: info.lastInsertRowid, name, grade, pin });
+    }
+  });
+  tx();
+  try { db.recordConsent({ parentId: req.parent.id, parentEmail: req.parent.email, method: 'school', detail: `bulk-added ${created.length} students by teacher/school` }); } catch (e) {}
+  res.json({ ok: true, students: created });
+});
+
+// ---- Remove a student from a class (optionally delete the learner entirely) ----
+router.delete('/teacher/classes/:id/students/:kidId', requireTeacher, (req, res) => {
+  const c = db.prepare('SELECT * FROM classes WHERE id=? AND owner_id=?').get(Number(req.params.id), req.parent.id);
+  if (!c) return res.status(404).json({ error: 'Class not found.' });
+  const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
+  if (!kid) return res.status(404).json({ error: 'Student not found.' });
+  db.prepare('DELETE FROM class_members WHERE class_id=? AND kid_id=?').run(c.id, kid.id);
+  db.prepare('UPDATE kids SET class_id=NULL WHERE id=? AND class_id=?').run(kid.id, c.id);
+  if (String(req.query.purge) === '1') {
+    // Full deletion of the learner and their data (teacher-owned only).
+    try { db.prepare('DELETE FROM kids WHERE id=? AND parent_id=?').run(kid.id, req.parent.id); } catch (e) {}
+  }
+  res.json({ ok: true });
+});
+
+// ---- Regenerate a student's PIN (returns the new one once) ----
+router.post('/teacher/students/:kidId/pin', requireTeacher, (req, res) => {
+  const kid = db.prepare('SELECT * FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
+  if (!kid) return res.status(404).json({ error: 'Student not found.' });
+  const pin = genPin();
+  db.prepare('UPDATE kids SET pin=? WHERE id=?').run(auth.hashPin(pin), kid.id);
+  res.json({ ok: true, pin });
+});
+
+// ---- Reset a student's progress (start fresh) ----
+router.post('/teacher/students/:kidId/reset', requireTeacher, (req, res) => {
+  const kid = db.prepare('SELECT id FROM kids WHERE id=? AND parent_id=?').get(Number(req.params.kidId), req.parent.id);
+  if (!kid) return res.status(404).json({ error: 'Student not found.' });
+  const wipe = ['activity_log', 'skill_state', 'subject_state', 'badges', 'certificates', 'game_scores', 'daily_quests', 'score_snapshots', 'game_progress', 'game_time'];
+  const tx = db.transaction(() => {
+    for (const t of wipe) { try { db.prepare(`DELETE FROM ${t} WHERE kid_id=?`).run(kid.id); } catch (e) {} }
+    try { db.prepare('UPDATE kids SET xp=0, coins=0, streak=0, play_tokens=0, last_active_day=NULL WHERE id=?').run(kid.id); } catch (e) {}
+  });
+  tx();
+  res.json({ ok: true });
+});
+
+// ---- Full per-student report (drill-down) ----
+router.get('/teacher/students/:kidId', requireTeacher, (req, res) => {
+  const kid = kidForRead(req.parent, Number(req.params.kidId));
+  if (!kid) return res.status(404).json({ error: 'Student not found.' });
+  const win = timeutil.dayWindow(req.parent.tz);
+  let card = null; try { card = adaptive.reportCard(kid.id); } catch (e) {}
+  const row = teacherRosterRow(kid, win);
+  res.json({ student: { id: kid.id, name: kid.name, grade: kid.grade, avatar: kid.avatar, streak: kid.streak, lastActive: kid.last_active_day }, snapshot: row, report: card });
+});
+
+// ---- Teacher launches a student session (to view or help), returning here on exit ----
+router.post('/teacher/enter-student', requireTeacher, (req, res) => {
+  const kid = kidForRead(req.parent, Number((req.body || {}).kidId));
+  if (!kid) return res.status(404).json({ error: 'Student not found.' });
+  const teacherToken = req.cookies.bp_session;
+  if (teacherToken) res.cookie('bp_parent_return', teacherToken, COOKIE_OPTS);
+  const token = auth.createSession('kid', kid.id);
+  res.cookie('bp_session', token, COOKIE_OPTS);
+  res.json({ ok: true, kid: publicKid(kid) });
+});
+
+// ---- Roster CSV export (student logins + this-week snapshot) ----
+router.get('/teacher/classes/:id/export.csv', requireTeacher, (req, res) => {
+  const c = classForRead(req.parent, Number(req.params.id));
+  if (!c) return res.status(404).send('Class not found');
+  const win = timeutil.dayWindow(req.parent.tz);
+  const kids = db.prepare('SELECT k.* FROM kids k JOIN class_members m ON m.kid_id=k.id WHERE m.class_id=? AND k.parent_id=? ORDER BY k.name').all(c.id, c.owner_id);
+  const csvCell = v => { let s = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return `"${s.replace(/"/g, '""')}"`; };
+  const header = ['name', 'grade', 'status', 'week_answers', 'week_accuracy', 'minutes_week', 'streak', 'last_active', 'math_level', 'english_level', 'science_level', 'spanish_level', 'needs_help'];
+  const rows = [header.join(',')];
+  for (const k of kids) {
+    const r = teacherRosterRow(k, win);
+    const lvl = sub => { const s = r.subjects.find(x => x.subject === sub); return s && s.levelName ? s.levelName : ''; };
+    rows.push([r.name, r.grade, r.status, r.weekAnswers, r.weekAccuracy == null ? '' : r.weekAccuracy + '%', r.minutesWeek, r.streak, r.lastActive || '', lvl('math'), lvl('english'), lvl('science'), lvl('spanish'), r.topStruggle ? r.topStruggle.name : ''].map(csvCell).join(','));
+  }
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${(c.name || 'class').replace(/[^a-z0-9]+/gi, '-')}-roster.csv"`);
+  res.send(rows.join('\n'));
+});
+
+// ---- Student self-join by class code (public, code-gated) ----
+const joinLimiter = rateLimit({ windowMs: 15 * 60000, max: 30, key: 'classjoin' });
+const MAX_CLASS_STUDENTS = 300;
+function findJoinableClass(code) {
+  if (!code) return null;
+  const c = db.prepare('SELECT * FROM classes WHERE join_code=?').get(String(code).trim().toUpperCase());
+  if (!c || (c.join_enabled != null && !c.join_enabled)) return null;
+  return c;
+}
+router.get('/class/join/:code', joinLimiter, (req, res) => {
+  const c = findJoinableClass(req.params.code);
+  if (!c) return res.status(404).json({ error: 'That class code isn\'t working. Double-check it with your teacher.' });
+  const owner = db.prepare('SELECT school_name FROM parents WHERE id=?').get(c.owner_id);
+  res.json({ ok: true, className: c.name, grade: c.grade, school: (owner && owner.school_name) || null });
+});
+router.post('/class/join', joinLimiter, (req, res) => {
+  const b = req.body || {};
+  const c = findJoinableClass(b.code);
+  if (!c) return res.status(404).json({ error: 'That class code isn\'t working. Double-check it with your teacher.' });
+  const name = String(b.name || '').trim().slice(0, 40);
+  if (!name) return res.status(400).json({ error: 'Enter your name to join.' });
+  const pin = String(b.pin || '').trim();
+  if (!/^\d{4}$/.test(pin)) return res.status(400).json({ error: 'Pick a 4-digit PIN you\'ll remember.' });
+  const count = db.prepare('SELECT COUNT(*) AS n FROM class_members WHERE class_id=?').get(c.id).n;
+  if (count >= MAX_CLASS_STUDENTS) return res.status(400).json({ error: 'This class is full — please ask your teacher.' });
+  const g = b.grade;
+  const grade = g != null && g !== '' && Number.isFinite(Number(g)) ? Math.max(0, Math.min(12, Math.round(Number(g)))) : (c.grade != null ? c.grade : 3);
+  const avatar = AVATARS.includes(b.avatar) ? b.avatar : AVATARS[Math.floor(Math.random() * AVATARS.length)];
+  const tx = db.transaction(() => {
+    const info = db.prepare("INSERT INTO kids (parent_id, name, pin, grade, avatar, class_id, consent_at) VALUES (?,?,?,?,?,?,datetime('now'))")
+      .run(c.owner_id, name, auth.hashPin(pin), grade, avatar, c.id);
+    db.prepare('INSERT OR IGNORE INTO class_members (class_id, kid_id) VALUES (?,?)').run(c.id, info.lastInsertRowid);
+    return info.lastInsertRowid;
+  });
+  const kidId = tx();
+  try { db.recordConsent({ parentId: c.owner_id, kidId, method: 'school-selfjoin', detail: `student self-joined class "${c.name}" with code` }); } catch (e) {}
+  const token = auth.createSession('kid', kidId);
+  res.cookie('bp_session', token, COOKIE_OPTS);
+  const kid = db.prepare('SELECT * FROM kids WHERE id=?').get(kidId);
+  res.json({ ok: true, kid: publicKid(kid) });
+});
+
+// ---- Class assignments (teacher sets a focus skill/subject for a class) ----
+router.get('/teacher/classes/:id/assignments', requireTeacher, (req, res) => {
+  const c = classForRead(req.parent, Number(req.params.id));
+  if (!c) return res.status(404).json({ error: 'Class not found.' });
+  const rows = db.prepare('SELECT id, subject, skill_id AS skillId, skill_name AS skillName, note, created_at FROM class_assignments WHERE class_id=? AND active=1 ORDER BY created_at DESC').all(c.id);
+  res.json({ assignments: rows });
+});
+router.post('/teacher/classes/:id/assignments', requireTeacher, (req, res) => {
+  const c = db.prepare('SELECT * FROM classes WHERE id=? AND owner_id=?').get(Number(req.params.id), req.parent.id);
+  if (!c) return res.status(404).json({ error: 'Class not found.' });
+  const b = req.body || {};
+  const subject = String(b.subject || '').trim();
+  if (!TEACHER_SUBJECTS.includes(subject)) return res.status(400).json({ error: 'Pick a subject.' });
+  let skillId = b.skillId ? String(b.skillId).trim() : null;
+  let skillName = null;
+  if (skillId) {
+    const sk = content.getSkill(subject, skillId);
+    if (!sk) return res.status(400).json({ error: 'That skill isn\'t in this subject.' });
+    skillName = sk.name;
+  }
+  const note = String(b.note || '').trim().slice(0, 200) || null;
+  const info = db.prepare('INSERT INTO class_assignments (class_id, subject, skill_id, skill_name, note) VALUES (?,?,?,?,?)').run(c.id, subject, skillId, skillName, note);
+  res.json({ ok: true, assignment: { id: info.lastInsertRowid, subject, skillId, skillName, note } });
+});
+router.delete('/teacher/assignments/:aid', requireTeacher, (req, res) => {
+  const a = db.prepare('SELECT a.* FROM class_assignments a JOIN classes c ON c.id=a.class_id WHERE a.id=? AND c.owner_id=?').get(Number(req.params.aid), req.parent.id);
+  if (!a) return res.status(404).json({ error: 'Assignment not found.' });
+  db.prepare('UPDATE class_assignments SET active=0 WHERE id=?').run(a.id);
+  res.json({ ok: true });
+});
+router.get('/learn/:kidId/assignments', auth.requireKid, (req, res) => {
+  const cid = req.kid.class_id;
+  if (!cid) return res.json({ assignments: [] });
+  const rows = db.prepare('SELECT subject, skill_id AS skillId, skill_name AS skillName, note FROM class_assignments WHERE class_id=? AND active=1 ORDER BY created_at DESC LIMIT 5').all(cid);
+  res.json({ assignments: rows });
+});
+
+// ---- Schools (multi-teacher, head of school) ----
+router.post('/teacher/school/create', requireTeacher, (req, res) => {
+  if (req.parent.school_id) return res.status(400).json({ error: 'Your account is already part of a school.' });
+  const name = String((req.body || {}).name || '').trim().slice(0, 120) || (req.parent.school_name || 'My School');
+  const code = genSchoolCode();
+  const info = db.prepare('INSERT INTO schools (name, code, head_id) VALUES (?,?,?)').run(name, code, req.parent.id);
+  db.prepare("UPDATE parents SET school_id=?, school_role='head' WHERE id=?").run(info.lastInsertRowid, req.parent.id);
+  res.json({ ok: true, school: { id: info.lastInsertRowid, name, code, isHead: true } });
+});
+router.post('/teacher/school/join', requireTeacher, (req, res) => {
+  if (req.parent.school_id) return res.status(400).json({ error: 'Your account is already part of a school.' });
+  const code = String((req.body || {}).code || '').trim().toUpperCase();
+  const s = db.prepare('SELECT * FROM schools WHERE code=?').get(code);
+  if (!s) return res.status(404).json({ error: 'That school code isn\'t working — check it with your school lead.' });
+  db.prepare("UPDATE parents SET school_id=?, school_role='member' WHERE id=?").run(s.id, req.parent.id);
+  res.json({ ok: true, school: { id: s.id, name: s.name, isHead: false } });
+});
+router.post('/teacher/school/leave', requireTeacher, (req, res) => {
+  if (!req.parent.school_id) return res.json({ ok: true });
+  const s = db.prepare('SELECT * FROM schools WHERE id=?').get(req.parent.school_id);
+  const wasHead = s && s.head_id === req.parent.id;
+  db.prepare('UPDATE parents SET school_id=NULL, school_role=NULL WHERE id=?').run(req.parent.id);
+  if (wasHead) {
+    const next = db.prepare("SELECT id FROM parents WHERE school_id=? AND id!=? ORDER BY id LIMIT 1").get(s.id, req.parent.id);
+    if (next) { db.prepare('UPDATE schools SET head_id=? WHERE id=?').run(next.id, s.id); db.prepare("UPDATE parents SET school_role='head' WHERE id=?").run(next.id); }
+  }
+  res.json({ ok: true });
+});
+router.get('/teacher/school', requireTeacher, (req, res) => {
+  if (!req.parent.school_id) return res.status(404).json({ error: 'Not part of a school.' });
+  const s = db.prepare('SELECT * FROM schools WHERE id=?').get(req.parent.school_id);
+  if (!s) return res.status(404).json({ error: 'School not found.' });
+  const isHead = s.head_id === req.parent.id;
+  const win = timeutil.dayWindow(req.parent.tz);
+  const teachers = db.prepare("SELECT id, name, email, school_role FROM parents WHERE school_id=? ORDER BY (school_role='head') DESC, name").all(s.id);
+  let teacherRows = [], totals = { students: 0, classes: 0, activeToday: 0, needingSupport: 0 };
+  if (isHead) {
+    for (const t of teachers) {
+      const classes = db.prepare('SELECT * FROM classes WHERE owner_id=?').all(t.id);
+      const kids = db.prepare('SELECT id FROM kids WHERE parent_id=?').all(t.id).map(r => r.id);
+      let active = 0, support = 0;
+      for (const kid of kids) {
+        const td = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND ts >= ? AND ts < ?').get(kid, win.todayStart, win.tomorrowStart).n;
+        if (td > 0) active++;
+        const wk = db.prepare("SELECT COUNT(*) AS n, SUM(correct) AS c FROM activity_log WHERE kid_id=? AND skill_id NOT LIKE 'track:%' AND ts >= ?").get(kid, win.weekStart);
+        const strug = db.prepare('SELECT COUNT(*) AS n FROM skill_state WHERE kid_id=? AND attempts>=3 AND mastery<0.45').get(kid).n;
+        const acc = wk.n ? (wk.c || 0) / wk.n * 100 : null;
+        if (strug >= 1 || (acc != null && acc < 60)) support++;
+      }
+      teacherRows.push({
+        id: t.id, name: t.name, email: t.email, isHead: t.school_role === 'head',
+        classes: classes.map(c => ({ id: c.id, name: c.name, grade: c.grade, students: db.prepare('SELECT COUNT(*) AS n FROM class_members WHERE class_id=?').get(c.id).n })),
+        students: kids.length, activeToday: active, needingSupport: support
+      });
+      totals.students += kids.length; totals.classes += classes.length; totals.activeToday += active; totals.needingSupport += support;
+    }
+  }
+  res.json({ school: { id: s.id, name: s.name, code: isHead ? s.code : undefined, isHead }, teachers: teachers.map(t => ({ name: t.name, email: t.email, isHead: t.school_role === 'head' })), teacherRows, totals });
 });
 
 // One-click unsubscribe from lifecycle/tips emails (link in every non-receipt email).
