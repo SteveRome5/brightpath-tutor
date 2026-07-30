@@ -229,6 +229,39 @@ function sendPasswordReset(parent, resetUrl) {
   } catch (e) { /* never throw from an auth flow */ }
 }
 
+// ---------- COPPA email-plus: verify the parent's email before any child data is collected ----------
+function sendEmailVerification(parent, verifyUrl) {
+  try {
+    if (!parent || !parent.email) return;
+    const first = esc((parent.name || '').split(' ')[0] || 'there');
+    const html = layout(`
+      <h2 style="margin:0 0 12px;color:${BRAND}">Confirm your email to get started 🐎</h2>
+      <p>Hi ${first} — thanks for starting a Gallop free trial!</p>
+      <p>Before you add your child and we collect any of their information, we ask the parent or guardian to confirm this email address. This is how we verify parental consent, in line with the Children's Online Privacy Protection Act (COPPA).</p>
+      ${btn(esc(verifyUrl), 'Confirm my email &amp; consent')}
+      <p style="margin:16px 0 0;font-size:14px;color:#5f6b7d">This link is single-use and just for you. If you didn't start a Gallop trial, you can safely ignore this email — no learner will be created and no child information will be collected.</p>
+    `);
+    sendEmail({ to: parent.email, subject: 'Confirm your email to start your Gallop trial', html, kind: 'email_verification' });
+  } catch (e) { /* email must never break signup */ }
+}
+
+// The "plus" in email-plus: a delayed confirming email sent AFTER consent is captured, so the
+// parent has a clear record and a chance to object if they didn't authorize it.
+function sendConsentConfirmed(parent) {
+  try {
+    if (!parent || !parent.email) return;
+    const first = esc((parent.name || '').split(' ')[0] || 'there');
+    const html = layout(`
+      <h2 style="margin:0 0 12px;color:${BRAND}">Consent confirmed ✅</h2>
+      <p>Hi ${first} — thanks. Your email is confirmed, and we've recorded your consent as the parent or guardian to create a learner profile and collect the limited information described in our <a href="${ORIGIN}/privacy" style="color:${BRAND}">Privacy Policy</a>.</p>
+      <p>You're all set to add your child from your Parent Dashboard. You can review exactly what's collected, export it, or withdraw consent at any time from the dashboard.</p>
+      ${btn(ORIGIN + '/#parent', 'Go to my dashboard')}
+      <p style="margin:16px 0 0;font-size:14px;color:#5f6b7d">If you did NOT authorize this, reply to this email right away (a real person answers) and we'll remove the account and any data.</p>
+    `);
+    sendEmail({ to: parent.email, subject: 'Your Gallop consent is confirmed', html, kind: 'consent_confirmed' });
+  } catch (e) { /* never throw */ }
+}
+
 // ---------- weekly parent report (autonomous digest) ----------
 function sendWeeklyReport(parent, summary) {
   try {
@@ -372,32 +405,6 @@ function sendSupportEscalation(ticket) {
   } catch (e) { /* escalation email must never throw */ }
 }
 
-// A school/educator submitted the "Book a demo / request pricing" form. Notify the team so
-// they can follow up. Never throws — a failed notification must not break the thank-you.
-function sendSchoolLead(lead) {
-  try {
-    const to = process.env.SCHOOLS_LEAD_EMAIL || ADMIN_EMAIL;
-    const rows = [
-      ['School / organization', lead.school],
-      ['Contact name', lead.name],
-      ['Email', lead.email],
-      ['Phone', lead.phone],
-      ['Role', lead.role],
-      ['Approx. students', lead.students],
-      ['Interested in', lead.interest],
-      ['Message', lead.message]
-    ].filter(r => r[1]);
-    const table = rows.map(([k, v]) =>
-      `<tr><td style="vertical-align:top;padding:4px 12px 4px 0;color:#5b6478;white-space:nowrap"><b>${esc(k)}</b></td><td style="padding:4px 0">${esc(String(v)).replace(/\n/g, '<br>')}</td></tr>`).join('');
-    const html = layout(`
-      <h2 style="margin:0 0 12px;color:${BRAND}">New school inquiry 🏫</h2>
-      <table style="border-collapse:collapse;font-size:.95rem">${table}</table>
-      <p style="margin:16px 0 0;color:#5b6478;font-size:.88rem">Reply directly to <b>${esc(lead.email || '')}</b> to follow up.</p>
-    `);
-    return sendEmail({ to, subject: `School inquiry: ${lead.school || lead.name || 'new lead'}`, html, kind: 'school_lead' });
-  } catch (e) { return Promise.resolve({ sent: false }); }
-}
-
 // Send a support reply to the parent, from support@, so their reply threads back to support.
 function sendSupportReply(toEmail, subject, replyText) {
   try {
@@ -409,4 +416,4 @@ function sendSupportReply(toEmail, subject, replyText) {
   } catch (e) { return { sent: false }; }
 }
 
-module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendWeeklyReport, sendTrialEnding, sendTrialEnded, sendChildSubscribeRequest, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply, sendSchoolLead };
+module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendEmailVerification, sendConsentConfirmed, sendWeeklyReport, sendTrialEnding, sendTrialEnded, sendChildSubscribeRequest, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply };

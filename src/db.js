@@ -328,38 +328,24 @@ for (const stmt of [
   // Used so "today"/"this week" counts roll over at the family's local midnight instead of UTC —
   // otherwise an evening-Pacific family sees today's questions drop to 0 once it passes UTC midnight.
   "ALTER TABLE parents ADD COLUMN tz TEXT",
-  // Account type: 'family' (a parent, the default and every existing account) or 'teacher'
-  // (a school/educator account). A teacher account owns students the same way a parent owns
-  // kids, but the UI routes it to the class dashboard and its students are grouped into classes.
-  "ALTER TABLE parents ADD COLUMN account_type TEXT DEFAULT 'family'",
-  // School / organization name, for teacher accounts.
-  "ALTER TABLE parents ADD COLUMN school_name TEXT",
-  // Which class a teacher-created student belongs to (denormalized convenience; the authoritative
-  // mapping is class_members). Null for family kids and unassigned students.
-  "ALTER TABLE kids ADD COLUMN class_id INTEGER",
-  // Whether students may self-join a class with its join code (teacher can toggle off).
-  "ALTER TABLE classes ADD COLUMN join_enabled INTEGER DEFAULT 1",
-  // Multi-teacher schools: a teacher account may belong to a school and hold a role within it
-  // ('head' = head of school, sees every class; 'member' = a regular teacher). Null = solo teacher.
-  "ALTER TABLE parents ADD COLUMN school_id INTEGER",
-  "ALTER TABLE parents ADD COLUMN school_role TEXT",
-  // Together Mode (parent-assisted practice): an answer logged with assisted=1 was worked on WITH
-  // a parent. It counts as engagement but NEVER moves independent mastery, placement, or the Gallop
-  // Score — the report/exports keep assisted and independent work separate (COPPA-safe, honest).
-  "ALTER TABLE activity_log ADD COLUMN assisted INTEGER DEFAULT 0",
-  // A kid session launched via "Practice together" is flagged assisted so every answer in it is
-  // recorded as assisted, surviving the page reload the parent→child handoff performs.
-  "ALTER TABLE sessions ADD COLUMN assisted INTEGER DEFAULT 0",
-  // Level provenance (PP-106): when a PARENT manually sets a subject's working level, record it so
-  // the report can say "set by you on <date>" and offer a return to Gallop's adaptive placement.
-  // level_src null/'adaptive' = Gallop-chosen; 'parent' = manually set. prev_level = the adaptive
-  // level just before the manual override, so "return to adaptive" can restore it.
-  "ALTER TABLE subject_state ADD COLUMN level_src TEXT",
-  "ALTER TABLE subject_state ADD COLUMN level_set_at TEXT",
-  "ALTER TABLE subject_state ADD COLUMN prev_level REAL"
+  // COPPA verifiable parental consent ("email-plus"): before any child profile can be created on
+  // a free trial, the parent must confirm control of their email by clicking a verification link.
+  // email_verified 1 = confirmed; verify_token = the pending link token; verified_at = timestamp.
+  "ALTER TABLE parents ADD COLUMN email_verified INTEGER DEFAULT 0",
+  "ALTER TABLE parents ADD COLUMN verify_token TEXT",
+  "ALTER TABLE parents ADD COLUMN verified_at TEXT"
 ]) {
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }
+
+// One-time grandfather of all accounts created BEFORE the email-verification requirement shipped
+// (2026-07-30). They already consented under the prior flow (and paid accounts carry the stronger
+// card-based consent), so we mark them verified rather than locking existing families out of
+// adding learners. Guarded by the creation-date cutoff, so NEW signups (created_at >= cutoff) are
+// never grandfathered and must verify. Idempotent: re-running only re-sets already-1 rows to 1.
+try {
+  db.exec("UPDATE parents SET email_verified = 1 WHERE email_verified = 0 AND created_at < '2026-07-30 00:00:00'");
+} catch (e) {}
 
 // One-time backfill of placed_level / demonstrated_level for children placed BEFORE these
 // columns existed. Guarded by "placed_level IS NULL" so it only touches pre-migration rows
@@ -391,127 +377,6 @@ try {
     seconds INTEGER DEFAULT 0,
     PRIMARY KEY (kid_id, day)
   )`);
-} catch (e) {}
-
-// B2B lead capture: schools/educators who submit the "Book a demo / request pricing" form.
-// Stored durably so a lead is never lost even if the notification email fails to send.
-try {
-  db.exec(`CREATE TABLE IF NOT EXISTS school_leads (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    school TEXT, name TEXT, email TEXT, phone TEXT, role TEXT,
-    students TEXT, interest TEXT, message TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
-  )`);
-} catch (e) {}
-
-// Teacher/school dashboard: classes group a teacher account's students. owner_id references the
-// teacher's parents row. class_members is the authoritative student↔class mapping (a student can
-// sit in more than one class — e.g. a homeroom and a subject group).
-try {
-  db.exec(`CREATE TABLE IF NOT EXISTS classes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    owner_id INTEGER NOT NULL REFERENCES parents(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    grade INTEGER,                     -- optional default grade for the class (0=K..12), null = mixed
-    join_code TEXT,
-    join_enabled INTEGER DEFAULT 1,    -- students may self-join with the code (teacher can toggle)
-    created_at TEXT DEFAULT (datetime('now'))
-  )`);
-  db.exec(`CREATE TABLE IF NOT EXISTS class_members (
-    class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
-    kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
-    added_at TEXT DEFAULT (datetime('now')),
-    PRIMARY KEY (class_id, kid_id)
-  )`);
-  db.exec('CREATE INDEX IF NOT EXISTS idx_classes_owner ON classes(owner_id)');
-  db.exec('CREATE INDEX IF NOT EXISTS idx_class_members_class ON class_members(class_id)');
-} catch (e) {}
-
-// Teacher assignments: a focus skill (or whole subject) a teacher sets for a class.
-try {
-  db.exec(`CREATE TABLE IF NOT EXISTS class_assignments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
-    subject TEXT NOT NULL,
-    skill_id TEXT,
-    skill_name TEXT,
-    note TEXT,
-    active INTEGER DEFAULT 1,
-    created_at TEXT DEFAULT (datetime('now'))
-  )`);
-  db.exec('CREATE INDEX IF NOT EXISTS idx_assign_class ON class_assignments(class_id)');
-} catch (e) {}
-
-// Game attempts: one row each time a game is opened (a token spent), so "attempts" can be shown
-// separately from "completed rounds" (game_scores). A token disappearing while play history says
-// zero was confusing (GAME-P1.5).
-try {
-  db.exec(`CREATE TABLE IF NOT EXISTS game_attempts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
-    game TEXT NOT NULL,
-    ts TEXT DEFAULT (datetime('now'))
-  )`);
-  db.exec('CREATE INDEX IF NOT EXISTS idx_game_attempts ON game_attempts(kid_id, game)');
-} catch (e) {}
-
-// Advanced Track exam-readiness: per-student, per-track running stats for AP/Honors/Regents
-// tracks — multiple-choice practice, free-response self-scores, and best exam-simulator result.
-// Kept entirely separate from the K-12 adaptive ladder (never touches subject_state/skill_state).
-try {
-  db.exec(`CREATE TABLE IF NOT EXISTS track_progress (
-    kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
-    track_id TEXT NOT NULL,
-    mc_attempts INTEGER DEFAULT 0,
-    mc_correct INTEGER DEFAULT 0,
-    frq_attempts INTEGER DEFAULT 0,
-    frq_points INTEGER DEFAULT 0,
-    frq_max INTEGER DEFAULT 0,
-    best_exam_score INTEGER DEFAULT 0,   -- estimated 1..5, 0 = none yet
-    last_exam_pct INTEGER DEFAULT 0,
-    updated_at TEXT DEFAULT (datetime('now')),
-    PRIMARY KEY (kid_id, track_id)
-  )`);
-} catch (e) {}
-
-// Placement sessions persisted server-side so an in-flight placement survives a deploy,
-// restart, reconnect, or device change (was an in-memory Map that vanished on redeploy —
-// the "Quick hiccup! That didn't load" data-loss bug). history is a JSON array of probes;
-// the row is deleted the moment placement completes.
-try {
-  db.exec(`CREATE TABLE IF NOT EXISTS placement_sessions (
-    kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
-    subject TEXT NOT NULL,
-    history TEXT NOT NULL DEFAULT '[]',
-    updated_at TEXT DEFAULT (datetime('now')),
-    PRIMARY KEY (kid_id, subject)
-  )`);
-} catch (e) {}
-
-// First-party product-analytics events. Deliberately IDENTIFIER-FREE: we store only the event
-// name and a timestamp — never a child id, name, or any learner detail. This gives the owner
-// aggregate activation-funnel counts (how many placements start vs. complete, etc.) without any
-// third-party tag and without profiling any child. Learner activation must NOT flow to GTM/GA
-// (COPPA), so it flows here instead.
-try {
-  db.exec(`CREATE TABLE IF NOT EXISTS events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    ts TEXT DEFAULT (datetime('now'))
-  )`);
-  db.exec('CREATE INDEX IF NOT EXISTS idx_events_name_ts ON events(name, ts)');
-} catch (e) {}
-
-// Schools: a group of teacher accounts under a head of school. Members join with the school code.
-try {
-  db.exec(`CREATE TABLE IF NOT EXISTS schools (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    code TEXT,
-    head_id INTEGER REFERENCES parents(id) ON DELETE SET NULL,
-    created_at TEXT DEFAULT (datetime('now'))
-  )`);
-  db.exec('CREATE INDEX IF NOT EXISTS idx_schools_code ON schools(code)');
 } catch (e) {}
 
 // Child-privacy: custom avatar PHOTOS were retired in favor of illustrated avatars only.
@@ -556,7 +421,7 @@ db.latestBackup = latestBackup;
 // ---------- parental consent (COPPA) ----------
 // Version string for the privacy notice / consent terms currently in force. Bump this when
 // the children's privacy notice changes so consent records show which version was agreed to.
-db.POLICY_VERSION = '2026-07-19'; // must match the "Last updated" date shown on /privacy and /terms
+db.POLICY_VERSION = '2026-07-30'; // must match the "Last updated" date shown on /privacy and /terms
 db.recordConsent = function ({ parentId = null, parentEmail = null, kidId = null, method, detail = null }) {
   try {
     db.prepare('INSERT INTO consent_records (parent_id, parent_email, kid_id, method, policy_version, detail) VALUES (?,?,?,?,?,?)')
