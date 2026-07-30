@@ -361,7 +361,18 @@ for (const stmt of [
   // to confirm control of their email before any child profile can be created.
   "ALTER TABLE parents ADD COLUMN email_verified INTEGER DEFAULT 0",
   "ALTER TABLE parents ADD COLUMN verify_token TEXT",
-  "ALTER TABLE parents ADD COLUMN verified_at TEXT"
+  "ALTER TABLE parents ADD COLUMN verified_at TEXT",
+  // Adaptive support ladder: a skill a child keeps missing enters a mandatory "Skill Drill" —
+  // the lesson is required first, then a short INDEPENDENT win streak clears it. miss_streak
+  // counts consecutive misses (mirrors win_streak); in_drill flags an active drill; lesson_seen
+  // records that the child has watched THIS skill's lesson during the current support cycle (reset
+  // to 0 each time a fresh drill opens, so a struggling child re-watches rather than skipping).
+  "ALTER TABLE skill_state ADD COLUMN miss_streak INTEGER DEFAULT 0",
+  "ALTER TABLE skill_state ADD COLUMN in_drill INTEGER DEFAULT 0",
+  "ALTER TABLE skill_state ADD COLUMN lesson_seen INTEGER DEFAULT 0",
+  // Parent choice: require the lesson before questions on EVERY not-yet-mastered skill, not just
+  // ones the child is failing. Default 0 (off) — a struggling skill always gates regardless of this.
+  "ALTER TABLE kids ADD COLUMN lessons_first INTEGER DEFAULT 0"
 ]) {
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }

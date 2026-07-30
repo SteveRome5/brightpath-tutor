@@ -8,6 +8,14 @@ const MASTERED = 0.8;
 const STRUGGLING = 0.45;
 const LEVEL_WINDOW = 1; // skills within [level-1, level] are the active zone
 
+// ---- Adaptive support ladder ----
+// A skill a child keeps missing enters a mandatory "Skill Drill": the lesson is required first,
+// then a short INDEPENDENT win streak clears it. Tuned to catch real struggle without nagging a
+// kid having one off moment — all three are easy to adjust once we watch it live.
+const DRILL_ENTER_MISSES = 3;  // consecutive misses on one skill → open a drill
+const DRILL_CLEAR_STREAK = 3;  // consecutive independent correct answers → clear it
+const TESTOUT = 0.9;           // ≥90% mastery skips the lesson gate (already knows it cold)
+
 // Anti-repeat: remember the last N prompts served to each kid per subject so the
 // same question doesn't come back around while they'd still recognize it.
 const RECENT_MAX = 30;
@@ -53,6 +61,34 @@ function activeSkills(kidId, subject) {
   if (!zone.length) zone = all.filter(s => s.grade <= lvl).slice(-4);
   if (!zone.length) zone = all.slice(0, 4);
   return { state, zone };
+}
+
+// Support metadata for a served skill: is it in a mandatory drill, must the child watch the
+// lesson before answering, and how close are they to clearing it. Returns null when no support
+// UI is needed, so the normal flow is untouched for kids who are cruising.
+function supportFor(kidId, subject, skill, st) {
+  if (!skill || !st) return null;
+  const kid = db.prepare('SELECT lessons_first FROM kids WHERE id=?').get(kidId);
+  const lessonsFirst = !!(kid && kid.lessons_first);
+  const inDrill = !!st.in_drill;
+  const testedOut = (st.mastery || 0) >= TESTOUT;
+  // Gate the lesson when a struggling skill is in drill, OR the parent asked for lessons-first on
+  // any unmastered skill — but never when the child already watched it this cycle or has tested
+  // out (≥90% mastery: a fast kid isn't forced to sit through a lesson they clearly don't need).
+  const requireLesson = !testedOut && !st.lesson_seen && (inDrill || (lessonsFirst && (st.mastery || 0) < MASTERED));
+  if (!inDrill && !requireLesson) return null;
+  return {
+    drill: inDrill, requireLesson, testedOut,
+    skillId: skill.id, skillName: skill.name,
+    clearNeed: DRILL_CLEAR_STREAK, clearHave: Math.min(st.win_streak || 0, DRILL_CLEAR_STREAK)
+  };
+}
+
+// Mark that a child has watched a skill's lesson (called when a lesson finishes). Satisfies the
+// drill/lessons-first gate so questions flow again.
+function markLessonSeen(kidId, subject, skillId) {
+  getSkillState(kidId, subject, skillId);
+  db.prepare('UPDATE skill_state SET lesson_seen=1 WHERE kid_id=? AND subject=? AND skill_id=?').run(kidId, subject, skillId);
 }
 
 // ---------- placement ----------
@@ -258,7 +294,7 @@ function nextActivity(kidId, subject, opts = {}) {
       const stuck = ss.attempts >= 5 && ss.mastery < 0.35;
       const d = stuck ? 0.15 : Math.max(0.15, Math.min(0.6, ss.mastery)); // ease a touch, reinforce
       const question = content.generateQuestion(subject, sk.id, d, recentSet(kidId, subject));
-      if (question) { noteRecent(kidId, subject, question.prompt); return { question, mode: 'boost', level: state.level, skill: { id: sk.id, name: sk.name, grade: sk.grade, mastery: ss.mastery, stuck } }; }
+      if (question) { noteRecent(kidId, subject, question.prompt); return { question, mode: 'boost', level: state.level, skill: { id: sk.id, name: sk.name, grade: sk.grade, mastery: ss.mastery, stuck }, support: supportFor(kidId, subject, sk, ss) }; }
     }
   }
 
@@ -267,6 +303,9 @@ function nextActivity(kidId, subject, opts = {}) {
   const struggling = states.filter(x => x.st.attempts >= 3 && x.st.mastery < STRUGGLING);
   const frontier = states.filter(x => x.st.mastery < MASTERED && !(x.st.attempts >= 3 && x.st.mastery < STRUGGLING));
   const fresh = states.filter(x => x.st.mastery >= MASTERED);
+  // A skill in an open drill takes priority: the child can't skip past the exact concept they're
+  // failing until they clear it. (Focus-skill anchoring below still wins so a mission stays put.)
+  const drilling = states.filter(x => x.st.in_drill);
 
   let chosen, mode;
   // MISSION COHERENCE (tester finding #1): a 10-question mission should stay on ONE skill
@@ -289,6 +328,8 @@ function nextActivity(kidId, subject, opts = {}) {
   const roll = Math.random();
   if (chosen) {
     /* focus skill already selected above */
+  } else if (drilling.length) {
+    chosen = weightedLowest(drilling); mode = 'boost';        // remediate the drill skill first
   } else if (struggling.length && roll < 0.5) {
     chosen = weightedLowest(struggling); mode = 'boost';       // extra help where needed
   } else if (frontier.length) {
@@ -334,7 +375,8 @@ function nextActivity(kidId, subject, opts = {}) {
   if (question) noteRecent(kidId, subject, question.prompt);
   return {
     question, mode, level: state.level,
-    skill: { id: chosen.skill.id, name: chosen.skill.name, grade: chosen.skill.grade, mastery: chosen.st.mastery, stuck }
+    skill: { id: chosen.skill.id, name: chosen.skill.name, grade: chosen.skill.grade, mastery: chosen.st.mastery, stuck },
+    support: supportFor(kidId, subject, chosen.skill, chosen.st)
   };
 }
 
@@ -387,9 +429,29 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty, assi
     m = m * (0.72 + 0.12 * (d0 - 0.5));   // ≈ ×0.68 (easy) … ×0.77 (hard)
   }
   m = Math.max(0.05, Math.min(1, m));
+  // ---- Adaptive support ladder: open/clear a Skill Drill on this concept ----
+  const newWin = correct ? (st.win_streak || 0) + 1 : 0;
+  const newMiss = correct ? 0 : (st.miss_streak || 0) + 1;
+  let inDrill = st.in_drill ? 1 : 0;
+  let lessonSeen = st.lesson_seen ? 1 : 0;
+  const drillEvents = [];
+  const _sk = content.getSkill(subject, skillId);
+  const _skName = _sk ? _sk.name : skillId;
+  // ENTER: repeated misses on an unmastered skill → mandatory drill. Reset lesson_seen so the
+  // child re-watches the lesson for this cycle even if they'd seen it before.
+  if (!inDrill && !correct && newMiss >= DRILL_ENTER_MISSES && m < STRUGGLING) {
+    inDrill = 1; lessonSeen = 0;
+    drillEvents.push({ type: 'drill_enter', skillId, skillName: _skName });
+  }
+  // CLEAR: a short independent win streak proves they've got it now → celebrate and exit the drill.
+  if (inDrill && correct && newWin >= DRILL_CLEAR_STREAK) {
+    inDrill = 0;
+    drillEvents.push({ type: 'drill_clear', skillId, skillName: _skName });
+  }
   db.prepare(`UPDATE skill_state SET mastery=?, attempts=attempts+1, correct=correct+?,
-              win_streak=?, last_seen=datetime('now') WHERE kid_id=? AND subject=? AND skill_id=?`)
-    .run(m, correct ? 1 : 0, correct ? st.win_streak + 1 : 0, kidId, subject, skillId);
+              win_streak=?, miss_streak=?, in_drill=?, lesson_seen=?, last_seen=datetime('now')
+              WHERE kid_id=? AND subject=? AND skill_id=?`)
+    .run(m, correct ? 1 : 0, newWin, newMiss, inDrill, lessonSeen, kidId, subject, skillId);
   db.prepare('INSERT INTO activity_log (kid_id, subject, skill_id, correct, difficulty, time_ms) VALUES (?,?,?,?,?,?)')
     .run(kidId, subject, skillId, correct ? 1 : 0, d0, timeMs || null);
 
@@ -399,6 +461,8 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty, assi
   updateStreak(kidId);
 
   const events = [];
+  // Surface drill enter/clear so the kid client can gate + celebrate ("You beat it! 💪").
+  drillEvents.forEach(e => events.push(e));
   // Learn-to-play: every 5 correct answers earns a Play Zone token (max 9 banked)
   if (correct) {
     const k = db.prepare('SELECT play_tokens, correct_since_token FROM kids WHERE id=?').get(kidId);
@@ -869,9 +933,14 @@ function reportCard(kidId) {
         return {
           name: sk ? sk.name : r.skill_id, grade: sk ? sk.grade : null,
           mastery: r.mastery, attempts: r.attempts,
-          accuracy: r.attempts ? r.correct / r.attempts : null
+          accuracy: r.attempts ? r.correct / r.attempts : null,
+          inDrill: !!r.in_drill
         };
-      })
+      }),
+      // Skills currently in a mandatory Skill Drill (child kept missing them) — surfaced to parents
+      // so "my child isn't progressing" has a clear, honest answer: here's exactly what we're
+      // re-teaching and re-drilling right now.
+      drillSkills: rows.filter(r => r.in_drill).map(r => { const sk = content.getSkill(sub, r.skill_id); return sk ? sk.name : r.skill_id; })
     };
   });
   const badges = db.prepare(`SELECT badge_id, earned_at FROM badges WHERE kid_id=?`).all(kidId)
@@ -913,7 +982,7 @@ function reportCard(kidId) {
   } catch (e) { /* snapshots are best-effort */ }
 
   return {
-    kid: { id: kid.id, name: kid.name, avatar: kid.avatar, grade: kid.grade, xp: kid.xp, coins: kid.coins, streak: kid.streak, weekly_goal: kid.weekly_goal, calendar_mode: kid.calendar_mode },
+    kid: { id: kid.id, name: kid.name, avatar: kid.avatar, grade: kid.grade, xp: kid.xp, coins: kid.coins, streak: kid.streak, weekly_goal: kid.weekly_goal, calendar_mode: kid.calendar_mode, lessons_first: !!kid.lessons_first },
     subjects, badges, certificates: certs, weekAnswers: week.n || 0,
     history, gradeScale: GRADE_SCALE, gallop,
     pace: pace(kid),
@@ -971,5 +1040,5 @@ function setLevel(kidId, subject, level, opts = {}) {
 module.exports = {
   getSubjectState, nextActivity, recordAnswer, placementNext, reportCard, savePlacementMissed,
   gradeName, subjectLabel, setLevel, maxGrade, achievements, careerInsights, BADGES, MASTERED, STRUGGLING,
-  updateStreak
+  updateStreak, markLessonSeen
 };
