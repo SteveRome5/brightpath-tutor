@@ -491,7 +491,29 @@ function recordAnswer(kidId, subject, skillId, correct, timeMs, difficulty, assi
   const sinceChange = db.prepare('SELECT COUNT(*) AS n FROM activity_log WHERE kid_id=? AND subject=? AND id > ?')
     .get(kidId, subject, state.last_change_aid || 0).n;
   const COOLDOWN = 6;
-  if (sinceChange >= COOLDOWN) {
+  // FAST CATCH-UP (auto-recover): a child working BELOW where they were placed who is clearly acing
+  // the easier work should climb back up quickly, instead of being stranded re-mastering every
+  // below-level skill one at a time. This reverses accidental walk-downs (repeated "too tricky"
+  // taps, or an over-eager support demote) that otherwise leave a capable kid seated two grades
+  // low — the exact contradiction parents saw ("Working level: Kindergarten" + "Excelling" on a
+  // 2nd grader). Capped at the placement/demonstrated grade: recovering lost ground is fast;
+  // earning a brand-new grade above placement still requires full mastery. Fires on a small, honest
+  // sample (≥5 independent answers since the last level change, ≥85% recent accuracy).
+  let leveled = false;
+  const placedFloor = Number.isFinite(state.placed_level) ? Math.round(state.placed_level) : -1;
+  const demoFloor = Number.isFinite(state.demonstrated_level) ? Math.max(0, state.demonstrated_level) : 0;
+  const catchupCeil = Math.min(climbCeiling, Math.max(placedFloor, demoFloor));
+  if (lvl < catchupCeil) {
+    const cuRows = db.prepare("SELECT correct FROM activity_log WHERE kid_id=? AND subject=? AND skill_id NOT LIKE 'track:%' AND (assisted IS NULL OR assisted=0) AND id > ? ORDER BY id DESC LIMIT 8")
+      .all(kidId, subject, state.last_change_aid || 0);
+    if (cuRows.length >= 5 && cuRows.filter(r => r.correct).length / cuRows.length >= 0.85) {
+      const nl = Math.min(catchupCeil, lvl + 1);
+      db.prepare('UPDATE subject_state SET level=?, last_change_aid=? WHERE kid_id=? AND subject=?').run(nl, latestAid, kidId, subject);
+      events.push({ type: 'catchup', subject, newLevel: nl });   // gentle "moving back up", not a new certificate
+      leveled = true;
+    }
+  }
+  if (!leveled && sinceChange >= COOLDOWN) {
     const levelSkills = content.skillsForSubject(subject).filter(s => s.grade === lvl);
     // PROMOTE: sustained ≥85% accuracy across the level, every skill practiced ≥2×,
     // and a real body of work at the level (≥ max(8, 2× the skills)). A school year
@@ -903,6 +925,15 @@ function reportCard(kidId) {
       if (status === 'excelling' && progress.mastered === 0) status = 'on-track';
       if ((status === 'excelling' || status === 'on-track') && progress.atLevelMastered === 0 && thin) status = 'developing';
     }
+    // ---- Working-level-below-placement coherence (the "Kindergarten + Excelling" fix) ----
+    // If a child is being SERVED work below the grade they were placed at, they're REVIEWING /
+    // rebuilding, not "excelling" — even if they ace the easier material. Show one honest story:
+    // lead with the grade they've actually proven, and frame the working level as review. With
+    // fast catch-up in the engine this state is now transient for a capable kid, but it must still
+    // read coherently while it lasts and for a genuinely-struggling child.
+    const placedLvl = Number.isFinite(state.placed_level) ? Math.round(state.placed_level) : null;
+    const reviewingBelowLevel = !!state.placed && placedLvl != null && curLvl < placedLvl;
+    if (reviewingBelowLevel && (status === 'excelling' || status === 'on-track')) status = 'reviewing';
     // ---- Grade-estimate evidence gating (P0-1) ----
     // "≈ mid Grade X" reads as PROVEN command of the grade, so only claim it with real coverage:
     // evidence across at least half the current-grade skills, at least one of them mastered, and a
@@ -923,6 +954,7 @@ function reportCard(kidId) {
       questionsAnswered: agg.n || 0, accuracy: agg.n ? (agg.c / agg.n) : null,
       assistedAnswers: assistedAgg.n || 0,
       status, recentAccuracy: recentAcc, recentSample: recentRows.length, enrolledGrade: kid.grade || 0,
+      reviewingBelowLevel, placedLevelName: placedLvl != null ? gradeName(placedLvl) : null,
       placementNote: placementRationale(sub, state, kid),
       placementMissed: (() => { try { return state.placement_missed ? JSON.parse(state.placement_missed) : []; } catch (e) { return []; } })(),
       strengths: strengths.map(r => nameOf(r.skill_id)),
