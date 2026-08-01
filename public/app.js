@@ -2352,6 +2352,9 @@ route('lesson', async (subject, mode, anchor) => {
         // "You beat it!" — the child cleared a Skill Drill they'd been stuck on. Big moment.
         const cleared = (res.events || []).find(ev => ev.type === 'drill_clear');
         if (cleared) setTimeout(() => celebrate(cleared), celebration ? 1600 : 700);
+        // Auto catch-up: the engine climbed them back toward their real level. A gentle nudge, not
+        // a certificate — the harder questions that follow are the real signal.
+        if ((res.events || []).some(ev => ev.type === 'catchup')) toast(playful() ? '📈 Nice work — moving you back up a level!' : 'Great progress — stepping the level back up.');
       } catch (e) {
         // Trial/subscription lapsed mid-lesson: send them to the paywall instead of
         // silently celebrating work that was never recorded.
@@ -2972,6 +2975,7 @@ function statusBadge(status) {
   const M = {
     'excelling': ['🚀 Excelling', 'st-excelling'],
     'on-track': ['✅ On track', 'st-ontrack'],
+    'reviewing': ['📘 Reviewing', 'st-developing'],
     'developing': ['📈 Developing', 'st-developing'],
     'needs-support': ['🤝 Extra support', 'st-support'],
     'insufficient': ['🔎 Not enough data yet', 'st-insuff'],
@@ -2981,6 +2985,7 @@ function statusBadge(status) {
   return `<span class="status-badge ${m[1]}">${m[0]}</span>`;
 }
 function statusNote(s) {
+  if (s.status === 'reviewing') return ' · <b style="color:#2f78c2">reviewing earlier skills to shore up the foundation — climbing back up as they show they\'ve got it</b>';
   if (s.status === 'excelling') return ' · <b style="color:#1f8a5f">has this down, so we\'re steadily raising the challenge</b>';
   if (s.status === 'needs-support') return ' · <b style="color:#C9A84C">we\'ve eased the difficulty and added extra practice here</b>';
   if (s.status === 'developing') return ' · making progress — a little more practice to lock it in';
@@ -3199,9 +3204,11 @@ route('report', async (kidId) => {
           </div>
           ${s.placed ? `
             <p class="muted" style="margin:6px 0">${isParent ? `${accuracyLine(s)}${statusNote(s)}` : `${s.questionsAnswered} question${s.questionsAnswered === 1 ? '' : 's'} done. Keep it up, you're growing!`}</p>
-            ${isParent ? `<p class="muted" style="margin:2px 0 8px;font-size:.9rem">Working level: <b>${esc(s.levelName)}</b>${s.enrolledGrade != null ? ` · enrolled in <b>${s.enrolledGrade === 0 ? 'Kindergarten' : 'Grade ' + s.enrolledGrade}</b>` : ''}${s.levelSetByParent ? ` · <span style="color:var(--brand)">✋ set by you${s.levelSetAt ? ' on ' + esc(s.levelSetAt) : ''}</span> <span class="muted">(manage in ✏️ Edit)</span>` : ''}</p>` : ''}
+            ${isParent ? (s.reviewingBelowLevel
+              ? `<p class="muted" style="margin:2px 0 8px;font-size:.9rem">Proven level: <b>${s.gradeEquiv ? '≈ ' + esc(s.gradeEquiv.label) : esc(s.levelName)}</b> · currently reviewing <b>${esc(s.levelName)}</b> skills to rebuild the foundation, then climbing back toward <b>${esc(s.placedLevelName || s.levelName)}</b>${s.enrolledGrade != null ? ` · enrolled in <b>${s.enrolledGrade === 0 ? 'Kindergarten' : 'Grade ' + s.enrolledGrade}</b>` : ''}.</p>`
+              : `<p class="muted" style="margin:2px 0 8px;font-size:.9rem">Working level: <b>${esc(s.levelName)}</b>${s.enrolledGrade != null ? ` · enrolled in <b>${s.enrolledGrade === 0 ? 'Kindergarten' : 'Grade ' + s.enrolledGrade}</b>` : ''}${s.levelSetByParent ? ` · <span style="color:var(--brand)">✋ set by you${s.levelSetAt ? ' on ' + esc(s.levelSetAt) : ''}</span> <span class="muted">(manage in ✏️ Edit)</span>` : ''}</p>`) : ''}
             ${isParent && s.assistedAnswers > 0 ? `<p class="muted" style="margin:2px 0 8px;font-size:.85rem">👪 Practiced together: <b>${s.assistedAnswers}</b> — counted as engagement, kept out of the independent scores above.</p>` : ''}
-            ${isParent && s.placementNote ? `<p class="place-note"><b>Why we started here:</b> ${esc(s.placementNote)}</p>` : ''}
+            ${isParent && s.placementNote && !s.reviewingBelowLevel ? `<p class="place-note"><b>Why we started here:</b> ${esc(s.placementNote)}</p>` : ''}
             ${isParent && s.placementMissed && s.placementMissed.length ? `<p class="place-note" style="background:#fff6ec;border-color:#f0d9bd"><b>Missed on the placement quiz:</b> ${s.placementMissed.map(x => `<span class="pill focus">${esc(x)}</span>`).join(' ')} <span class="muted" style="font-size:.85rem">— these are just the concepts to keep an eye on; ${esc(k.name)} gets extra practice on them automatically.</span></p>` : ''}
             ${isParent && s.progress ? `
             <div class="advance-box">
