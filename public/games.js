@@ -154,7 +154,7 @@
       { id: 'blitz', emoji: '⚡', name: 'Gallop Sprint', desc: '60 seconds. Rapid-fire questions. Build a combo — beat your best!', min: 0, max: 12 },
       { id: 'spellingbee', emoji: '🐝', name: 'Gallop Spelling Bee', desc: 'Step to the mic! Hear your word, ask for its meaning, then spell it — just like the national stage.', min: 1, max: 12 },
       { id: 'code', emoji: '🤖', name: 'Robo Logic', desc: 'Program Robo the robot to reach the star — a fresh puzzle set every time.', min: 0, max: 12 },
-      { id: 'oneline', emoji: '✏️', name: 'One Line', desc: 'Trace the whole shape in a single stroke — never lift your finger, never cross the same line twice. 500 levels that get trickier as you climb. Your progress saves!', min: 0, max: 12 },
+      { id: 'oneline', emoji: '✨', name: 'One Line', desc: 'Neon one-stroke puzzles — light up the whole shape in a single gallop, never crossing the same line twice! 500 glowing levels that get trickier as you climb. Progress saves.', min: 0, max: 12 },
       { id: 'wordsearch', emoji: '🔍', name: 'Word Roundup', desc: 'Hunt hidden words in the letter jungle.', min: 0, max: 12 },
       { id: 'memory', emoji: '🃏', name: 'Memory Meadow', desc: 'Flip cards, match pairs — Spanish words, math facts & more!', min: 0, max: 12 },
       { id: 'bakery', emoji: '🧁', name: 'Gallop Bakery', desc: 'Run the Gallop Bakery for a day — use real math to bake, price, and bank a profit!', min: 3, max: 8 },
@@ -3040,15 +3040,27 @@
     if(document.getElementById('ol-styles')) return;
     const s=document.createElement('style'); s.id='ol-styles';
     s.textContent = `
-      .ol-top{display:flex;align-items:center;justify-content:space-between;gap:8px;max-width:520px;margin:0 auto 10px}
-      .ol-title{font-size:1.05rem;color:#16213a}
-      .ol-left{font-weight:700;color:#1A5C38;background:#eaf6ef;border-radius:999px;padding:4px 12px;font-variant-numeric:tabular-nums}
-      .ol-stage{margin:0 auto;background:#fbfaf5;border:1px solid #e7e3d8;border-radius:16px;box-shadow:0 6px 20px -14px rgba(0,0,0,.25);overflow:hidden}
-      .ol-controls{display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap}
-      .ol-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:340px;margin:0 auto}
-      .ol-chip{width:40px;height:40px;border-radius:10px;border:1px solid #cfe3d6;background:#fff;color:#1A5C38;font-weight:700;cursor:pointer;font-size:.9rem}
-      .ol-chip.cur{background:#1A5C38;color:#fff;border-color:#1A5C38}
-      .ol-chip.locked{opacity:.4;cursor:not-allowed;background:#f0f0ee;color:#98a;border-color:#e5e5e0}
+      .ol-panel{max-width:492px;margin:0 auto;background:linear-gradient(160deg,#0c1330,#15204a);border:1px solid rgba(110,255,192,.28);border-radius:22px;padding:16px 16px 18px;box-shadow:0 0 26px -6px rgba(80,255,170,.35),0 14px 40px -18px rgba(0,0,0,.6)}
+      .ol-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+      .ol-title{font-size:1.05rem;color:#eafff4;font-weight:700}
+      .ol-title span{color:#7fa0c8;font-weight:600}
+      .ol-left{font-weight:800;color:#06231a;background:linear-gradient(90deg,#6effc0,#4be0d0);border-radius:999px;padding:5px 14px;font-variant-numeric:tabular-nums;box-shadow:0 0 14px -2px rgba(80,255,180,.7)}
+      .ol-stage{margin:0 auto;border-radius:16px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(110,255,192,.25)}
+      .ol-controls{display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+      .ol-btn{background:rgba(255,255,255,.06);border:1px solid rgba(110,255,192,.4);color:#eafff4;border-radius:12px;padding:9px 16px;font-weight:700;cursor:pointer;font-size:.92rem;transition:background .15s}
+      .ol-btn:hover{background:rgba(110,255,192,.15)}
+      .ol-btn.hub{border-color:rgba(127,160,200,.5);color:#cfe0f5}
+      .ol-tip{text-align:center;font-size:.82rem;margin:12px 0 0;color:#8fb0d8}
+      .ol-hub-card{max-width:492px;margin:0 auto;background:linear-gradient(160deg,#0c1330,#15204a);border:1px solid rgba(110,255,192,.28);border-radius:22px;padding:26px 22px;text-align:center;color:#eafff4;box-shadow:0 0 30px -6px rgba(80,255,170,.4),0 16px 44px -18px rgba(0,0,0,.6)}
+      .ol-neon-title{font-size:2.1rem;margin:6px 0 2px;font-weight:800;letter-spacing:.5px;color:#eafff4;text-shadow:0 0 10px rgba(110,255,192,.85),0 0 24px rgba(74,255,170,.5)}
+      .ol-sub{color:#9fc0e6;margin:8px auto 18px;max-width:24rem;font-size:.95rem;line-height:1.5}
+      .ol-go{background:linear-gradient(90deg,#39ffa0,#26d0c0);color:#06231a;border:none;border-radius:14px;padding:13px 26px;font-weight:800;font-size:1.12rem;cursor:pointer;box-shadow:0 0 20px -2px rgba(80,255,180,.7)}
+      .ol-go:hover{filter:brightness(1.07)}
+      .ol-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:344px;margin:0 auto}
+      .ol-chip{width:40px;height:40px;border-radius:10px;border:1px solid rgba(110,255,192,.35);background:rgba(255,255,255,.05);color:#cfe0f5;font-weight:700;cursor:pointer;font-size:.9rem}
+      .ol-chip.cur{background:linear-gradient(90deg,#39ffa0,#26d0c0);color:#06231a;border-color:transparent;box-shadow:0 0 12px -2px rgba(80,255,180,.7)}
+      .ol-chip.locked{opacity:.32;cursor:not-allowed}
+      .ol-back{margin-top:18px;background:none;border:1px solid rgba(127,160,200,.5);color:#cfe0f5;border-radius:10px;padding:8px 16px;cursor:pointer;font-weight:600}
     `;
     document.head.appendChild(s);
   }
@@ -3064,16 +3076,16 @@
       const from = Math.max(1, cur-11), to = Math.min(OL_MAX_LEVEL, Math.max(cur+12, 24));
       let chips=''; for(let L=from; L<=to; L++){ const locked = L>maxLevel; chips += `<button class="ol-chip${locked?' locked':''}${L===cur?' cur':''}" ${locked?'disabled':''} data-l="${L}">${L}</button>`; }
       app().innerHTML = topbar(`<div class="container" style="max-width:560px">
-        <div class="card center" style="padding:24px">
-          <div class="big-emoji">✏️</div>
-          <h2 style="margin:2px 0 4px">One Line</h2>
-          <p class="muted" style="margin:4px auto 16px;max-width:24rem">Trace the whole shape in <b>one stroke</b> — don't lift your finger, and never go over the same line twice. Get every line and you win!</p>
-          <button class="btn green" id="ol-continue" style="font-size:1.1rem;padding:12px 22px">▶ Continue — Level ${cur}</button>
-          <div style="margin-top:16px">
-            <div class="muted" style="font-size:.82rem;margin-bottom:6px">Jump to a level (unlocked up to ${maxLevel})</div>
+        <div class="ol-hub-card">
+          <div style="font-size:2.7rem;line-height:1;filter:drop-shadow(0 0 10px rgba(110,255,192,.75))">🐎✨</div>
+          <div class="ol-neon-title">One Line</div>
+          <p class="ol-sub">Light up the <b>whole trail</b> in one gallop — never lift your finger, never cross the same line twice. 500 glowing levels that get trickier as you go!</p>
+          <button class="ol-go" id="ol-continue">▶ Continue — Level ${cur}</button>
+          <div style="margin-top:18px">
+            <div style="font-size:.8rem;margin-bottom:6px;color:#9fc0e6">Jump to a level (unlocked up to ${maxLevel})</div>
             <div class="ol-chips">${chips}</div>
           </div>
-          <button class="btn ghost small" style="margin-top:16px;color:#1A5C38;border-color:#1A5C38" id="ol-back">← Back to Play Zone</button>
+          <div><button class="ol-back" id="ol-back">← Back to Play Zone</button></div>
         </div>
       </div>`);
       wireChrome();
@@ -3111,20 +3123,22 @@
       let won = false;
 
       app().innerHTML = topbar(`<div class="container" style="max-width:520px">
-        <div class="ol-top">
-          <button class="btn ghost small" id="ol-hub" style="color:#1A5C38;border-color:#1A5C38">☰ Levels</button>
-          <div class="ol-title">Level <b>${level}</b><span class="muted"> / ${OL_MAX_LEVEL}</span></div>
-          <div class="ol-left"><span id="ol-count">0</span>/${total}</div>
+        <div class="ol-panel">
+          <div class="ol-top">
+            <button class="ol-btn hub" id="ol-hub">☰ Levels</button>
+            <div class="ol-title">Level <b>${level}</b><span> / ${OL_MAX_LEVEL}</span></div>
+            <div class="ol-left"><span id="ol-count">0</span>/${total}</div>
+          </div>
+          <div class="ol-stage" style="width:${box}px;height:${box}px">
+            <canvas id="ol-canvas" width="${box}" height="${box}" style="width:${box}px;height:${box}px;touch-action:none;display:block"></canvas>
+          </div>
+          <div class="ol-controls">
+            <button class="ol-btn" id="ol-undo">↩ Undo</button>
+            <button class="ol-btn" id="ol-restart">🔄 Restart</button>
+            <button class="ol-btn" id="ol-hint">💡 Hint</button>
+          </div>
+          <p class="ol-tip">Start on a <b style="color:#ffd84a">gold</b> dot, then drag through every line without lifting. Drag back to erase.</p>
         </div>
-        <div class="ol-stage" style="width:${box}px;height:${box}px">
-          <canvas id="ol-canvas" width="${box}" height="${box}" style="width:${box}px;height:${box}px;touch-action:none"></canvas>
-        </div>
-        <div class="ol-controls">
-          <button class="btn sun small" id="ol-undo">↩ Undo</button>
-          <button class="btn ghost small" id="ol-restart">🔄 Restart</button>
-          <button class="btn ghost small" id="ol-hint">💡 Hint</button>
-        </div>
-        <p class="muted ol-tip" style="text-align:center;font-size:.85rem;margin-top:8px">Start on a glowing dot, then drag through every line without lifting. Drag back to erase.</p>
       </div>`);
       wireChrome();
 
@@ -3135,39 +3149,46 @@
       const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr);
       let hintOn = false, pulse = 0, raf = null;
 
+      function line(a,b){ ctx.beginPath(); ctx.moveTo(px(a),py(a)); ctx.lineTo(px(b),py(b)); ctx.stroke(); }
       function draw(){
-        ctx.clearRect(0,0,box,box);
-        // undrawn edges (light) then drawn edges (green) so drawn sit on top
+        // deep-space background with a soft central glow
+        const bg=ctx.createLinearGradient(0,0,0,box); bg.addColorStop(0,'#0c1330'); bg.addColorStop(1,'#15204a');
+        ctx.fillStyle=bg; ctx.fillRect(0,0,box,box);
+        const vg=ctx.createRadialGradient(box/2,box/2,8,box/2,box/2,box*0.72);
+        vg.addColorStop(0,'rgba(60,140,105,0.18)'); vg.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=vg; ctx.fillRect(0,0,box,box);
         ctx.lineCap='round'; ctx.lineJoin='round';
-        g.edges.forEach(([a,b])=>{
-          const on = drawn.has(olEkey(a,b));
-          ctx.strokeStyle = on ? '#1A5C38' : '#d7ddd3';
-          ctx.lineWidth = on ? 9 : 7;
-          ctx.beginPath(); ctx.moveTo(px(a),py(a)); ctx.lineTo(px(b),py(b)); ctx.stroke();
-        });
-        // the active stroke as a bold connected polyline
-        if(path.length){
-          ctx.strokeStyle='#28a745'; ctx.lineWidth=9;
-          ctx.beginPath(); ctx.moveTo(px(path[0]),py(path[0]));
-          for(let i=1;i<path.length;i++) ctx.lineTo(px(path[i]),py(path[i]));
-          ctx.stroke();
+        const pg = 0.5+0.5*Math.sin(pulse);
+        // undrawn tracks — faint neon rails
+        g.edges.forEach(([a,b])=>{ if(drawn.has(olEkey(a,b))) return; ctx.strokeStyle='rgba(150,200,180,0.17)'; ctx.lineWidth=6; line(a,b); });
+        // drawn edges — glow halo + bright core (neon green)
+        g.edges.forEach(([a,b])=>{ if(!drawn.has(olEkey(a,b))) return;
+          ctx.strokeStyle='rgba(74,255,170,0.22)'; ctx.lineWidth=18; line(a,b);
+          ctx.strokeStyle='#6effc0'; ctx.lineWidth=7; line(a,b); });
+        // the active stroke — brightest, white-hot core
+        if(path.length>=2){
+          ctx.strokeStyle='rgba(180,255,222,0.30)'; ctx.lineWidth=20;
+          ctx.beginPath(); ctx.moveTo(px(path[0]),py(path[0])); for(let i=1;i<path.length;i++) ctx.lineTo(px(path[i]),py(path[i])); ctx.stroke();
+          ctx.strokeStyle='#ecfff6'; ctx.lineWidth=5;
+          ctx.beginPath(); ctx.moveTo(px(path[0]),py(path[0])); for(let i=1;i<path.length;i++) ctx.lineTo(px(path[i]),py(path[i])); ctx.stroke();
         }
         // nodes
         g.nodes.forEach((_,i)=>{
           const isHead = path.length && path[path.length-1]===i;
-          const glowStart = !path.length && hintOn===false && validStarts.indexOf(i)>=0;
-          const r = isHead ? 10 : 7;
-          if(glowStart){ ctx.fillStyle='rgba(40,167,69,'+(0.25+0.2*Math.sin(pulse))+')'; ctx.beginPath(); ctx.arc(px(i),py(i),14,0,7); ctx.fill(); }
-          ctx.fillStyle = isHead ? '#1A5C38' : (path.indexOf(i)>=0 ? '#28a745' : '#8a9187');
-          ctx.beginPath(); ctx.arc(px(i),py(i),r,0,7); ctx.fill();
-          ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(px(i),py(i),Math.max(2,r-5),0,7); ctx.fill();
+          const onPath = path.indexOf(i)>=0;
+          const isStart = !path.length && validStarts.indexOf(i)>=0;
+          const hinting = hintOn && validStarts.indexOf(i)>=0;
+          if(isHead){ ctx.fillStyle='rgba(110,255,192,0.30)'; ctx.beginPath(); ctx.arc(px(i),py(i),16,0,7); ctx.fill(); }
+          else if(isStart||hinting){ ctx.fillStyle='rgba(255,216,74,'+(0.16+0.24*pg)+')'; ctx.beginPath(); ctx.arc(px(i),py(i),13+4*pg,0,7); ctx.fill(); }
+          ctx.fillStyle = isHead ? '#8effcf' : (onPath ? '#6effc0' : ((isStart||hinting) ? '#ffd84a' : '#4a5f8f'));
+          ctx.beginPath(); ctx.arc(px(i),py(i), isHead?9:7, 0,7); ctx.fill();
+          ctx.fillStyle='#0c1330'; ctx.beginPath(); ctx.arc(px(i),py(i), isHead?4:3, 0,7); ctx.fill();
         });
-        if(hintOn){
-          ctx.fillStyle='#C9A84C';
-          validStarts.forEach(i=>{ ctx.beginPath(); ctx.arc(px(i),py(i),13,0,7); ctx.globalAlpha=.35; ctx.fill(); ctx.globalAlpha=1; });
-        }
+        // the little horse leads the glowing trail 🐎
+        if(path.length){ const h=path[path.length-1]; ctx.font=Math.round(box*0.052+8)+'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🐎', px(h), py(h)-1); }
       }
-      function loop(){ pulse += 0.12; if(!path.length && !won){ draw(); raf=requestAnimationFrame(loop); } }
+      // one continuous animation loop keeps the neon gently pulsing
+      function loop(){ pulse += 0.09; draw(); raf = won ? null : requestAnimationFrame(loop); }
       function stopLoop(){ if(raf){ cancelAnimationFrame(raf); raf=null; } }
 
       function nearest(x,y){
@@ -3178,7 +3199,7 @@
       function evPos(e){ const r=canvas.getBoundingClientRect(); return [ (e.clientX-r.left)*(box/r.width), (e.clientY-r.top)*(box/r.height) ]; }
       function tryGo(n){
         if(n<0) return;
-        if(!path.length){ if(validStarts.indexOf(n)>=0 || oddNodes.length===0){ path=[n]; stopLoop(); draw(); } return; }
+        if(!path.length){ if(validStarts.indexOf(n)>=0 || oddNodes.length===0){ path=[n]; Sound.click(); draw(); } return; }
         const head = path[path.length-1];
         if(n===head) return;
         // backtrack: dragging onto the previous node erases the last line
@@ -3196,8 +3217,8 @@
       window.addEventListener('pointerup', up);
 
       $('#ol-hub').onclick = ()=>{ Sound.click(); stopLoop(); hub(); };
-      $('#ol-undo').onclick = ()=>{ Sound.click(); if(path.length>=2){ const a=path.pop(), b=path[path.length-1]; drawn.delete(olEkey(a,b)); } else { path=[]; } update(); if(!path.length) loop(); };
-      $('#ol-restart').onclick = ()=>{ Sound.click(); path=[]; drawn=new Set(); won=false; update(); loop(); };
+      $('#ol-undo').onclick = ()=>{ Sound.click(); if(path.length>=2){ const a=path.pop(), b=path[path.length-1]; drawn.delete(olEkey(a,b)); } else { path=[]; } update(); };
+      $('#ol-restart').onclick = ()=>{ Sound.click(); path=[]; drawn=new Set(); won=false; update(); if(!raf) loop(); };
       $('#ol-hint').onclick = ()=>{ Sound.click(); hintOn=true; draw(); setTimeout(()=>{ hintOn=false; draw(); }, 1400); };
 
       async function win(){
@@ -3208,9 +3229,9 @@
         const done = level >= OL_MAX_LEVEL;
         const overlay = document.createElement('div');
         overlay.className='celebrate';
-        overlay.innerHTML = `<div class="big-emoji">✨</div>
-          <h2>${done?'You finished all 500! 🏆':'Solved it! 🎉'}</h2>
-          <p style="font-size:1.1rem">Level ${level} complete${done?'':' — one stroke, no crossings.'}</p>
+        overlay.innerHTML = `<div class="big-emoji" style="filter:drop-shadow(0 0 14px rgba(110,255,192,.85))">${done?'🏆':'🐎✨'}</div>
+          <h2 style="text-shadow:0 0 14px rgba(110,255,192,.6)">${done?'You lit up all 500! 🏆':'Trail complete! 🎉'}</h2>
+          <p style="font-size:1.1rem">Level ${level} done${done?'':' — one gallop, no crossings.'}</p>
           <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
             ${done?'':'<button class="btn sun" id="ol-next">Next level →</button>'}
             <button class="btn green" id="ol-replay">↻ Replay</button>
