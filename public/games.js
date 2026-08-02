@@ -154,6 +154,7 @@
       { id: 'blitz', emoji: '⚡', name: 'Gallop Sprint', desc: '60 seconds. Rapid-fire questions. Build a combo — beat your best!', min: 0, max: 12 },
       { id: 'spellingbee', emoji: '🐝', name: 'Gallop Spelling Bee', desc: 'Step to the mic! Hear your word, ask for its meaning, then spell it — just like the national stage.', min: 1, max: 12 },
       { id: 'code', emoji: '🤖', name: 'Robo Logic', desc: 'Program Robo the robot to reach the star — a fresh puzzle set every time.', min: 0, max: 12 },
+      { id: 'oneline', emoji: '✏️', name: 'One Line', desc: 'Trace the whole shape in a single stroke — never lift your finger, never cross the same line twice. 500 levels that get trickier as you climb. Your progress saves!', min: 0, max: 12 },
       { id: 'wordsearch', emoji: '🔍', name: 'Word Roundup', desc: 'Hunt hidden words in the letter jungle.', min: 0, max: 12 },
       { id: 'memory', emoji: '🃏', name: 'Memory Meadow', desc: 'Flip cards, match pairs — Spanish words, math facts & more!', min: 0, max: 12 },
       { id: 'bakery', emoji: '🧁', name: 'Gallop Bakery', desc: 'Run the Gallop Bakery for a day — use real math to bake, price, and bank a profit!', min: 3, max: 8 },
@@ -213,7 +214,7 @@
       await startMarketHub();
       return;
     }
-    const starters = { bakery: startBakery, memory: startMemory, wordsearch: startWordSearch, code: startCode, art: startArt, lemonade: startLemonade, blitz: startBlitz, spellingbee: startSpellingBee };
+    const starters = { bakery: startBakery, memory: startMemory, wordsearch: startWordSearch, code: startCode, art: startArt, lemonade: startLemonade, blitz: startBlitz, spellingbee: startSpellingBee, oneline: startOneLine };
     const fn = starters[which];
     if (!fn) { location.hash = '#play'; return; }
     await gated(which, fn);
@@ -2979,4 +2980,251 @@
       document.body.appendChild(div);
     });
   });
+
+  // ======================= ONE LINE (one-stroke puzzle) =======================
+  // Trace every line of a figure in a single stroke — never lift, never retrace. 500 levels,
+  // each generated deterministically from its level number so everyone gets the same Level N and
+  // it's reproducible. CRITICAL: every level is built as ONE continuous trail (an edge is never
+  // reused while building), so the edge set ALWAYS has an Eulerian path — i.e. it is ALWAYS
+  // solvable by construction. Difficulty (edge count, grid size, junctions) grows with the level.
+  const OL_MAX_LEVEL = 500;
+  function olRng(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return((t^t>>>14)>>>0)/4294967296; }; }
+  function olParams(level){
+    const side = Math.max(3, Math.min(7, 3 + Math.floor((level-1)/70)));
+    const targetEdges = Math.max(4, Math.min(46, 5 + Math.floor((level-1)/11)));
+    const junctionBias = Math.max(0.15, Math.min(0.85, 0.15 + level/700));
+    return { W: side, H: side, targetEdges, junctionBias };
+  }
+  function olBuildTrail(W,H,target,junctionBias,rng){
+    const id=(x,y)=>y*W+x, inb=(x,y)=>x>=0&&x<W&&y>=0&&y<H;
+    const used=new Set(), ekey=(a,b)=>a<b?a+'_'+b:b+'_'+a, visited=new Set();
+    let cx=Math.floor(rng()*W), cy=Math.floor(rng()*H); visited.add(id(cx,cy));
+    const edges=[], dirs=[[1,0],[-1,0],[0,1],[0,-1]]; let guard=0;
+    while(edges.length<target && guard++<target*30){
+      const cand=[];
+      for(const [dx,dy] of dirs){ const nx=cx+dx,ny=cy+dy; if(!inb(nx,ny))continue; if(used.has(ekey(id(cx,cy),id(nx,ny))))continue; cand.push([nx,ny]); }
+      if(!cand.length)break;
+      const vis=cand.filter(c=>visited.has(id(c[0],c[1]))), fresh=cand.filter(c=>!visited.has(id(c[0],c[1])));
+      let pick;
+      if(vis.length && rng()<junctionBias) pick=vis[Math.floor(rng()*vis.length)];
+      else if(fresh.length) pick=fresh[Math.floor(rng()*fresh.length)];
+      else pick=cand[Math.floor(rng()*cand.length)];
+      used.add(ekey(id(cx,cy),id(pick[0],pick[1])));
+      edges.push([[cx,cy],[pick[0],pick[1]]]);
+      cx=pick[0]; cy=pick[1]; visited.add(id(cx,cy));
+    }
+    return edges;
+  }
+  function olNormalize(edgePairs){
+    const key=(x,y)=>x+','+y, idx=new Map(), nodes=[];
+    const nid=(x,y)=>{ const k=key(x,y); if(!idx.has(k)){ idx.set(k,nodes.length); nodes.push({x,y}); } return idx.get(k); };
+    const edges=edgePairs.map(p=>[nid(p[0][0],p[0][1]),nid(p[1][0],p[1][1])]);
+    const minx=Math.min.apply(null,nodes.map(n=>n.x)), miny=Math.min.apply(null,nodes.map(n=>n.y));
+    nodes.forEach(n=>{ n.x-=minx; n.y-=miny; });
+    const w=Math.max.apply(null,nodes.map(n=>n.x))+1, h=Math.max.apply(null,nodes.map(n=>n.y))+1;
+    return { nodes, edges, w, h };
+  }
+  function olGen(level){
+    const P=olParams(level); let best=null;
+    for(let a=0;a<60;a++){
+      const rng=olRng((level*100003)^(a*7919)^0x9e3779b9);
+      const ep=olBuildTrail(P.W,P.H,P.targetEdges,P.junctionBias,rng);
+      if(ep.length>=Math.max(4,P.targetEdges-2)) return olNormalize(ep);
+      if(!best||ep.length>best.length) best=ep;
+    }
+    return olNormalize(best);
+  }
+  function olEkey(a,b){ return a<b?a+'-'+b:b+'-'+a; }
+
+  function olInjectStyles(){
+    if(document.getElementById('ol-styles')) return;
+    const s=document.createElement('style'); s.id='ol-styles';
+    s.textContent = `
+      .ol-top{display:flex;align-items:center;justify-content:space-between;gap:8px;max-width:520px;margin:0 auto 10px}
+      .ol-title{font-size:1.05rem;color:#16213a}
+      .ol-left{font-weight:700;color:#1A5C38;background:#eaf6ef;border-radius:999px;padding:4px 12px;font-variant-numeric:tabular-nums}
+      .ol-stage{margin:0 auto;background:#fbfaf5;border:1px solid #e7e3d8;border-radius:16px;box-shadow:0 6px 20px -14px rgba(0,0,0,.25);overflow:hidden}
+      .ol-controls{display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+      .ol-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:340px;margin:0 auto}
+      .ol-chip{width:40px;height:40px;border-radius:10px;border:1px solid #cfe3d6;background:#fff;color:#1A5C38;font-weight:700;cursor:pointer;font-size:.9rem}
+      .ol-chip.cur{background:#1A5C38;color:#fff;border-color:#1A5C38}
+      .ol-chip.locked{opacity:.4;cursor:not-allowed;background:#f0f0ee;color:#98a;border-color:#e5e5e0}
+    `;
+    document.head.appendChild(s);
+  }
+  async function startOneLine(){
+    startGameClock();
+    olInjectStyles();
+    let maxLevel = 1;
+    try { const st = await api(`/play/${kidId()}/game-state/oneline`); if (st && st.state && st.state.level) maxLevel = Math.max(1, Math.min(OL_MAX_LEVEL, st.state.level|0)); } catch(e){}
+
+    function hub(){
+      const cur = Math.min(maxLevel, OL_MAX_LEVEL);
+      // chips for a window around the current level (up to the highest unlocked)
+      const from = Math.max(1, cur-11), to = Math.min(OL_MAX_LEVEL, Math.max(cur+12, 24));
+      let chips=''; for(let L=from; L<=to; L++){ const locked = L>maxLevel; chips += `<button class="ol-chip${locked?' locked':''}${L===cur?' cur':''}" ${locked?'disabled':''} data-l="${L}">${L}</button>`; }
+      app().innerHTML = topbar(`<div class="container" style="max-width:560px">
+        <div class="card center" style="padding:24px">
+          <div class="big-emoji">✏️</div>
+          <h2 style="margin:2px 0 4px">One Line</h2>
+          <p class="muted" style="margin:4px auto 16px;max-width:24rem">Trace the whole shape in <b>one stroke</b> — don't lift your finger, and never go over the same line twice. Get every line and you win!</p>
+          <button class="btn green" id="ol-continue" style="font-size:1.1rem;padding:12px 22px">▶ Continue — Level ${cur}</button>
+          <div style="margin-top:16px">
+            <div class="muted" style="font-size:.82rem;margin-bottom:6px">Jump to a level (unlocked up to ${maxLevel})</div>
+            <div class="ol-chips">${chips}</div>
+          </div>
+          <button class="btn ghost small" style="margin-top:16px;color:#1A5C38;border-color:#1A5C38" id="ol-back">← Back to Play Zone</button>
+        </div>
+      </div>`);
+      wireChrome();
+      $('#ol-continue').onclick = ()=>{ Sound.click(); playLevel(cur); };
+      $('#ol-back').onclick = ()=>{ Sound.click(); location.hash='#play'; };
+      document.querySelectorAll('.ol-chip').forEach(b=>{ if(!b.disabled) b.onclick=()=>{ Sound.click(); playLevel(Number(b.dataset.l)); }; });
+    }
+
+    function playLevel(level){
+      const g = olGen(level);
+      const total = g.edges.length;
+      // odd-degree vertices are the only valid start/end of a one-stroke solution
+      const deg = new Array(g.nodes.length).fill(0);
+      g.edges.forEach(([a,b])=>{ deg[a]++; deg[b]++; });
+      const oddNodes = g.nodes.map((_,i)=>i).filter(i=>deg[i]%2===1);
+      const validStarts = oddNodes.length ? oddNodes : g.nodes.map((_,i)=>i);
+      // adjacency: node -> [{to, key}]
+      const adj = g.nodes.map(()=>[]);
+      g.edges.forEach(([a,b])=>{ adj[a].push(b); adj[b].push(a); });
+
+      // ---- layout ----
+      const wrap = Math.min(window.innerWidth-40, 460);
+      const box = Math.max(260, Math.min(460, wrap));
+      const pad = 34;
+      const gw = Math.max(1, g.w-1), gh = Math.max(1, g.h-1);
+      const cell = Math.min((box-2*pad)/gw, (box-2*pad)/gh);
+      const offx = (box - cell*gw)/2, offy = (box - cell*gh)/2;
+      const px = n => offx + g.nodes[n].x*cell;
+      const py = n => offy + g.nodes[n].y*cell;
+      const hitR = Math.max(20, cell*0.55);
+
+      let path = [];                 // node indices, in draw order
+      let drawn = new Set();         // edge keys drawn
+      let pressing = false;
+      let won = false;
+
+      app().innerHTML = topbar(`<div class="container" style="max-width:520px">
+        <div class="ol-top">
+          <button class="btn ghost small" id="ol-hub" style="color:#1A5C38;border-color:#1A5C38">☰ Levels</button>
+          <div class="ol-title">Level <b>${level}</b><span class="muted"> / ${OL_MAX_LEVEL}</span></div>
+          <div class="ol-left"><span id="ol-count">0</span>/${total}</div>
+        </div>
+        <div class="ol-stage" style="width:${box}px;height:${box}px">
+          <canvas id="ol-canvas" width="${box}" height="${box}" style="width:${box}px;height:${box}px;touch-action:none"></canvas>
+        </div>
+        <div class="ol-controls">
+          <button class="btn sun small" id="ol-undo">↩ Undo</button>
+          <button class="btn ghost small" id="ol-restart">🔄 Restart</button>
+          <button class="btn ghost small" id="ol-hint">💡 Hint</button>
+        </div>
+        <p class="muted ol-tip" style="text-align:center;font-size:.85rem;margin-top:8px">Start on a glowing dot, then drag through every line without lifting. Drag back to erase.</p>
+      </div>`);
+      wireChrome();
+
+      const canvas = $('#ol-canvas');
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = box*dpr; canvas.height = box*dpr;
+      canvas.style.width = box+'px'; canvas.style.height = box+'px';
+      const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr);
+      let hintOn = false, pulse = 0, raf = null;
+
+      function draw(){
+        ctx.clearRect(0,0,box,box);
+        // undrawn edges (light) then drawn edges (green) so drawn sit on top
+        ctx.lineCap='round'; ctx.lineJoin='round';
+        g.edges.forEach(([a,b])=>{
+          const on = drawn.has(olEkey(a,b));
+          ctx.strokeStyle = on ? '#1A5C38' : '#d7ddd3';
+          ctx.lineWidth = on ? 9 : 7;
+          ctx.beginPath(); ctx.moveTo(px(a),py(a)); ctx.lineTo(px(b),py(b)); ctx.stroke();
+        });
+        // the active stroke as a bold connected polyline
+        if(path.length){
+          ctx.strokeStyle='#28a745'; ctx.lineWidth=9;
+          ctx.beginPath(); ctx.moveTo(px(path[0]),py(path[0]));
+          for(let i=1;i<path.length;i++) ctx.lineTo(px(path[i]),py(path[i]));
+          ctx.stroke();
+        }
+        // nodes
+        g.nodes.forEach((_,i)=>{
+          const isHead = path.length && path[path.length-1]===i;
+          const glowStart = !path.length && hintOn===false && validStarts.indexOf(i)>=0;
+          const r = isHead ? 10 : 7;
+          if(glowStart){ ctx.fillStyle='rgba(40,167,69,'+(0.25+0.2*Math.sin(pulse))+')'; ctx.beginPath(); ctx.arc(px(i),py(i),14,0,7); ctx.fill(); }
+          ctx.fillStyle = isHead ? '#1A5C38' : (path.indexOf(i)>=0 ? '#28a745' : '#8a9187');
+          ctx.beginPath(); ctx.arc(px(i),py(i),r,0,7); ctx.fill();
+          ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(px(i),py(i),Math.max(2,r-5),0,7); ctx.fill();
+        });
+        if(hintOn){
+          ctx.fillStyle='#C9A84C';
+          validStarts.forEach(i=>{ ctx.beginPath(); ctx.arc(px(i),py(i),13,0,7); ctx.globalAlpha=.35; ctx.fill(); ctx.globalAlpha=1; });
+        }
+      }
+      function loop(){ pulse += 0.12; if(!path.length && !won){ draw(); raf=requestAnimationFrame(loop); } }
+      function stopLoop(){ if(raf){ cancelAnimationFrame(raf); raf=null; } }
+
+      function nearest(x,y){
+        let best=-1, bd=hitR*hitR;
+        for(let i=0;i<g.nodes.length;i++){ const dx=x-px(i), dy=y-py(i), d=dx*dx+dy*dy; if(d<bd){ bd=d; best=i; } }
+        return best;
+      }
+      function evPos(e){ const r=canvas.getBoundingClientRect(); return [ (e.clientX-r.left)*(box/r.width), (e.clientY-r.top)*(box/r.height) ]; }
+      function tryGo(n){
+        if(n<0) return;
+        if(!path.length){ if(validStarts.indexOf(n)>=0 || oddNodes.length===0){ path=[n]; stopLoop(); draw(); } return; }
+        const head = path[path.length-1];
+        if(n===head) return;
+        // backtrack: dragging onto the previous node erases the last line
+        if(path.length>=2 && n===path[path.length-2]){ const last=path.pop(); drawn.delete(olEkey(head,last)); update(); return; }
+        // draw a new line if head and n are directly connected and not yet drawn
+        if(adj[head].indexOf(n)>=0 && !drawn.has(olEkey(head,n))){ drawn.add(olEkey(head,n)); path.push(n); update(); }
+      }
+      function update(){ $('#ol-count').textContent = drawn.size; draw(); if(drawn.size===total && !won) win(); }
+
+      function down(e){ e.preventDefault(); pressing=true; const [x,y]=evPos(e); tryGo(nearest(x,y)); }
+      function move(e){ if(!pressing) return; e.preventDefault(); const [x,y]=evPos(e); tryGo(nearest(x,y)); }
+      function up(){ pressing=false; }
+      canvas.addEventListener('pointerdown', down);
+      canvas.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+
+      $('#ol-hub').onclick = ()=>{ Sound.click(); stopLoop(); hub(); };
+      $('#ol-undo').onclick = ()=>{ Sound.click(); if(path.length>=2){ const a=path.pop(), b=path[path.length-1]; drawn.delete(olEkey(a,b)); } else { path=[]; } update(); if(!path.length) loop(); };
+      $('#ol-restart').onclick = ()=>{ Sound.click(); path=[]; drawn=new Set(); won=false; update(); loop(); };
+      $('#ol-hint').onclick = ()=>{ Sound.click(); hintOn=true; draw(); setTimeout(()=>{ hintOn=false; draw(); }, 1400); };
+
+      async function win(){
+        won=true; stopLoop(); Sound.levelup(); Confetti.burst(160);
+        const advanced = level >= maxLevel && level < OL_MAX_LEVEL;
+        if(advanced){ maxLevel = level+1; try{ await api(`/play/${kidId()}/game-state/oneline`, { method:'POST', body:{ state:{ level:maxLevel } } }); }catch(e){} }
+        try{ await api(`/play/${kidId()}/score`, { method:'POST', body:{ game:'oneline', score:level } }); }catch(e){}
+        const done = level >= OL_MAX_LEVEL;
+        const overlay = document.createElement('div');
+        overlay.className='celebrate';
+        overlay.innerHTML = `<div class="big-emoji">✨</div>
+          <h2>${done?'You finished all 500! 🏆':'Solved it! 🎉'}</h2>
+          <p style="font-size:1.1rem">Level ${level} complete${done?'':' — one stroke, no crossings.'}</p>
+          <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+            ${done?'':'<button class="btn sun" id="ol-next">Next level →</button>'}
+            <button class="btn green" id="ol-replay">↻ Replay</button>
+            <button class="btn ghost" id="ol-levels" style="color:#fff;border-color:#fff">☰ Levels</button>
+          </div>`;
+        document.body.appendChild(overlay);
+        const nx=overlay.querySelector('#ol-next'); if(nx) nx.onclick=()=>{ overlay.remove(); playLevel(level+1); };
+        overlay.querySelector('#ol-replay').onclick=()=>{ overlay.remove(); playLevel(level); };
+        overlay.querySelector('#ol-levels').onclick=()=>{ overlay.remove(); hub(); };
+      }
+
+      draw(); loop();
+    }
+
+    hub();
+  }
 })();
