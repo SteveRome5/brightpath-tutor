@@ -93,6 +93,11 @@ body[data-theme="academy"] h1, body[data-theme="academy"] h2, body[data-theme="a
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
+/* LOCKED SCREEN VIEW (esp. iPad Safari): kill double-tap-to-zoom and the tap-delay "jump" while
+   keeping normal scrolling; stop iOS from auto-resizing text or zooming when an input is focused.
+   Pinch-zoom is additionally blocked in JS (gesturestart) since iOS ignores maximum-scale for pinch. */
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { touch-action: manipulation; overscroll-behavior-y: none; }
 body {
   font-family: var(--font-body);
   color: var(--ink);

@@ -5182,6 +5182,13 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
   if ('speechSynthesis' in window) speechSynthesis.getVoices();
   // installable app (iPad home screen, Chromebook, etc.) + nudge to refresh when a new
   // version is deployed, so users (especially installed-PWA/phone) don't sit on stale code.
+  // LOCKED SCREEN VIEW (iPad/iOS): Safari ignores the viewport `user-scalable=no` for pinch, so we
+  // block the pinch-zoom gestures directly. touch-action:manipulation (CSS) already kills double-tap
+  // zoom; this stops the two-finger pinch that was letting the screen "jump"/blow up on Margaux's iPad.
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(evt => {
+    document.addEventListener(evt, e => { e.preventDefault(); }, { passive: false });
+  });
+
   if ('serviceWorker' in navigator) {
     // Is the user in the middle of something we must not interrupt? (kid lesson/game/overlay, or a
     // parent actively typing in a form). If so we defer any reload until they reach a safe screen.
