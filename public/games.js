@@ -3040,6 +3040,25 @@
     return olNormalize(best);
   }
   function olEkey(a,b){ return a<b?a+'-'+b:b+'-'+a; }
+  // Self-contained blip on the shared AudioContext (respects the app's mute). A short, soft note
+  // so drawing a line feels tactile without touching the shared Sound engine.
+  function olBlip(freq, dur, gain, type){
+    try{
+      if(Sound.muted) return;
+      const c=Sound.ctx(); if(!c) return;
+      const o=c.createOscillator(), g=c.createGain(); const t=c.currentTime;
+      o.type=type||'triangle'; o.frequency.value=freq;
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(gain||0.09, t+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0006, t+(dur||0.07));
+      o.connect(g).connect(c.destination);
+      o.start(t); o.stop(t+(dur||0.07)+0.05);
+    }catch(e){}
+  }
+  // Each line drawn plays the next note up a pentatonic scale, so tracing a shape makes a little
+  // rising melody (and it climbs an octave every 5 lines). nth is 1-based (drawn count).
+  const OL_PENT=[0,2,4,7,9];
+  function olDrawNote(nth){ const i=Math.max(0,nth-1); const oct=Math.floor(i/OL_PENT.length)%3; const deg=OL_PENT[i%OL_PENT.length]; return 523.25*Math.pow(2,(deg+oct*12)/12); }
 
   function olInjectStyles(){
     if(document.getElementById('ol-styles')) return;
@@ -3073,9 +3092,10 @@
   async function startOneLine(){
     startGameClock();
     olInjectStyles();
-    let maxLevel = 1, tokens = 0, lives = OL_STRIKES;
-    try { const st = await api(`/play/${kidId()}/game-state/oneline`); if (st && st.state && st.state.level) maxLevel = Math.max(1, Math.min(OL_MAX_LEVEL, st.state.level|0)); } catch(e){}
+    let maxLevel = 1, tokens = 0, lives = OL_STRIKES, streak = 0, bestStreak = 0;
+    try { const st = await api(`/play/${kidId()}/game-state/oneline`); if (st && st.state){ if(st.state.level) maxLevel = Math.max(1, Math.min(OL_MAX_LEVEL, st.state.level|0)); if(st.state.best) bestStreak = Math.max(0, st.state.best|0); } } catch(e){}
     try { const s = await api(`/play/${kidId()}/status`); tokens = (s.kid && s.kid.play_tokens) || 0; } catch(e){}
+    function saveState(){ try{ api(`/play/${kidId()}/game-state/oneline`, { method:'POST', body:{ state:{ level:maxLevel, best:bestStreak } } }); }catch(e){} }
 
     // Spend one token to START A RUN, then drop the player into the level. On no tokens, show the
     // friendly earn-a-token screen. A run persists across levels until a dead-end ends it.
@@ -3086,6 +3106,7 @@
         tokens = (r && typeof r.tokensLeft==='number') ? r.tokensLeft : Math.max(0, tokens-1);
         Sound.badge();
         lives = OL_STRIKES;
+        streak = 0;   // a fresh run starts a fresh streak
         playLevel(level);
       } catch(e){
         app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="ol-hub-card">
@@ -3112,6 +3133,7 @@
           <p class="ol-sub">Light up the <b>whole trail</b> in one gallop — never lift your finger, never cross the same line twice. Keep going level after level… but if your line gets stuck, the run ends!</p>
           <button class="ol-go" id="ol-continue">▶ Start — Level ${cur} <span style="opacity:.8">· 1 🎟️</span></button>
           <div style="font-size:.82rem;margin-top:8px;color:#9fc0e6">🎟️ ${tokens} token${tokens===1?'':'s'} · one token = one run (keep playing till you get stuck)</div>
+          ${bestStreak>0?`<div style="font-size:.9rem;margin-top:6px;color:#ffd84a;font-weight:800">🔥 Best run: ${bestStreak} level${bestStreak===1?'':'s'} in a row</div>`:''}
           <div style="margin-top:18px">
             <div style="font-size:.8rem;margin-bottom:6px;color:#9fc0e6">Or jump to a level (unlocked up to ${maxLevel}) — also 1 🎟️</div>
             <div class="ol-chips">${chips}</div>
@@ -3161,9 +3183,10 @@
             <div class="ol-title">Level <b>${level}</b><span> / ${OL_MAX_LEVEL}</span></div>
             <div class="ol-left"><span id="ol-count">0</span>/${total}</div>
           </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin:0 2px 10px;font-size:.82rem">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 10px;font-size:.82rem">
             <span id="ol-lives" style="color:#ff9a6b;font-weight:700">${livesTxt}</span>
-            <span style="color:#9fc0e6">🎟️ ${tokens} left</span>
+            <span id="ol-streak" style="color:#ffd84a;font-weight:800">🔥 Streak ${streak}${bestStreak?`  ·  best ${bestStreak}`:''}</span>
+            <span style="color:#9fc0e6">🎟️ ${tokens}</span>
           </div>
           <div class="ol-stage" style="width:${box}px;height:${box}px">
             <canvas id="ol-canvas" width="${box}" height="${box}" style="width:${box}px;height:${box}px;touch-action:none;display:block"></canvas>
@@ -3234,14 +3257,16 @@
       function evPos(e){ const r=canvas.getBoundingClientRect(); return [ (e.clientX-r.left)*(box/r.width), (e.clientY-r.top)*(box/r.height) ]; }
       function tryGo(n){
         if(n<0) return;
-        if(!path.length){ if(validStarts.indexOf(n)>=0 || oddNodes.length===0){ path=[n]; Sound.click(); draw(); } return; }
+        if(!path.length){ if(validStarts.indexOf(n)>=0 || oddNodes.length===0){ path=[n]; olBlip(392,0.08,0.07,'sine'); draw(); } return; }
         const head = path[path.length-1];
         if(n===head) return;
-        // backtrack: dragging onto the previous node erases the last line
-        if(path.length>=2 && n===path[path.length-2]){ const last=path.pop(); drawn.delete(olEkey(head,last)); update(); return; }
+        // backtrack: dragging onto the previous node erases the last line (soft low blip)
+        if(path.length>=2 && n===path[path.length-2]){ const last=path.pop(); drawn.delete(olEkey(head,last)); olBlip(300,0.06,0.05,'sine'); update(); return; }
         // draw a new line if head and n are directly connected and not yet drawn
         if(adj[head].indexOf(n)>=0 && !drawn.has(olEkey(head,n))){
-          drawn.add(olEkey(head,n)); path.push(n); update();
+          drawn.add(olEkey(head,n)); path.push(n);
+          olBlip(olDrawNote(drawn.size), 0.07, 0.08, 'triangle');   // rising musical note per line
+          update();
           if(won) return;   // just completed the level
           // SUDDEN DEATH: did the line just strand itself? (new head has no un-drawn edge left,
           // but the shape isn't finished) — that's a dead-end, and the run's chances tick down.
@@ -3262,10 +3287,13 @@
       }
       async function loseRun(){
         won=true; stopLoop(); Sound.wrong(); if(Voice && Voice.stop) try{ Voice.stop(); }catch(e){}
+        const runNewBest = streak > 0 && streak >= bestStreak;
+        if(streak > bestStreak){ bestStreak = streak; saveState(); }
         const overlay=document.createElement('div'); overlay.className='celebrate';
         overlay.innerHTML = `<div class="big-emoji" style="filter:drop-shadow(0 0 14px rgba(255,150,100,.7))">🐴💫</div>
           <h2 style="text-shadow:0 0 12px rgba(255,150,100,.5)">Your line got stuck!</h2>
           <p style="font-size:1.1rem">You galloped all the way to <b>Level ${level}</b>. This run's over — but you can pick right back up here.</p>
+          <p style="font-size:1.1rem;font-weight:800;color:#ffd84a;margin-top:6px">🔥 ${streak} solved this run${runNewBest && streak>0 ? ' <span style="color:#6effc0">· new best!</span>' : (bestStreak>0?` <span style="opacity:.85;font-weight:600">· best ${bestStreak}</span>`:'')}</p>
           <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
             <button class="btn sun" id="ol-again">Play again — Level ${level} · 1 🎟️</button>
             <button class="btn ghost" id="ol-lv" style="color:#fff;border-color:#fff">☰ Levels</button>
@@ -3290,15 +3318,21 @@
 
       async function win(){
         won=true; stopLoop(); Sound.levelup(); Confetti.burst(160);
+        streak++;
+        const newBest = streak > bestStreak; if(newBest) bestStreak = streak;
+        const milestone = streak > 0 && streak % 5 === 0;
+        if(milestone){ setTimeout(()=>{ Sound.badge(); Confetti.burst(90); }, 350); }
         const advanced = level >= maxLevel && level < OL_MAX_LEVEL;
-        if(advanced){ maxLevel = level+1; try{ await api(`/play/${kidId()}/game-state/oneline`, { method:'POST', body:{ state:{ level:maxLevel } } }); }catch(e){} }
+        if(advanced) maxLevel = level+1;
+        if(advanced || newBest) saveState();
         try{ await api(`/play/${kidId()}/score`, { method:'POST', body:{ game:'oneline', score:level } }); }catch(e){}
         const done = level >= OL_MAX_LEVEL;
         const overlay = document.createElement('div');
         overlay.className='celebrate';
         overlay.innerHTML = `<div class="big-emoji" style="filter:drop-shadow(0 0 14px rgba(110,255,192,.85))">${done?'🏆':'🐎✨'}</div>
           <h2 style="text-shadow:0 0 14px rgba(110,255,192,.6)">${done?'You lit up all 500! 🏆':'Trail complete! 🎉'}</h2>
-          <p style="font-size:1.1rem">Level ${level} done${done?'':' — one gallop, no crossings. Keep the run going!'}</p>
+          <p style="font-size:1.1rem">Level ${level} done${done?'':' — one gallop, no crossings.'}</p>
+          <p style="font-size:1.15rem;font-weight:800;color:#ffd84a;margin-top:6px">🔥 ${streak} in a row!${newBest && streak>1 ? ' <span style="color:#6effc0">New best!</span>' : (bestStreak>streak?` <span style="opacity:.8;font-weight:600">· best ${bestStreak}</span>`:'')}</p>
           <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
             ${done?'':'<button class="btn sun" id="ol-next">Next level → (free)</button>'}
             <button class="btn ghost" id="ol-levels" style="color:#fff;border-color:#fff">☰ Levels</button>
