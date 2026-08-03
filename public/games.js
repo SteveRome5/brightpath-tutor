@@ -3038,22 +3038,54 @@
   }
   function olDense(W,H,target,jb,diag,rng){
     const id=(x,y)=>y*W+x,inb=(x,y)=>x>=0&&x<W&&y>=0&&y<H,used=new Set(),ek=(a,b)=>a<b?a+'_'+b:b+'_'+a,vis=new Set();
-    let cx=Math.floor(rng()*W),cy=Math.floor(rng()*H);vis.add(id(cx,cy));const eP=[];
-    const dirs=diag?[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]:[[1,0],[-1,0],[0,1],[0,-1]];let g=0;
-    while(eP.length<target&&g++<target*40){const c=[];for(const[dx,dy]of dirs){const nx=cx+dx,ny=cy+dy;if(!inb(nx,ny))continue;if(used.has(ek(id(cx,cy),id(nx,ny))))continue;c.push([nx,ny]);}if(!c.length)break;const v=c.filter(z=>vis.has(id(z[0],z[1]))),f=c.filter(z=>!vis.has(id(z[0],z[1])));let p;if(v.length&&rng()<jb)p=v[Math.floor(rng()*v.length)];else if(f.length)p=f[Math.floor(rng()*f.length)];else p=c[Math.floor(rng()*c.length)];used.add(ek(id(cx,cy),id(p[0],p[1])));eP.push([[cx,cy],[p[0],p[1]]]);cx=p[0];cy=p[1];vis.add(id(cx,cy));}
+    const dirs=diag?[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]:[[1,0],[-1,0],[0,1],[0,-1]];
+    const avail=(x,y)=>{const r=[];for(const[dx,dy]of dirs){const nx=x+dx,ny=y+dy;if(!inb(nx,ny))continue;if(used.has(ek(id(x,y),id(nx,ny))))continue;r.push([nx,ny]);}return r;};
+    let cx=Math.floor(rng()*W),cy=Math.floor(rng()*H);vis.add(id(cx,cy));const eP=[];let g=0;
+    while(eP.length<target&&g++<target*80){
+      let c=avail(cx,cy);
+      if(!c.length){
+        // Stuck: hop to any already-visited cell that still has a free edge and keep drawing.
+        // Every hop target is already connected to the trail, so the figure stays one piece —
+        // this reliably reaches `target` instead of dead-ending short (which made difficulty dip).
+        const cand=[...vis].map(k=>[k%W,Math.floor(k/W)]).filter(([x,y])=>avail(x,y).length);
+        if(!cand.length)break;
+        const pk=cand[Math.floor(rng()*cand.length)];cx=pk[0];cy=pk[1];continue;
+      }
+      const v=c.filter(z=>vis.has(id(z[0],z[1]))),f=c.filter(z=>!vis.has(id(z[0],z[1])));
+      let p;if(v.length&&rng()<jb)p=v[Math.floor(rng()*v.length)];else if(f.length)p=f[Math.floor(rng()*f.length)];else p=c[Math.floor(rng()*c.length)];
+      used.add(ek(id(cx,cy),id(p[0],p[1])));eP.push([[cx,cy],[p[0],p[1]]]);cx=p[0];cy=p[1];vis.add(id(cx,cy));
+    }
     return olFromSegs(eP);
   }
   function olLat(W,H,diag){const segs=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(x+1<W)segs.push([[x,y],[x+1,y]]);if(y+1<H)segs.push([[x,y],[x,y+1]]);if(diag&&x+1<W&&y+1<H)segs.push([[x,y],[x+1,y+1]]);}return olFromSegs(segs);}
   function olScene(rng,pool,count){const parts=[];let dx=0;for(let i=0;i<count;i++){let p=olXform(olFromSegs(pool[Math.floor(rng()*pool.length)].s),Math.floor(rng()*4),rng()<0.5);p=olTr(p,dx,0);dx+=olBbox(p).w+2;parts.push(p);}return olEulerize(olMerge(parts));}
+  // Difficulty is a CONTINUOUS, MONOTONIC function of level. What makes a one-stroke puzzle hard
+  // is the number of DECISION POINTS — interior vertices of degree >=3 where a wrong turn dead-ends —
+  // NOT which named shape it is (outlines are all degree-2 = trivial tracing). So past a short intro,
+  // every level is a dense grid trail whose edge count, grid size, diagonal density, and branchiness
+  // all climb with the level. No level is ever easier than an earlier one. olEulerize keeps every
+  // level guaranteed one-stroke solvable.
   function olGen(level){
-    const rng=olRng((level*2654435761)^0x9e3779b9);
+    const L=Math.max(1,level|0);
+    const rng=olRng((L*2654435761)^0x9e3779b9);
     let fig;
-    if(level<=40){const pool=OL_SHAPES.filter(s=>s.t===1);const sh=pool[(level-1)%pool.length];fig=olXform(olFromSegs(sh.s),Math.floor(rng()*4),rng()<0.5);}
-    else if(level<=150){const pool=OL_SHAPES.filter(s=>s.t<=2);fig=olXform(olFromSegs(pool[Math.floor(rng()*pool.length)].s),Math.floor(rng()*4),rng()<0.5);}
-    else if(level<=400){const pool=OL_SHAPES.filter(s=>s.t<=3);fig=(rng()<0.45)?olXform(olFromSegs(pool[Math.floor(rng()*pool.length)].s),Math.floor(rng()*4),rng()<0.5):olScene(rng,pool,2);}
-    else if(level<=800){const pool=OL_SHAPES.filter(s=>s.t<=3);fig=(rng()<0.5)?olScene(rng,pool,2+(rng()<0.5?1:0)):olDense(6,6,20+Math.floor(rng()*8),0.6,rng()<0.4,rng);}
-    else if(level<=1400){const r=rng();if(r<0.45)fig=olDense(7,6+Math.floor(rng()*2),30+Math.floor(rng()*12),0.7,true,rng);else fig=olEulerize(olLat(4+Math.floor(rng()*2),3+Math.floor(rng()*2),true));}
-    else{const r=rng();if(r<0.45)fig=olDense(8,7+Math.floor(rng()*2),42+Math.floor(rng()*16),0.78,true,rng);else fig=olEulerize(olLat(5,4+Math.floor(rng()*2),true));}
+    if(L<=6){
+      // Gentle intro: a handful of clean recognizable outlines to learn the controls.
+      const intro=['triangle','square','pentagon','hexagon','star5','house'];
+      const sh=OL_SHAPES.find(s=>s.n===intro[(L-1)%intro.length])||OL_SHAPES[0];
+      fig=olXform(olFromSegs(sh.s),Math.floor(rng()*4),rng()<0.5);
+    } else {
+      const s=Math.sqrt(L);
+      const t=Math.min(1,(L-6)/1494);                 // 0 at L7 → 1 by ~L1500
+      const W=Math.min(9,3+Math.floor(s/2.6));         // 3 → 9
+      const H=Math.min(8,3+Math.floor(s/3.0));         // 3 → 8
+      const diag=L>=8;                                  // diagonals (real degree-4+ nodes) from L8 on
+      const cap=(W-1)*H + W*(H-1) + (diag?2*(W-1)*(H-1):0);
+      let target=Math.round(7+2.3*s);                   // L7~13, L18~17, L50~23, L200~40, L900~76, L2000~110
+      target=Math.min(target, Math.max(6, Math.floor(cap*0.85)));
+      const jb=Math.min(0.9, 0.4+0.5*t);                // branchiness (crossings/decisions) climbs
+      fig=olDense(W,H,target,jb,diag,rng);              // robust walk reaches target → monotonic difficulty
+    }
     fig=olEulerize(fig);
     const nn=olNorm(fig);let mxx=0,mxy=0;nn.nodes.forEach(([x,y])=>{mxx=Math.max(mxx,x);mxy=Math.max(mxy,y);});
     return {nodes:nn.nodes.map(([x,y])=>({x,y})),edges:nn.edges,w:mxx+1,h:mxy+1};
