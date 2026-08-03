@@ -3219,7 +3219,7 @@
       const offx = (box - cell*gw)/2, offy = (box - cell*gh)/2;
       const px = n => offx + g.nodes[n].x*cell;
       const py = n => offy + g.nodes[n].y*cell;
-      const hitR = Math.max(20, cell*0.55);
+      const hitR = Math.max(22, cell*0.58);
 
       let path = [];                 // node indices, in draw order
       let drawn = new Set();         // edge keys drawn
@@ -3257,15 +3257,17 @@
       canvas.style.width = box+'px'; canvas.style.height = box+'px';
       const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr);
       let hintOn = false, pulse = 0, raf = null;
+      // Background gradients never change — build them ONCE, not every frame (keeps dense levels
+      // smooth on phones instead of re-allocating two gradients 60×/second).
+      const bgGrad=ctx.createLinearGradient(0,0,0,box); bgGrad.addColorStop(0,'#0c1330'); bgGrad.addColorStop(1,'#15204a');
+      const vgGrad=ctx.createRadialGradient(box/2,box/2,8,box/2,box/2,box*0.72);
+      vgGrad.addColorStop(0,'rgba(60,140,105,0.18)'); vgGrad.addColorStop(1,'rgba(0,0,0,0)');
 
       function line(a,b){ ctx.beginPath(); ctx.moveTo(px(a),py(a)); ctx.lineTo(px(b),py(b)); ctx.stroke(); }
       function draw(){
         // deep-space background with a soft central glow
-        const bg=ctx.createLinearGradient(0,0,0,box); bg.addColorStop(0,'#0c1330'); bg.addColorStop(1,'#15204a');
-        ctx.fillStyle=bg; ctx.fillRect(0,0,box,box);
-        const vg=ctx.createRadialGradient(box/2,box/2,8,box/2,box/2,box*0.72);
-        vg.addColorStop(0,'rgba(60,140,105,0.18)'); vg.addColorStop(1,'rgba(0,0,0,0)');
-        ctx.fillStyle=vg; ctx.fillRect(0,0,box,box);
+        ctx.fillStyle=bgGrad; ctx.fillRect(0,0,box,box);
+        ctx.fillStyle=vgGrad; ctx.fillRect(0,0,box,box);
         ctx.lineCap='round'; ctx.lineJoin='round';
         const pg = 0.5+0.5*Math.sin(pulse);
         // undrawn tracks — faint neon rails
@@ -3304,6 +3306,35 @@
         let best=-1, bd=hitR*hitR;
         for(let i=0;i<g.nodes.length;i++){ const dx=x-px(i), dy=y-py(i), d=dx*dx+dy*dy; if(d<bd){ bd=d; best=i; } }
         return best;
+      }
+      // A generous grab for STARTING the line (empty path) so a slightly-off first tap still lands.
+      function nearestStart(x,y){
+        let best=-1, bd=(hitR*1.6)*(hitR*1.6);
+        for(const i of validStarts){ const dx=x-px(i), dy=y-py(i), d=dx*dx+dy*dy; if(d<bd){ bd=d; best=i; } }
+        if(best<0){ // fall back to the closest gold dot regardless of distance
+          bd=Infinity; for(const i of validStarts){ const dx=x-px(i), dy=y-py(i), d=dx*dx+dy*dy; if(d<bd){ bd=d; best=i; } }
+        }
+        return best;
+      }
+      // Commit a single node under the finger: the closest dot within the hit radius, if it's a
+      // legal next move. tryGo handles start / draw / backtrack. (This is the original, robust rule.)
+      function commitAt(x,y){
+        if(!path.length){ const s=nearestStart(x,y); if(s>=0) tryGo(s); return; }
+        tryGo(nearest(x,y));
+      }
+      // FLUIDITY FIX: a fast finger can jump many pixels between pointer events and skip clean over
+      // a dot's hit-circle, so the line "sticks." We interpolate from the previous pointer sample to
+      // the current one in small (~hitR·0.6) increments and commit along the way, so a quick swipe
+      // fills the run just like a slow careful drag. (Verified in sim: matches the old behaviour on
+      // slow drags, strictly better on fast ones.)
+      let lastX=null, lastY=null;
+      function stepToward(x,y){
+        if(won) return;
+        if(lastX==null){ lastX=x; lastY=y; commitAt(x,y); return; }
+        const dx=x-lastX, dy=y-lastY, dist=Math.hypot(dx,dy);
+        const steps=Math.max(1, Math.ceil(dist/(hitR*0.6)));
+        for(let i=1;i<=steps && !won;i++){ commitAt(lastX+dx*i/steps, lastY+dy*i/steps); }
+        lastX=x; lastY=y;
       }
       function evPos(e){ const r=canvas.getBoundingClientRect(); return [ (e.clientX-r.left)*(box/r.width), (e.clientY-r.top)*(box/r.height) ]; }
       function tryGo(n){
@@ -3356,9 +3387,11 @@
         overlay.querySelector('#ol-quit').onclick=()=>{ overlay.remove(); location.hash='#play'; };
       }
 
-      function down(e){ e.preventDefault(); pressing=true; const [x,y]=evPos(e); tryGo(nearest(x,y)); }
-      function move(e){ if(!pressing) return; e.preventDefault(); const [x,y]=evPos(e); tryGo(nearest(x,y)); }
-      function up(){ pressing=false; }
+      // Capture the pointer so we keep getting move events even if the finger briefly leaves the
+      // canvas during a fast drag — without this, events drop mid-swipe and the line feels stuck.
+      function down(e){ e.preventDefault(); pressing=true; lastX=null; lastY=null; try{ if(e.pointerId!=null) canvas.setPointerCapture(e.pointerId); }catch(_){} const [x,y]=evPos(e); stepToward(x,y); }
+      function move(e){ if(!pressing) return; e.preventDefault(); const [x,y]=evPos(e); stepToward(x,y); }
+      function up(e){ pressing=false; lastX=null; lastY=null; try{ if(e && e.pointerId!=null) canvas.releasePointerCapture(e.pointerId); }catch(_){} }
       canvas.addEventListener('pointerdown', down);
       canvas.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
