@@ -388,6 +388,21 @@ if (typeof document !== 'undefined') {
 // Analytics funnel push. Hard no-op inside a child session (COPPA): no learner action ever
 // reaches marketing analytics. Also guarded if GTM/dataLayer isn't present.
 function gtmPush(obj) { try { if (State.me && State.me.role === 'kid') return; window.dataLayer = window.dataLayer || []; window.dataLayer.push(obj); } catch (e) {} }
+// Google Ads ENHANCED CONVERSIONS — hand the parent's own email to the Ads conversion tag so Google
+// can match a trial/purchase back to the ad click (huge accuracy lever at low volume). Pushed as its
+// OWN dataLayer entry (never an event parameter) so GA4 event tags never receive it: only the Google
+// Ads conversion tag reads {{DLV - enhanced_conversion_data.email}}, and GTM normalizes + SHA-256
+// hashes it before it ever leaves the browser. Never fires in a child session (COPPA). Parent email
+// only — never a learner's.
+function setEnhancedConvData(email) {
+  try {
+    if (State.me && State.me.role === 'kid') return;
+    const e = String(email || '').trim().toLowerCase();
+    if (!e || e.indexOf('@') < 0) return;
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ enhanced_conversion_data: { email: e } });
+  } catch (_) {}
+}
 // Surface classification for ad-pixel gating (LAUNCH-003). The GTM container must initialize the
 // Meta base pixel ONLY when surface is 'public_marketing', 'signup', or 'checkout' — and NEVER on
 // 'parent_product' or 'learner' (parent portal, reports, learner pages, lessons, quizzes, AP, games).
@@ -1552,6 +1567,7 @@ route('signup', async () => {
     if (!$('#f-consent').checked) { gtmPush({ event: 'signup_error', reason: 'consent' }); showError('#f-err', 'Please confirm you are the parent or guardian and agree to the Terms and Privacy Policy to continue.'); return; }
     try {
       await api('/auth/signup', { method: 'POST', body: { name: $('#f-name').value, email: $('#f-email').value, password: $('#f-pass').value, consent: true } });
+      setEnhancedConvData($('#f-email').value);
       gtmPush({ event: 'sign_up', method: 'email', intent: window.__subscribeIntent ? 'subscribe' : 'trial' });
       // Optional newsletter opt-in — fire-and-forget into the existing newsletter list.
       if ($('#f-newsletter') && $('#f-newsletter').checked) {
@@ -3477,7 +3493,7 @@ async function checkout(plan, autorenew) {
     gtmPush({ event: 'begin_checkout', currency: 'USD', value, plan });
     // Stash so the return from Stripe (a full page reload) can fire 'purchase' with the plan/value.
     try { sessionStorage.setItem('gallop_purchase', JSON.stringify({ plan, value })); } catch (e) {}
-    if (out.demo) { gtmPush({ event: 'purchase', currency: 'USD', value, plan }); try { sessionStorage.removeItem('gallop_purchase'); } catch (e) {} await refreshMe(); Confetti.burst(150); Sound.levelup(); location.hash = '#parent'; }
+    if (out.demo) { setEnhancedConvData(State.me && (State.me.email || (State.me.parent && State.me.parent.email))); gtmPush({ event: 'purchase', currency: 'USD', value, plan }); try { sessionStorage.removeItem('gallop_purchase'); } catch (e) {} await refreshMe(); Confetti.burst(150); Sound.levelup(); location.hash = '#parent'; }
     else if (out.url) location.href = out.url;
   } catch (e) {
     toast(e.message || 'Could not start checkout. Please try again in a moment.');
@@ -5242,6 +5258,7 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
     // Fire the purchase conversion using the plan/value stashed before the Stripe redirect.
     try {
       const pd = JSON.parse(sessionStorage.getItem('gallop_purchase') || 'null');
+      setEnhancedConvData(State.me && (State.me.email || (State.me.parent && State.me.parent.email)));
       gtmPush({ event: 'purchase', currency: 'USD', value: (pd && pd.value) || 0, plan: (pd && pd.plan) || undefined });
       sessionStorage.removeItem('gallop_purchase');
     } catch (e) { gtmPush({ event: 'purchase', currency: 'USD' }); }
