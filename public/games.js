@@ -214,7 +214,12 @@
       await startMarketHub();
       return;
     }
-    const starters = { bakery: startBakery, memory: startMemory, wordsearch: startWordSearch, code: startCode, art: startArt, lemonade: startLemonade, blitz: startBlitz, spellingbee: startSpellingBee, oneline: startOneLine };
+    // One Line is a persistent, run-based game like Stable Street: opening the menu is free
+    // (resume + level select), and a token is spent to START A RUN from inside the hub. A run
+    // keeps going through levels until the line gets stuck (sudden death), then it costs another
+    // token to pick back up where they left off.
+    if (which === 'oneline') { await startOneLine(); return; }
+    const starters = { bakery: startBakery, memory: startMemory, wordsearch: startWordSearch, code: startCode, art: startArt, lemonade: startLemonade, blitz: startBlitz, spellingbee: startSpellingBee };
     const fn = starters[which];
     if (!fn) { location.hash = '#play'; return; }
     await gated(which, fn);
@@ -3064,11 +3069,36 @@
     `;
     document.head.appendChild(s);
   }
+  const OL_STRIKES = 1;   // lives per run — 1 = sudden death (a single dead-end ends the run). Tunable.
   async function startOneLine(){
     startGameClock();
     olInjectStyles();
-    let maxLevel = 1;
+    let maxLevel = 1, tokens = 0, lives = OL_STRIKES;
     try { const st = await api(`/play/${kidId()}/game-state/oneline`); if (st && st.state && st.state.level) maxLevel = Math.max(1, Math.min(OL_MAX_LEVEL, st.state.level|0)); } catch(e){}
+    try { const s = await api(`/play/${kidId()}/status`); tokens = (s.kid && s.kid.play_tokens) || 0; } catch(e){}
+
+    // Spend one token to START A RUN, then drop the player into the level. On no tokens, show the
+    // friendly earn-a-token screen. A run persists across levels until a dead-end ends it.
+    async function startRun(level){
+      Sound.click();
+      try {
+        const r = await api(`/play/${kidId()}/spend-token`, { method:'POST', body:{ game:'oneline' } });
+        tokens = (r && typeof r.tokensLeft==='number') ? r.tokensLeft : Math.max(0, tokens-1);
+        Sound.badge();
+        lives = OL_STRIKES;
+        playLevel(level);
+      } catch(e){
+        app().innerHTML = topbar(`<div class="container" style="max-width:520px"><div class="ol-hub-card">
+          <div style="font-size:2.6rem">🎟️</div>
+          <h2 style="color:#eafff4;margin:6px 0 4px">You need a Play Token!</h2>
+          <p class="ol-sub">${esc(e.data && e.data.message || 'Answer 5 questions correctly in your lessons to earn one — then gallop back!')}</p>
+          <button class="ol-go" onclick="location.hash='#home'">Go Learn & Earn →</button>
+          <div><button class="ol-back" id="ol-nt-back">← Back to Play Zone</button></div>
+        </div></div>`);
+        wireChrome();
+        const bb=$('#ol-nt-back'); if(bb) bb.onclick=()=>{ Sound.click(); location.hash='#play'; };
+      }
+    }
 
     function hub(){
       const cur = Math.min(maxLevel, OL_MAX_LEVEL);
@@ -3079,19 +3109,20 @@
         <div class="ol-hub-card">
           <div style="font-size:2.7rem;line-height:1;filter:drop-shadow(0 0 10px rgba(110,255,192,.75))">🐎✨</div>
           <div class="ol-neon-title">One Line</div>
-          <p class="ol-sub">Light up the <b>whole trail</b> in one gallop — never lift your finger, never cross the same line twice. 500 glowing levels that get trickier as you go!</p>
-          <button class="ol-go" id="ol-continue">▶ Continue — Level ${cur}</button>
+          <p class="ol-sub">Light up the <b>whole trail</b> in one gallop — never lift your finger, never cross the same line twice. Keep going level after level… but if your line gets stuck, the run ends!</p>
+          <button class="ol-go" id="ol-continue">▶ Start — Level ${cur} <span style="opacity:.8">· 1 🎟️</span></button>
+          <div style="font-size:.82rem;margin-top:8px;color:#9fc0e6">🎟️ ${tokens} token${tokens===1?'':'s'} · one token = one run (keep playing till you get stuck)</div>
           <div style="margin-top:18px">
-            <div style="font-size:.8rem;margin-bottom:6px;color:#9fc0e6">Jump to a level (unlocked up to ${maxLevel})</div>
+            <div style="font-size:.8rem;margin-bottom:6px;color:#9fc0e6">Or jump to a level (unlocked up to ${maxLevel}) — also 1 🎟️</div>
             <div class="ol-chips">${chips}</div>
           </div>
           <div><button class="ol-back" id="ol-back">← Back to Play Zone</button></div>
         </div>
       </div>`);
       wireChrome();
-      $('#ol-continue').onclick = ()=>{ Sound.click(); playLevel(cur); };
+      $('#ol-continue').onclick = ()=>{ startRun(cur); };
       $('#ol-back').onclick = ()=>{ Sound.click(); location.hash='#play'; };
-      document.querySelectorAll('.ol-chip').forEach(b=>{ if(!b.disabled) b.onclick=()=>{ Sound.click(); playLevel(Number(b.dataset.l)); }; });
+      document.querySelectorAll('.ol-chip').forEach(b=>{ if(!b.disabled) b.onclick=()=>{ startRun(Number(b.dataset.l)); }; });
     }
 
     function playLevel(level){
@@ -3122,22 +3153,26 @@
       let pressing = false;
       let won = false;
 
+      const livesTxt = OL_STRIKES===1 ? '⚡ Sudden death' : ('❤️'.repeat(Math.max(0,lives)) + ' lives');
       app().innerHTML = topbar(`<div class="container" style="max-width:520px">
         <div class="ol-panel">
           <div class="ol-top">
-            <button class="ol-btn hub" id="ol-hub">☰ Levels</button>
+            <button class="ol-btn hub" id="ol-hub">☰</button>
             <div class="ol-title">Level <b>${level}</b><span> / ${OL_MAX_LEVEL}</span></div>
             <div class="ol-left"><span id="ol-count">0</span>/${total}</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin:0 2px 10px;font-size:.82rem">
+            <span id="ol-lives" style="color:#ff9a6b;font-weight:700">${livesTxt}</span>
+            <span style="color:#9fc0e6">🎟️ ${tokens} left</span>
           </div>
           <div class="ol-stage" style="width:${box}px;height:${box}px">
             <canvas id="ol-canvas" width="${box}" height="${box}" style="width:${box}px;height:${box}px;touch-action:none;display:block"></canvas>
           </div>
           <div class="ol-controls">
             <button class="ol-btn" id="ol-undo">↩ Undo</button>
-            <button class="ol-btn" id="ol-restart">🔄 Restart</button>
             <button class="ol-btn" id="ol-hint">💡 Hint</button>
           </div>
-          <p class="ol-tip">Start on a <b style="color:#ffd84a">gold</b> dot, then drag through every line without lifting. Drag back to erase.</p>
+          <p class="ol-tip">Start on a <b style="color:#ffd84a">gold</b> dot, then drag through every line. Plan ahead — if your line gets stuck, the run ends! <b>Undo</b> to back out of a wrong turn.</p>
         </div>
       </div>`);
       wireChrome();
@@ -3205,9 +3240,42 @@
         // backtrack: dragging onto the previous node erases the last line
         if(path.length>=2 && n===path[path.length-2]){ const last=path.pop(); drawn.delete(olEkey(head,last)); update(); return; }
         // draw a new line if head and n are directly connected and not yet drawn
-        if(adj[head].indexOf(n)>=0 && !drawn.has(olEkey(head,n))){ drawn.add(olEkey(head,n)); path.push(n); update(); }
+        if(adj[head].indexOf(n)>=0 && !drawn.has(olEkey(head,n))){
+          drawn.add(olEkey(head,n)); path.push(n); update();
+          if(won) return;   // just completed the level
+          // SUDDEN DEATH: did the line just strand itself? (new head has no un-drawn edge left,
+          // but the shape isn't finished) — that's a dead-end, and the run's chances tick down.
+          if(drawn.size < total && !adj[n].some(m=>!drawn.has(olEkey(n,m)))) endLevelStuck();
+        }
       }
       function update(){ $('#ol-count').textContent = drawn.size; draw(); if(drawn.size===total && !won) win(); }
+      function endLevelStuck(){
+        lives--;
+        if(lives > 0){
+          Sound.wrong();
+          const el=$('#ol-lives'); if(el) el.textContent = '❤️'.repeat(lives)+' lives';
+          toast('Stuck! '+lives+' '+(lives===1?'life':'lives')+' left — the line resets, try a different route.');
+          path=[]; drawn=new Set(); update();
+          return;
+        }
+        loseRun();
+      }
+      async function loseRun(){
+        won=true; stopLoop(); Sound.wrong(); if(Voice && Voice.stop) try{ Voice.stop(); }catch(e){}
+        const overlay=document.createElement('div'); overlay.className='celebrate';
+        overlay.innerHTML = `<div class="big-emoji" style="filter:drop-shadow(0 0 14px rgba(255,150,100,.7))">🐴💫</div>
+          <h2 style="text-shadow:0 0 12px rgba(255,150,100,.5)">Your line got stuck!</h2>
+          <p style="font-size:1.1rem">You galloped all the way to <b>Level ${level}</b>. This run's over — but you can pick right back up here.</p>
+          <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+            <button class="btn sun" id="ol-again">Play again — Level ${level} · 1 🎟️</button>
+            <button class="btn ghost" id="ol-lv" style="color:#fff;border-color:#fff">☰ Levels</button>
+            <button class="btn ghost" id="ol-quit" style="color:#fff;border-color:#fff">Play Zone</button>
+          </div>`;
+        document.body.appendChild(overlay);
+        overlay.querySelector('#ol-again').onclick=()=>{ overlay.remove(); startRun(level); };
+        overlay.querySelector('#ol-lv').onclick=()=>{ overlay.remove(); hub(); };
+        overlay.querySelector('#ol-quit').onclick=()=>{ overlay.remove(); location.hash='#play'; };
+      }
 
       function down(e){ e.preventDefault(); pressing=true; const [x,y]=evPos(e); tryGo(nearest(x,y)); }
       function move(e){ if(!pressing) return; e.preventDefault(); const [x,y]=evPos(e); tryGo(nearest(x,y)); }
@@ -3218,7 +3286,6 @@
 
       $('#ol-hub').onclick = ()=>{ Sound.click(); stopLoop(); hub(); };
       $('#ol-undo').onclick = ()=>{ Sound.click(); if(path.length>=2){ const a=path.pop(), b=path[path.length-1]; drawn.delete(olEkey(a,b)); } else { path=[]; } update(); };
-      $('#ol-restart').onclick = ()=>{ Sound.click(); path=[]; drawn=new Set(); won=false; update(); if(!raf) loop(); };
       $('#ol-hint').onclick = ()=>{ Sound.click(); hintOn=true; draw(); setTimeout(()=>{ hintOn=false; draw(); }, 1400); };
 
       async function win(){
@@ -3231,15 +3298,13 @@
         overlay.className='celebrate';
         overlay.innerHTML = `<div class="big-emoji" style="filter:drop-shadow(0 0 14px rgba(110,255,192,.85))">${done?'🏆':'🐎✨'}</div>
           <h2 style="text-shadow:0 0 14px rgba(110,255,192,.6)">${done?'You lit up all 500! 🏆':'Trail complete! 🎉'}</h2>
-          <p style="font-size:1.1rem">Level ${level} done${done?'':' — one gallop, no crossings.'}</p>
+          <p style="font-size:1.1rem">Level ${level} done${done?'':' — one gallop, no crossings. Keep the run going!'}</p>
           <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
-            ${done?'':'<button class="btn sun" id="ol-next">Next level →</button>'}
-            <button class="btn green" id="ol-replay">↻ Replay</button>
+            ${done?'':'<button class="btn sun" id="ol-next">Next level → (free)</button>'}
             <button class="btn ghost" id="ol-levels" style="color:#fff;border-color:#fff">☰ Levels</button>
           </div>`;
         document.body.appendChild(overlay);
         const nx=overlay.querySelector('#ol-next'); if(nx) nx.onclick=()=>{ overlay.remove(); playLevel(level+1); };
-        overlay.querySelector('#ol-replay').onclick=()=>{ overlay.remove(); playLevel(level); };
         overlay.querySelector('#ol-levels').onclick=()=>{ overlay.remove(); hub(); };
       }
 
