@@ -62,7 +62,20 @@ if (qa.enabled()) {
   console.log('[qa] staging launchpad enabled at /qa');
 }
 
-app.use(express.static(path.join(__dirname, 'public')));
+// Static assets. CRITICAL for PWA freshness: the service worker, the app shell (index.html) and
+// the manifest must NEVER be served from a stale HTTP cache — otherwise an installed/home-screen app
+// can sit on an old build for up to a day. `no-cache` still allows efficient 304 revalidation; it
+// just forces the browser to check with the server every time instead of trusting a cached copy.
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    const base = path.basename(filePath);
+    if (base === 'sw.js' || base === 'index.html' || base === 'manifest.json') {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
+  }
+}));
+
+const noCacheHtml = (res) => res.setHeader('Cache-Control', 'no-cache, must-revalidate');
 
 // Legal pages as real, crawlable URLs (ad review + search engines need standalone pages,
 // not #hash routes). The SPA keeps its #privacy/#terms aliases for in-app navigation.
@@ -71,8 +84,8 @@ app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'public', 'ter
 // B2B landing page for private schools & educators (its own crawlable URL + link-preview meta).
 app.get(['/schools', '/for-schools'], (req, res) => res.sendFile(path.join(__dirname, 'public', 'schools.html')));
 
-// SPA fallback
-app.get(/.*/, (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+// SPA fallback — never cache the app shell so every launch gets the newest build.
+app.get(/.*/, (req, res) => { noCacheHtml(res); res.sendFile(path.join(__dirname, 'public', 'index.html')); });
 
 // Lapsed-practice nudges: hourly sweep, only when an email provider is configured
 // (otherwise we'd mark kids as nudged while the emails sit in the queue unsent).
