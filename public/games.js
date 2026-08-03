@@ -2992,52 +2992,71 @@
   // it's reproducible. CRITICAL: every level is built as ONE continuous trail (an edge is never
   // reused while building), so the edge set ALWAYS has an Eulerian path — i.e. it is ALWAYS
   // solvable by construction. Difficulty (edge count, grid size, junctions) grows with the level.
-  const OL_MAX_LEVEL = 500;
+  const OL_MAX_LEVEL = 2000;
   function olRng(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return((t^t>>>14)>>>0)/4294967296; }; }
-  function olParams(level){
-    const side = Math.max(3, Math.min(7, 3 + Math.floor((level-1)/70)));
-    const targetEdges = Math.max(4, Math.min(46, 5 + Math.floor((level-1)/11)));
-    const junctionBias = Math.max(0.15, Math.min(0.85, 0.15 + level/700));
-    return { W: side, H: side, targetEdges, junctionBias };
+  // One Line v2 content: recognizable clean one-stroke shapes (ease-in) → brutal dense structures.
+  function olK(x,y){return Math.round(x*2)/2+','+Math.round(y*2)/2;}
+  function olFromSegs(segs){const idx=new Map(),nodes=[];const nid=(x,y)=>{const k=olK(x,y);if(!idx.has(k)){idx.set(k,nodes.length);nodes.push([Math.round(x*2)/2,Math.round(y*2)/2]);}return idx.get(k);};const edges=[],seen=new Set();for(const seg of segs){for(let i=0;i+1<seg.length;i++){const a=nid(seg[i][0],seg[i][1]),b=nid(seg[i+1][0],seg[i+1][1]);if(a===b)continue;const ek=a<b?a+'-'+b:b+'-'+a;if(seen.has(ek))continue;seen.add(ek);edges.push([a,b]);}}return {nodes,edges};}
+  function olNgon(cx,cy,r,n,rot){rot=rot||0;const p=[];for(let i=0;i<=n;i++){const a=rot+i*2*Math.PI/n;p.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}return p;}
+  function olPenta(cx,cy,r){const p=[];for(let i=0;i<=5;i++){const a=-Math.PI/2+i*2*2*Math.PI/5;p.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}return p;}
+  function olStarOut(cx,cy,R,r,n){const p=[];for(let i=0;i<=2*n;i++){const a=-Math.PI/2+i*Math.PI/n;const rad=(i%2)?r:R;p.push([cx+rad*Math.cos(a),cy+rad*Math.sin(a)]);}return p;}
+  const OL_SHAPES=[
+    {n:'triangle',t:1,s:[[[0,4],[4,4],[2,0],[0,4]]]},
+    {n:'square',t:1,s:[[[0,0],[4,0],[4,4],[0,4],[0,0]]]},
+    {n:'diamond',t:1,s:[[[3,0],[6,3],[3,6],[0,3],[3,0]]]},
+    {n:'pentagon',t:1,s:[olNgon(4,4,4,5,-Math.PI/2)]},
+    {n:'hexagon',t:1,s:[olNgon(4,4,4,6)]},
+    {n:'zigzag',t:1,s:[[[0,0],[2,3],[4,0],[6,3],[8,0],[10,3]]]},
+    {n:'flag',t:1,s:[[[0,6],[0,0],[4,1],[0,2]]]},
+    {n:'star5',t:1,s:[olPenta(4,4,4)]},
+    {n:'house',t:1,s:[[[0,3],[0,7],[5,7],[5,3],[0,3],[2.5,0],[5,3]]]},
+    {n:'arrow',t:1,s:[[[0,1],[4,1],[4,0],[6,2],[4,4],[4,3],[0,3],[0,1]]]},
+    {n:'envelope',t:2,s:[[[0,0],[8,0],[8,5],[0,5],[0,0]],[[0,5],[4,2.5],[8,5]]]},
+    {n:'heart',t:2,s:[[[6,3],[3,0],[0,3],[6,9],[12,3],[9,0],[6,3]]]},
+    {n:'crown',t:2,s:[[[0,6],[0,2],[2,4],[4,0],[6,4],[8,2],[8,6],[0,6]]]},
+    {n:'star6',t:2,s:[olStarOut(5,5,5,2.2,6)]},
+    {n:'fish',t:2,s:[[[10,3],[6,0],[0,3],[6,6],[10,3],[13,0],[13,6],[10,3]]]},
+    {n:'boat',t:2,s:[[[0,5],[3.5,5],[7,5],[6,7],[1,7],[0,5]],[[3.5,5],[3.5,3],[3.5,0]],[[3.5,0],[6,3.5],[3.5,3]]]},
+    {n:'star8',t:3,s:[olStarOut(6,6,6,2.6,8)]},
+    {n:'key',t:3,s:[[[2,0],[4,0],[4,3],[2,3],[2,2],[2,8],[3.5,8],[2,7],[3,7],[2,6],[2,0]]]},
+  ];
+  function olNorm(g){let mnx=1e9,mny=1e9;g.nodes.forEach(([x,y])=>{if(x<mnx)mnx=x;if(y<mny)mny=y;});return {nodes:g.nodes.map(([x,y])=>[x-mnx,y-mny]),edges:g.edges.map(e=>e.slice())};}
+  function olXform(g,rot,mirror){let nodes=g.nodes.map(([x,y])=>{let X=x,Y=y;if(mirror)X=-X;for(let r=0;r<rot;r++){const t=X;X=Y;Y=-t;}return [X,Y];});return olNorm({nodes,edges:g.edges});}
+  function olTr(g,dx,dy){return {nodes:g.nodes.map(([x,y])=>[x+dx,y+dy]),edges:g.edges.map(e=>e.slice())};}
+  function olBbox(g){let a=1e9,b=1e9,c=-1e9,d=-1e9;g.nodes.forEach(([x,y])=>{a=Math.min(a,x);b=Math.min(b,y);c=Math.max(c,x);d=Math.max(d,y);});return {w:c-a,h:d-b};}
+  function olMerge(list){const nodes=[],edges=[];for(const g of list){const off=nodes.length;g.nodes.forEach(n=>nodes.push(n.slice()));g.edges.forEach(([a,b])=>edges.push([a+off,b+off]));}return {nodes,edges};}
+  function olEulerize(g){
+    let nodes=g.nodes.map(n=>n.slice()),edges=g.edges.map(e=>e.slice());
+    const hasEdge=(a,b)=>edges.some(([p,q])=>(p===a&&q===b)||(p===b&&q===a));
+    const d2=(a,b)=>{const dx=nodes[a][0]-nodes[b][0],dy=nodes[a][1]-nodes[b][1];return dx*dx+dy*dy;};
+    function comps(){const par=nodes.map((_,i)=>i);const f=x=>par[x]===x?x:(par[x]=f(par[x]));edges.forEach(([a,b])=>{par[f(a)]=f(b);});const m={};nodes.forEach((_,i)=>{const r=f(i);(m[r]=m[r]||[]).push(i);});return Object.values(m);}
+    let cs=comps(),guard=0;
+    while(cs.length>1&&guard++<500){const A=cs[0];let best=null;for(let ci=1;ci<cs.length;ci++)for(const a of A)for(const b of cs[ci]){const d=d2(a,b);if(!best||d<best.d)best={a,b,d};}if(!best)break;edges.push([best.a,best.b]);cs=comps();}
+    guard=0;
+    while(guard++<1000){const deg=new Array(nodes.length).fill(0);edges.forEach(([a,b])=>{deg[a]++;deg[b]++;});const odd=nodes.map((_,i)=>i).filter(i=>deg[i]%2===1);if(odd.length<=2)break;let pair=null;for(let i=0;i<odd.length;i++)for(let j=i+1;j<odd.length;j++){if(hasEdge(odd[i],odd[j]))continue;const d=d2(odd[i],odd[j]);if(!pair||d<pair.d)pair={a:odd[i],b:odd[j]};}if(pair)edges.push([pair.a,pair.b]);else{const a=odd[0],b=odd[1],m=nodes.length;nodes.push([(nodes[a][0]+nodes[b][0])/2,(nodes[a][1]+nodes[b][1])/2]);edges.push([a,m]);edges.push([m,b]);}}
+    return olNorm({nodes,edges});
   }
-  function olBuildTrail(W,H,target,junctionBias,rng){
-    const id=(x,y)=>y*W+x, inb=(x,y)=>x>=0&&x<W&&y>=0&&y<H;
-    const used=new Set(), ekey=(a,b)=>a<b?a+'_'+b:b+'_'+a, visited=new Set();
-    let cx=Math.floor(rng()*W), cy=Math.floor(rng()*H); visited.add(id(cx,cy));
-    const edges=[], dirs=[[1,0],[-1,0],[0,1],[0,-1]]; let guard=0;
-    while(edges.length<target && guard++<target*30){
-      const cand=[];
-      for(const [dx,dy] of dirs){ const nx=cx+dx,ny=cy+dy; if(!inb(nx,ny))continue; if(used.has(ekey(id(cx,cy),id(nx,ny))))continue; cand.push([nx,ny]); }
-      if(!cand.length)break;
-      const vis=cand.filter(c=>visited.has(id(c[0],c[1]))), fresh=cand.filter(c=>!visited.has(id(c[0],c[1])));
-      let pick;
-      if(vis.length && rng()<junctionBias) pick=vis[Math.floor(rng()*vis.length)];
-      else if(fresh.length) pick=fresh[Math.floor(rng()*fresh.length)];
-      else pick=cand[Math.floor(rng()*cand.length)];
-      used.add(ekey(id(cx,cy),id(pick[0],pick[1])));
-      edges.push([[cx,cy],[pick[0],pick[1]]]);
-      cx=pick[0]; cy=pick[1]; visited.add(id(cx,cy));
-    }
-    return edges;
+  function olDense(W,H,target,jb,diag,rng){
+    const id=(x,y)=>y*W+x,inb=(x,y)=>x>=0&&x<W&&y>=0&&y<H,used=new Set(),ek=(a,b)=>a<b?a+'_'+b:b+'_'+a,vis=new Set();
+    let cx=Math.floor(rng()*W),cy=Math.floor(rng()*H);vis.add(id(cx,cy));const eP=[];
+    const dirs=diag?[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]:[[1,0],[-1,0],[0,1],[0,-1]];let g=0;
+    while(eP.length<target&&g++<target*40){const c=[];for(const[dx,dy]of dirs){const nx=cx+dx,ny=cy+dy;if(!inb(nx,ny))continue;if(used.has(ek(id(cx,cy),id(nx,ny))))continue;c.push([nx,ny]);}if(!c.length)break;const v=c.filter(z=>vis.has(id(z[0],z[1]))),f=c.filter(z=>!vis.has(id(z[0],z[1])));let p;if(v.length&&rng()<jb)p=v[Math.floor(rng()*v.length)];else if(f.length)p=f[Math.floor(rng()*f.length)];else p=c[Math.floor(rng()*c.length)];used.add(ek(id(cx,cy),id(p[0],p[1])));eP.push([[cx,cy],[p[0],p[1]]]);cx=p[0];cy=p[1];vis.add(id(cx,cy));}
+    return olFromSegs(eP);
   }
-  function olNormalize(edgePairs){
-    const key=(x,y)=>x+','+y, idx=new Map(), nodes=[];
-    const nid=(x,y)=>{ const k=key(x,y); if(!idx.has(k)){ idx.set(k,nodes.length); nodes.push({x,y}); } return idx.get(k); };
-    const edges=edgePairs.map(p=>[nid(p[0][0],p[0][1]),nid(p[1][0],p[1][1])]);
-    const minx=Math.min.apply(null,nodes.map(n=>n.x)), miny=Math.min.apply(null,nodes.map(n=>n.y));
-    nodes.forEach(n=>{ n.x-=minx; n.y-=miny; });
-    const w=Math.max.apply(null,nodes.map(n=>n.x))+1, h=Math.max.apply(null,nodes.map(n=>n.y))+1;
-    return { nodes, edges, w, h };
-  }
+  function olLat(W,H,diag){const segs=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(x+1<W)segs.push([[x,y],[x+1,y]]);if(y+1<H)segs.push([[x,y],[x,y+1]]);if(diag&&x+1<W&&y+1<H)segs.push([[x,y],[x+1,y+1]]);}return olFromSegs(segs);}
+  function olScene(rng,pool,count){const parts=[];let dx=0;for(let i=0;i<count;i++){let p=olXform(olFromSegs(pool[Math.floor(rng()*pool.length)].s),Math.floor(rng()*4),rng()<0.5);p=olTr(p,dx,0);dx+=olBbox(p).w+2;parts.push(p);}return olEulerize(olMerge(parts));}
   function olGen(level){
-    const P=olParams(level); let best=null;
-    for(let a=0;a<60;a++){
-      const rng=olRng((level*100003)^(a*7919)^0x9e3779b9);
-      const ep=olBuildTrail(P.W,P.H,P.targetEdges,P.junctionBias,rng);
-      if(ep.length>=Math.max(4,P.targetEdges-2)) return olNormalize(ep);
-      if(!best||ep.length>best.length) best=ep;
-    }
-    return olNormalize(best);
+    const rng=olRng((level*2654435761)^0x9e3779b9);
+    let fig;
+    if(level<=40){const pool=OL_SHAPES.filter(s=>s.t===1);const sh=pool[(level-1)%pool.length];fig=olXform(olFromSegs(sh.s),Math.floor(rng()*4),rng()<0.5);}
+    else if(level<=150){const pool=OL_SHAPES.filter(s=>s.t<=2);fig=olXform(olFromSegs(pool[Math.floor(rng()*pool.length)].s),Math.floor(rng()*4),rng()<0.5);}
+    else if(level<=400){const pool=OL_SHAPES.filter(s=>s.t<=3);fig=(rng()<0.45)?olXform(olFromSegs(pool[Math.floor(rng()*pool.length)].s),Math.floor(rng()*4),rng()<0.5):olScene(rng,pool,2);}
+    else if(level<=800){const pool=OL_SHAPES.filter(s=>s.t<=3);fig=(rng()<0.5)?olScene(rng,pool,2+(rng()<0.5?1:0)):olDense(6,6,20+Math.floor(rng()*8),0.6,rng()<0.4,rng);}
+    else if(level<=1400){const r=rng();if(r<0.45)fig=olDense(7,6+Math.floor(rng()*2),30+Math.floor(rng()*12),0.7,true,rng);else fig=olEulerize(olLat(4+Math.floor(rng()*2),3+Math.floor(rng()*2),true));}
+    else{const r=rng();if(r<0.45)fig=olDense(8,7+Math.floor(rng()*2),42+Math.floor(rng()*16),0.78,true,rng);else fig=olEulerize(olLat(5,4+Math.floor(rng()*2),true));}
+    fig=olEulerize(fig);
+    const nn=olNorm(fig);let mxx=0,mxy=0;nn.nodes.forEach(([x,y])=>{mxx=Math.max(mxx,x);mxy=Math.max(mxy,y);});
+    return {nodes:nn.nodes.map(([x,y])=>({x,y})),edges:nn.edges,w:mxx+1,h:mxy+1};
   }
   function olEkey(a,b){ return a<b?a+'-'+b:b+'-'+a; }
   // Self-contained blip on the shared AudioContext (respects the app's mute). A short, soft note
