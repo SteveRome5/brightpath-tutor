@@ -5211,6 +5211,13 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
           }
         });
       });
+      // Keep every device on the newest build: re-check for a new service worker each time the app
+      // is reopened/refocused (kids background & return to the app constantly) and shortly after
+      // launch. Combined with the network-first SW, this means no device lingers on a stale version.
+      const checkForUpdate = () => { try { reg.update(); } catch (e) {} };
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
+      window.addEventListener('focus', checkForUpdate);
+      setTimeout(checkForUpdate, 4000);
     }).catch(() => {});
   }
   // COPPA email-plus: returning from the verification link (/?verified=1 or /?verify=invalid).
