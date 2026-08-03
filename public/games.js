@@ -3216,6 +3216,14 @@
         const bb=$('#ol-nt-back'); if(bb) bb.onclick=()=>{ Sound.click(); location.hash='#play'; };
       }
     }
+    // FREE retry after a game over: a token is only spent to START a run from the hub — getting
+    // stuck is game over, but trying again costs nothing (tokens gate starting, not dying).
+    function retryLevel(level){
+      Sound.click();
+      lives = OL_STRIKES;
+      streak = 0;
+      playLevel(level);
+    }
 
     function hub(){
       const cur = Math.min(maxLevel, OL_MAX_LEVEL);
@@ -3226,9 +3234,9 @@
         <div class="ol-hub-card">
           <div style="font-size:2.7rem;line-height:1;filter:drop-shadow(0 0 10px rgba(110,255,192,.75))">🐎✨</div>
           <div class="ol-neon-title">One Line</div>
-          <p class="ol-sub">Light up the <b>whole trail</b> in one gallop — never lift your finger, never cross the same line twice. Keep going level after level… but if your line gets stuck, the run ends!</p>
+          <p class="ol-sub">Light up the <b>whole trail</b> in one gallop — never lift your finger, never cross the same line twice. Keep going level after level… if your line gets stuck it's game over — but trying again is <b>free</b>!</p>
           <button class="ol-go" id="ol-continue">▶ Start — Level ${cur} <span style="opacity:.8">· 1 🎟️</span></button>
-          <div style="font-size:.82rem;margin-top:8px;color:#9fc0e6">🎟️ ${tokens} token${tokens===1?'':'s'} · one token = one run (keep playing till you get stuck)</div>
+          <div style="font-size:.82rem;margin-top:8px;color:#9fc0e6">🎟️ ${tokens} token${tokens===1?'':'s'} · one token starts you off — get stuck & try again as many times as you like, free</div>
           ${bestStreak>0?`<div style="font-size:.9rem;margin-top:6px;color:#ffd84a;font-weight:800">🔥 Best run: ${bestStreak} level${bestStreak===1?'':'s'} in a row</div>`:''}
           <div style="margin-top:18px">
             <div style="font-size:.8rem;margin-bottom:6px;color:#9fc0e6">Or jump to a level (unlocked up to ${maxLevel}) — also 1 🎟️</div>
@@ -3418,16 +3426,16 @@
         if(streak > bestStreak){ bestStreak = streak; saveState(); }
         const overlay=document.createElement('div'); overlay.className='celebrate';
         overlay.innerHTML = `<div class="big-emoji" style="filter:drop-shadow(0 0 14px rgba(255,150,100,.7))">🐴💫</div>
-          <h2 style="text-shadow:0 0 12px rgba(255,150,100,.5)">Your line got stuck!</h2>
-          <p style="font-size:1.1rem">You galloped all the way to <b>Level ${level}</b>. This run's over — but you can pick right back up here.</p>
+          <h2 style="text-shadow:0 0 12px rgba(255,150,100,.5)">Game Over — your line got stuck!</h2>
+          <p style="font-size:1.1rem">You galloped all the way to <b>Level ${level}</b>. Try again — it's <b>free</b>, plan your route and go!</p>
           <p style="font-size:1.1rem;font-weight:800;color:#ffd84a;margin-top:6px">🔥 ${streak} solved this run${runNewBest && streak>0 ? ' <span style="color:#6effc0">· new best!</span>' : (bestStreak>0?` <span style="opacity:.85;font-weight:600">· best ${bestStreak}</span>`:'')}</p>
           <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
-            <button class="btn sun" id="ol-again">Play again — Level ${level} · 1 🎟️</button>
+            <button class="btn sun" id="ol-again">↻ Try again — Level ${level} (free)</button>
             <button class="btn ghost" id="ol-lv" style="color:#fff;border-color:#fff">☰ Levels</button>
             <button class="btn ghost" id="ol-quit" style="color:#fff;border-color:#fff">Play Zone</button>
           </div>`;
         document.body.appendChild(overlay);
-        overlay.querySelector('#ol-again').onclick=()=>{ overlay.remove(); startRun(level); };
+        overlay.querySelector('#ol-again').onclick=()=>{ overlay.remove(); retryLevel(level); };
         overlay.querySelector('#ol-lv').onclick=()=>{ overlay.remove(); hub(); };
         overlay.querySelector('#ol-quit').onclick=()=>{ overlay.remove(); location.hash='#play'; };
       }
