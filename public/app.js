@@ -868,10 +868,12 @@ async function navigate() {
   });
 }
 // Any celebration overlay: tapping the backdrop (not a button/link) dismisses it.
-// Kids tap everywhere, never let a popup feel stuck.
+// Kids tap everywhere, never let a popup feel stuck. EXCEPTION: overlays marked data-lock are
+// terminal game states (e.g. One Line game-over / win) — dismissing them by backdrop-tap would
+// leave the game frozen underneath (won=true), so those MUST be closed via a button choice.
 document.addEventListener('click', e => {
   const cel = e.target.closest('.celebrate');
-  if (cel && !e.target.closest('button, a, input, [data-cid], [data-g]')) cel.remove();
+  if (cel && !cel.hasAttribute('data-lock') && !e.target.closest('button, a, input, [data-cid], [data-g]')) cel.remove();
 });
 const revealObs = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); revealObs.unobserve(e.target); } });

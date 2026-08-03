@@ -3131,6 +3131,19 @@
       cands.sort((a,b)=>Math.abs(a.fr-ft)-Math.abs(b.fr-ft));
       best=cands[0].g; bestFr=cands[0].fr;
     }
+    // Turn the Eulerian CIRCUIT (0 odd vertices — every dot a valid start, must end where you began,
+    // confusing) into an Eulerian PATH by removing ONE edge. Eulerian graphs have no bridges, so this
+    // never disconnects; the removed edge's endpoints become the ONLY odd vertices = exactly two
+    // clearly-marked gold start/end dots (like the real One Line). Prefer an edge between two degree-2
+    // dots so the endpoints become degree-1 "tips" — the most obvious start & finish.
+    (function(){
+      const deg=best.nodes.map(()=>0); best.edges.forEach(([a,b])=>{deg[a]++;deg[b]++;});
+      if(best.edges.length<3) return;
+      const rr=olRng((L*40503)^0x1234567);
+      const tips=[]; best.edges.forEach(([a,b],i)=>{ if(deg[a]===2&&deg[b]===2) tips.push(i); });
+      const idx = tips.length ? tips[Math.floor(rr()*tips.length)] : Math.floor(rr()*best.edges.length);
+      best.edges.splice(idx,1);
+    })();
     let mxx=0,mxy=0; best.nodes.forEach(([x,y])=>{mxx=Math.max(mxx,x);mxy=Math.max(mxy,y);});
     return {nodes:best.nodes.map(([x,y])=>({x,y})), edges:best.edges, w:mxx+1, h:mxy+1, _fr:bestFr};
   }
@@ -3424,7 +3437,7 @@
         won=true; stopLoop(); Sound.wrong(); if(Voice && Voice.stop) try{ Voice.stop(); }catch(e){}
         const runNewBest = streak > 0 && streak >= bestStreak;
         if(streak > bestStreak){ bestStreak = streak; saveState(); }
-        const overlay=document.createElement('div'); overlay.className='celebrate';
+        const overlay=document.createElement('div'); overlay.className='celebrate'; overlay.setAttribute('data-lock','1');
         overlay.innerHTML = `<div class="big-emoji" style="filter:drop-shadow(0 0 14px rgba(255,150,100,.7))">🐴💫</div>
           <h2 style="text-shadow:0 0 12px rgba(255,150,100,.5)">Game Over — your line got stuck!</h2>
           <p style="font-size:1.1rem">You galloped all the way to <b>Level ${level}</b>. Try again — it's <b>free</b>, plan your route and go!</p>
@@ -3448,6 +3461,7 @@
       canvas.addEventListener('pointerdown', down);
       canvas.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
+      canvas.addEventListener('pointercancel', up);   // a cancelled gesture must not leave the line "stuck down"
 
       $('#ol-hub').onclick = ()=>{ Sound.click(); stopLoop(); hub(); };
       $('#ol-undo').onclick = ()=>{ Sound.click(); if(path.length>=2){ const a=path.pop(), b=path[path.length-1]; drawn.delete(olEkey(a,b)); } else { path=[]; } update(); };
@@ -3465,9 +3479,9 @@
         try{ await api(`/play/${kidId()}/score`, { method:'POST', body:{ game:'oneline', score:level } }); }catch(e){}
         const done = level >= OL_MAX_LEVEL;
         const overlay = document.createElement('div');
-        overlay.className='celebrate';
+        overlay.className='celebrate'; overlay.setAttribute('data-lock','1');
         overlay.innerHTML = `<div class="big-emoji" style="filter:drop-shadow(0 0 14px rgba(110,255,192,.85))">${done?'🏆':'🐎✨'}</div>
-          <h2 style="text-shadow:0 0 14px rgba(110,255,192,.6)">${done?'You lit up all 500! 🏆':'Trail complete! 🎉'}</h2>
+          <h2 style="text-shadow:0 0 14px rgba(110,255,192,.6)">${done?'You lit up all 2000! 🏆':'Trail complete! 🎉'}</h2>
           <p style="font-size:1.1rem">Level ${level} done${done?'':' — one gallop, no crossings.'}</p>
           <p style="font-size:1.15rem;font-weight:800;color:#ffd84a;margin-top:6px">🔥 ${streak} in a row!${newBest && streak>1 ? ' <span style="color:#6effc0">New best!</span>' : (bestStreak>streak?` <span style="opacity:.8;font-weight:600">· best ${bestStreak}</span>`:'')}</p>
           <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
