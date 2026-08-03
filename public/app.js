@@ -5181,43 +5181,40 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
   // installable app (iPad home screen, Chromebook, etc.) + nudge to refresh when a new
   // version is deployed, so users (especially installed-PWA/phone) don't sit on stale code.
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').then(reg => {
-      reg.addEventListener('updatefound', () => {
-        const nw = reg.installing;
-        if (!nw) return;
-        nw.addEventListener('statechange', () => {
-          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-            const showToast = () => {
-              if (document.querySelector('.update-bar')) return;
-              const t = document.createElement('div');
-              t.className = 'update-bar';
-              t.innerHTML = `<span>✨ A new version is ready.</span> <button class="ub-refresh">Refresh</button> <button class="ub-later" aria-label="Dismiss">Later</button>`;
-              t.querySelector('.ub-refresh').onclick = () => location.reload();
-              t.querySelector('.ub-later').onclick = () => t.remove();
-              document.body.appendChild(t);
-            };
-            // NEVER interrupt a child mid-activity (P2.3 / GAME-P1.6). Defer while inside any
-            // lesson, teaching flow, placement, exam, game, or any interactive kid zone, AND while
-            // any modal/celebration overlay is open — wait until they land on a safe screen. The
-            // prompt is a dismissible bottom bar, not an overlay, so it can never cover a puzzle.
-            const inActivity = () => /^#\/?(lesson|teach|placement|exam|play|game|avatar|snacks|buddies|trophies)/.test(location.hash || '')
-              || !!document.querySelector('.celebrate, .lesson-wrap, .q-card, .mm-career, .frq-parts');
-            if (inActivity()) {
-              const onLeave = () => { if (!inActivity()) { window.removeEventListener('hashchange', onLeave); setTimeout(showToast, 400); } };
-              window.addEventListener('hashchange', onLeave);
-            } else {
-              showToast();
-            }
-          }
-        });
-      });
-      // Keep every device on the newest build: re-check for a new service worker each time the app
-      // is reopened/refocused (kids background & return to the app constantly) and shortly after
-      // launch. Combined with the network-first SW, this means no device lingers on a stale version.
+    // Is the user in the middle of something we must not interrupt? (kid lesson/game/overlay, or a
+    // parent actively typing in a form). If so we defer any reload until they reach a safe screen.
+    const inActivity = () => /^#\/?(lesson|teach|placement|exam|play|game|avatar|snacks|buddies|trophies)/.test(location.hash || '')
+      || !!document.querySelector('.celebrate, .lesson-wrap, .q-card, .mm-career, .frq-parts')
+      || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
+
+    // AUTO-UPDATE: the moment a fresh service worker takes control, reload so the app is running the
+    // newest code — no "Refresh" button to hunt for. This is what keeps installed / home-screen apps
+    // current. We skip the very first controller (brand-new install has nothing to refresh) and never
+    // reload mid-activity — instead we wait for the next safe navigation.
+    const hadControllerAtLoad = !!navigator.serviceWorker.controller;
+    let _reloading = false;
+    const applyUpdate = () => {
+      if (_reloading) return;
+      const go = () => { _reloading = true; location.reload(); };
+      if (!inActivity()) { go(); return; }
+      const onLeave = () => { if (!inActivity()) { window.removeEventListener('hashchange', onLeave); go(); } };
+      window.addEventListener('hashchange', onLeave);
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadControllerAtLoad) return;   // first install of the SW on this device — page is already fresh
+      applyUpdate();
+    });
+
+    // updateViaCache:'none' forces the browser to fetch sw.js from the NETWORK on every update check,
+    // bypassing the ~24h HTTP cache that otherwise leaves installed apps stuck on an old worker.
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(reg => {
+      // Re-check for a new service worker every time the app is opened/refocused (kids background &
+      // return constantly) and shortly after launch. With network-first + auto-reload, no device
+      // lingers on a stale version — including PWAs launched from the home screen.
       const checkForUpdate = () => { try { reg.update(); } catch (e) {} };
       document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
       window.addEventListener('focus', checkForUpdate);
-      setTimeout(checkForUpdate, 4000);
+      setTimeout(checkForUpdate, 3000);
     }).catch(() => {});
   }
   // COPPA email-plus: returning from the verification link (/?verified=1 or /?verify=invalid).
