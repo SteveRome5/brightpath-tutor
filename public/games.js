@@ -3059,37 +3059,82 @@
   }
   function olLat(W,H,diag){const segs=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(x+1<W)segs.push([[x,y],[x+1,y]]);if(y+1<H)segs.push([[x,y],[x,y+1]]);if(diag&&x+1<W&&y+1<H)segs.push([[x,y],[x+1,y+1]]);}return olFromSegs(segs);}
   function olScene(rng,pool,count){const parts=[];let dx=0;for(let i=0;i<count;i++){let p=olXform(olFromSegs(pool[Math.floor(rng()*pool.length)].s),Math.floor(rng()*4),rng()<0.5);p=olTr(p,dx,0);dx+=olBbox(p).w+2;parts.push(p);}return olEulerize(olMerge(parts));}
-  // Difficulty is a CONTINUOUS, MONOTONIC function of level. What makes a one-stroke puzzle hard
-  // is the number of DECISION POINTS — interior vertices of degree >=3 where a wrong turn dead-ends —
-  // NOT which named shape it is (outlines are all degree-2 = trivial tracing). So past a short intro,
-  // every level is a dense grid trail whose edge count, grid size, diagonal density, and branchiness
-  // all climb with the level. No level is ever easier than an earlier one. olEulerize keeps every
-  // level guaranteed one-stroke solvable.
+  // ---- One Line v5 generator: TRAP-BASED difficulty (measured, not guessed) ----
+  // Difficulty = how often *careless* play strands itself (olFailRate simulates a casual player).
+  // Puzzles are the symmetric-difference (XOR) of overlapping rectangle loops: guaranteed even-
+  // degree (Eulerian, always one-stroke solvable), only unit-length edges (no line ever passes
+  // THROUGH a dot => no visual ambiguity), and the shared corners become high-degree decision-point
+  // traps. For each level we generate many candidates and pick the one whose measured failure rate
+  // matches a target that ramps fast (challenging by ~L20, brutal by ~L80).
+  const _ek=(a,b)=>a<b?a+'|'+b:b+'|'+a;
+  function olLoops(rng, W, H, nLoops, minS, maxS){
+    const eset=new Set(); const kk=p=>p[0]+','+p[1];
+    const rectEdges=(x0,y0,x1,y1)=>{const es=[];for(let x=x0;x<x1;x++){es.push([[x,y0],[x+1,y0]]);es.push([[x,y1],[x+1,y1]]);}for(let y=y0;y<y1;y++){es.push([[x0,y],[x0,y+1]]);es.push([[x1,y],[x1,y+1]]);}return es;};
+    for(let i=0;i<nLoops;i++){ const w=minS+Math.floor(rng()*(maxS-minS+1)),h=minS+Math.floor(rng()*(maxS-minS+1)); const x0=Math.floor(rng()*Math.max(1,W-w)),y0=Math.floor(rng()*Math.max(1,H-h)); for(const [p,q] of rectEdges(x0,y0,x0+w,y0+h)){ const k=_ek(kk(p),kk(q)); if(eset.has(k))eset.delete(k); else eset.add(k); } }
+    const nodeId=new Map(),nodes=[]; const nid=s=>{if(!nodeId.has(s)){nodeId.set(s,nodes.length);const[x,y]=s.split(',').map(Number);nodes.push([x,y]);}return nodeId.get(s);};
+    const edges=[]; for(const k of eset){const[a,b]=k.split('|');edges.push([nid(a),nid(b)]);}
+    if(!edges.length) return {nodes:[],edges:[]};
+    const adj=nodes.map(()=>[]); edges.forEach(([a,b],i)=>{adj[a].push([b,i]);adj[b].push([a,i]);});
+    const comp=nodes.map(()=>-1); let nc=0;
+    for(let i=0;i<nodes.length;i++){if(comp[i]>=0||!adj[i].length)continue;const st=[i];comp[i]=nc;while(st.length){const u=st.pop();for(const[v]of adj[u])if(comp[v]<0){comp[v]=nc;st.push(v);}}nc++;}
+    const sz={}; comp.forEach(c=>{if(c>=0)sz[c]=(sz[c]||0)+1;}); let bc=-1,bn=-1; for(const c in sz)if(sz[c]>bn){bn=sz[c];bc=+c;}
+    const keep=new Set(); nodes.forEach((_,i)=>{if(comp[i]===bc)keep.add(i);});
+    const remap=new Map(),nn=[]; [...keep].forEach(i=>{remap.set(i,nn.length);nn.push(nodes[i]);});
+    const ne=[]; edges.forEach(([a,b])=>{if(keep.has(a)&&keep.has(b))ne.push([remap.get(a),remap.get(b)]);});
+    let mnx=1e9,mny=1e9; nn.forEach(([x,y])=>{mnx=Math.min(mnx,x);mny=Math.min(mny,y);});
+    return {nodes:nn.map(([x,y])=>[x-mnx,y-mny]), edges:ne};
+  }
+  function olFailRate(nodes, edges, samples, rng){
+    const n=nodes.length,E=edges.length; if(!E)return 1;
+    const adj=Array.from({length:n},()=>[]); edges.forEach(([a,b],i)=>{adj[a].push([b,i]);adj[b].push([a,i]);});
+    const deg=adj.map(a=>a.length); const odd=[]; for(let i=0;i<n;i++)if(deg[i]%2===1)odd.push(i);
+    const starts=odd.length?odd:[...Array(n).keys()].filter(i=>deg[i]>0); if(!starts.length)return 1;
+    let fails=0;
+    for(let s=0;s<samples;s++){const used=new Uint8Array(E);let cur=starts[Math.floor(rng()*starts.length)],count=0,ok=true;
+      while(count<E){const av=[];for(const[nb,ei]of adj[cur])if(!used[ei])av.push([nb,ei]);if(!av.length){ok=false;break;}
+        const safe=[];for(const[nb,ei]of av){if(count+1===E){safe.push([nb,ei]);continue;}let more=false;for(const[nb2,ei2]of adj[nb])if(ei2!==ei&&!used[ei2]){more=true;break;}if(more)safe.push([nb,ei]);}
+        const pool=safe.length?safe:av;const[nb,ei]=pool[Math.floor(rng()*pool.length)];used[ei]=1;cur=nb;count++;}
+      if(!ok||count<E)fails++;}
+    return fails/samples;
+  }
   function olGen(level){
     const L=Math.max(1,level|0);
-    const rng=olRng((L*2654435761)^0x9e3779b9);
-    let fig;
-    if(L<=6){
-      // Gentle intro: a handful of clean recognizable outlines to learn the controls.
-      const intro=['triangle','square','pentagon','hexagon','star5','house'];
-      const sh=OL_SHAPES.find(s=>s.n===intro[(L-1)%intro.length])||OL_SHAPES[0];
-      fig=olXform(olFromSegs(sh.s),Math.floor(rng()*4),rng()<0.5);
-    } else {
-      const s=Math.sqrt(L);
-      const t=Math.min(1,(L-6)/1494);                 // 0 at L7 → 1 by ~L1500
-      const W=Math.min(9,3+Math.floor(s/2.6));         // 3 → 9
-      const H=Math.min(8,3+Math.floor(s/3.0));         // 3 → 8
-      const diag=L>=8;                                  // diagonals (real degree-4+ nodes) from L8 on
-      const cap=(W-1)*H + W*(H-1) + (diag?2*(W-1)*(H-1):0);
-      let target=Math.round(7+2.3*s);                   // L7~13, L18~17, L50~23, L200~40, L900~76, L2000~110
-      target=Math.min(target, Math.max(6, Math.floor(cap*0.85)));
-      const jb=Math.min(0.9, 0.4+0.5*t);                // branchiness (crossings/decisions) climbs
-      fig=olDense(W,H,target,jb,diag,rng);              // robust walk reaches target → monotonic difficulty
+    const s=Math.sqrt(L);
+    const ft = L<=2 ? 0.06 : Math.min(0.85, 0.14 + 0.85*Math.sqrt((L-2)/95));
+    const EDGE_CAP = 76, MIN_E = 4;
+    const Wc = Math.min(12, 4+Math.floor(s/1.5));
+    const loopHi = Math.min(16, 2+Math.floor(s/1.1));
+    const maxS = Math.min(6, 2+Math.floor(s/9));
+    const cands=[]; let c=0;
+    for(let nl=1; nl<=loopHi && cands.length<24; nl++){
+      let anyUnder=false;
+      for(let seed=0; seed<2; seed++, c++){
+        const rng=olRng((L*2654435761)^(0x9e3779b9 + c*2246822519));
+        const g=olLoops(rng, Wc, Wc, nl, 2, Math.max(3,maxS));
+        if(g.edges.length<MIN_E || g.edges.length>EDGE_CAP) continue;
+        anyUnder=true;
+        const fr=olFailRate(g.nodes, g.edges, 60, olRng(555+c*97+L*3));
+        cands.push({g, fr});
+      }
+      if(!anyUnder && cands.length) break;   // loops now too big to fit under cap
     }
-    fig=olEulerize(fig);
-    const nn=olNorm(fig);let mxx=0,mxy=0;nn.nodes.forEach(([x,y])=>{mxx=Math.max(mxx,x);mxy=Math.max(mxy,y);});
-    return {nodes:nn.nodes.map(([x,y])=>({x,y})),edges:nn.edges,w:mxx+1,h:mxy+1};
+    let best, bestFr=0;
+    if(!cands.length){ best={nodes:[[0,0],[1,0],[1,1],[0,1]],edges:[[0,1],[1,2],[2,3],[3,0]]}; bestFr=0; }
+    else if(ft>=0.6){
+      // want hardest: re-measure the top few with MORE samples to beat winner's-curse noise
+      cands.sort((a,b)=>b.fr-a.fr);
+      const top=cands.slice(0,5);
+      top.forEach((t,i)=>{ t.fr2=olFailRate(t.g.nodes, t.g.edges, 170, olRng(31337+i*911+L*13)); });
+      top.sort((a,b)=>b.fr2-a.fr2);
+      best=top[0].g; bestFr=top[0].fr2;
+    } else {
+      cands.sort((a,b)=>Math.abs(a.fr-ft)-Math.abs(b.fr-ft));
+      best=cands[0].g; bestFr=cands[0].fr;
+    }
+    let mxx=0,mxy=0; best.nodes.forEach(([x,y])=>{mxx=Math.max(mxx,x);mxy=Math.max(mxy,y);});
+    return {nodes:best.nodes.map(([x,y])=>({x,y})), edges:best.edges, w:mxx+1, h:mxy+1, _fr:bestFr};
   }
+
   function olEkey(a,b){ return a<b?a+'-'+b:b+'-'+a; }
   // Self-contained blip on the shared AudioContext (respects the app's mute). A short, soft note
   // so drawing a line feels tactile without touching the shared Sound engine.
