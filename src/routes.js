@@ -447,7 +447,10 @@ router.post('/kids', auth.requireParent, (req, res) => {
   if (!cleanName) return res.status(400).json({ error: 'Need a name.' });
   const count = db.prepare('SELECT COUNT(*) AS n FROM kids WHERE parent_id=?').get(req.parent.id).n;
   const plan = billing.PLANS[req.parent.sub_plan] || billing.PLANS.family;
-  if (count >= plan.kids) return res.status(400).json({ error: `Your ${plan.name} plan supports up to ${plan.kids} learner(s).` });
+  // Comp/founder accounts are internal (team, demos, QA) — they can hold extra demo learners
+  // beyond their plan's cap. Real customer accounts are still held to their plan limit.
+  const kidCap = auth.isComp(req.parent) ? 20 : plan.kids;
+  if (count >= kidCap) return res.status(400).json({ error: `Your ${plan.name} plan supports up to ${plan.kids} learner(s).` });
   const gradeNum = Math.max(0, Math.min(12, Math.round(Number(grade))));
   // PRODUCT-105: age-aware default weekly goal (stored as lessons/week; x10 ≈ answers) so a
   // kindergartner isn't defaulted to 120 answers/week like a high-schooler. Parents can change it.
