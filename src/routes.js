@@ -1080,7 +1080,21 @@ router.get('/admin/overview', auth.requireAdmin, (req, res) => {
       (SELECT COUNT(*) FROM activity_log a JOIN kids k2 ON a.kid_id=k2.id WHERE k2.parent_id=p.id AND a.ts >= datetime('now','-7 days')) AS weekAnswers
     FROM parents p WHERE ${pNot.replace(/^id/, 'p.id')} ORDER BY p.created_at DESC LIMIT 25`).all();
   const gradeBands = db.prepare(`SELECT CASE WHEN grade<=2 THEN 'K-2' WHEN grade<=5 THEN '3-5' WHEN grade<=8 THEN '6-8' ELSE '9-12' END AS band, COUNT(*) AS n FROM kids WHERE ${kNot} GROUP BY band`).all();
-  res.json({ totals, byStatus, mrr, signups, recent, gradeBands });
+  // Expired-trial win-back worklist: parents whose 7-day trial lapsed without subscribing
+  // (a trial never auto-flips status, so an expired trial stays sub_status='trial' with
+  // trial_ends in the past). We surface who they are, whether they ever added a child /
+  // got active, how long ago it lapsed, and whether the automated win-back email has gone
+  // out — so the admin can personally reach the promising ones.
+  const expiredTrials = db.prepare(`SELECT p.id, p.email, p.name, p.trial_ends, p.created_at,
+      CAST((julianday('now') - julianday(p.trial_ends)) AS INT) AS daysAgo,
+      (SELECT COUNT(*) FROM kids k WHERE k.parent_id=p.id) AS kids,
+      (SELECT COUNT(*) FROM activity_log a JOIN kids k2 ON a.kid_id=k2.id WHERE k2.parent_id=p.id) AS answers,
+      (SELECT COUNT(*) FROM email_log e WHERE e.to_email=p.email AND e.kind='winback' AND e.status='sent') AS winbackSent
+    FROM parents p
+    WHERE ${pNot.replace(/^id/, 'p.id')} AND p.sub_status='trial' AND p.trial_ends IS NOT NULL
+      AND p.trial_ends < datetime('now')
+    ORDER BY p.trial_ends DESC LIMIT 60`).all();
+  res.json({ totals, byStatus, mrr, signups, recent, gradeBands, expiredTrials });
 });
 
 // CSV export of real families (admin)

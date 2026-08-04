@@ -228,8 +228,39 @@ function sendOnboardValue(parent, state) {
   } catch (e) { /* never throw from the scheduler */ }
 }
 
+// Win-back + feedback — sent ~3 days AFTER the trial ended (the "reactivate now" trial_ended
+// email has already gone out on day 0). Two jobs in one honest email: an easy door back in
+// (everything's still saved), and a genuine "if it wasn't right, tell us why" ask so lapsed
+// trials become product feedback instead of silence. No discount/promo — just a real invitation.
+function sendWinback(parent, state) {
+  try {
+    if (!parent || !parent.email || parent.email_opt_out) return;
+    const first = esc((parent.name || '').split(' ')[0] || 'there');
+    const hasKid = !!(state && state.hasKid);
+    const kid = esc(state && state.kidName ? state.kidName : 'your child');
+    // Tailor the middle line to how far they actually got.
+    let middle;
+    if (state && state.active) {
+      middle = `<p>${kid} had a real start on Gallop — every level, streak and badge they earned is still saved, exactly where they left it. One click and they're back at it.</p>`;
+    } else if (hasKid) {
+      middle = `<p>${kid} is all set up and waiting — the placement quiz and first lessons are one tap away, and nothing's been lost. It only takes ten minutes to see it click.</p>`;
+    } else {
+      middle = `<p>Your account's still here whenever you're ready — adding your child takes about a minute, and a short placement quiz finds their true level in Math, English, Science &amp; Spanish before the first lesson.</p>`;
+    }
+    const html = layout(`
+      <h2 style="margin:0 0 12px;color:${BRAND}">We saved your spot, ${first} 🐎</h2>
+      ${middle}
+      ${btn(ORIGIN + '/#subscribe', 'Pick up where you left off')}
+      <p style="margin:18px 0 6px">And if Gallop wasn't the right fit — that's genuinely useful to us. <b>Just hit reply and tell us what was missing.</b> One line helps us build something your family would actually love, and we read every response.</p>
+      <p style="margin:14px 0 0;font-size:14px;color:#5f6b7d">All four subjects, from $34/mo, cancel anytime.</p>
+    `, { unsubToken: unsubTokenFor(parent.id) });
+    return sendEmail({ to: parent.email, subject: `${first}, we saved ${hasKid ? kid + "'s" : 'your'} spot on Gallop`, html, kind: 'winback' });
+  } catch (e) { /* never throw from the scheduler */ }
+}
+
 // Trial conversion + onboarding sweep (timer from server.js). Per trial account, at most one email
-// per sweep: day ~2 ACTIVATION, day ~4 VALUE, ~2 days left "ending soon", ended "reactivate".
+// per sweep: day ~2 ACTIVATION, day ~4 VALUE, ~2 days left "ending soon", ended "reactivate",
+// then ~3 days after that a win-back + feedback ask.
 // Idempotent via email_log (each kind sent once per account) and throttled.
 async function trialSweep() {
   try {
@@ -246,6 +277,20 @@ async function trialSweep() {
       let sentSomething = false;
       if (msLeft <= 0) {
         if (!sentBefore(p.email, 'trial_ended')) { await sendTrialEnded(p); sentSomething = true; }
+        else if ((-msLeft / 86400000) >= 3 && !sentBefore(p.email, 'winback')) {
+          // ~3 days after the trial lapsed: one win-back + feedback email. Build just enough
+          // state to personalize (guarded so a schema hiccup can't break the sweep).
+          const wstate = { hasKid: false, active: false, kidName: null };
+          try {
+            const kc = db.prepare('SELECT COUNT(*) AS n FROM kids WHERE parent_id=?').get(p.id);
+            wstate.hasKid = !!(kc && kc.n > 0);
+            const k1 = db.prepare('SELECT name FROM kids WHERE parent_id=? ORDER BY id LIMIT 1').get(p.id);
+            if (k1 && k1.name) wstate.kidName = k1.name;
+            const ac = db.prepare('SELECT COUNT(*) AS n FROM activity_log a JOIN kids k ON a.kid_id=k.id WHERE k.parent_id=?').get(p.id);
+            wstate.active = !!(ac && ac.n > 0);
+          } catch (e) {}
+          await sendWinback(p, wstate); sentSomething = true;
+        }
       } else if (daysLeft <= 2) {
         if (!sentBefore(p.email, 'trial_ending')) { await sendTrialEnding(p, Math.max(1, Math.round(daysLeft))); sentSomething = true; }
       } else {
@@ -521,4 +566,4 @@ function sendSupportReply(toEmail, subject, replyText) {
   } catch (e) { return { sent: false }; }
 }
 
-module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendEmailVerification, sendConsentConfirmed, sendWeeklyReport, sendTrialEnding, sendTrialEnded, sendChildSubscribeRequest, sendOnboardActivate, sendOnboardValue, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply, sendSchoolLead };
+module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendEmailVerification, sendConsentConfirmed, sendWeeklyReport, sendTrialEnding, sendTrialEnded, sendChildSubscribeRequest, sendOnboardActivate, sendOnboardValue, sendWinback, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply, sendSchoolLead };
