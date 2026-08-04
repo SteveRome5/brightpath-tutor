@@ -5104,6 +5104,10 @@ route('admin', async () => {
         <div class="card">
           <h3>📰 Monthly newsletter</h3>
           <p class="muted" style="margin:4px 0 10px;font-size:.85rem">Auto-drafted each month on the school-year calendar. ${nl.approvalRemaining > 0 ? `The next <b>${nl.approvalRemaining}</b> need your approval before sending; after that it sends on its own.` : 'Now sending autonomously each month.'} Reaches <b>${nl.recipientCount}</b> subscriber${nl.recipientCount === 1 ? '' : 's'}.</p>
+          <div style="margin:0 0 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <button class="btn ghost small" id="nl-export">⬇ Download all ${nl.recipientCount} emails (CSV)</button>
+            <span class="muted" style="font-size:.76rem">every signup + newsletter opt-in, for Mailchimp / ads / promos — unsubscribes auto-excluded</span>
+          </div>
           <div id="nl-drafts">
             ${nl.drafts.length ? nl.drafts.map(dr => `
               <div class="card" data-nlid="${dr.id}" style="background:#fbfaf6;margin:10px 0;padding:14px">
@@ -5158,6 +5162,8 @@ route('admin', async () => {
     };
   });
   // Wire the newsletter draft actions
+  const nlExport = $('#nl-export');
+  if (nlExport) nlExport.onclick = () => { window.location = '/api/admin/newsletter.csv'; };
   const nlGen = $('#nl-gen');
   if (nlGen) nlGen.onclick = async () => {
     nlGen.disabled = true; nlGen.textContent = 'Writing…';
