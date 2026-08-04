@@ -168,14 +168,74 @@ function sendChildSubscribeRequest(parent, kid) {
   } catch (e) { /* never throw */ }
 }
 
-// Trial conversion sweep (called on a timer from server.js). For each trial account:
-//  • when the trial has ~2 days or less left (but hasn't ended), send one "ending soon" email
-//  • when the trial has ended (still on 'trial' status), send one "ended — reactivate" email
-// Idempotent via email_log (each email sent at most once per account) and throttled.
+// ---------- Onboarding drip: fill the quiet middle of the 7-day trial ----------
+// Day-2 ACTIVATION nudge — tailored to how far the parent has gotten. The single biggest lever
+// on trial→paid is getting the child actually set up and answering questions in the first days.
+function sendOnboardActivate(parent, state) {
+  try {
+    if (!parent || !parent.email || parent.email_opt_out) return;
+    const first = esc((parent.name || '').split(' ')[0] || 'there');
+    const kid = esc(state && state.kidName ? state.kidName : 'your child');
+    let subject, body;
+    if (!state || !state.hasKid) {
+      subject = 'Your Gallop trial is running — let\'s add your child 🐎';
+      body = `
+        <h2 style="margin:0 0 12px;color:${BRAND}">Two minutes to set up, ${first} 🐎</h2>
+        <p>Your free week is already ticking — and your child isn't set up yet. It's quick: just a name, grade, and a fun 4-digit PIN.</p>
+        <p style="margin:12px 0 6px">The moment they're added, a short <b>placement quiz</b> finds their true level in Math, English, Science &amp; Spanish — no guessing, no wrong grade. Everything adapts from there.</p>
+        ${btn(ORIGIN + '/#parent', 'Add your child (60 seconds)')}`;
+    } else if (!state.active) {
+      subject = `${kid} is set up — here's the first lesson`;
+      body = `
+        <h2 style="margin:0 0 12px;color:${BRAND}">Nice — ${kid} is ready to go 🎯</h2>
+        <p>Hi ${first}! The best next step is the quick <b>placement quiz</b> — it finds ${kid}'s real starting level in each subject, then every lesson adjusts to keep them right at the edge of what they can do (that's where it clicks).</p>
+        <p style="margin:12px 0 6px">Ten minutes is enough to see it work. Kids log in with <b>your email + their PIN</b> on any device.</p>
+        ${btn(ORIGIN + '/#parent', 'Start the first lesson')}`;
+    } else {
+      subject = 'Great start! One thing parents love next';
+      body = `
+        <h2 style="margin:0 0 12px;color:${BRAND}">${kid} is off and running 🚀</h2>
+        <p>Love to see it, ${first} — ${kid} is already answering questions. Two things worth a peek this week:</p>
+        <p style="margin:8px 0">• <b>Your Parent Report</b> — strengths, gaps, and a printable certificate for the fridge.</p>
+        <p style="margin:8px 0">• <b>The Lab &amp; Career Center</b> — where kids run a business, invest in a live market, and see where school subjects lead in real careers.</p>
+        ${btn(ORIGIN + '/#parent', 'See your dashboard')}`;
+    }
+    const html = layout(body, { unsubToken: unsubTokenFor(parent.id) });
+    return sendEmail({ to: parent.email, subject, html, kind: 'onboard_activate' });
+  } catch (e) { /* never throw from the scheduler */ }
+}
+
+// Day-4 VALUE email — show the parent what's happening "under the hood" and point them at the proof
+// (the report). Reinforces why it's worth keeping mid-trial, before the "ending soon" ask.
+function sendOnboardValue(parent, state) {
+  try {
+    if (!parent || !parent.email || parent.email_opt_out) return;
+    const first = esc((parent.name || '').split(' ')[0] || 'there');
+    const kid = esc(state && state.kidName ? state.kidName : 'your child');
+    const activeLine = (state && state.active)
+      ? `<p style="margin:12px 0 0">You're already seeing it in action — every answer ${kid} gives is quietly retuning what comes next.</p>`
+      : `<p style="margin:12px 0 0">Haven't had a chance to dive in yet? Even 10 minutes this week will show you what it can do.</p>`;
+    const html = layout(`
+      <h2 style="margin:0 0 12px;color:${BRAND}">What Gallop is quietly doing for ${kid}</h2>
+      <p>Hi ${first} — here's what's happening behind the scenes:</p>
+      <p style="margin:8px 0"><b>It meets ${kid} exactly where they are.</b> Placement finds their true level in each subject, and every question nudges the next one easier or harder — so they're always working right at the edge of what they can do. That's where learning actually sticks.</p>
+      <p style="margin:8px 0"><b>It's the whole picture.</b> Math, English, Science &amp; Spanish, K–12 — plus The Lab (run a business, invest in a live market) and a Career Center that connects today's lessons to real jobs. Correct answers earn arcade tokens, so practice powers the fun.</p>
+      <p style="margin:8px 0"><b>You always know how it's going.</b> Your weekly Parent Report shows exactly where they're strong and where they need a hand.</p>
+      ${activeLine}
+      ${btn(ORIGIN + '/#parent', `See ${kid}'s progress`)}
+    `, { unsubToken: unsubTokenFor(parent.id) });
+    return sendEmail({ to: parent.email, subject: `What Gallop is quietly doing for ${kid}`, html, kind: 'onboard_value' });
+  } catch (e) { /* never throw from the scheduler */ }
+}
+
+// Trial conversion + onboarding sweep (timer from server.js). Per trial account, at most one email
+// per sweep: day ~2 ACTIVATION, day ~4 VALUE, ~2 days left "ending soon", ended "reactivate".
+// Idempotent via email_log (each kind sent once per account) and throttled.
 async function trialSweep() {
   try {
     const { isComp } = require('./auth');
     const parents = db.prepare("SELECT * FROM parents WHERE sub_status='trial' AND COALESCE(email_opt_out,0)=0 AND trial_ends IS NOT NULL").all();
+    const sentBefore = (email, kind) => !!db.prepare("SELECT 1 FROM email_log WHERE to_email=? AND kind=? AND status='sent' LIMIT 1").get(email, kind);
     for (const p of parents) {
       if (isComp(p)) continue;   // comp/founder accounts never expire, so never nudge them to subscribe
       let ends;
@@ -185,11 +245,30 @@ async function trialSweep() {
       const daysLeft = msLeft / 86400000;
       let sentSomething = false;
       if (msLeft <= 0) {
-        const already = db.prepare("SELECT 1 FROM email_log WHERE to_email=? AND kind='trial_ended' AND status='sent' LIMIT 1").get(p.email);
-        if (!already) { await sendTrialEnded(p); sentSomething = true; }
+        if (!sentBefore(p.email, 'trial_ended')) { await sendTrialEnded(p); sentSomething = true; }
       } else if (daysLeft <= 2) {
-        const already = db.prepare("SELECT 1 FROM email_log WHERE to_email=? AND kind='trial_ending' AND status='sent' LIMIT 1").get(p.email);
-        if (!already) { await sendTrialEnding(p, Math.max(1, Math.round(daysLeft))); sentSomething = true; }
+        if (!sentBefore(p.email, 'trial_ending')) { await sendTrialEnding(p, Math.max(1, Math.round(daysLeft))); sentSomething = true; }
+      } else {
+        // Quiet middle of the trial — onboarding drip keyed off signup date (day ~2 and ~4).
+        let daysSince = null;
+        try { const c = new Date(String(p.created_at).replace(' ', 'T') + 'Z'); if (!isNaN(c)) daysSince = (Date.now() - c.getTime()) / 86400000; } catch (e) {}
+        if (daysSince != null) {
+          // Onboarding state (guarded — a schema hiccup must never break the sweep).
+          const state = { hasKid: false, active: false, kidName: null };
+          try {
+            const kc = db.prepare('SELECT COUNT(*) AS n FROM kids WHERE parent_id=?').get(p.id);
+            state.hasKid = !!(kc && kc.n > 0);
+            const k1 = db.prepare('SELECT name FROM kids WHERE parent_id=? ORDER BY id LIMIT 1').get(p.id);
+            if (k1 && k1.name) state.kidName = k1.name;
+            const ac = db.prepare('SELECT COUNT(*) AS n FROM activity_log a JOIN kids k ON a.kid_id=k.id WHERE k.parent_id=?').get(p.id);
+            state.active = !!(ac && ac.n > 0);
+          } catch (e) {}
+          if (daysSince >= 3.5 && sentBefore(p.email, 'onboard_activate') && !sentBefore(p.email, 'onboard_value')) {
+            await sendOnboardValue(p, state); sentSomething = true;
+          } else if (daysSince >= 1.5 && !sentBefore(p.email, 'onboard_activate')) {
+            await sendOnboardActivate(p, state); sentSomething = true;
+          }
+        }
       }
       if (sentSomething) await sleep(SEND_GAP_MS);
     }
@@ -442,4 +521,4 @@ function sendSupportReply(toEmail, subject, replyText) {
   } catch (e) { return { sent: false }; }
 }
 
-module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendEmailVerification, sendConsentConfirmed, sendWeeklyReport, sendTrialEnding, sendTrialEnded, sendChildSubscribeRequest, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply, sendSchoolLead };
+module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendEmailVerification, sendConsentConfirmed, sendWeeklyReport, sendTrialEnding, sendTrialEnded, sendChildSubscribeRequest, sendOnboardActivate, sendOnboardValue, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply, sendSchoolLead };
