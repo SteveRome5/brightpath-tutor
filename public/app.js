@@ -5136,6 +5136,23 @@ route('admin', async () => {
               </div>`).join('')}
           </div>
         </div>
+        <div class="card">
+          <h3>⏳ Expired trials — win-back list ${(d.expiredTrials && d.expiredTrials.length) ? `<span class="pill focus" style="float:right">${d.expiredTrials.length}</span>` : ''}</h3>
+          <p class="muted" style="font-size:.82rem;margin:2px 0 0">Trials that lapsed without subscribing. Everyone here gets an automated win-back + feedback email ~3 days after expiry; the promising ones (added a child, actually practiced) are worth a personal note. Click a name to email them.</p>
+          <div style="margin-top:10px;overflow-x:auto">
+            ${(!d.expiredTrials || !d.expiredTrials.length) ? '<p class="muted">No expired trials — nice. 🎉</p>' : d.expiredTrials.map(p => {
+              const warm = p.answers > 0 ? '<span class="pill strength">was active ✓</span>' : p.kids > 0 ? '<span class="pill" style="background:#fdf3d7;color:#7a5b00">set up, never practiced</span>' : '<span class="pill focus">never added a child</span>';
+              const wb = p.winbackSent ? '<span class="pill strength" title="Automated win-back email sent">✉️ emailed</span>' : `<span class="pill" style="background:#eef2f7;color:#5f6b7d" title="Win-back email queued (~3 days after expiry)">✉️ pending</span>`;
+              return `
+              <div class="kid-row" style="flex-wrap:wrap">
+                <div style="flex:1;min-width:180px"><b>${esc(p.name)}</b> ${warm} ${wb}<br>
+                  <a class="muted" style="font-size:.82rem" href="mailto:${encodeURIComponent(p.email)}?subject=${encodeURIComponent('We saved your spot on Gallop')}">${esc(p.email)}</a>
+                  <span class="muted" style="font-size:.82rem"> · expired ${p.daysAgo <= 0 ? 'today' : p.daysAgo + ' day' + (p.daysAgo === 1 ? '' : 's') + ' ago'}</span></div>
+                <div class="muted" style="font-size:.83rem;text-align:right">${p.kids} kid${p.kids === 1 ? '' : 's'}<br>${p.answers} answer${p.answers === 1 ? '' : 's'}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
       </div>
     </div>
   </div>`);
