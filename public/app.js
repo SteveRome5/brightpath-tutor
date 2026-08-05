@@ -5228,26 +5228,30 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
     document.addEventListener(evt, e => { e.preventDefault(); }, { passive: false });
   });
 
-  if ('serviceWorker' in navigator) {
-    // Is the user in the middle of something we must not interrupt? (kid lesson/game/overlay, or a
-    // parent actively typing in a form). If so we defer any reload until they reach a safe screen.
-    const inActivity = () => /^#\/?(lesson|teach|placement|exam|play|game|avatar|snacks|buddies|trophies)/.test(location.hash || '')
-      || !!document.querySelector('.celebrate, .lesson-wrap, .q-card, .mm-career, .frq-parts')
-      || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
+  // ── Always-fresh core ──────────────────────────────────────────────────────
+  // Is the user in the middle of something we must not interrupt? (kid lesson/game/overlay, or a
+  // parent actively typing in a form). If so we defer any reload until they reach a safe screen.
+  const inActivity = () => /^#\/?(lesson|teach|placement|exam|play|game|avatar|snacks|buddies|trophies)/.test(location.hash || '')
+    || !!document.querySelector('.celebrate, .lesson-wrap, .q-card, .mm-career, .frq-parts')
+    || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
 
+  // Safe reload: never yank someone mid-activity — wait for the next safe navigation. Shared by the
+  // service-worker update path AND the build-version watcher below.
+  let _reloading = false;
+  const applyUpdate = () => {
+    if (_reloading) return;
+    const go = () => { _reloading = true; location.reload(); };
+    if (!inActivity()) { go(); return; }
+    const onLeave = () => { if (!inActivity()) { window.removeEventListener('hashchange', onLeave); go(); } };
+    window.addEventListener('hashchange', onLeave);
+  };
+
+  if ('serviceWorker' in navigator) {
     // AUTO-UPDATE: the moment a fresh service worker takes control, reload so the app is running the
     // newest code — no "Refresh" button to hunt for. This is what keeps installed / home-screen apps
     // current. We skip the very first controller (brand-new install has nothing to refresh) and never
     // reload mid-activity — instead we wait for the next safe navigation.
     const hadControllerAtLoad = !!navigator.serviceWorker.controller;
-    let _reloading = false;
-    const applyUpdate = () => {
-      if (_reloading) return;
-      const go = () => { _reloading = true; location.reload(); };
-      if (!inActivity()) { go(); return; }
-      const onLeave = () => { if (!inActivity()) { window.removeEventListener('hashchange', onLeave); go(); } };
-      window.addEventListener('hashchange', onLeave);
-    };
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!hadControllerAtLoad) return;   // first install of the SW on this device — page is already fresh
       applyUpdate();
@@ -5265,6 +5269,39 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
       setTimeout(checkForUpdate, 3000);
     }).catch(() => {});
   }
+
+  // ── BUILD-VERSION WATCH + tiny version tag ─────────────────────────────────
+  // The service-worker path above only fires when sw.js itself changes. This watcher is the
+  // belt-and-suspenders: it remembers the build the page booted with and polls /api/version (the
+  // deployed commit). If the server is newer — even from an app-only deploy that didn't touch sw.js —
+  // it safe-reloads. That's the guarantee that NO device, trial or paying, ever runs stale code.
+  // It also renders a very small, faint build tag in the corner so the current version is visible.
+  (function versionWatch() {
+    let bootBuild = null;
+    const badge = document.createElement('div');
+    badge.id = 'ver-badge';
+    badge.title = 'Gallop build — tap to check for the latest';
+    badge.setAttribute('aria-hidden', 'true');
+    badge.style.cssText = 'position:fixed;right:4px;bottom:3px;z-index:2147482000;font:600 9px/1 ui-monospace,Menlo,Consolas,monospace;color:rgba(90,100,120,.34);letter-spacing:.02em;padding:3px 5px;pointer-events:auto;cursor:default;user-select:none;-webkit-user-select:none;background:transparent';
+    const label = (v, mark) => { badge.textContent = 'v' + (v || '…') + (mark || ''); };
+    label('');
+    const mount = () => { if (document.body && !document.getElementById('ver-badge')) document.body.appendChild(badge); };
+    mount();
+    const fetchVer = () => fetch('/api/version', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+    const check = (fromTap) => fetchVer().then(d => {
+      mount();
+      if (!d || !d.version) return;
+      if (bootBuild == null) { bootBuild = d.version; label(bootBuild); return; }
+      if (d.version !== bootBuild) { label(bootBuild, ' ⟳'); applyUpdate(); }        // newer build live → refresh
+      else if (fromTap) { label(bootBuild, ' ✓'); setTimeout(() => label(bootBuild), 1200); }
+    });
+    check();                                                    // establish the booted build + label
+    badge.addEventListener('click', () => check(true));
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+    window.addEventListener('focus', () => check());
+    window.addEventListener('online', () => check());
+    setInterval(check, 60000);                                  // steady background heartbeat
+  })();
   // COPPA email-plus: returning from the verification link (/?verified=1 or /?verify=invalid).
   const _vp = new URLSearchParams(location.search);
   if (_vp.get('verified') === '1') {
