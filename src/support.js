@@ -22,7 +22,7 @@ const aiConfigured = () => !!AI_KEY;
 // public FAQ and pricing). If an answer isn't grounded here, the model escalates.
 const KB = `GALLOP LEARNING ACADEMY — SUPPORT KNOWLEDGE BASE
 
-WHAT IT IS: Gallop is self-paced, adaptive online tutoring software for grades K-12 in four subjects: Math, English/Reading, Science, and Spanish. It teaches each concept with a short guided lesson, then adapts every practice question to the child's level. It is software, not live human tutors — nothing to schedule, no hourly rate. Operated by Lotus Farms LLC.
+WHAT IT IS: Gallop is self-paced, adaptive online tutoring software for grades K-12 in four subjects: Math, English/Reading, Science, and Spanish. It teaches each concept with a short guided lesson, then adapts every practice question to the child's level. It is software, not live human tutors — nothing to schedule, no hourly rate. Operated by Lotus Farm LLC.
 
 FREE TRIAL: The first 7 days are free and require no credit card. Parents can add children and use everything during the trial. A card is only needed to continue after the trial. If it isn't a fit, doing nothing lets the trial end with no charge.
 
