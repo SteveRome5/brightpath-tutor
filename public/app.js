@@ -5302,6 +5302,112 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
     window.addEventListener('online', () => check());
     setInterval(check, 60000);                                  // steady background heartbeat
   })();
+
+  // ── SCRATCH PAPER ──────────────────────────────────────────────────────────
+  // A pop-up pad kids can do their real work on (long addition/subtraction — carrying,
+  // borrowing, stacking digits) instead of holding it in their head. Finger, stylus, or mouse.
+  // Self-contained: lives on <body> so it survives every question re-render; a floating ✏️ button
+  // shows only on lesson/teach/placement/exam screens. Grid background helps line up place value.
+  (function scratchPad() {
+    let root = null, fab = null, canvas = null, ctx = null, open = false, drawing = false, last = null, tool = 'pen', dpr = 1;
+    const ON_LESSON = () => /^#\/?(lesson|teach|placement|exam)/.test(location.hash || '');
+    const paperBg = '#fffef7', gridImg =
+      'linear-gradient(rgba(90,120,160,.16) 1px, transparent 1px),linear-gradient(90deg, rgba(90,120,160,.16) 1px, transparent 1px)';
+
+    function build() {
+      if (root) return;
+      fab = document.createElement('button');
+      fab.id = 'scratch-fab'; fab.type = 'button'; fab.setAttribute('aria-label', 'Scratch paper'); fab.title = 'Scratch paper';
+      fab.textContent = '✏️';
+      fab.style.cssText = 'position:fixed;right:16px;bottom:74px;z-index:2147481001;width:54px;height:54px;border-radius:50%;border:none;background:#1A5C38;color:#fff;font-size:24px;box-shadow:0 4px 14px rgba(0,0,0,.28);cursor:pointer;display:none;align-items:center;justify-content:center;padding:0;line-height:1';
+      fab.onclick = () => toggle();
+      document.body.appendChild(fab);
+
+      root = document.createElement('div');
+      root.id = 'scratch-pad';
+      root.style.cssText = 'position:fixed;right:16px;bottom:74px;z-index:2147481000;width:min(360px,92vw);height:min(440px,58vh);background:#fff;border:1px solid #d9e0ea;border-radius:14px;box-shadow:0 10px 34px rgba(20,33,58,.28);display:none;flex-direction:column;overflow:hidden;touch-action:none';
+      root.innerHTML =
+        '<div class="sp-head" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#1A5C38;color:#fff;cursor:move;user-select:none;-webkit-user-select:none;touch-action:none">' +
+          '<span style="font-weight:700;font-size:14px;flex:1">✏️ Scratch paper</span>' +
+          '<button class="sp-pen sp-tool" data-tool="pen" title="Pencil" style="border:none;border-radius:8px;padding:4px 8px;font-size:16px;cursor:pointer;background:rgba(255,255,255,.9)">✏️</button>' +
+          '<button class="sp-era sp-tool" data-tool="eraser" title="Eraser" style="border:none;border-radius:8px;padding:4px 8px;font-size:16px;cursor:pointer;background:rgba(255,255,255,.35)">🧽</button>' +
+          '<button class="sp-clear" title="Clear" style="border:none;border-radius:8px;padding:4px 8px;font-size:12px;font-weight:700;cursor:pointer;background:rgba(255,255,255,.9);color:#1A5C38">Clear</button>' +
+          '<button class="sp-close" title="Close" aria-label="Close" style="border:none;border-radius:8px;padding:4px 9px;font-size:14px;cursor:pointer;background:rgba(0,0,0,.18);color:#fff">✕</button>' +
+        '</div>' +
+        '<canvas class="sp-canvas" style="flex:1;display:block;width:100%;touch-action:none;background-color:' + paperBg + ';background-image:' + gridImg + ';background-size:26px 26px;cursor:crosshair"></canvas>';
+      document.body.appendChild(root);
+      canvas = root.querySelector('.sp-canvas');
+      ctx = canvas.getContext('2d');
+
+      const pen = root.querySelector('.sp-pen'), era = root.querySelector('.sp-era');
+      const selTool = (t) => { tool = t; pen.style.background = t === 'pen' ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.35)'; era.style.background = t === 'eraser' ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.35)'; };
+      root.querySelectorAll('.sp-tool').forEach(b => b.onclick = () => selTool(b.dataset.tool));
+      root.querySelector('.sp-clear').onclick = () => { try { Sound.click(); } catch (e) {} ctx.clearRect(0, 0, canvas.width, canvas.height); };
+      root.querySelector('.sp-close').onclick = () => toggle(false);
+
+      canvas.addEventListener('pointerdown', down);
+      canvas.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+      canvas.addEventListener('pointercancel', up);
+      dragify(root.querySelector('.sp-head'));
+      window.addEventListener('resize', () => { if (open) fit(true); });
+    }
+
+    function fit(preserve) {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const r = canvas.getBoundingClientRect();
+      let snap = null;
+      if (preserve && canvas.width) { snap = document.createElement('canvas'); snap.width = canvas.width; snap.height = canvas.height; snap.getContext('2d').drawImage(canvas, 0, 0); }
+      canvas.width = Math.max(1, Math.round(r.width * dpr));
+      canvas.height = Math.max(1, Math.round(r.height * dpr));
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      if (snap) ctx.drawImage(snap, 0, 0, snap.width, snap.height, 0, 0, canvas.width, canvas.height);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function xy(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+    function down(e) { drawing = true; last = xy(e); try { canvas.setPointerCapture(e.pointerId); } catch (_) {} e.preventDefault(); stroke(last, last); }
+    function move(e) { if (!drawing) return; const p = xy(e); stroke(last, p); last = p; e.preventDefault(); }
+    function up() { drawing = false; last = null; }
+    function stroke(a, b) {
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      if (tool === 'eraser') { ctx.globalCompositeOperation = 'destination-out'; ctx.lineWidth = 24; ctx.strokeStyle = 'rgba(0,0,0,1)'; }
+      else { ctx.globalCompositeOperation = 'source-over'; ctx.lineWidth = 2.8; ctx.strokeStyle = '#15233f'; }
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x + 0.01, b.y + 0.01); ctx.stroke();
+    }
+    function dragify(handle) {
+      let sx, sy, sl, st, dragId = null;
+      handle.addEventListener('pointerdown', e => {
+        if (e.target.closest('button')) return;   // don't drag when tapping a tool button
+        dragId = e.pointerId; const r = root.getBoundingClientRect();
+        sl = r.left; st = r.top; sx = e.clientX; sy = e.clientY;
+        root.style.right = 'auto'; root.style.bottom = 'auto'; root.style.left = sl + 'px'; root.style.top = st + 'px';
+        try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+      });
+      handle.addEventListener('pointermove', e => {
+        if (dragId !== e.pointerId) return;
+        const nl = Math.max(4, Math.min(window.innerWidth - 60, sl + e.clientX - sx));
+        const nt = Math.max(4, Math.min(window.innerHeight - 40, st + e.clientY - sy));
+        root.style.left = nl + 'px'; root.style.top = nt + 'px';
+      });
+      const end = e => { if (dragId === e.pointerId) dragId = null; };
+      handle.addEventListener('pointerup', end); handle.addEventListener('pointercancel', end);
+    }
+    function toggle(force) {
+      open = (typeof force === 'boolean') ? force : !open;
+      root.style.display = open ? 'flex' : 'none';
+      fab.style.opacity = open ? '.55' : '1';
+      if (open) requestAnimationFrame(() => fit(true));
+    }
+    function sync() {
+      build();
+      const show = ON_LESSON();
+      fab.style.display = show ? 'flex' : 'none';
+      if (!show && open) toggle(false);
+    }
+    window.addEventListener('hashchange', sync);
+    sync();
+  })();
+
   // COPPA email-plus: returning from the verification link (/?verified=1 or /?verify=invalid).
   const _vp = new URLSearchParams(location.search);
   if (_vp.get('verified') === '1') {
