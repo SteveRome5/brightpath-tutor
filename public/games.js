@@ -157,8 +157,8 @@
       { id: 'oneline', emoji: '✨', name: 'One Line', desc: 'Neon one-stroke puzzles — light up the whole shape in a single gallop, never crossing the same line twice! 500 glowing levels that get trickier as you climb. Progress saves.', min: 0, max: 12 },
       { id: 'wordsearch', emoji: '🔍', name: 'Word Roundup', desc: 'Hunt hidden words in the letter jungle.', min: 0, max: 12 },
       { id: 'memory', emoji: '🃏', name: 'Memory Meadow', desc: 'Flip cards, match pairs — Spanish words, math facts & more!', min: 0, max: 12 },
-      { id: 'bakery', emoji: '🧁', name: 'Gallop Bakery', desc: 'Run the Gallop Bakery for a day — use real math to bake, price, and bank a profit!', min: 3, max: 8 },
-      { id: 'lemonade', emoji: '🍋', name: "Sunny's Lemonade Stand", desc: 'Run your own stand — buy smart, price right, bank the profit!', min: 3, max: 8 },
+      { id: 'bakery', emoji: '🧁', name: 'Gallop Bakery', desc: 'Run the Gallop Bakery for a day — use real math to bake, price, and bank a profit!', min: 2, max: 8 },
+      { id: 'lemonade', emoji: '🍋', name: "Sunny's Lemonade Stand", desc: 'Run your own stand — buy smart, price right, bank the profit!', min: 2, max: 8 },
       { id: 'art', emoji: '🎨', name: 'Doodle Barn', desc: 'A real drawing pad — smooth brushes, colors, stickers, fill, undo & fun guides!', min: 0, max: 12 }
     ];
     const games = CATALOG.filter(g => grade >= g.min && grade <= g.max);
