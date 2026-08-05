@@ -52,6 +52,29 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), webh
 
 app.use(express.json());
 app.use(cookieParser());
+
+// ---------------------------------------------------------------------------
+// BUILD VERSION — the single source of truth for "what code is live right now."
+// On Render this is the exact deployed git commit (RENDER_GIT_COMMIT); locally it
+// falls back to a content hash of the app bundle so it still changes when code does.
+// The client polls /api/version and, if the server's build differs from the one it
+// booted with, auto-refreshes — so nobody (trial or paying) ever sits on stale code.
+let BUILD_ID = (process.env.RENDER_GIT_COMMIT || '').slice(0, 7);
+if (!BUILD_ID) {
+  try {
+    const crypto = require('crypto'), fs = require('fs');
+    BUILD_ID = crypto.createHash('sha1')
+      .update(fs.readFileSync(path.join(__dirname, 'public', 'app.js')))
+      .update(fs.readFileSync(path.join(__dirname, 'public', 'games.js')))
+      .digest('hex').slice(0, 7);
+  } catch (e) { BUILD_ID = 'dev'; }
+}
+const BUILD_STARTED = new Date().toISOString();
+app.get('/api/version', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ version: BUILD_ID, startedAt: BUILD_STARTED });
+});
+
 app.use('/api', routes);
 
 // QA / staging launchpad — mounts ONLY when QA_MODE=1 and QA_KEY are set (i.e. on the
@@ -69,7 +92,11 @@ if (qa.enabled()) {
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
     const base = path.basename(filePath);
-    if (base === 'sw.js' || base === 'index.html' || base === 'manifest.json') {
+    // ALL app code + the shell must revalidate every load so no user runs a stale build.
+    // `no-cache` (not `no-store`) still lets the browser keep a copy — it just has to check
+    // with the server each time, so unchanged files come back as a cheap 304 while a changed
+    // file downloads fresh. Covers app.js, games.js, styles.css, lessons*.js, sw.js, etc.
+    if (/\.(js|css|html)$/.test(base) || base === 'manifest.json') {
       res.setHeader('Cache-Control', 'no-cache, must-revalidate');
     }
   }
