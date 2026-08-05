@@ -5353,9 +5353,13 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
       window.addEventListener('resize', () => { if (open) fit(true); });
     }
 
-    function fit(preserve) {
+    function fit(preserve, tries) {
+      tries = tries || 0;
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       const r = canvas.getBoundingClientRect();
+      // If the panel hasn't been laid out yet (0-size first frame, or opened mid-transition),
+      // wait for a real size before sizing the backing store — otherwise strokes render blurry/offset.
+      if ((r.width < 2 || r.height < 2) && tries < 30) { requestAnimationFrame(() => fit(preserve, tries + 1)); return; }
       let snap = null;
       if (preserve && canvas.width) { snap = document.createElement('canvas'); snap.width = canvas.width; snap.height = canvas.height; snap.getContext('2d').drawImage(canvas, 0, 0); }
       canvas.width = Math.max(1, Math.round(r.width * dpr));
@@ -5405,6 +5409,7 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
       if (!show && open) toggle(false);
     }
     window.addEventListener('hashchange', sync);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && open) fit(true); });
     sync();
   })();
 
