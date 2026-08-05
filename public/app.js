@@ -2248,6 +2248,16 @@ route('lesson', async (subject, mode, anchor) => {
     if (qn.passage && pwords && Voice.auto) Voice.readAlong(pwords, vlang);
     else if (Voice.auto) Voice.speak(qn.voice || qn.prompt, vlang);
     $('#hint-btn').onclick = () => { $('#hint-box').classList.add('show'); Sound.click(); };
+    // Long addition/subtraction needs real scratch work — pop the pad open the first time one
+    // shows up this lesson so kids don't do multi-digit regrouping in their head (and slip).
+    try {
+      const _p = String(qn.prompt || ''), _sn = String(qn.skillName || '').toLowerCase();
+      const _looksAddSub = /add|subtract|sum|difference|regroup|borrow|carry|column/.test(_sn);
+      const _multiDigit = /\d{2,}\s*[+\-−–]\s*\d/.test(_p) || /\d\s*[+\-−–]\s*\d{2,}/.test(_p);
+      if (subject === 'math' && (_multiDigit || (_looksAddSub && /\d{2,}/.test(_p))) && window.BP.scratchAutoOpen) {
+        window.BP.scratchAutoOpen();
+      }
+    } catch (e) {}
     // Stepping the level is never a one-way trap: whichever way the child moves, the toast
     // offers an instant Undo, and both directions are always one tap away. This is the fix
     // for "the too-tricky button stranded her and there was no way back up."
@@ -5309,7 +5319,7 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
   // Self-contained: lives on <body> so it survives every question re-render; a floating ✏️ button
   // shows only on lesson/teach/placement/exam screens. Grid background helps line up place value.
   (function scratchPad() {
-    let root = null, fab = null, canvas = null, ctx = null, open = false, drawing = false, last = null, tool = 'pen', dpr = 1;
+    let root = null, fab = null, canvas = null, ctx = null, open = false, drawing = false, last = null, tool = 'pen', dpr = 1, autoUsed = false;
     const ON_LESSON = () => /^#\/?(lesson|teach|placement|exam)/.test(location.hash || '');
     const paperBg = '#fffef7', gridImg =
       'linear-gradient(rgba(90,120,160,.16) 1px, transparent 1px),linear-gradient(90deg, rgba(90,120,160,.16) 1px, transparent 1px)';
@@ -5402,12 +5412,21 @@ window.BP = { $, app, esc, api, route, routes, navigate, topbar, wireChrome, sho
       fab.style.opacity = open ? '.55' : '1';
       if (open) requestAnimationFrame(() => fit(true));
     }
+    // Auto-open once per lesson: the FIRST long +/− problem pops the pad so she doesn't have to
+    // remember it's there. If she then closes it, it stays closed for the rest of the lesson.
+    function autoOpenOnce() {
+      build();
+      if (autoUsed) return;
+      autoUsed = true;
+      if (!open && ON_LESSON()) toggle(true);
+    }
     function sync() {
       build();
       const show = ON_LESSON();
       fab.style.display = show ? 'flex' : 'none';
-      if (!show && open) toggle(false);
+      if (!show) { if (open) toggle(false); autoUsed = false; }   // re-arm auto-open for the next lesson
     }
+    try { if (window.BP) window.BP.scratchAutoOpen = autoOpenOnce; } catch (e) {}
     window.addEventListener('hashchange', sync);
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && open) fit(true); });
     sync();
