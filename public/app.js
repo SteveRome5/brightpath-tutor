@@ -916,7 +916,7 @@ function topbar(inner = '') {
   else right = `<button class="btn ghost small" onclick="location.hash='#kid-login'">Child Login</button><button class="btn ghost small" onclick="location.hash='#login'">Parent Login</button><button class="btn sun small" onclick="window.gEv&&window.gEv({event:'primary_cta_click',cta:'header'});window.__subscribeIntent=0;location.hash='#signup'">Start free — no card</button>`;
   return `
   <div class="topbar">
-    <div class="logo" onclick="location.hash='${homeHash}'"><img src="/logo-mark.png" alt="Gallop" class="logo-img"> Gallop</div>
+    <div class="logo" onclick="location.hash='${homeHash}'"><img src="/logo-mark.png" alt="Gallop" class="logo-img"> Gallop&trade;</div>
     <div class="right">
       ${right}
       <div class="sound-wrap">
@@ -1109,7 +1109,7 @@ route('landing', async () => {
     </div>
     <nav class="section-nav" aria-label="Jump to a section">
       <div class="sn-inner">
-        <button class="sn-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top"><img src="/logo-mark.png" alt="" class="sn-logo-img">Gallop</button>
+        <button class="sn-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top"><img src="/logo-mark.png" alt="" class="sn-logo-img">Gallop&trade;</button>
         <div class="sn-links">
           <span class="sn-label" aria-hidden="true">Jump to ›</span>
           <button class="sn-link" onclick="scrollToSection('s-how')">How it works</button>
@@ -1372,7 +1372,7 @@ route('landing', async () => {
     <form class="nl-form" id="nl-form"><input type="email" id="nl-email" placeholder="you@example.com" required aria-label="Email address"><button class="btn green" type="submit">Sign me up</button></form>
     <p id="nl-done" style="display:none;font-weight:700;color:var(--brand);margin-top:8px">🎉 You're on the list!</p>
   </div>
-  <div class="site-footer">© ${new Date().getFullYear()} Lotus Farms LLC · Gallop Learning Academy · Adaptive, real-world learning for grades K–12<br>
+  <div class="site-footer">© ${new Date().getFullYear()} Lotus Farm LLC · Gallop Learning Academy · Adaptive, real-world learning for grades K–12<br>
     <a class="ig-link" href="https://instagram.com/learnwithgallop" target="_blank" rel="noopener">Follow along on Instagram at @learnwithgallop</a><br>
     <a href="/schools" style="color:inherit;opacity:.8">For Schools</a> · <a href="#standards" style="color:inherit;opacity:.8">Standards Alignment</a> · <a href="#help" style="color:inherit;opacity:.8">Help &amp; Support</a> · <a href="mailto:support@learnwithgallop.com" style="color:inherit;opacity:.8">support@learnwithgallop.com</a> · <a href="/terms" style="color:inherit;opacity:.8">Terms of Service</a> · <a href="/privacy" style="color:inherit;opacity:.8">Privacy Policy</a>
   </div>
@@ -1443,7 +1443,7 @@ function legalPage(title, bodyHTML) {
   app().innerHTML = topbar(`<div class="container" style="max-width:760px">
     <div class="card" style="line-height:1.7">
       <h2>${title}</h2>
-      <p class="muted" style="margin:6px 0 18px">Last updated: July 19, 2026 · Gallop Learning Academy is operated by Lotus Farms LLC.</p>
+      <p class="muted" style="margin:6px 0 18px">Last updated: July 19, 2026 · Gallop Learning Academy is operated by Lotus Farm LLC.</p>
       ${bodyHTML}
       <p style="margin-top:22px"><button class="btn ghost small" style="color:var(--brand);border-color:var(--brand)" onclick="location.hash='#'">← Back to home</button></p>
     </div></div>`);
