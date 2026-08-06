@@ -258,9 +258,65 @@ function sendWinback(parent, state) {
   } catch (e) { /* never throw from the scheduler */ }
 }
 
+// Mid-trial PROGRESS SNAPSHOT for kids who are actually practicing — real numbers, a proud tone,
+// a soft "keep it going" toward subscribing, and a one-line feedback ask. The core trial→paid lever
+// for active families inside the short 7-day window.
+function sendTrialProgress(parent, state, stats) {
+  try {
+    if (!parent || !parent.email || parent.email_opt_out) return;
+    if (!stats || !stats.total) return;   // only for kids with real activity
+    const first = esc((parent.name || '').split(' ')[0] || 'there');
+    const kid = esc(state && state.kidName ? state.kidName : 'your child');
+    const SUBJ = { math: 'Math', english: 'English', science: 'Science', spanish: 'Spanish', reading: 'Reading' };
+    const strong = stats.bestSubject ? (SUBJ[stats.bestSubject] || stats.bestSubject) : null;
+    const streakLine = stats.streak >= 2 ? `<p style="margin:8px 0">🔥 <b>${stats.streak}-day streak</b> — showing up is the whole game, and ${kid} is doing it.</p>` : '';
+    const strongLine = strong
+      ? `<p style="margin:8px 0">💪 Strongest so far: <b>${strong}</b> · ${stats.accuracy}% correct overall.</p>`
+      : `<p style="margin:8px 0">✅ ${stats.accuracy}% correct so far — right in the learning zone.</p>`;
+    const html = layout(`
+      <h2 style="margin:0 0 12px;color:${BRAND}">${kid}'s first days on Gallop 🐎</h2>
+      <p>Hi ${first} — a quick snapshot of what ${kid} has been up to:</p>
+      <p style="margin:14px 0 4px;font-size:20px"><b>${stats.total}</b> questions answered · <b>${stats.accuracy}%</b> correct</p>
+      ${strongLine}
+      ${streakLine}
+      <p style="margin:12px 0 0">Every one of those answers quietly retuned what came next, so ${kid} is always working right at the edge of what they can do — that's where it sticks.</p>
+      <p style="margin:12px 0 0"><b>Your free week is going fast.</b> Keep it all — the levels, streak, and badges ${kid} has built — by subscribing before the trial ends. All four subjects, cancel anytime.</p>
+      ${btn(ORIGIN + '/#parent', `See ${kid}'s full report`)}
+      <p style="margin:16px 0 0;font-size:14px;color:#5f6b7d">How's it going so far? Just hit reply and tell us — a real person reads every note.</p>
+    `, { unsubToken: unsubTokenFor(parent.id) });
+    return sendEmail({ to: parent.email, subject: `${kid}'s progress on Gallop — ${stats.total} questions in 🎯`, html, kind: 'trial_progress' });
+  } catch (e) { /* never throw from the scheduler */ }
+}
+
+// Second, warmer get-started nudge ~mid-trial for families who STILL haven't practiced. The 7-day
+// window is short, so one more gentle push before the "ending soon" ask meaningfully lifts activation.
+function sendOnboardActivate2(parent, state) {
+  try {
+    if (!parent || !parent.email || parent.email_opt_out) return;
+    const first = esc((parent.name || '').split(' ')[0] || 'there');
+    const kid = esc(state && state.kidName ? state.kidName : 'your child');
+    let subject, body;
+    if (!state || !state.hasKid) {
+      subject = `${first}, your free week is half over — let's add your child`;
+      body = `
+        <h2 style="margin:0 0 12px;color:${BRAND}">Your free week is half over, ${first} 🐎</h2>
+        <p>No child added yet — and it only takes about a minute (name, grade, a fun 4-digit PIN). The moment they're in, a short placement quiz finds their real level in Math, English, Science &amp; Spanish, and everything adapts from there.</p>
+        ${btn(ORIGIN + '/#parent', 'Add your child (60 seconds)')}`;
+    } else {
+      subject = `${first}, let's get ${kid} started before your week's up`;
+      body = `
+        <h2 style="margin:0 0 12px;color:${BRAND}">Let's get ${kid} started, ${first} 🎯</h2>
+        <p>${kid} is all set up but hasn't taken a lesson yet — and your free week is already halfway through. Ten minutes is enough to see it work: they log in with <b>your email + their PIN</b> on any device, and the placement quiz does the rest.</p>
+        ${btn(ORIGIN + '/#parent', `Start ${kid}'s first lesson`)}`;
+    }
+    const html = layout(body, { unsubToken: unsubTokenFor(parent.id) });
+    return sendEmail({ to: parent.email, subject, html, kind: 'onboard_nudge2' });
+  } catch (e) { /* never throw */ }
+}
+
 // Trial conversion + onboarding sweep (timer from server.js). Per trial account, at most one email
-// per sweep: day ~2 ACTIVATION, day ~4 VALUE, ~2 days left "ending soon", ended "reactivate",
-// then ~3 days after that a win-back + feedback ask.
+// per sweep: day ~2 ACTIVATION, day ~4 (active → PROGRESS report; inactive → 2nd get-started nudge),
+// ~2 days left "ending soon", ended "reactivate", then ~3 days after that a win-back + feedback ask.
 // Idempotent via email_log (each kind sent once per account) and throttled.
 async function trialSweep() {
   try {
@@ -308,10 +364,29 @@ async function trialSweep() {
             const ac = db.prepare('SELECT COUNT(*) AS n FROM activity_log a JOIN kids k ON a.kid_id=k.id WHERE k.parent_id=?').get(p.id);
             state.active = !!(ac && ac.n > 0);
           } catch (e) {}
-          if (daysSince >= 3.5 && sentBefore(p.email, 'onboard_activate') && !sentBefore(p.email, 'onboard_value')) {
-            await sendOnboardValue(p, state); sentSomething = true;
-          } else if (daysSince >= 1.5 && !sentBefore(p.email, 'onboard_activate')) {
+          if (daysSince >= 1.5 && !sentBefore(p.email, 'onboard_activate')) {
             await sendOnboardActivate(p, state); sentSomething = true;
+          } else if (daysSince >= 3.5 && sentBefore(p.email, 'onboard_activate')) {
+            if (state.active) {
+              // Kid is practicing → personalized progress snapshot (convert + feedback).
+              if (!sentBefore(p.email, 'trial_progress')) {
+                let stats = null;
+                try {
+                  const row = db.prepare('SELECT COUNT(*) AS n, SUM(a.correct) AS c FROM activity_log a JOIN kids k ON a.kid_id=k.id WHERE k.parent_id=?').get(p.id);
+                  const total = (row && row.n) || 0, correct = (row && row.c) || 0;
+                  let best = null;
+                  const subj = db.prepare('SELECT a.subject AS s, COUNT(*) AS n, SUM(a.correct) AS c FROM activity_log a JOIN kids k ON a.kid_id=k.id WHERE k.parent_id=? GROUP BY a.subject').all(p.id);
+                  subj.forEach(r => { const acc = r.n ? r.c / r.n : 0; if (r.n >= 5 && (!best || acc > best.acc)) best = { s: r.s, acc }; });
+                  if (!best && subj.length) { const m = subj.slice().sort((a, b) => b.n - a.n)[0]; best = { s: m.s, acc: m.n ? m.c / m.n : 0 }; }
+                  const sr = db.prepare('SELECT MAX(streak) AS ms FROM kids WHERE parent_id=?').get(p.id);
+                  stats = { total, correct, accuracy: total ? Math.round(correct / total * 100) : 0, bestSubject: best ? best.s : null, streak: (sr && sr.ms) || 0 };
+                } catch (e) {}
+                await sendTrialProgress(p, state, stats); sentSomething = true;
+              }
+            } else if (!sentBefore(p.email, 'onboard_nudge2')) {
+              // Still hasn't practiced → one more warmer get-started nudge.
+              await sendOnboardActivate2(p, state); sentSomething = true;
+            }
           }
         }
       }
@@ -566,4 +641,4 @@ function sendSupportReply(toEmail, subject, replyText) {
   } catch (e) { return { sent: false }; }
 }
 
-module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendEmailVerification, sendConsentConfirmed, sendWeeklyReport, sendTrialEnding, sendTrialEnded, sendChildSubscribeRequest, sendOnboardActivate, sendOnboardValue, sendWinback, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply, sendSchoolLead };
+module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendEmailVerification, sendConsentConfirmed, sendWeeklyReport, sendTrialEnding, sendTrialEnded, sendChildSubscribeRequest, sendOnboardActivate, sendOnboardActivate2, sendOnboardValue, sendTrialProgress, sendWinback, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply, sendSchoolLead };
