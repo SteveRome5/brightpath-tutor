@@ -5163,6 +5163,22 @@ route('admin', async () => {
             }).join('')}
           </div>
         </div>
+        ${(() => {
+          const eh = d.emailHealth || {}; const bs = eh.byStatus || {};
+          const sent = bs.sent || 0, failed = bs.failed || 0, queued = (bs.queued || 0) + (bs.sending || 0);
+          const kindLabel = { welcome_trial:'Welcome', onboard_activate:'Get-started nudge', onboard_value:'Value email', trial_progress:'Progress report', onboard_nudge2:'2nd get-started nudge', trial_ending:'Trial ending', trial_ended:'Trial ended', winback:'Win-back', weekly_report:'Weekly report', nudge:'Practice nudge', welcome_paid:'Paid welcome', email_verify:'Verify email', password_reset:'Password reset' };
+          return `<div class="card">
+          <h3>📧 Email health ${eh.provider ? '<span class="pill strength" style="float:right">Sending live ✓</span>' : '<span class="pill focus" style="float:right;background:#fde8e8;color:#a11">Not configured!</span>'}</h3>
+          <p class="muted" style="font-size:.82rem;margin:2px 0 8px">Lifecycle mail actually going out — welcome, get-started nudges, progress, trial-ending, win-back. Last 7 days.</p>
+          <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px">
+            <div><b style="font-size:1.4rem;color:#1f8a5f">${sent}</b><br><span class="muted" style="font-size:.8rem">sent (7d)</span></div>
+            <div><b style="font-size:1.4rem;color:${failed ? '#c0392b' : '#5f6b7d'}">${failed}</b><br><span class="muted" style="font-size:.8rem">failed (7d)</span></div>
+            <div><b style="font-size:1.4rem;color:${queued ? '#7a5b00' : '#5f6b7d'}">${queued}</b><br><span class="muted" style="font-size:.8rem">queued/pending</span></div>
+            <div><b style="font-size:1.4rem">${eh.last24 || 0}</b><br><span class="muted" style="font-size:.8rem">last 24h</span></div>
+          </div>
+          ${(eh.byKind && eh.byKind.length) ? `<div style="margin-top:4px">${eh.byKind.map(k => `<div class="kid-row" style="font-size:.83rem;padding:4px 0"><span style="flex:1">${esc(kindLabel[k.kind] || k.kind)}</span><span class="muted">${k.sent}/${k.n} sent${k.failed ? ` · <span style="color:#c0392b">${k.failed} failed</span>` : ''}</span></div>`).join('')}</div>` : '<p class="muted">No emails logged yet.</p>'}
+          ${(eh.failures && eh.failures.length) ? `<details style="margin-top:8px"><summary style="cursor:pointer;color:#c0392b;font-size:.85rem">⚠ ${eh.failures.length} failed/queued — details</summary><div style="margin-top:6px">${eh.failures.map(f => `<div class="muted" style="font-size:.78rem">${esc(f.kind)} → ${esc(f.to_email)} · ${esc((f.detail || f.status || '').slice(0,80))}</div>`).join('')}</div></details>` : '<p class="muted" style="font-size:.82rem;margin-top:6px">✓ No failures.</p>'}
+        </div>`; })()}
       </div>
     </div>
   </div>`);
