@@ -26,6 +26,11 @@ const ORIGIN = process.env.APP_ORIGIN || 'https://learnwithgallop.com';
 
 const configured = () => !!KEY;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+// Internal dev/QA accounts must NEVER be emailed — their fake domains (example.com, test.com…)
+// are rejected by the provider with a 422, and the retry loop then hammers them forever. Every
+// automated sweep filters them out, in SQL (NOT_TEST_EMAIL) or in JS (isTestEmail).
+const NOT_TEST_EMAIL = "email NOT LIKE '%@example.com' AND email NOT LIKE '%@example.org' AND email NOT LIKE '%@example.net' AND email NOT LIKE '%@test.com' AND email NOT LIKE '%@t.com' AND email NOT LIKE '%@gallop-test.com' AND email NOT LIKE '%@gallop.test'";
+const isTestEmail = (e) => /@(example\.(com|org|net)|test\.com|t\.com|gallop-test\.com|gallop\.test)$/i.test(String(e || ''));
 // Bulk sends must stay under Resend's 10 requests/second cap, or the whole batch 429s and
 // fails silently. ~180ms between sends ≈ 5-6/sec leaves headroom.
 const SEND_GAP_MS = 180;
@@ -321,8 +326,10 @@ function sendOnboardActivate2(parent, state) {
 async function trialSweep() {
   try {
     const { isComp } = require('./auth');
-    const parents = db.prepare("SELECT * FROM parents WHERE sub_status='trial' AND COALESCE(email_opt_out,0)=0 AND trial_ends IS NOT NULL").all();
-    const sentBefore = (email, kind) => !!db.prepare("SELECT 1 FROM email_log WHERE to_email=? AND kind=? AND status='sent' LIMIT 1").get(email, kind);
+    const parents = db.prepare(`SELECT * FROM parents WHERE sub_status='trial' AND COALESCE(email_opt_out,0)=0 AND trial_ends IS NOT NULL AND ${NOT_TEST_EMAIL}`).all();
+    // "Handled" = already sent OR attempted 3+ times — so an undeliverable address (a bad domain
+    // returning a 422, say) stops after a few tries instead of being retried every sweep forever.
+    const sentBefore = (email, kind) => { const r = db.prepare("SELECT COALESCE(SUM(status='sent'),0) AS s, COUNT(*) AS n FROM email_log WHERE to_email=? AND kind=?").get(email, kind); return !!(r && (r.s > 0 || r.n >= 3)); };
     for (const p of parents) {
       if (isComp(p)) continue;   // comp/founder accounts never expire, so never nudge them to subscribe
       let ends;
@@ -523,6 +530,7 @@ async function nudgeSweep() {
       if (k.last_nudge_at && Date.parse(k.last_nudge_at.replace(' ', 'T') + 'Z') > Date.parse(anchor.replace(' ', 'T') + 'Z')) continue; // already nudged this lapse
       const parent = db.prepare('SELECT * FROM parents WHERE id=?').get(k.parent_id);
       if (!parent || parent.email_opt_out) continue;
+      if (isTestEmail(parent.email)) continue;   // never email internal test/QA accounts
       if (parent.sub_status !== 'active' && parent.sub_status !== 'trial') continue; // don't nudge lapsed/canceled accounts
       // Send first; only record the nudge if it actually went out, so a failed send retries
       // next run instead of silently burning this lapse's one nudge.
@@ -544,7 +552,7 @@ const REPORT_SUBJECTS = [['math', 'Math'], ['english', 'English'], ['science', '
 async function weeklyReportSweep() {
   try {
     const content = require('./content');
-    const parents = db.prepare(`SELECT * FROM parents WHERE (sub_status='active' OR sub_status='trial') AND COALESCE(email_opt_out,0)=0`).all();
+    const parents = db.prepare(`SELECT * FROM parents WHERE (sub_status='active' OR sub_status='trial') AND COALESCE(email_opt_out,0)=0 AND ${NOT_TEST_EMAIL}`).all();
     for (const p of parents) {
       // Only a *successfully sent* report counts as "already sent" — a prior failure should retry.
       const already = db.prepare(`SELECT 1 FROM email_log WHERE to_email=? AND kind='weekly_report' AND status='sent' AND created_at > datetime('now','-6 days') LIMIT 1`).get(p.email);
