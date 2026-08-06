@@ -64,28 +64,42 @@ const btn = (href, label) => `<div style="text-align:center;margin:22px 0 6px"><
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // ---------- transport ----------
-function sendEmail({ to, subject, html, kind = 'generic' }) {
+// GLOBAL SEND GATE — serialize the actual Resend API calls with a minimum gap so NO burst,
+// even several sweeps firing at once, can exceed the provider's ~10 req/sec cap. Exceeding it
+// returns 429 "rate_limit_exceeded" and silently drops real recipients. ~140ms ≈ 7/sec, safely
+// under the limit. Every send in the app funnels through here, so throttling is automatic.
+let _gate = Promise.resolve(), _lastSend = 0;
+function sendGate() {
+  _gate = _gate.then(async () => { const w = 140 - (Date.now() - _lastSend); if (w > 0) await sleep(w); _lastSend = Date.now(); });
+  return _gate;
+}
+function postResend(payload) {
   return new Promise((resolve) => {
-    let logId = null;
-    try { logId = db.prepare('INSERT INTO email_log (to_email, kind, subject, status) VALUES (?,?,?,?)').run(to, kind, subject, KEY ? 'sending' : 'queued').lastInsertRowid; } catch (e) {}
-    if (!KEY) return resolve({ queued: true });
-    const payload = JSON.stringify({ from: FROM, to: [to], reply_to: REPLY_TO, subject, html });
     const req = https.request({
       hostname: 'api.resend.com', path: '/emails', method: 'POST',
       headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
       timeout: 15000
-    }, resp => {
-      let d = ''; resp.on('data', c => d += c);
-      resp.on('end', () => {
-        const ok = resp.statusCode >= 200 && resp.statusCode < 300;
-        try { if (logId) db.prepare('UPDATE email_log SET status=?, detail=? WHERE id=?').run(ok ? 'sent' : 'failed', ok ? null : `HTTP ${resp.statusCode}: ${d.slice(0, 300)}`, logId); } catch (e) {}
-        resolve({ sent: ok });
-      });
-    });
-    req.on('error', err => { try { if (logId) db.prepare('UPDATE email_log SET status=?, detail=? WHERE id=?').run('failed', String(err).slice(0, 300), logId); } catch (e) {} resolve({ sent: false }); });
+    }, resp => { let d = ''; resp.on('data', c => d += c); resp.on('end', () => resolve({ status: resp.statusCode, body: d })); });
+    req.on('error', err => resolve({ status: 0, body: String(err) }));
     req.on('timeout', () => req.destroy(new Error('timeout')));
     req.write(payload); req.end();
   });
+}
+async function sendEmail({ to, subject, html, kind = 'generic' }) {
+  let logId = null;
+  try { logId = db.prepare('INSERT INTO email_log (to_email, kind, subject, status) VALUES (?,?,?,?)').run(to, kind, subject, KEY ? 'sending' : 'queued').lastInsertRowid; } catch (e) {}
+  if (!KEY) return { queued: true };
+  const payload = JSON.stringify({ from: FROM, to: [to], reply_to: REPLY_TO, subject, html });
+  let r = { status: 0, body: '' };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await sendGate();                       // never call the API faster than the gate allows
+    r = await postResend(payload);
+    if (r.status !== 429) break;            // only a rate-limit is worth waiting out
+    await sleep(1200 + attempt * 800);      // brief backoff, then one more attempt
+  }
+  const ok = r.status >= 200 && r.status < 300;
+  try { if (logId) db.prepare('UPDATE email_log SET status=?, detail=? WHERE id=?').run(ok ? 'sent' : 'failed', ok ? null : `HTTP ${r.status}: ${String(r.body).slice(0, 300)}`, logId); } catch (e) {}
+  return { sent: ok };
 }
 
 // ---------- lifecycle emails ----------
