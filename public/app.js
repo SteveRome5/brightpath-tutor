@@ -5166,9 +5166,12 @@ route('admin', async () => {
         ${(() => {
           const eh = d.emailHealth || {}; const bs = eh.byStatus || {};
           const sent = bs.sent || 0, failed = bs.failed || 0, queued = (bs.queued || 0) + (bs.sending || 0);
+          const badge = !eh.provider ? '<span class="pill focus" style="float:right;background:#fde8e8;color:#a11">Not configured!</span>'
+            : (failed > 0 && failed >= sent) ? '<span class="pill" style="float:right;background:#fdeccb;color:#7a5b00">⚠ delivery issues</span>'
+            : '<span class="pill strength" style="float:right">Sending live ✓</span>';
           const kindLabel = { welcome_trial:'Welcome', onboard_activate:'Get-started nudge', onboard_value:'Value email', trial_progress:'Progress report', onboard_nudge2:'2nd get-started nudge', trial_ending:'Trial ending', trial_ended:'Trial ended', winback:'Win-back', weekly_report:'Weekly report', nudge:'Practice nudge', welcome_paid:'Paid welcome', email_verify:'Verify email', password_reset:'Password reset' };
           return `<div class="card">
-          <h3>📧 Email health ${eh.provider ? '<span class="pill strength" style="float:right">Sending live ✓</span>' : '<span class="pill focus" style="float:right;background:#fde8e8;color:#a11">Not configured!</span>'}</h3>
+          <h3>📧 Email health ${badge}</h3>
           <p class="muted" style="font-size:.82rem;margin:2px 0 8px">Lifecycle mail actually going out — welcome, get-started nudges, progress, trial-ending, win-back. Last 7 days.</p>
           <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px">
             <div><b style="font-size:1.4rem;color:#1f8a5f">${sent}</b><br><span class="muted" style="font-size:.8rem">sent (7d)</span></div>
