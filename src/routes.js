@@ -1097,7 +1097,18 @@ router.get('/admin/overview', auth.requireAdmin, (req, res) => {
     WHERE ${pNot.replace(/^id/, 'p.id')} AND p.sub_status='trial' AND p.trial_ends IS NOT NULL
       AND p.trial_ends < datetime('now')
     ORDER BY p.trial_ends DESC LIMIT 60`).all();
-  res.json({ totals, byStatus, mrr, signups, recent, gradeBands, expiredTrials });
+  // Email health — proof the lifecycle mail is actually going out (welcome, get-started nudges,
+  // progress, trial-ending, win-back). Surfaces sends by status/kind over the last 7 days, plus
+  // any failures, so a broken key or a bounce spike is visible at a glance.
+  let emailHealth = { provider: !!process.env.RESEND_API_KEY, byStatus: {}, last24: 0, byKind: [], failures: [], recent: [] };
+  try {
+    emailHealth.byStatus = Object.fromEntries(db.prepare("SELECT status, COUNT(*) AS n FROM email_log WHERE created_at >= datetime('now','-7 days') GROUP BY status").all().map(r => [r.status, r.n]));
+    emailHealth.last24 = db.prepare("SELECT COUNT(*) AS n FROM email_log WHERE created_at >= datetime('now','-1 day')").get().n;
+    emailHealth.byKind = db.prepare("SELECT kind, COUNT(*) AS n, SUM(CASE WHEN status='sent' THEN 1 ELSE 0 END) AS sent, SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed FROM email_log WHERE created_at >= datetime('now','-30 days') GROUP BY kind ORDER BY n DESC").all();
+    emailHealth.failures = db.prepare("SELECT kind, to_email, created_at, detail FROM email_log WHERE status IN ('failed','queued') ORDER BY id DESC LIMIT 10").all();
+    emailHealth.recent = db.prepare("SELECT kind, status, to_email, created_at FROM email_log ORDER BY id DESC LIMIT 12").all();
+  } catch (e) { emailHealth.error = e.message; }
+  res.json({ totals, byStatus, mrr, signups, recent, gradeBands, expiredTrials, emailHealth });
 });
 
 // CSV export of real families (admin)
