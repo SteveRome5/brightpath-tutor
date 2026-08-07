@@ -5110,6 +5110,22 @@ route('admin', async () => {
           ${d.signups.length ? `<svg viewBox="0 0 480 80" style="width:100%;height:auto" role="img" aria-label="Signups per day over the last 14 days: ${d.signups.map(x => x.d.slice(5) + ' ' + x.n).join(', ')}.">${d.signups.map((x, i) => `<g><rect x="${i * 34 + 4}" y="${62 - Math.round(x.n / maxSign * 55)}" width="26" height="${Math.max(3, Math.round(x.n / maxSign * 55))}" rx="4" fill="#1f8a5f"/><text x="${i * 34 + 17}" y="76" font-size="8" text-anchor="middle" fill="#98a0af">${x.d.slice(5)}</text></g>`).join('')}</svg>` : '<p class="muted">No signups in the last 14 days.</p>'}
         </div>
         <div class="card">
+          <h3>🚦 Activation funnel</h3>
+          ${d.funnel ? (() => {
+            const f = d.funnel, base = Math.max(1, f.signups);
+            const steps = [['Signed up', f.signups], ['Confirmed email', f.verified], ['Added a child', f.addedChild], ['Did real work', f.activated], ['Paying', f.paying]];
+            return `<p class="muted" style="margin:0 0 10px;font-size:.78rem">Where families drop off, first step to last. The widest gaps are your best opportunities.</p>
+            <div style="display:flex;flex-direction:column;gap:7px">
+            ${steps.map((s, i) => {
+              const pct = Math.round(s[1] / base * 100);
+              const drop = i > 0 ? steps[i - 1][1] - s[1] : 0;
+              return `<div class="kid-row" style="font-size:.84rem"><b style="min-width:118px">${s[0]}</b><span class="sk-bar" style="flex:1"><span class="sk-fill ${i === steps.length - 1 ? 'hi' : ''}" style="width:${pct}%;background:${i === steps.length - 1 ? '#1f8a5f' : '#6C5CE7'}"></span></span><span class="muted" style="min-width:96px;text-align:right">${s[1]} · ${pct}%${drop > 0 ? ` <span style="color:#c0392b">−${drop}</span>` : ''}</span></div>`;
+            }).join('')}
+            </div>
+            ${f.stuckUnverified > 0 ? `<p style="margin:12px 0 0;font-size:.82rem;background:#fff5e6;border:1px solid #f0d9a8;border-radius:8px;padding:9px 11px"><b>${f.stuckUnverified}</b> trial ${f.stuckUnverified === 1 ? 'family is' : 'families are'} stuck unverified — they <i>can't</i> add a child until they confirm their email. The new verify-reminder email targets exactly these.</p>` : ''}`;
+          })() : '<p class="muted">No funnel data yet.</p>'}
+        </div>
+        <div class="card">
           <h3>🎯 Where families come from</h3>
           ${(d.bySource && d.bySource.length) ? `
           <p class="muted" style="margin:0 0 10px;font-size:.78rem">First-touch source → how many <b>joined</b>, how many <b>activated</b> (a child did real work), and how many <b>pay</b>. Bar shows activation. Brand-new tracking — accounts from before it shipped show as “Unknown”.</p>
