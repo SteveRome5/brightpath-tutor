@@ -3366,6 +3366,34 @@ route('report', async (kidId) => {
   </div>`);
   wireChrome();
   document.querySelectorAll('[data-cert]').forEach(el => el.onclick = () => { Sound.click(); location.hash = `#certificate/${kidId}/${el.dataset.cert}`; });
+  // Optional Money Skills course — a read-only parent view of what the child has explored.
+  // Only shown when there's progress, so it never clutters the report for families not using it.
+  if (isParent) {
+    (async () => {
+      try {
+        const mp = await api(`/family/money/${kidId}`);
+        const done = (mp && mp.done) || {};
+        const ids = Object.keys(done);
+        if (!ids.length) return;
+        const TOT = { sprouts: 8, growers: 9, builders: 10, trailblazers: 9 };
+        const META = { sprouts: { l: 'Money Sprouts', e: '🌱', g: 'K–2' }, growers: { l: 'Money Growers', e: '🌿', g: '3–5' }, builders: { l: 'Money Builders', e: '🏗️', g: '6–8' }, trailblazers: { l: 'Money Trailblazers', e: '🚀', g: '9–12' } };
+        const byBand = {};
+        ids.forEach(id => { const v = done[id]; const band = v && v.band; if (band) byBand[band] = (byBand[band] || 0) + 1; });
+        const rows = Object.keys(META).map(bid => {
+          const n = byBand[bid] || 0, t = TOT[bid] || 0; if (!n) return '';
+          return `<div class="kid-row" style="font-size:.9rem"><span>${META[bid].e} ${META[bid].l} <span class="muted">(${META[bid].g})</span></span><span style="margin-left:auto">${n}/${t}${n >= t ? ' <span class="pill strength">🏅 certificate earned</span>' : ''}</span></div>`;
+        }).join('');
+        const titles = ids.map(id => done[id]).filter(v => v && v.t).sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 6).map(v => esc(v.t));
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<h3>💰 Money Skills <span class="muted" style="font-weight:400;font-size:.85rem">· optional bonus course</span></h3>
+          <p class="muted" style="margin:4px 0 10px">${esc(k.name)} has explored <b>${ids.length} of 36</b> money lessons on their own. It's a bonus track — it doesn't affect the Gallop Score.</p>
+          ${rows}
+          ${titles.length ? `<p class="muted" style="font-size:.82rem;margin-top:10px">Recently completed: ${titles.join(' · ')}</p>` : ''}`;
+        const cont = document.querySelector('.container'); if (cont) cont.appendChild(card);
+      } catch (e) { /* non-critical — never break the report */ }
+    })();
+  }
   document.querySelectorAll('[data-retake]').forEach(b => b.onclick = async () => {
     const sub = b.dataset.retake;
     if (!confirm(`Retake the ${sub} placement quiz? ${esc(k.name)} re-does the short assessment next time they open ${sub} — have them answer carefully and not rush, since it re-checks their starting level. Progress, badges, and any grade they've already mastered are kept.`)) return;

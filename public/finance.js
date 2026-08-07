@@ -222,6 +222,7 @@
     {
       id: 'investing', band: 'trailblazers', emoji: '🧭', title: 'Investing: Owning a Piece',
       blurb: 'How money can work while you sleep.',
+      sim: 'diversify',
       steps: [
         { t: 'A stock is a slice of a company', b: 'When you buy a stock, you own a tiny piece of a real company. If the company grows and earns more, your slice can become worth more. Investors put money in hoping it grows faster than a savings account.' },
         { t: 'Return comes with risk', b: 'Investments can go UP or DOWN. Higher potential reward usually means higher risk. The key skill is managing risk — never investing money you need soon, and not betting everything on one company.', tip: 'Diversify: spread money across many investments so one bad pick can’t sink you.' },
@@ -337,6 +338,7 @@
     {
       id: 'inflation', band: 'builders', emoji: '🎈', title: 'Inflation',
       blurb: 'Why a dollar buys less over time.',
+      sim: 'inflation',
       steps: [
         { t: 'Prices tend to rise over time', b: 'Inflation means prices slowly go up year after year. Your grandparents may have paid a nickel for candy that costs a dollar now. The same money buys less than it used to.' },
         { t: 'It quietly shrinks saved cash', b: 'If prices rise about 3% a year, $100 stuffed under a mattress still says $100 — but it BUYS about 3% less each year. Cash slowly loses power. That’s a big reason people invest instead of only holding cash.', tip: 'Money doing nothing slowly loses value to inflation. Money invested can outrun it.' },
@@ -545,6 +547,7 @@
   }
   const isDone = id => !!(PROG.done && PROG.done[id]);
   const bandDone = bid => unitsInBand(bid).filter(u => isDone(u.id)).length;
+  const bandComplete = bid => { const us = unitsInBand(bid); return us.length > 0 && us.every(u => isDone(u.id)); };
 
   // The band that matches the child's grade — shown first and highlighted.
   function homeBand() {
@@ -578,6 +581,7 @@
             <span class="muted" style="font-size:.82rem">${esc(u.blurb)}</span>
           </div>`).join('')}
         </div>
+        ${dn === us.length && us.length ? `<div style="margin-top:12px;text-align:center"><button class="btn sun small fin-cert-btn" data-band="${b.id}">🏅 View your ${esc(b.label)} certificate →</button></div>` : ''}
       </div>`;
     };
     app().innerHTML = topbar(`<div class="container" style="max-width:900px">
@@ -599,6 +603,7 @@
       el.onclick = go;
       el.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
     });
+    document.querySelectorAll('.fin-cert-btn').forEach(el => el.onclick = () => { location.hash = '#money-cert/' + el.dataset.band; });
   });
 
   // ======================= Single unit: teach → check → done =======================
@@ -727,6 +732,35 @@
         };
         ['i-price', 'i-cups'].forEach(id => document.getElementById(id).addEventListener('input', calc)); calc();
 
+      } else if (u.sim === 'inflation') {
+        wrap(`
+          <p style="margin:0 0 6px">Watch what <b>$100 in cash</b> can buy as prices slowly rise (about 3% a year):</p>
+          <label>Years from now: <b id="s-yrs">20</b></label>
+          <input type="range" id="i-yrs" min="0" max="40" step="1" value="20" style="${sty}">
+          <div id="s-out" style="${outBox}"></div>`);
+        const calc = () => {
+          const y = +document.getElementById('i-yrs').value, r = 0.03;
+          const buys = 100 / Math.pow(1 + r, y), needed = 100 * Math.pow(1 + r, y);
+          document.getElementById('s-yrs').textContent = y;
+          document.getElementById('s-out').innerHTML = y === 0
+            ? `Right now, <b style="font-size:1.5rem;color:${b.color}">$100</b> buys $100 of stuff.<br><span class="muted">Slide forward and watch inflation nibble away at it.</span>`
+            : `Your $100 in cash would buy only <b style="font-size:1.5rem;color:#c0392b">${money(buys)}</b> of today’s stuff.<br><span class="muted">To buy what $100 buys today, you’d need <b>${money(needed)}</b>. That’s why cash sitting still loses to inflation — and why people invest.</span>`;
+        };
+        document.getElementById('i-yrs').addEventListener('input', calc); calc();
+
+      } else if (u.sim === 'diversify') {
+        wrap(`
+          <p style="margin:0 0 6px">You invest <b>$100</b>, split evenly across some companies. Then <b>one goes bust</b>:</p>
+          <label>Number of companies: <b id="s-n">1</b></label>
+          <input type="range" id="i-n" min="1" max="10" step="1" value="1" style="${sty}">
+          <div id="s-out" style="${outBox}"></div>`);
+        const calc = () => {
+          const n = +document.getElementById('i-n').value, lost = 100 / n;
+          document.getElementById('s-n').textContent = n;
+          document.getElementById('s-out').innerHTML = `If one company fails, you lose <b style="font-size:1.5rem;color:${lost >= 50 ? '#c0392b' : b.color}">${money(lost)}</b> (${Math.round(lost)}%).<br><span class="muted">${n === 1 ? 'Everything’s in one company — a single disaster wipes you out!' : 'Spread across ' + n + ', one failure costs just ' + money(lost) + '. That’s diversification — don’t put all your eggs in one basket.'}</span>`;
+        };
+        document.getElementById('i-n').addEventListener('input', calc); calc();
+
       } else { phase = 'quiz'; quizI = 0; renderQuiz(); return; }
 
       const d = document.getElementById('fin-simdone'); if (d) d.onclick = () => { phase = 'quiz'; quizI = 0; renderQuiz(); };
@@ -761,27 +795,63 @@
     }
 
     async function finish() {
-      const firstTime = !isDone(u.id);
-      PROG.done[u.id] = true;
+      // Store a rich record (title + band + time) so the child's certificate and the parent's
+      // progress view can show real detail. Old boolean records stay truthy, so nothing breaks.
+      PROG.done[u.id] = { t: u.title, band: u.band, at: Date.now() };
       await saveProgress();
       if (Confetti && Confetti.burst) Confetti.burst(140);
+      const justFinishedBand = bandComplete(u.band);
       const nextU = UNITS.find(x => !isDone(x.id));
       shell(`
         <div style="text-align:center;padding:10px 0">
           <div style="font-size:2.4rem">🎉</div>
           <h3 style="margin:8px 0">Lesson complete!</h3>
           <p class="muted">${quizWrong === 0 ? 'Perfect — you nailed every question.' : 'Nice work — you’ve got the idea.'} You just learned something most adults were never taught.</p>
+          ${justFinishedBand ? `<div style="margin:16px 0;background:#fff8e6;border:1px solid #f0d9a8;border-radius:12px;padding:16px"><div style="font-size:2rem">🏅</div><b>You finished the ${esc(bandOf(u.band).label)} course!</b><div style="margin-top:10px"><button class="btn sun" id="fin-cert">View your certificate →</button></div></div>` : ''}
           ${u.apply ? `<div style="margin:14px 0"><button class="btn sun" id="fin-apply">${esc(u.apply.label)}</button><p class="muted" style="font-size:.8rem;margin:6px 0 0">Learn it, then live it in The Lab.</p></div>` : ''}
           <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px">
             ${nextU ? `<button class="btn green" id="fin-nextu">Next lesson: ${esc(nextU.title)} →</button>` : ''}
             <button class="btn ghost" id="fin-hub">Back to Money Skills</button>
           </div>
         </div>`);
+      const ct = document.getElementById('fin-cert'); if (ct) ct.onclick = () => location.hash = '#money-cert/' + u.band;
       const ap = document.getElementById('fin-apply'); if (ap && u.apply) ap.onclick = () => location.hash = u.apply.hash;
       const nu = document.getElementById('fin-nextu'); if (nu && nextU) nu.onclick = () => location.hash = '#money-unit/' + nextU.id;
       const hb = document.getElementById('fin-hub'); if (hb) hb.onclick = () => location.hash = '#money';
     }
 
     renderLearn();
+  });
+
+  // ======================= Band completion certificate =======================
+  route('money-cert', async (bandId) => {
+    if (State.me.role !== 'kid') { location.hash = '#home'; return; }
+    const b = BANDS.find(x => x.id === bandId); if (!b) { location.hash = '#money'; return; }
+    await loadProgress();
+    const nm = esc(kid().name || 'A Gallop learner');
+    const dateStr = (() => { try { return new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }); } catch (e) { return ''; } })();
+    const count = unitsInBand(b.id).length;
+    app().innerHTML = topbar(`<div class="container" style="max-width:720px">
+      <div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn ghost small" id="c-back">← Money Skills</button></div>
+      <div id="cert" style="background:linear-gradient(135deg,#fffdf5,#fff);border:3px double ${b.color};border-radius:16px;padding:34px 28px;text-align:center;box-shadow:0 14px 34px -20px rgba(0,0,0,.4)">
+        <div style="font-size:2.6rem">🏅</div>
+        <div style="letter-spacing:3px;font-size:.78rem;color:${b.color};font-weight:700;margin-top:6px">CERTIFICATE OF COMPLETION</div>
+        <h1 style="margin:10px 0 2px;font-size:1.8rem">${b.emoji} ${esc(b.label)}</h1>
+        <p class="muted" style="margin:0 0 18px;font-size:.85rem">Gallop Money Skills · Grades ${b.grades}</p>
+        <p style="margin:0">This certifies that</p>
+        <div style="font-size:1.9rem;font-weight:800;color:${b.color};margin:6px 0">${nm}</div>
+        <p style="max-width:470px;margin:0 auto">has completed all ${count} lessons of the ${esc(b.label)} money-skills course — learning real money smarts most kids never get taught. 🎉</p>
+        <div style="margin-top:22px;display:flex;justify-content:space-between;align-items:flex-end;max-width:420px;margin-left:auto;margin-right:auto">
+          <div style="text-align:center"><div style="font-size:1.1rem">🐎 Gallop</div><div style="border-top:1px solid #bbb;font-size:.7rem;color:#888;padding-top:2px">Gallop Learning Academy</div></div>
+          <div style="text-align:center"><div style="font-size:.95rem">${dateStr}</div><div style="border-top:1px solid #bbb;font-size:.7rem;color:#888;padding-top:2px">Date</div></div>
+        </div>
+      </div>
+      <div style="text-align:center;margin:16px 0"><button class="btn green" id="c-print">🖨️ Print / save</button> <button class="btn ghost" id="c-hub">Back to Money Skills</button></div>
+    </div>`);
+    wireChrome();
+    const bk = document.getElementById('c-back'); if (bk) bk.onclick = () => location.hash = '#money';
+    const hb = document.getElementById('c-hub'); if (hb) hb.onclick = () => location.hash = '#money';
+    const pr = document.getElementById('c-print'); if (pr) pr.onclick = () => window.print();
+    if (Confetti && Confetti.burst) Confetti.burst(180);
   });
 })();
