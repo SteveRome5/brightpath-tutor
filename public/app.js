@@ -1811,6 +1811,21 @@ route('home', async () => {
   const kidId = State.me.role === 'kid' ? State.me.kid.id : null;
   if (!kidId) { location.hash = '#parent'; return; }
   const data = await api(`/learn/${kidId}/overview`);
+  // First-session auto-start (activation): a child who has never done ANY work lands on this menu
+  // and very often stalls here — it's our single biggest activation leak (kids added, never start).
+  // Send a never-started child straight to question one of placement instead. Guarded to fire at
+  // most once per browser session, so if they back out of placement the menu behaves normally after.
+  try {
+    const subs = data.subjects || [];
+    const neverStarted = subs.length > 0 && subs.every(s => !s.placed) && !(data.kid && data.kid.xp > 0);
+    const seenKey = 'bp_firststart_' + kidId;
+    if (neverStarted && !sessionStorage.getItem(seenKey)) {
+      sessionStorage.setItem(seenKey, '1');
+      const firstSub = (data.recommended && data.recommended.subject) || (subs[0] && subs[0].subject) || 'math';
+      location.hash = '#placement/' + firstSub;
+      return;
+    }
+  } catch (e) { /* never let the auto-start guard break the home screen */ }
   let quests = null;
   try { quests = await api(`/learn/${kidId}/quests`); } catch (e) { /* non-critical */ }
   let assigns = null;
@@ -4478,10 +4493,11 @@ route('parent', async () => {
     const div = document.createElement('div');
     div.className = 'celebrate';
     div.innerHTML = `<img src="/logo-roundel.png" alt="" style="width:110px;height:110px"><h2>Time to Gallop!</h2>
-      <p style="font-size:1.15rem;max-width:440px">${esc(kidName)} is all set up. The first stop in each subject is a short placement quiz that finds the right starting level for ${esc(kidName)}.</p>
-      <button class="btn sun" id="tg-go" style="margin-top:6px">Start Learning as ${esc(kidName)} →</button>
-      <button class="btn ghost" id="tg-later" style="margin-top:10px">I'll explore the dashboard first</button>`;
-    div.querySelector('#tg-go').onclick = () => { div.remove(); enterKid(kidId, '#home'); };
+      <p style="font-size:1.15rem;max-width:440px">${esc(kidName)} is all set up. Let's find their level — the first quiz takes just a few minutes and starts right now. 🐎</p>
+      <button class="btn sun" id="tg-go" style="margin-top:6px">Start ${esc(kidName)}'s first quiz →</button>
+      <button class="btn ghost" id="tg-later" style="margin-top:10px">Maybe later</button>`;
+    // Land the child on question ONE of placement, not the home menu — the menu is where new kids stall.
+    div.querySelector('#tg-go').onclick = () => { div.remove(); try { sessionStorage.setItem('bp_firststart_' + kidId, '1'); } catch (e) {} enterKid(kidId, '#placement/math'); };
     div.querySelector('#tg-later').onclick = () => { div.remove(); navigate(); };
     document.body.appendChild(div);
   }
