@@ -1122,6 +1122,18 @@ router.get('/admin/overview', auth.requireAdmin, (req, res) => {
   // (added a child who did at least one question), and how many convert to PAYING. This is the
   // paid-vs-organic view — and, more useful, it shows which sources send buyers vs window-shoppers.
   // 'Unknown' = accounts created before attribution shipped (no source was ever recorded).
+  // Activation funnel: the drop-off from "signed up" to "paying", so the biggest leak is obvious.
+  // verified→addedChild is gated by COPPA email confirmation; addedChild→activated is the child
+  // actually doing work. 'stuckUnverified' = trial accounts that never confirmed their email and
+  // therefore CANNOT add a child — a pure plumbing leak worth attacking first.
+  const funnel = {
+    signups: totals.parents,
+    verified: g(`SELECT COUNT(*) AS n FROM parents WHERE ${pNot} AND email_verified=1`).n,
+    addedChild: g(`SELECT COUNT(*) AS n FROM parents p WHERE ${pNot.replace(/^id/, 'p.id')} AND EXISTS(SELECT 1 FROM kids k WHERE k.parent_id=p.id)`).n,
+    activated: g(`SELECT COUNT(*) AS n FROM parents p WHERE ${pNot.replace(/^id/, 'p.id')} AND EXISTS(SELECT 1 FROM kids k JOIN activity_log a ON a.kid_id=k.id WHERE k.parent_id=p.id)`).n,
+    paying: g(`SELECT COUNT(*) AS n FROM parents WHERE ${pNot} AND sub_status='active'`).n,
+    stuckUnverified: g(`SELECT COUNT(*) AS n FROM parents WHERE ${pNot} AND sub_status='trial' AND COALESCE(email_verified,0)=0`).n
+  };
   const bySource = db.prepare(`SELECT COALESCE(p.acq_channel,'Unknown') AS channel,
       COUNT(*) AS signups,
       SUM(CASE WHEN p.sub_status='active' THEN 1 ELSE 0 END) AS paying,
@@ -1156,7 +1168,7 @@ router.get('/admin/overview', auth.requireAdmin, (req, res) => {
     emailHealth.failures = db.prepare(`SELECT kind, to_email, created_at, detail FROM email_log WHERE status IN ('failed','queued') AND ${nt} ORDER BY id DESC LIMIT 10`).all();
     emailHealth.recent = db.prepare(`SELECT kind, status, to_email, created_at FROM email_log WHERE ${nt} ORDER BY id DESC LIMIT 12`).all();
   } catch (e) { emailHealth.error = e.message; }
-  res.json({ totals, byStatus, mrr, signups, recent, gradeBands, bySource, expiredTrials, emailHealth });
+  res.json({ totals, byStatus, mrr, signups, recent, gradeBands, funnel, bySource, expiredTrials, emailHealth });
 });
 
 // CSV export of real families (admin)

@@ -376,7 +376,7 @@ async function trialSweep() {
         try { const c = new Date(String(p.created_at).replace(' ', 'T') + 'Z'); if (!isNaN(c)) daysSince = (Date.now() - c.getTime()) / 86400000; } catch (e) {}
         if (daysSince != null) {
           // Onboarding state (guarded — a schema hiccup must never break the sweep).
-          const state = { hasKid: false, active: false, kidName: null };
+          const state = { hasKid: false, active: false, kidName: null, verified: !!p.email_verified };
           try {
             const kc = db.prepare('SELECT COUNT(*) AS n FROM kids WHERE parent_id=?').get(p.id);
             state.hasKid = !!(kc && kc.n > 0);
@@ -385,7 +385,14 @@ async function trialSweep() {
             const ac = db.prepare('SELECT COUNT(*) AS n FROM activity_log a JOIN kids k ON a.kid_id=k.id WHERE k.parent_id=?').get(p.id);
             state.active = !!(ac && ac.n > 0);
           } catch (e) {}
-          if (daysSince >= 1.5 && !sentBefore(p.email, 'onboard_activate')) {
+          if (!state.verified) {
+            // Stuck at the email-confirmation gate: they literally cannot add a child until they
+            // verify, so a generic "add your child" nudge sends them into a wall. Send a fast,
+            // single-purpose verify reminder instead — this is the earliest, biggest activation leak.
+            if (daysSince >= 0.25 && !sentBefore(p.email, 'verify_reminder')) {
+              await sendVerifyReminder(p); sentSomething = true;
+            }
+          } else if (daysSince >= 1.5 && !sentBefore(p.email, 'onboard_activate')) {
             await sendOnboardActivate(p, state); sentSomething = true;
           } else if (daysSince >= 3.5 && sentBefore(p.email, 'onboard_activate')) {
             if (state.active) {
@@ -463,6 +470,28 @@ function sendEmailVerification(parent, verifyUrl) {
     `);
     sendEmail({ to: parent.email, subject: 'Confirm your email to start your Gallop trial', html, kind: 'email_verification' });
   } catch (e) { /* email must never break signup */ }
+}
+
+// Fast, targeted reminder for a parent who signed up but never confirmed their email. The
+// verification gate blocks adding a child, so an unconfirmed account can NEVER activate — it's a
+// dead end, not a motivation problem. We mint a fresh single-use token (so the link works even if
+// the original expired), and make the one remaining action unmistakable: confirm, then add your
+// child. Fired within hours of an unverified signup, ahead of any "add your child" nudge.
+function sendVerifyReminder(parent) {
+  try {
+    if (!parent || !parent.email || parent.email_opt_out) return;
+    const first = esc((parent.name || '').split(' ')[0] || 'there');
+    const vtoken = crypto.randomBytes(24).toString('hex');
+    try { db.prepare('UPDATE parents SET verify_token=? WHERE id=?').run(vtoken, parent.id); } catch (e) {}
+    const verifyUrl = `${ORIGIN}/api/auth/verify-email?token=${vtoken}`;
+    const html = layout(`
+      <h2 style="margin:0 0 12px;color:${BRAND}">${first}, you're one click from starting 🐎</h2>
+      <p>Your Gallop free trial is ready — there's just <b>one quick step left</b>: confirm this email so you can add your child. It's our parental-consent check (COPPA) and takes two seconds.</p>
+      ${btn(verifyUrl, 'Confirm my email &amp; add my child')}
+      <p style="margin:16px 0 0;font-size:14px;color:#5f6b7d">Your 7-day trial clock is already running, so the sooner you confirm, the more time your child gets. Didn't sign up? Just ignore this — nothing was created and no child data was collected.</p>
+    `, { unsubToken: unsubTokenFor(parent.id) });
+    return sendEmail({ to: parent.email, subject: `${first}, confirm your email to unlock Gallop`, html, kind: 'verify_reminder' });
+  } catch (e) { /* never throw */ }
 }
 
 // The "plus" in email-plus: a delayed confirming email sent AFTER consent is captured, so the
@@ -663,4 +692,4 @@ function sendSupportReply(toEmail, subject, replyText) {
   } catch (e) { return { sent: false }; }
 }
 
-module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendEmailVerification, sendConsentConfirmed, sendWeeklyReport, sendTrialEnding, sendTrialEnded, sendChildSubscribeRequest, sendOnboardActivate, sendOnboardActivate2, sendOnboardValue, sendTrialProgress, sendWinback, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply, sendSchoolLead };
+module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendEmailVerification, sendVerifyReminder, sendConsentConfirmed, sendWeeklyReport, sendTrialEnding, sendTrialEnded, sendChildSubscribeRequest, sendOnboardActivate, sendOnboardActivate2, sendOnboardValue, sendTrialProgress, sendWinback, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply, sendSchoolLead };
