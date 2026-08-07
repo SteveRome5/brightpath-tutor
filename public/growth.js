@@ -27,6 +27,7 @@
       id: 'keep-trying', band: 'sprouts', emoji: '🧩', title: 'Keep Trying', skill: 'Persistence',
       blurb: 'Mila and the tricky puzzle.',
       trueStory: { who: 'Thomas Edison', what: 'Inventor of the lightbulb', text: 'Long ago, Thomas Edison wanted to make a lightbulb that would glow and glow. But it kept not working — again and again and again! Did he give up? No way. He said every try that <b>didn’t</b> work just showed him one more way to fix it. After lots and lots of tries, his lightbulb finally lit up — and it helped light up the whole world.', tie: 'Just like Mila and her puzzle, Edison kept trying until it worked.' },
+      trueQ: { q: 'In the true story, what did Edison do when the lightbulb kept not working?', choices: ['He gave up', 'He kept trying and fixed it little by little', 'He bought one from a store'], a: 1, why: 'Right — the story says he kept trying, and every try showed him how to fix it.' },
       steps: [
         { t: 'The tricky puzzle', b: 'Mila loved puzzles — until she got a really hard one. The pieces didn’t fit right away, and her tummy felt frustrated. "I CAN’T do this!" she said, and pushed the box away.' },
         { t: 'A little voice', b: 'Her teacher smiled and said, "You can’t do it… <b>yet</b>. Hard things take more than one try. What if you try just one more piece?" Mila took a big breath and tried again.', tip: 'When something is hard, adding the word "yet" turns "I can’t" into "I’m still learning."' },
@@ -41,6 +42,7 @@
       id: 'mistakes-grow', band: 'sprouts', emoji: '🌱', title: 'Mistakes Help Me Grow', skill: 'Growth mindset',
       blurb: 'Sam’s wobbly tower.',
       trueStory: { who: 'Frank Epperson', what: 'Invented the Popsicle — by accident!', text: 'When Frank was just <b>11 years old</b>, he left a cup of fruity soda outside on a cold night — with the stirring stick still in it. Oops! By morning it had frozen solid. Instead of feeling bad about his little mistake, Frank pulled it out by the stick, gave it a lick… and loved it! That frozen “mistake” became the Popsicle that kids everywhere enjoy today.', tie: 'Frank’s mistake turned into something wonderful — just like Sam learned, mistakes can help us grow.' },
+      trueQ: { q: 'How did Frank Epperson invent the Popsicle?', choices: ['On purpose, in a big factory', 'By accident, when his drink froze overnight', 'He found the recipe in a book'], a: 1, why: 'Yes — he left his drink outside on a cold night and it froze by accident.' },
       steps: [
         { t: 'Crash!', b: 'Sam built a tall block tower — and CRASH, it fell over. He felt like giving up. "I’m bad at building," he grumbled.' },
         { t: 'What the crash taught him', b: 'His big sister said, "That’s not a fail — that’s a clue! Why did it fall?" Sam looked. The bottom blocks were too small. The crash <b>taught</b> him something.', tip: 'A mistake isn’t proof you’re bad at something. It’s a clue that helps you get better.' },
@@ -83,6 +85,7 @@
       id: 'power-of-yet', band: 'roots', emoji: '💡', title: 'The Power of Yet', skill: 'Growth mindset',
       blurb: 'Ava and long division.',
       trueStory: { who: 'The Wright Brothers', what: 'Built the first airplane that flew', text: 'Orville and Wilbur Wright believed people could fly — even when almost everyone said it was impossible. Their flying machines wobbled, stalled, and crashed, over and over. But they never said “we can’t fly.” They said “we can’t fly <b>yet</b>,” and fixed one problem at a time. In 1903, their plane finally lifted off the ground — the first real flight in history.', tie: 'The word “yet” carried them from crash after crash all the way into the sky.' },
+      trueQ: { q: 'According to the true story, what happened before the Wright brothers flew in 1903?', choices: ['They flew on their very first try', 'Their machines crashed many times first', 'They gave up on flying'], a: 1, why: 'Correct — their machines wobbled and crashed many times before that first flight.' },
       steps: [
         { t: '"I’m just not a math person"', b: 'Ava stared at the long-division problem and felt her face get hot. "I’m just not a math person," she told herself, and stopped trying. When you believe you <b>can’t</b>, your brain stops looking for a way.' },
         { t: 'Rewiring the thought', b: 'Her teacher taught her a swap: change "I can’t do this" to "I can’t do this <b>yet</b>." That tiny word tells your brain the door is still open — you just haven’t found the key.', tip: 'Your brain grows like a muscle. "Yet" keeps it working instead of quitting.' },
@@ -138,6 +141,7 @@
       id: 'grit', band: 'strong', emoji: '🏔️', title: 'Finish What’s Hard', skill: 'Grit',
       blurb: 'Diego and the science project.',
       trueStory: { who: 'James Dyson', what: 'Inventor and engineer', text: 'James Dyson wanted to build a better vacuum cleaner — one that never lost its suction. His first design failed. So did the next. In fact, he built <b>5,127</b> prototypes over about 15 years, and 5,126 of them didn’t work. He kept refining each one, learning from every flop, until finally number 5,127 worked. Today Dyson products are sold all over the world.', tie: 'Grit means finishing what’s hard — even when it takes 5,127 tries.' },
+      trueQ: { q: 'About how many prototypes did James Dyson build before one finally worked?', choices: ['About 5', 'About 50', 'About 5,127'], a: 2, why: 'Right — he built 5,127, and 5,126 of them failed before the last one worked.' },
       steps: [
         { t: 'The messy middle', b: 'Diego started his science project excited. But halfway through, it got hard and boring — the "messy middle." He wanted to quit and do something easy instead. Almost everyone quits things right here.' },
         { t: 'Shrink the mountain', b: 'Instead of quitting, Diego broke the rest into tiny steps: "just do the graph tonight." A mountain feels impossible; one step feels doable. Grit isn’t doing it all at once — it’s taking the next small step, again and again.', tip: 'The messy middle is where most people quit. Break it into one small next step and keep moving.' },
@@ -165,6 +169,7 @@
       id: 'bounce-back', band: 'strong', emoji: '🏀', title: 'Bounce Back', skill: 'Resilience',
       blurb: 'Andre fails a test.',
       trueStory: { who: 'Michael Jordan', what: 'One of the greatest basketball players ever', text: 'As a sophomore, Michael Jordan tried out for his high school’s <b>varsity</b> team — and didn’t make it. He was placed on the junior varsity team instead, and he was crushed. But he used that disappointment as fuel: he practiced relentlessly, made varsity the next year, and went on to become an NBA legend. He later said, “I’ve failed over and over and over again in my life — and that is why I succeed.”', tie: 'Jordan treated a setback as a reason to work harder, not a final verdict — exactly like bouncing back.' },
+      trueQ: { q: 'What did Michael Jordan do after he didn’t make the varsity team?', choices: ['He quit basketball', 'He practiced hard and made it the next year', 'He switched to another sport'], a: 1, why: 'Yes — he used it as motivation, practiced relentlessly, and made varsity the next year.' },
       steps: [
         { t: 'A rough grade', b: 'Andre studied but still bombed the math test. He felt crushed and embarrassed. His first thought: "I’m just bad at this. Why bother?" A setback can feel like the end of the story.' },
         { t: 'A setback is data', b: 'His teacher helped him look at WHICH problems he missed — they were all one type. The failure wasn’t proof he was "bad." It was a map showing exactly what to practice. Resilient people treat a setback as information, not a verdict.', tip: 'A bad result isn’t "you’re bad at this." It’s a signal showing you what to work on next.' },
@@ -220,6 +225,7 @@
       id: 'failure-feedback', band: 'trail', emoji: '📈', title: 'Failure Is Feedback', skill: 'Growth from failure',
       blurb: 'Sam bombs a tryout.',
       trueStory: { who: 'Steve Jobs', what: 'Co-founder of Apple', text: 'Steve Jobs helped start Apple in a garage — then, at 30, he was forced out of the very company he had built. It was a public, painful failure. But instead of giving up, he treated it as a fresh start: he founded new companies and learned everything he’d been missing. Years later, Apple brought him back, and he led it to create the iPhone. He called getting fired “the best thing that could have ever happened to me.”', tie: 'Jobs turned his biggest failure into feedback that shaped everything he built next.' },
+      trueQ: { q: 'According to the true story, what happened to Steve Jobs at Apple?', choices: ['He was forced out, then years later came back', 'He ran the company the whole time', 'He never actually worked there'], a: 0, why: 'Correct — he was forced out of the company he built, and Apple brought him back years later.' },
       steps: [
         { t: 'The rejection', b: 'Sam didn’t make the team on the first tryout. It stung, and part of him wanted to quit for good so he’d never feel that again. Fear of failing again is what stops most people from trying again.' },
         { t: 'Ask for the notes', b: 'Instead, Sam did something brave: he asked the coach, "What should I work on?" The coach gave specific feedback. Sam realized failure had just handed him a free, personalized improvement plan — if he was willing to use it.', tip: 'Every failure carries feedback. Winners ask "what can I learn?" and go get the notes.' },
@@ -488,10 +494,29 @@
         </div>
         <div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px">
           <button class="btn ghost" id="gr-prev">← Back to story</button>
-          <button class="btn green" id="gr-next2">Now reflect →</button>
+          <button class="btn green" id="gr-next2">${u.trueQ ? 'Reading check →' : 'Now reflect →'}</button>
         </div>`);
-      document.getElementById('gr-next2').onclick = () => { quizI = 0; renderQuiz(); };
+      document.getElementById('gr-next2').onclick = () => { if (u.trueQ) { renderTrueQuiz(); } else { quizI = 0; renderQuiz(); } };
       const pv = document.getElementById('gr-prev'); if (pv) pv.onclick = () => { stepI = u.steps.length - 1; renderStory(); };
+    }
+    function renderTrueQuiz() {
+      const item = u.trueQ;
+      shell(`
+        <div style="margin:12px 0 2px"><span style="display:inline-block;background:#eaf4ff;color:#1c5aa6;font-weight:800;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px">📖 Reading check · from the true story</span></div>
+        <h3 style="margin:10px 0 14px">${esc(item.q)}</h3>
+        <div style="display:flex;flex-direction:column;gap:10px">${item.choices.map((c, i) => `<button class="btn ghost trq-choice" data-i="${i}" style="text-align:left;justify-content:flex-start">${esc(c)}</button>`).join('')}</div>
+        <div id="trq-fb" style="margin-top:14px"></div>`);
+      document.querySelectorAll('.trq-choice').forEach(btn => {
+        btn.onclick = () => {
+          const i = Number(btn.dataset.i), correct = i === item.a;
+          document.querySelectorAll('.trq-choice').forEach(x => { x.disabled = true; x.style.opacity = '.6'; });
+          const chosen = document.querySelector(`.trq-choice[data-i="${i}"]`), right = document.querySelector(`.trq-choice[data-i="${item.a}"]`);
+          if (correct) { chosen.style.background = '#e7f7ec'; chosen.style.borderColor = '#1f8a5f'; chosen.style.opacity = '1'; Sound && Sound.correct && Sound.correct(); }
+          else { chosen.style.background = '#fdeaea'; chosen.style.borderColor = '#c0392b'; if (right) { right.style.background = '#e7f7ec'; right.style.borderColor = '#1f8a5f'; right.style.opacity = '1'; } Sound && Sound.wrong && Sound.wrong(); }
+          document.getElementById('trq-fb').innerHTML = `<div style="background:${correct ? '#f2faf4' : '#fff5f5'};border-radius:10px;padding:12px"><b>${correct ? '✅ Yes!' : '💡 Look back:'}</b> ${esc(item.why)}<div style="margin-top:12px;text-align:right"><button class="btn green" id="trq-cont">Now reflect →</button></div></div>`;
+          document.getElementById('trq-cont').onclick = () => { quizI = 0; renderQuiz(); };
+        };
+      });
     }
     function renderQuiz() {
       const item = u.quiz[quizI];
