@@ -917,6 +917,13 @@ const revealObs = new IntersectionObserver(entries => {
 addEventListener('hashchange', navigate);
 
 // ======================= shared chrome =======================
+// Inline SVG speaker icons — used instead of the 🔊/🔇 emoji so the sound button
+// always shows a clear icon even on devices/browsers whose fonts don't render that emoji
+// (some Windows/Chromebook setups drew it as an empty box, which read as a mystery button).
+const SPK_ON = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19.5 5a9 9 0 0 1 0 14"/></svg>';
+const SPK_OFF = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
+const soundIco = () => (Sound.muted && !Music.on) ? SPK_OFF : SPK_ON;
+
 function topbar(inner = '') {
   const me = State.me;
   const teacher = me.role === 'parent' && me.parent && me.parent.account_type === 'teacher';
@@ -941,7 +948,7 @@ function topbar(inner = '') {
     <div class="right">
       ${right}
       <div class="sound-wrap">
-        <button class="btn ghost small sound-btn" id="sound-btn" title="Sound settings" aria-label="Sound settings">${Sound.muted && !Music.on ? '🔇' : '🔊'}</button>
+        <button class="btn ghost small sound-btn" id="sound-btn" title="Sound settings" aria-label="Sound settings">${soundIco()}</button>
         <div class="sound-menu" id="sound-menu" hidden>
           <button class="sound-opt" id="sfx-toggle" role="switch" aria-checked="${!Sound.muted}"><span>🔊 Sound effects</span><span class="sw ${Sound.muted ? '' : 'on'}" id="sfx-sw"></span></button>
           <button class="sound-opt" id="music-toggle" role="switch" aria-checked="${!!Music.on}"><span>🎵 Background music</span><span class="sw ${Music.on ? 'on' : ''}" id="music-sw"></span></button>
@@ -966,8 +973,8 @@ function wireChrome() {
       wireChrome._soundCloseWired = true;
     }
     const sfxSw = $('#sfx-sw'), musicSw = $('#music-sw');
-    $('#sfx-toggle').onclick = (e) => { e.stopPropagation(); const muted = Sound.toggle(); sfxSw.classList.toggle('on', !muted); $('#sfx-toggle').setAttribute('aria-checked', String(!muted)); if (!muted) Sound.click(); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
-    $('#music-toggle').onclick = (e) => { e.stopPropagation(); const isOn = Music.toggle(currentMusicMood()); musicSw.classList.toggle('on', isOn); $('#music-toggle').setAttribute('aria-checked', String(isOn)); sb.textContent = (Sound.muted && !Music.on) ? '🔇' : '🔊'; };
+    $('#sfx-toggle').onclick = (e) => { e.stopPropagation(); const muted = Sound.toggle(); sfxSw.classList.toggle('on', !muted); $('#sfx-toggle').setAttribute('aria-checked', String(!muted)); if (!muted) Sound.click(); sb.innerHTML = soundIco(); };
+    $('#music-toggle').onclick = (e) => { e.stopPropagation(); const isOn = Music.toggle(currentMusicMood()); musicSw.classList.toggle('on', isOn); $('#music-toggle').setAttribute('aria-checked', String(isOn)); sb.innerHTML = soundIco(); };
     const skip = $('#music-skip');
     if (skip) skip.onclick = (e) => { e.stopPropagation(); if (!Music.on) { Music.toggle(currentMusicMood()); if ($('#music-sw')) $('#music-sw').classList.add('on'); } else { Music.skip(); } };
   }

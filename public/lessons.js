@@ -314,7 +314,7 @@
         <div class="lp-top">
           <button class="btn ghost small" onclick="location.hash='#home'">✕ Exit</button>
           <div class="lp-progress">${dots}</div>
-          <button class="btn ghost small" id="lp-say" title="Read aloud">🔊</button>
+          <button class="btn ghost small" id="lp-say" title="Read this page aloud" aria-label="Read this page aloud">🔊 Listen</button>
         </div>
         <div class="lp-card">
           <div class="lp-kind">${style.emoji} ${esc(style.name)} · ${kindLabel}</div>
