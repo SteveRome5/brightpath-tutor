@@ -2884,6 +2884,24 @@
     wireChrome();
     document.querySelectorAll('[data-cert]').forEach(el => el.onclick = () => { Sound.click(); location.hash = '#certificate/' + kidId() + '/' + el.dataset.cert; });
     document.querySelectorAll('.badge-cell.earned').forEach(el => el.onclick = () => { Sound.badge(); el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.15) rotate(-4deg)' }, { transform: 'scale(1)' }], { duration: 400 }); });
+    // Optional Money Skills badges — self-contained; reads the child's own finance-course progress.
+    (async () => {
+      try {
+        const st = await api(`/play/${kidId()}/game-state/finance`);
+        const done = (st && st.state && st.state.done) || {};
+        const total = Object.keys(done).length;
+        if (!total) return; // only show once they've started the optional course
+        const BANDS = [['sprouts', 'Sprouts', '🌱', 8, '#37a05f'], ['growers', 'Growers', '🌿', 9, '#2f8fd6'], ['builders', 'Builders', '🏗️', 10, '#8a5cd6'], ['trailblazers', 'Trailblazers', '🚀', 9, '#d68a2f']];
+        const byBand = {};
+        Object.keys(done).forEach(id => { const v = done[id], bd = v && v.band; if (bd) byBand[bd] = (byBand[bd] || 0) + 1; });
+        const master = total >= 36;
+        const cells = BANDS.map(b => { const e = (byBand[b[0]] || 0) >= b[3]; return `<div style="text-align:center;opacity:${e ? 1 : .4}"><div style="font-size:2rem;filter:${e ? 'none' : 'grayscale(1)'}">${e ? b[2] : '🔒'}</div><div style="font-size:.7rem;font-weight:700;color:${e ? b[4] : '#98a0af'}">${b[1]}</div></div>`; }).join('');
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<h3 style="margin:0 0 4px">💰 Money Skills badges</h3><p class="muted" style="font-size:.82rem;margin:0 0 10px">${total} of 36 money lessons done — an optional bonus course.</p><div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap">${cells}<div style="text-align:center;opacity:${master ? 1 : .4}"><div style="font-size:2rem;filter:${master ? 'none' : 'grayscale(1)'}">${master ? '🏆' : '🔒'}</div><div style="font-size:.7rem;font-weight:700;color:${master ? '#d4a017' : '#98a0af'}">Money Master</div></div></div>`;
+        const cont = document.querySelector('.container'); if (cont) cont.appendChild(card);
+      } catch (e) { /* non-critical */ }
+    })();
   });
 
   // ======================= BUDDIES =======================

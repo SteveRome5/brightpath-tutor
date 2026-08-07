@@ -40,6 +40,7 @@
     {
       id: 'coins-bills', band: 'sprouts', emoji: '💵', title: 'Coins & Bills',
       blurb: 'Penny, nickel, dime, quarter — and how they add up.',
+      sim: 'coins',
       steps: [
         { t: 'Meet the coins', b: 'A penny is 1¢. A nickel is 5¢. A dime is 10¢ (small but mighty!). A quarter is 25¢. It takes 100 pennies to make one dollar ($1.00).' },
         { t: 'Coins add up', b: 'Money is just counting. Two quarters = 25 + 25 = 50¢. Add a dime = 60¢. Add a nickel = 65¢. The trick is to start with the biggest coins and count on from there.', tip: 'Count big to small: quarters, then dimes, then nickels, then pennies.' },
@@ -154,6 +155,7 @@
     {
       id: 'credit-borrow', band: 'builders', emoji: '💳', title: 'Credit & Borrowing',
       blurb: 'Borrowing money almost always costs extra.',
+      sim: 'loan',
       steps: [
         { t: 'Credit is borrowed money', b: 'When you use credit (like a credit card or a loan), you’re spending money you don’t have yet, with a promise to pay it back later. It’s borrowing.' },
         { t: 'Borrowing has a price: interest', b: 'The catch: you pay it back plus interest. Borrow $100 on a card at 20% and don’t pay it off, and you could owe $120 — you paid $20 extra for buying early. On big things, interest can add up to more than the original price.', tip: 'When YOU borrow, interest works against you. Pay it back fast, or avoid it.' },
@@ -181,6 +183,7 @@
     {
       id: 'taxes', band: 'builders', emoji: '🧾', title: 'Taxes: Paying for Shared Things',
       blurb: 'Where a slice of every dollar goes, and why.',
+      sim: 'tax',
       steps: [
         { t: 'Taxes fund things we share', b: 'Taxes are money people and businesses pay to the government. That money pays for shared things no one buys alone: roads, schools, firefighters, parks, the military, libraries.' },
         { t: 'Common kinds of tax', b: 'Sales tax is added at the register — a $10 item at 8% tax costs $10.80. Income tax is a slice of what people earn. So a “$50,000 job” actually pays somewhat less after taxes — your take-home pay is what’s left.', tip: 'Sticker price isn’t final — remember to add sales tax. And a salary isn’t your take-home pay.' },
@@ -352,6 +355,7 @@
     {
       id: 'paycheck', band: 'builders', emoji: '🧾', title: 'Your First Paycheck',
       blurb: 'Why you don’t take home the whole amount.',
+      sim: 'paycheck',
       steps: [
         { t: 'Gross pay vs. take-home pay', b: 'When you get a job, the wage they promise (say $15/hour) is your GROSS pay. But your paycheck is smaller than that, because some is taken out before you get it. What lands in your pocket is your NET, or take-home, pay.' },
         { t: 'Where the rest goes', b: 'Money is withheld mostly for taxes (which fund shared services) and sometimes for things like health insurance or retirement savings. So a “$15/hour” job might take home more like $12–13 after withholding.', tip: 'Always think in take-home pay. The sticker wage isn’t what hits your account.' },
@@ -521,6 +525,7 @@
     {
       id: 'net-worth', band: 'trailblazers', emoji: '📈', title: 'Net Worth',
       blurb: 'The one number that shows your financial health.',
+      sim: 'networth',
       steps: [
         { t: 'Assets minus debts', b: 'Net worth is simple: everything you OWN that has value (assets — cash, savings, investments) minus everything you OWE (debts — loans, credit-card balances). What’s left is your net worth.' },
         { t: 'Growing the number', b: 'You grow net worth two ways: increase what you own (save and invest more) or decrease what you owe (pay down debt). Do both steadily and the number climbs — that’s literally what building wealth means.', tip: 'Wealth isn’t how much you earn — it’s how much you keep. Net worth measures that.' },
@@ -593,6 +598,14 @@
           <div class="sk-bar" style="height:12px"><span class="sk-fill hi" style="width:${Math.round(done / total * 100)}%;background:#37a05f"></span></div>
           <p class="muted" style="font-size:.82rem;margin:6px 0 0">${done} of ${total} lessons complete</p>
         </div>
+      </div>
+      <div class="card" style="text-align:center">
+        <b style="font-size:.95rem">🏅 Your Money Badges</b>
+        <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:12px">
+          ${BANDS.map(bb => { const e = bandComplete(bb.id); return `<div style="text-align:center;opacity:${e ? 1 : .4}"><div style="font-size:2rem;filter:${e ? 'none' : 'grayscale(1)'}">${e ? bb.emoji : '🔒'}</div><div style="font-size:.7rem;font-weight:700;color:${e ? bb.color : '#98a0af'}">${esc(bb.label.replace('Money ', ''))}</div></div>`; }).join('')}
+          ${(() => { const m = UNITS.every(u => isDone(u.id)); return `<div style="text-align:center;opacity:${m ? 1 : .4}"><div style="font-size:2rem;filter:${m ? 'none' : 'grayscale(1)'}">${m ? '🏆' : '🔒'}</div><div style="font-size:.7rem;font-weight:700;color:${m ? '#d4a017' : '#98a0af'}">Money Master</div></div>`; })()}
+        </div>
+        ${UNITS.every(u => isDone(u.id)) ? '<p class="muted" style="margin:10px 0 0;font-size:.82rem">🎉 You completed the whole course — you’re a certified Money Master!</p>' : '<p class="muted" style="margin:10px 0 0;font-size:.78rem">Finish a whole band to light up its badge. Finish them all to become a Money Master.</p>'}
       </div>
       ${ordered.map(bandBlock).join('')}
       <div style="text-align:center;margin:18px 0"><button class="btn ghost" onclick="location.hash='#home'">← Back to home</button></div>
@@ -761,6 +774,93 @@
         };
         document.getElementById('i-n').addEventListener('input', calc); calc();
 
+      } else if (u.sim === 'tax') {
+        wrap(`
+          <p style="margin:0 0 6px">See how sales tax adds to the sticker price:</p>
+          <label>Item price: <b id="s-price">$20</b></label>
+          <input type="range" id="i-price" min="1" max="100" step="1" value="20" style="${sty}">
+          <label>Sales tax rate: <b id="s-rate">8%</b></label>
+          <input type="range" id="i-rate" min="0" max="10" step="1" value="8" style="${sty}">
+          <div id="s-out" style="${outBox}"></div>`);
+        const calc = () => {
+          const p = +document.getElementById('i-price').value, r = +document.getElementById('i-rate').value / 100;
+          const tax = p * r, total = p + tax;
+          document.getElementById('s-price').textContent = money(p);
+          document.getElementById('s-rate').textContent = Math.round(r * 100) + '%';
+          document.getElementById('s-out').innerHTML = `At the register you pay <b style="font-size:1.5rem;color:${b.color}">${money(total)}</b><br><span class="muted">That’s ${money(p)} + ${money(tax)} in tax. The sticker price is never the final price!</span>`;
+        };
+        ['i-price', 'i-rate'].forEach(id => document.getElementById(id).addEventListener('input', calc)); calc();
+
+      } else if (u.sim === 'loan') {
+        wrap(`
+          <p style="margin:0 0 6px">Borrowing isn’t free — see what you pay back:</p>
+          <label>Amount you borrow: <b id="s-amt">$100</b></label>
+          <input type="range" id="i-amt" min="10" max="1000" step="10" value="100" style="${sty}">
+          <label>Interest rate: <b id="s-rate">20%</b></label>
+          <input type="range" id="i-rate" min="0" max="30" step="1" value="20" style="${sty}">
+          <div id="s-out" style="${outBox}"></div>`);
+        const calc = () => {
+          const a = +document.getElementById('i-amt').value, r = +document.getElementById('i-rate').value / 100;
+          const owe = a * (1 + r), extra = owe - a;
+          document.getElementById('s-amt').textContent = money(a);
+          document.getElementById('s-rate').textContent = Math.round(r * 100) + '%';
+          document.getElementById('s-out').innerHTML = `You’d pay back <b style="font-size:1.5rem;color:#c0392b">${money(owe)}</b><br><span class="muted">That’s ${money(extra)} extra just for borrowing. The higher the rate, the more borrowing costs you.</span>`;
+        };
+        ['i-amt', 'i-rate'].forEach(id => document.getElementById(id).addEventListener('input', calc)); calc();
+
+      } else if (u.sim === 'networth') {
+        wrap(`
+          <p style="margin:0 0 6px">Net worth = what you OWN minus what you OWE:</p>
+          <label>💰 What you own (assets): <b id="s-a">$5,000</b></label>
+          <input type="range" id="i-a" min="0" max="20000" step="500" value="5000" style="${sty}">
+          <label>💳 What you owe (debts): <b id="s-d">$2,000</b></label>
+          <input type="range" id="i-d" min="0" max="20000" step="500" value="2000" style="${sty}">
+          <div id="s-out" style="${outBox}"></div>`);
+        const calc = () => {
+          const a = +document.getElementById('i-a').value, d = +document.getElementById('i-d').value, nw = a - d;
+          document.getElementById('s-a').textContent = money(a);
+          document.getElementById('s-d').textContent = money(d);
+          document.getElementById('s-out').innerHTML = `Net worth: <b style="font-size:1.5rem;color:${nw >= 0 ? b.color : '#c0392b'}">${money(nw)}</b><br><span class="muted">${nw < 0 ? 'Owing more than you own is a negative net worth — the goal is to flip it positive.' : 'Grow what you own and shrink what you owe, and this number climbs. That’s building wealth.'}</span>`;
+        };
+        ['i-a', 'i-d'].forEach(id => document.getElementById(id).addEventListener('input', calc)); calc();
+
+      } else if (u.sim === 'paycheck') {
+        wrap(`
+          <p style="margin:0 0 6px">Your wage isn’t your take-home pay. See the gap:</p>
+          <label>Hourly wage: <b id="s-w">$15</b></label>
+          <input type="range" id="i-w" min="8" max="40" step="1" value="15" style="${sty}">
+          <label>Hours this week: <b id="s-h">20</b></label>
+          <input type="range" id="i-h" min="1" max="40" step="1" value="20" style="${sty}">
+          <div id="s-out" style="${outBox}"></div>`);
+        const calc = () => {
+          const w = +document.getElementById('i-w').value, h = +document.getElementById('i-h').value;
+          const gross = w * h, net = gross * 0.8;
+          document.getElementById('s-w').textContent = money(w);
+          document.getElementById('s-h').textContent = h;
+          document.getElementById('s-out').innerHTML = `Gross pay ${money(gross)} → take-home about <b style="font-size:1.5rem;color:${b.color}">${money(net)}</b><br><span class="muted">Roughly ${money(gross - net)} is withheld (mostly taxes). Budget with your take-home number, not the sticker wage.</span>`;
+        };
+        ['i-w', 'i-h'].forEach(id => document.getElementById(id).addEventListener('input', calc)); calc();
+
+      } else if (u.sim === 'coins') {
+        const COINS = [['quarter', 'Quarter', 25], ['dime', 'Dime', 10], ['nickel', 'Nickel', 5], ['penny', 'Penny', 1]];
+        wrap(`
+          <p style="margin:0 0 10px">Tap to add coins and watch the total. Can you make exactly <b>65¢</b>?</p>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${COINS.map(c => `<div style="display:flex;align-items:center;gap:10px"><span style="min-width:120px"><b>${c[1]}</b> <span class="muted">(${c[2]}¢)</span></span>
+              <button class="btn ghost small coin-minus" data-c="${c[0]}">−</button>
+              <b id="cnt-${c[0]}" style="min-width:24px;text-align:center">0</b>
+              <button class="btn ghost small coin-plus" data-c="${c[0]}">+</button></div>`).join('')}
+          </div>
+          <div id="s-out" style="${outBox}"></div>`);
+        const counts = { quarter: 0, dime: 0, nickel: 0, penny: 0 }, val = { quarter: 25, dime: 10, nickel: 5, penny: 1 };
+        const upd = () => {
+          let t = 0; for (const k in counts) { t += counts[k] * val[k]; document.getElementById('cnt-' + k).textContent = counts[k]; }
+          document.getElementById('s-out').innerHTML = `Total: <b style="font-size:1.5rem;color:${b.color}">${t}¢</b>${t >= 100 ? ' (' + money(t / 100) + ')' : ''}<br><span class="muted">${t === 65 ? '🎉 You made exactly 65¢! Nice counting.' : 'Keep going — try starting with the biggest coins.'}</span>`;
+        };
+        document.querySelectorAll('.coin-plus').forEach(btn => btn.onclick = () => { counts[btn.dataset.c]++; upd(); });
+        document.querySelectorAll('.coin-minus').forEach(btn => btn.onclick = () => { if (counts[btn.dataset.c] > 0) counts[btn.dataset.c]--; upd(); });
+        upd();
+
       } else { phase = 'quiz'; quizI = 0; renderQuiz(); return; }
 
       const d = document.getElementById('fin-simdone'); if (d) d.onclick = () => { phase = 'quiz'; quizI = 0; renderQuiz(); };
@@ -801,12 +901,14 @@
       await saveProgress();
       if (Confetti && Confetti.burst) Confetti.burst(140);
       const justFinishedBand = bandComplete(u.band);
+      const allDone = UNITS.every(x => isDone(x.id));
       const nextU = UNITS.find(x => !isDone(x.id));
       shell(`
         <div style="text-align:center;padding:10px 0">
           <div style="font-size:2.4rem">🎉</div>
           <h3 style="margin:8px 0">Lesson complete!</h3>
           <p class="muted">${quizWrong === 0 ? 'Perfect — you nailed every question.' : 'Nice work — you’ve got the idea.'} You just learned something most adults were never taught.</p>
+          ${allDone ? `<div style="margin:16px 0;background:linear-gradient(135deg,#fff5d6,#ffe9a8);border:1px solid #e6c86a;border-radius:12px;padding:18px"><div style="font-size:2.4rem">🏆</div><b style="font-size:1.1rem">You’re a Money Master!</b><p class="muted" style="margin:6px 0 0;font-size:.85rem">You finished all ${UNITS.length} lessons of the whole Money Skills course. That’s real-world knowledge most grown-ups never learned.</p></div>` : ''}
           ${justFinishedBand ? `<div style="margin:16px 0;background:#fff8e6;border:1px solid #f0d9a8;border-radius:12px;padding:16px"><div style="font-size:2rem">🏅</div><b>You finished the ${esc(bandOf(u.band).label)} course!</b><div style="margin-top:10px"><button class="btn sun" id="fin-cert">View your certificate →</button></div></div>` : ''}
           ${u.apply ? `<div style="margin:14px 0"><button class="btn sun" id="fin-apply">${esc(u.apply.label)}</button><p class="muted" style="font-size:.8rem;margin:6px 0 0">Learn it, then live it in The Lab.</p></div>` : ''}
           <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px">
