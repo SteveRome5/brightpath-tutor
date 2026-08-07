@@ -1107,7 +1107,7 @@ route('landing', async () => {
     </div>
     <div class="pillars reveal">
       <div class="pillar"><span class="pi-emoji">📚</span><b>1 · Learn it</b><p>Adaptive real-world lessons that find your child's level and teach through Math, English, Science &amp; Spanish.</p></div>
-      <div class="pillar pillar-lab"><span class="pi-emoji">🔬</span><b>2 · Apply it in The Lab</b><p>Arcade games, investing challenges, a K–12 money-skills course &amp; a 28-field career center — where skills become real. This is what makes Gallop different.</p></div>
+      <div class="pillar pillar-lab"><span class="pi-emoji">🔬</span><b>2 · Live it &amp; grow</b><p>The real-world skills other programs skip — money smarts, a growth-mindset course, a 28-field career center, businesses &amp; investing. The skills employers say matter most.</p></div>
       <div class="pillar"><span class="pi-emoji">📊</span><b>3 · See it</b><p>The Parent Portal shows exactly where each child is ahead and where they need a hand — updated automatically.</p></div>
     </div>
     <div class="statband reveal">
@@ -1206,6 +1206,41 @@ route('landing', async () => {
           <p>An <b>optional K–12 financial-literacy course</b> most kids never get taught — needs vs. wants and saving as a kid, budgeting and banking in the middle years, then credit, taxes, investing and financial independence. It grows right alongside them.</p>
         </div>
       </div>
+    </div>
+
+    <div class="reveal" id="s-missing" style="margin:52px auto 0;max-width:920px">
+      <div style="text-align:center">
+        <span class="ab-kicker">THE MISSING LINK</span>
+        <h2 class="section-title" style="margin-top:6px">The skills that matter most are the ones most programs skip</h2>
+        <p class="section-sub" style="max-width:740px;margin:8px auto 0">The World Economic Forum's <b>Future of Jobs Report 2025</b> asked employers which skills matter most today. The top of the list: <b>analytical thinking, resilience, creativity, curiosity, and self-awareness</b> — while "reading, writing, and mathematics" sits near the very bottom.</p>
+      </div>
+      <div class="card" style="margin-top:22px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:26px">
+          <div>
+            <b style="display:block;margin-bottom:10px">Top skills employers want (WEF, 2025)</b>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <span class="pill" style="background:#eef6f1;color:#1a5c38">Analytical thinking</span>
+              <span class="pill" style="background:#eef6f1;color:#1a5c38">Resilience &amp; adaptability</span>
+              <span class="pill" style="background:#eef6f1;color:#1a5c38">Creative thinking</span>
+              <span class="pill" style="background:#eef6f1;color:#1a5c38">Motivation &amp; self-awareness</span>
+              <span class="pill" style="background:#eef6f1;color:#1a5c38">Curiosity &amp; lifelong learning</span>
+              <span class="pill" style="background:#eef6f1;color:#1a5c38">Empathy &amp; active listening</span>
+              <span class="pill" style="background:#eef6f1;color:#1a5c38">Tech literacy</span>
+            </div>
+            <p class="muted" style="font-size:.82rem;margin-top:12px">Reading, writing &amp; math still matter — but they're the floor, not the finish line.</p>
+          </div>
+          <div>
+            <b style="display:block;margin-bottom:10px">How Gallop builds them</b>
+            <ul style="margin:0;padding-left:18px;line-height:1.85">
+              <li><b>Growth Skills</b> — stories that teach resilience, focus, self-awareness &amp; grit</li>
+              <li><b>Money Skills</b> — real financial literacy, K–12</li>
+              <li><b>Career Center</b> — curiosity and a sense of direction</li>
+              <li><b>Critical-thinking questions</b> woven through every subject</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <p class="center" style="margin-top:16px;font-weight:600;font-size:1.05rem">Gallop is the rare program that teaches <i>both</i> — the academics <b>and</b> the skills that decide who thrives. <span style="color:var(--brand)">Ahead in school. Ready for life.</span></p>
     </div>
 
     <h2 id="s-how" class="section-title reveal">How it works</h2>
@@ -1362,6 +1397,7 @@ route('landing', async () => {
           <tbody>
             <tr><td class="cmp-feat">The Lab — business, investing &amp; career games</td><td class="us" data-label="Gallop"><b>✅ Only on Gallop</b></td><td data-label="Learning centers">❌</td><td data-label="Private tutor">❌</td></tr>
             <tr><td class="cmp-feat">Financial-literacy course (K–12)</td><td class="us" data-label="Gallop"><b>✅ Built in</b></td><td data-label="Learning centers">❌</td><td data-label="Private tutor">❌</td></tr>
+            <tr><td class="cmp-feat">Growth-mindset &amp; life-skills course</td><td class="us" data-label="Gallop"><b>✅ Only on Gallop</b></td><td data-label="Learning centers">❌</td><td data-label="Private tutor">❌</td></tr>
             <tr><td class="cmp-feat">Career exploration — 28 fields &amp; real paths</td><td class="us" data-label="Gallop"><b>✅ Only on Gallop</b></td><td data-label="Learning centers">❌</td><td data-label="Private tutor">❌</td></tr>
             <tr><td class="cmp-feat">Typical cost</td><td class="us" data-label="Gallop"><b>$34–54 / mo</b></td><td data-label="Learning centers">$150–200 / mo <i>per subject</i></td><td data-label="Private tutor">$40–80 / hour</td></tr>
             <tr><td class="cmp-feat">All 4 subjects included</td><td class="us" data-label="Gallop">✅</td><td data-label="Learning centers">❌ pay per subject</td><td data-label="Private tutor">❌ usually one</td></tr>
@@ -1386,7 +1422,7 @@ route('landing', async () => {
       <details><summary>We homeschool — can we use Gallop as our curriculum?</summary><p>Yes — homeschooling families are one of the groups Gallop fits best. Each child is placed at their <b>real level in every subject</b>, so you're never locked to a single grade, and because every skill starts with a short <b>guided lesson that teaches the concept</b> before any practice, Gallop can carry the direct instruction on a topic — not just drill it. You get all four core subjects (Math, English, Science, and Spanish), K–12, in one place; a weekly progress report that shows exactly where each child is strong or stuck; and a self-paced flow kids can largely run on their own. When you add a child you can set their schedule to <b>Homeschool (Sep–Jun)</b> so pacing and breaks line up with your year. Many families use it as their core practice-and-review spine alongside their own reading and projects.</p></details>
       <details><summary>Is it aligned to academic standards?</summary><p>Yes. Every skill is mapped to a recognized standard: Common Core for Math and English, NGSS for Science, and ACTFL for Spanish — the same frameworks nearly every state builds its standards on. It's built to <b>supplement and reinforce</b> what's taught in the classroom — added practice and support alongside a teacher's instruction, not a replacement for it. Educators and administrators can see the full, skill-by-skill coverage map on our <a href="#standards">Standards Alignment</a> page. Students just see the lesson and practice; the standard codes are there for schools.</p></details>
       <details><summary>What about kids who are ahead of grade level?</summary><p>They get a separate Advanced Track. Once a student has mastered their grade, they can practice college-level and honors material — AP-style sets in Calculus, Statistics, Biology, Chemistry, Physics, Environmental Science, English, and Spanish, honors courses, and state test prep built on rigorous state standards (great preparation whatever state you're in). It's kept separate from grade-level work, so working ahead never changes a child's placement.</p></details>
-      <details><summary>Does Gallop teach real-life skills like money and careers?</summary><p>Yes — and it's what sets us apart. Alongside the four core subjects, Gallop includes an <b>optional K–12 Money Skills course</b> that grows with your child: needs vs. wants and saving in the early years, budgeting and banking in the middle years, then credit, taxes, investing, and financial independence in high school — the real-world money education most kids never get. There's also a <b>Career Center with 28 fields</b>, real role models, the surprising jobs inside each, and the many different paths in (college, trade school, apprenticeship, the military, or self-taught). And in The Lab, kids run businesses and invest in a live-feeling market to <i>practice</i> what they learn. It's all included, and the money course is a bonus your child chooses — never graded homework.</p></details>
+      <details><summary>Does Gallop teach real-life skills like money, mindset, and careers?</summary><p>Yes — and it's what sets us apart. The World Economic Forum's 2025 report ranks skills like resilience, self-awareness, and critical thinking above traditional reading, writing, and math for the future workforce — yet most programs teach only the academics. Gallop teaches both. Alongside the four core subjects, your child gets an optional <b>Growth Skills course</b> — short stories that build resilience, focus, organization, positive self-talk, and grit, plus a "how am I doing as a learner?" self-check — and an optional <b>K–12 Money Skills course</b> covering saving, budgeting, credit, taxes, and investing. There's also a <b>Career Center with 28 fields</b>, real role models, and the many paths in (college, trade school, apprenticeship, military, or self-taught), and in The Lab kids run businesses and invest to <i>practice</i> what they learn. It's all included, and the bonus courses are ones your child chooses — never graded homework.</p></details>
       <details><summary>What if my child doesn't like it?</summary><p>The first 7 days are completely free and need no card, so you can let your child try the real thing before you ever pay. If it isn't a fit, do nothing and the trial simply ends — you're never charged. If you've already subscribed, cancel in one click and you keep access through the time you've paid for.</p></details>
       <details><summary>Are there real, human tutors?</summary><p>No — and that's the point. Gallop is self-paced adaptive software your child uses on their own, so there's nothing to schedule and no hourly rate. It teaches each concept with a short guided lesson, then adjusts every question to your child, which is how it covers all four subjects for a fraction of what a tutoring center charges for a single subject. Think of it as extra practice and support that reinforces what your child learns in the classroom — not a replacement for their teacher.</p></details>
       <details><summary>Can I cancel anytime?</summary><p>Monthly plans, yes — cancel in one click from your parent dashboard, which stops any future charges while your child keeps access through the month you've paid for. Annual plans are different: because they're offered at a discount, they're a <b>12-month commitment, billed once and non-refundable</b>. You can switch off auto-renewal anytime so the plan won't renew for another year, but the current annual term isn't refunded. Full details are in our <a href="/terms" target="_blank" rel="noopener">Terms of Service</a>.</p></details>
