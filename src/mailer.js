@@ -156,6 +156,52 @@ function sendTrialEnding(parent, daysLeft) {
   } catch (e) { /* never throw from the scheduler */ }
 }
 
+// Shared "how's the learning going" stats for a family: total questions, overall accuracy,
+// strongest subject, and best streak. Used by both the mid-trial progress email and the
+// personalized trial-ending email. Guarded; returns null when the child has no activity yet.
+function familyLearnStats(parentId) {
+  try {
+    const row = db.prepare('SELECT COUNT(*) AS n, SUM(a.correct) AS c FROM activity_log a JOIN kids k ON a.kid_id=k.id WHERE k.parent_id=?').get(parentId);
+    const total = (row && row.n) || 0, correct = (row && row.c) || 0;
+    if (!total) return null;
+    let best = null;
+    const subj = db.prepare('SELECT a.subject AS s, COUNT(*) AS n, SUM(a.correct) AS c FROM activity_log a JOIN kids k ON a.kid_id=k.id WHERE k.parent_id=? GROUP BY a.subject').all(parentId);
+    subj.forEach(r => { const acc = r.n ? r.c / r.n : 0; if (r.n >= 5 && (!best || acc > best.acc)) best = { s: r.s, acc }; });
+    if (!best && subj.length) { const m = subj.slice().sort((a, b) => b.n - a.n)[0]; best = { s: m.s, acc: m.n ? m.c / m.n : 0 }; }
+    const sr = db.prepare('SELECT MAX(streak) AS ms FROM kids WHERE parent_id=?').get(parentId);
+    return { total, correct, accuracy: Math.round(correct / total * 100), bestSubject: best ? best.s : null, streak: (sr && sr.ms) || 0 };
+  } catch (e) { return null; }
+}
+
+// Personalized trial-ending email for families whose child ACTUALLY used the trial (Leak 2: they
+// saw the value but haven't paid). Instead of a generic "your trial ends," lead with the child's
+// real accomplishments and frame the choice as keep-vs-lose that momentum. This is the warmest,
+// highest-intent moment in the funnel, so it earns the most personal, proof-driven ask.
+function sendTrialEndingActive(parent, stats, kidName, daysLeft) {
+  try {
+    if (!parent || !parent.email || parent.email_opt_out) return;
+    if (!stats || !stats.total) return;   // caller falls back to the generic email
+    const first = esc((parent.name || '').split(' ')[0] || 'there');
+    const kid = esc(kidName || 'your child');
+    const when = daysLeft <= 1 ? 'tomorrow' : `in ${daysLeft} days`;
+    const SUBJ = { math: 'Math', english: 'English', science: 'Science', spanish: 'Spanish', reading: 'Reading' };
+    const strong = stats.bestSubject ? (SUBJ[stats.bestSubject] || stats.bestSubject) : null;
+    const strongLine = strong ? `<p style="margin:8px 0">💪 Strongest subject so far: <b>${strong}</b>.</p>` : '';
+    const streakLine = stats.streak >= 2 ? `<p style="margin:8px 0">🔥 <b>${stats.streak}-day streak</b> — the habit is forming.</p>` : '';
+    const html = layout(`
+      <h2 style="margin:0 0 12px;color:${BRAND}">Don't lose ${kid}'s momentum 🐎</h2>
+      <p>Hi ${first} — your free week ends <b>${when}</b>. Here's what ${kid} built in just a few days:</p>
+      <p style="margin:14px 0 4px;font-size:20px"><b>${stats.total}</b> questions answered · <b>${stats.accuracy}%</b> correct</p>
+      ${strongLine}
+      ${streakLine}
+      <p style="margin:12px 0 0">All of it — ${kid}'s levels, streak, and badges — is saved. Subscribe before ${when} and nothing skips a beat; let the trial lapse and it all goes on pause.</p>
+      ${btn(ORIGIN + '/#subscribe', `Keep ${kid} going — choose a plan`)}
+      <p style="margin:16px 0 0;font-size:14px;color:#5f6b7d">$34/mo for one learner or $54/mo for up to four — all four subjects, cancel in one click anytime. Questions? Just reply; a real person answers.</p>
+    `, { unsubToken: unsubTokenFor(parent.id) });
+    return sendEmail({ to: parent.email, subject: `${kid} is on a roll — your Gallop trial ends ${when}`, html, kind: 'trial_ending' });
+  } catch (e) { /* never throw from the scheduler */ }
+}
+
 function sendTrialEnded(parent) {
   try {
     if (!parent || !parent.email || parent.email_opt_out) return;
@@ -369,7 +415,18 @@ async function trialSweep() {
           await sendWinback(p, wstate); sentSomething = true;
         }
       } else if (daysLeft <= 2) {
-        if (!sentBefore(p.email, 'trial_ending')) { await sendTrialEnding(p, Math.max(1, Math.round(daysLeft))); sentSomething = true; }
+        if (!sentBefore(p.email, 'trial_ending')) {
+          const dl = Math.max(1, Math.round(daysLeft));
+          // Warm families (child actually practiced) get the personalized, proof-driven ask;
+          // everyone else gets the standard trial-ending note. Both log as 'trial_ending', so a
+          // family still receives exactly one such email.
+          const stats = familyLearnStats(p.id);
+          let kidName = null;
+          try { const k1 = db.prepare('SELECT name FROM kids WHERE parent_id=? ORDER BY id LIMIT 1').get(p.id); kidName = k1 && k1.name ? k1.name : null; } catch (e) {}
+          if (stats) await sendTrialEndingActive(p, stats, kidName, dl);
+          else await sendTrialEnding(p, dl);
+          sentSomething = true;
+        }
       } else {
         // Quiet middle of the trial — onboarding drip keyed off signup date (day ~2 and ~4).
         let daysSince = null;
@@ -692,4 +749,4 @@ function sendSupportReply(toEmail, subject, replyText) {
   } catch (e) { return { sent: false }; }
 }
 
-module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendEmailVerification, sendVerifyReminder, sendConsentConfirmed, sendWeeklyReport, sendTrialEnding, sendTrialEnded, sendChildSubscribeRequest, sendOnboardActivate, sendOnboardActivate2, sendOnboardValue, sendTrialProgress, sendWinback, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply, sendSchoolLead };
+module.exports = { configured, sendEmail, sendWelcomeTrial, sendWelcomePaid, sendPasswordReset, sendEmailVerification, sendVerifyReminder, sendConsentConfirmed, sendWeeklyReport, sendTrialEnding, sendTrialEndingActive, sendTrialEnded, sendChildSubscribeRequest, sendOnboardActivate, sendOnboardActivate2, sendOnboardValue, sendTrialProgress, sendWinback, nudgeSweep, weeklyReportSweep, trialSweep, unsubTokenFor, sendSupportEscalation, sendSupportReply, sendSchoolLead };
