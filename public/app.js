@@ -4185,6 +4185,15 @@ route('parent', async () => {
 
   const trialUrgent = p.sub_status === 'trial' && msLeft > 0 && trialDays <= 3;
   const trialEnded = p.sub_status === 'trial' && msLeft <= 0;
+  // Personalize the trial-end nudge for families whose child actually engaged (Leak 2): naming the
+  // real progress (and a streak, if any) makes the keep-vs-lose choice concrete. Falls back to the
+  // generic line when no child has done anything yet. Uses data already on me.kids — no extra fetch.
+  const _kidsArr = me.kids || [];
+  const _bestStreak = _kidsArr.reduce((mx, k) => Math.max(mx, k.streak || 0), 0);
+  const _activeKid = _kidsArr.find(k => (k.xp || 0) > 0 || (k.streak || 0) > 0);
+  const _trialKeepLine = _activeKid
+    ? `Everything ${esc(_activeKid.name || 'your child')} has built${_bestStreak >= 2 ? ` — including that <b>${_bestStreak}-day streak</b>` : ''} is saved. Subscribe to keep it going without missing a day.`
+    : `All progress, streaks, badges and certificates are saved — subscribing keeps the gallop going without missing a day.`;
   app().innerHTML = topbar(`<div class="container">
     <div class="dash-welcome" style="margin-bottom:14px"><h1>Welcome, ${esc(p.name)} 👋</h1><p>${subLine} ${me.billingMode === 'demo' && me.parent && me.parent.is_admin ? '· <i>(demo billing, add Stripe keys to charge real cards)</i>' : ''}</p></div>
     ${!p.email_verified ? `<div class="trial-banner" style="background:#8a5a00">
@@ -4194,7 +4203,7 @@ route('parent', async () => {
     </div>` : ''}
     ${trialUrgent ? `<div class="trial-banner">
       <div><b>⏳ Your free trial ends in ${trialDays} day${trialDays === 1 ? '' : 's'}.</b><br>
-      <span>All progress, streaks, badges and certificates are saved, subscribing keeps the gallop going without missing a day.</span></div>
+      <span>${_trialKeepLine}</span></div>
       <div style="white-space:nowrap"><button class="btn sun" id="tb-family">Family, $54/mo</button>
       <button class="btn ghost small" style="color:#fff;border-color:rgba(255,255,255,.6);margin-left:8px" id="tb-solo">Solo, $34/mo</button></div>
     </div>` : ''}
