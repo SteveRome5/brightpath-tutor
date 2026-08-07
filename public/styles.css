@@ -140,6 +140,17 @@ body[data-theme="junior"] .btn { font-size: 1.05rem; padding: 13px 26px; box-sha
 body[data-theme="junior"] .btn { color: #2a1e05; }
 body[data-theme="junior"] .btn.ghost { color: var(--chrome-ink); }
 body[data-theme="junior"] .btn.coral { color: #fff; }
+/* In the junior (K-2) & explorer (3-5) themes, --chrome-ink is white so page-chrome ghost buttons
+   read on the dark page background. But cards are white, so a ghost button INSIDE a card (quiz
+   answer choices, "← Back", "Back to Money Skills", the coin +/- sim buttons) rendered as white
+   text on white — invisible. Force ghost buttons inside cards to dark, readable text + a light
+   border. No !important, so the correct/incorrect answer colors set inline on click still win. */
+body[data-theme="junior"] .card .btn.ghost,
+body[data-theme="junior"] .lp-card .btn.ghost,
+body[data-theme="explorer"] .card .btn.ghost,
+body[data-theme="explorer"] .lp-card .btn.ghost {
+  color: #1f2a3d; border-color: #cbd5e1;
+}
 input, select {
   font-family: var(--font-body); font-size: 1rem; padding: 11px 14px; width: 100%;
   border: 1.5px solid var(--field-border); border-radius: calc(var(--btn-radius) + 2px);

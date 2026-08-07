@@ -872,7 +872,7 @@
         <p class="muted" style="margin:12px 0 4px">Question ${quizI + 1} of ${u.quiz.length}</p>
         <h3 style="margin:0 0 14px">${esc(item.q)}</h3>
         <div id="fin-choices" style="display:flex;flex-direction:column;gap:10px">
-          ${item.choices.map((c, i) => `<button class="btn ghost fin-choice" data-i="${i}" style="text-align:left;justify-content:flex-start">${esc(c)}</button>`).join('')}
+          ${item.choices.map((c, i) => `<button class="btn ghost fin-choice" data-i="${i}" style="text-align:left;justify-content:flex-start;background:#fff;color:#1f2a3d;border-color:#cbd5e1">${esc(c)}</button>`).join('')}
         </div>
         <div id="fin-feedback" style="margin-top:14px"></div>`);
       document.querySelectorAll('.fin-choice').forEach(btn => {

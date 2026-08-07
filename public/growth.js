@@ -504,7 +504,7 @@
       shell(`
         <div style="margin:12px 0 2px"><span style="display:inline-block;background:#eaf4ff;color:#1c5aa6;font-weight:800;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px">📖 Reading check · from the true story</span></div>
         <h3 style="margin:10px 0 14px">${esc(item.q)}</h3>
-        <div style="display:flex;flex-direction:column;gap:10px">${item.choices.map((c, i) => `<button class="btn ghost trq-choice" data-i="${i}" style="text-align:left;justify-content:flex-start">${esc(c)}</button>`).join('')}</div>
+        <div style="display:flex;flex-direction:column;gap:10px">${item.choices.map((c, i) => `<button class="btn ghost trq-choice" data-i="${i}" style="text-align:left;justify-content:flex-start;background:#fff;color:#1f2a3d;border-color:#cbd5e1">${esc(c)}</button>`).join('')}</div>
         <div id="trq-fb" style="margin-top:14px"></div>`);
       document.querySelectorAll('.trq-choice').forEach(btn => {
         btn.onclick = () => {
@@ -523,7 +523,7 @@
       shell(`
         <p class="muted" style="margin:12px 0 4px">Reflection ${quizI + 1} of ${u.quiz.length}</p>
         <h3 style="margin:0 0 14px">${esc(item.q)}</h3>
-        <div style="display:flex;flex-direction:column;gap:10px">${item.choices.map((c, i) => `<button class="btn ghost gr-choice" data-i="${i}" style="text-align:left;justify-content:flex-start">${esc(c)}</button>`).join('')}</div>
+        <div style="display:flex;flex-direction:column;gap:10px">${item.choices.map((c, i) => `<button class="btn ghost gr-choice" data-i="${i}" style="text-align:left;justify-content:flex-start;background:#fff;color:#1f2a3d;border-color:#cbd5e1">${esc(c)}</button>`).join('')}</div>
         <div id="gr-fb" style="margin-top:14px"></div>`);
       document.querySelectorAll('.gr-choice').forEach(btn => {
         btn.onclick = () => {
