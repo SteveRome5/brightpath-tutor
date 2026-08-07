@@ -7,8 +7,8 @@
 //   • Other static assets (images, icons, manifest): stale-while-revalidate (instant + refreshed
 //     in the background) since they're heavy and rarely change.
 //   • API (/api/*): never touched — always live network (never cache learning data).
-const CACHE = 'gallop-v197';
-const STATIC = ['/', '/index.html', '/styles.css', '/app.js', '/games.js', '/curriculum.js', '/careers.js', '/lessons.js', '/lessons_patch.js', '/lessons_ext.js', '/manifest.json', '/icon-192.png', '/icon-512.png', '/logo-mark.png', '/logo-roundel.png', '/logo-full.png', '/logo-full-dark.png', '/favicon-32.png', '/apple-touch-icon.png'];
+const CACHE = 'gallop-v198';
+const STATIC = ['/', '/index.html', '/styles.css', '/app.js', '/games.js', '/curriculum.js', '/careers.js', '/finance.js', '/lessons.js', '/lessons_patch.js', '/lessons_ext.js', '/manifest.json', '/icon-192.png', '/icon-512.png', '/logo-mark.png', '/logo-roundel.png', '/logo-full.png', '/logo-full-dark.png', '/favicon-32.png', '/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)).then(() => self.skipWaiting()));
