@@ -26,6 +26,27 @@
   }
 })();
 
+// First-touch acquisition capture: remember where a visitor came from — campaign tags (utm_*),
+// ad click ids (gclid/fbclid), and referrer — the first time they arrive with a meaningful signal,
+// so the source is still known when they sign up later (often on a different page, params gone).
+// A tagged or paid click always wins over a weaker prior touch; a plain visit only fills in if
+// nothing better was ever seen. Held client-side and sent exactly once, in the signup request.
+(() => {
+  try {
+    const p = new URLSearchParams(location.search);
+    const cur = {
+      utm_source: p.get('utm_source') || '', utm_medium: p.get('utm_medium') || '',
+      utm_campaign: p.get('utm_campaign') || '', gclid: p.get('gclid') || '',
+      fbclid: p.get('fbclid') || '', referrer: document.referrer || '', t: Date.now()
+    };
+    const strong = !!(cur.utm_source || cur.gclid || cur.fbclid);
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem('bp_acq') || 'null'); } catch (e) {}
+    if (strong || !stored) localStorage.setItem('bp_acq', JSON.stringify(cur));
+  } catch (e) { /* attribution must never break the page */ }
+})();
+window.bpAcq = () => { try { return JSON.parse(localStorage.getItem('bp_acq') || 'null'); } catch (e) { return null; } };
+
 // ======================= tiny helpers =======================
 const $ = sel => document.querySelector(sel);
 const app = () => $('#app');
@@ -1567,7 +1588,7 @@ route('signup', async () => {
   $('#f-go').onclick = async () => {
     if (!$('#f-consent').checked) { gtmPush({ event: 'signup_error', reason: 'consent' }); showError('#f-err', 'Please confirm you are the parent or guardian and agree to the Terms and Privacy Policy to continue.'); return; }
     try {
-      await api('/auth/signup', { method: 'POST', body: { name: $('#f-name').value, email: $('#f-email').value, password: $('#f-pass').value, consent: true } });
+      await api('/auth/signup', { method: 'POST', body: { name: $('#f-name').value, email: $('#f-email').value, password: $('#f-pass').value, consent: true, acq: window.bpAcq && window.bpAcq() } });
       setEnhancedConvData($('#f-email').value);
       gtmPush({ event: 'sign_up', method: 'email', intent: window.__subscribeIntent ? 'subscribe' : 'trial' });
       // Optional newsletter opt-in — fire-and-forget into the existing newsletter list.
@@ -5087,6 +5108,17 @@ route('admin', async () => {
         <div class="card">
           <h3>📈 Signups, last 14 days</h3>
           ${d.signups.length ? `<svg viewBox="0 0 480 80" style="width:100%;height:auto" role="img" aria-label="Signups per day over the last 14 days: ${d.signups.map(x => x.d.slice(5) + ' ' + x.n).join(', ')}.">${d.signups.map((x, i) => `<g><rect x="${i * 34 + 4}" y="${62 - Math.round(x.n / maxSign * 55)}" width="26" height="${Math.max(3, Math.round(x.n / maxSign * 55))}" rx="4" fill="#1f8a5f"/><text x="${i * 34 + 17}" y="76" font-size="8" text-anchor="middle" fill="#98a0af">${x.d.slice(5)}</text></g>`).join('')}</svg>` : '<p class="muted">No signups in the last 14 days.</p>'}
+        </div>
+        <div class="card">
+          <h3>🎯 Where families come from</h3>
+          ${(d.bySource && d.bySource.length) ? `
+          <p class="muted" style="margin:0 0 10px;font-size:.78rem">First-touch source → how many <b>joined</b>, how many <b>activated</b> (a child did real work), and how many <b>pay</b>. Bar shows activation. Brand-new tracking — accounts from before it shipped show as “Unknown”.</p>
+          <div style="display:flex;flex-direction:column;gap:7px">
+          ${d.bySource.map(s => {
+            const act = s.signups ? Math.round(s.activated / s.signups * 100) : 0;
+            return `<div class="kid-row" style="font-size:.84rem"><b style="min-width:108px">${esc(s.channel)}</b><span class="sk-bar" style="flex:1"><span class="sk-fill hi" style="width:${act}%"></span></span><span class="muted" style="min-width:158px;text-align:right">${s.signups} joined · ${s.activated} active · <b style="color:${s.paying ? '#1f8a5f' : '#98a0af'}">${s.paying} paying</b></span></div>`;
+          }).join('')}
+          </div>` : '<p class="muted">No source data yet — it fills in as new families sign up. Add <code>?utm_source=…</code> to the links you share to tag them.</p>'}
         </div>
       </div>
       <div>
