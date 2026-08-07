@@ -1430,5 +1430,380 @@ window.GALLOP_CAREERS = [
         "wiki": "Elijah_McCoy"
       }
     ]
+  },
+  {
+    "id": "business_marketing",
+    "title": "Business & Marketing",
+    "emoji": "📊",
+    "color": "#c0662a",
+    "sig": {
+      "math": 0.6,
+      "english": 0.7
+    },
+    "tagline": "Run companies and get the world excited about ideas.",
+    "whatItIs": "Business and marketing careers keep companies running and growing — leading teams, making plans, and convincing customers to love a product. It blends numbers, people skills, and creativity.",
+    "dayToDay": "Set goals, analyze what customers want, launch campaigns, manage budgets and people, and measure what works. A mix of strategy, storytelling, and problem-solving — every day is different.",
+    "jobs": [
+      "Marketing manager",
+      "Brand strategist",
+      "Business analyst",
+      "Product manager",
+      "Sales director",
+      "Human-resources manager",
+      "Management consultant",
+      "Market researcher"
+    ],
+    "hs": "Business, economics, and public speaking — plus running a club, team, or small venture to lead something real.",
+    "traits": [
+      "You like leading, organizing, and persuading",
+      "You enjoy both numbers and creativity",
+      "You’re curious about why people buy what they buy"
+    ],
+    "surprising": [
+      "Growth hacker who makes apps spread fast",
+      "Brand namer who invents company names",
+      "Market researcher who studies shopper behavior",
+      "Social-media strategist for big brands"
+    ],
+    "paths": [
+      "Business or marketing degree — the common route into management",
+      "Start in sales or an assistant role and rise through results",
+      "Build a brand or online shop yourself to learn marketing hands-on",
+      "Certifications in digital marketing or analytics to specialize fast"
+    ],
+    "related": [
+      "finance",
+      "entrepreneur",
+      "media_entertainment"
+    ],
+    "people": [
+      {
+        "name": "Ursula Burns",
+        "who": "She started as a summer intern at Xerox and worked her way all the way to the top, becoming its CEO — the first Black woman ever to lead a Fortune 500 company. She grew up in public housing and credits hard work and her mother’s belief in education. She mentors young people aiming high.",
+        "wiki": "Ursula_Burns"
+      },
+      {
+        "name": "Indra Nooyi",
+        "who": "Born in India, she rose to become the CEO of PepsiCo, one of the world’s largest food and drink companies, leading it for twelve years. She pushed the company toward healthier products and long-term thinking. She often speaks about balancing ambition and family.",
+        "wiki": "Indra_Nooyi"
+      },
+      {
+        "name": "David Ogilvy",
+        "who": "Often called the \"Father of Advertising,\" he built one of the world’s most famous ad agencies on the idea that ads should respect the customer and tell the truth. His clever, honest campaigns became legendary. He started as a cook and a door-to-door salesman before finding his calling.",
+        "wiki": "David_Ogilvy_(businessman)"
+      }
+    ]
+  },
+  {
+    "id": "it_cyber",
+    "title": "IT, Cybersecurity & Networks",
+    "emoji": "🔐",
+    "color": "#2f6f5f",
+    "sig": {
+      "math": 0.9,
+      "science": 0.4
+    },
+    "tagline": "Keep the world’s computers running — and safe from hackers.",
+    "whatItIs": "While software engineers build apps, IT and cybersecurity pros keep all the computers, networks, and data working and protected. When a hospital, bank, or school gets hacked, these are the people who defend it.",
+    "dayToDay": "Set up and fix networks, protect systems from attacks, hunt for weaknesses before criminals find them, and respond fast when something breaks. Part puzzle-solving, part detective work, always in demand.",
+    "jobs": [
+      "Cybersecurity analyst",
+      "Network administrator",
+      "Ethical hacker (penetration tester)",
+      "IT support specialist",
+      "Cloud engineer",
+      "Security architect",
+      "Systems administrator"
+    ],
+    "hs": "Math and any computing class, plus tinkering with your own computer or network and earning a starter IT certification.",
+    "traits": [
+      "You like protecting things and outsmarting bad guys",
+      "You’re patient at troubleshooting until it works",
+      "You’re fascinated by how the internet actually runs"
+    ],
+    "surprising": [
+      "Ethical hacker paid to break in and report the holes",
+      "Digital forensics investigator who solves cyber-crimes",
+      "Bug-bounty hunter who earns rewards finding flaws",
+      "Cloud-security engineer protecting huge data centers"
+    ],
+    "paths": [
+      "Certifications (like CompTIA or Security+) — a fast, respected way in, no 4-year degree required",
+      "2-year IT degree, then specialize",
+      "Computer science or cybersecurity degree for deeper roles",
+      "Self-taught + home labs and “capture the flag” hacking contests"
+    ],
+    "related": [
+      "cs_ai",
+      "engineering",
+      "public_safety"
+    ],
+    "people": [
+      {
+        "name": "Radia Perlman",
+        "who": "A computer scientist sometimes called the \"Mother of the Internet\" for inventing a key rule that lets huge networks route information without crashing. Her work quietly keeps the internet running every second. She has earned dozens of patents and still teaches others.",
+        "wiki": "Radia_Perlman"
+      },
+      {
+        "name": "Parisa Tabriz",
+        "who": "Nicknamed Google’s \"Security Princess,\" she leads the team that keeps the Chrome browser safe for billions of people. She started as a hacker who loved finding weaknesses, then used that skill to defend instead of attack. She champions bringing more people into cybersecurity.",
+        "wiki": "Parisa_Tabriz"
+      },
+      {
+        "name": "Vint Cerf",
+        "who": "One of the \"Fathers of the Internet,\" he helped design the basic rules (called TCP/IP) that let all the world’s computers talk to each other. Much of how the internet works traces back to his ideas. He has spent his life helping the network grow and stay open.",
+        "wiki": "Vint_Cerf"
+      }
+    ]
+  },
+  {
+    "id": "military",
+    "title": "Military & Service",
+    "emoji": "🎖️",
+    "color": "#4a5a3a",
+    "sig": {
+      "math": 0.5,
+      "science": 0.5
+    },
+    "tagline": "Serve, lead, and learn skills that last a lifetime.",
+    "whatItIs": "The armed forces protect the country — but they’re also one of the largest training grounds on Earth. Members learn leadership, trades, technology, medicine, aviation, and more, often with college paid for.",
+    "dayToDay": "Train hard, work as a tight team, and take on real responsibility young — from piloting and engineering to medicine, cyber, and logistics. Discipline, teamwork, and service are at the heart of it.",
+    "jobs": [
+      "Officer / leader",
+      "Pilot",
+      "Combat medic",
+      "Cyber-operations specialist",
+      "Engineer corps",
+      "Logistics specialist",
+      "Intelligence analyst",
+      "Military police"
+    ],
+    "hs": "Stay fit, keep your grades up, and talk with a recruiter or explore ROTC and service academies — many careers and college funding start here.",
+    "traits": [
+      "You value discipline, teamwork, and serving something bigger",
+      "You want real responsibility and training young",
+      "You’re drawn to leadership and challenge"
+    ],
+    "surprising": [
+      "Military linguist who masters rare languages",
+      "Weather forecaster for flight and sea missions",
+      "Space Force operator working with satellites",
+      "Military musician in an official band"
+    ],
+    "paths": [
+      "Enlist after high school — train in a specialty and often get college paid for",
+      "ROTC in college — become an officer while earning your degree",
+      "Service academies (like West Point or the Naval Academy) — free education plus leadership",
+      "Use military training and benefits to launch a civilian career afterward"
+    ],
+    "related": [
+      "public_safety",
+      "aviation_space",
+      "engineering"
+    ],
+    "people": [
+      {
+        "name": "Colin Powell",
+        "who": "The son of immigrants, he rose through the U.S. Army to become a four-star general and the first African American Chairman of the Joint Chiefs of Staff, then Secretary of State. He was known for calm, steady leadership. He often shared simple rules for leading people well.",
+        "wiki": "Colin_Powell"
+      },
+      {
+        "name": "Tammy Duckworth",
+        "who": "A U.S. Army helicopter pilot who lost both legs when her aircraft was hit in combat, then fought her way through recovery. She went on to serve her country again as a United States Senator. She’s a powerful example of courage and resilience.",
+        "wiki": "Tammy_Duckworth"
+      },
+      {
+        "name": "Roy Benavidez",
+        "who": "A Green Beret who, though badly wounded, ran into heavy fire to rescue fellow soldiers, saving several lives during the Vietnam War. For his extraordinary bravery he received the Medal of Honor, the nation’s highest award. His story is one of selfless courage.",
+        "wiki": "Roy_Benavidez"
+      }
+    ]
+  },
+  {
+    "id": "real_estate",
+    "title": "Real Estate & Property",
+    "emoji": "🏘️",
+    "color": "#8a6a2a",
+    "sig": {
+      "math": 0.7,
+      "english": 0.6
+    },
+    "tagline": "Help people find homes and shape where we live.",
+    "whatItIs": "Real estate is the business of homes, buildings, and land — helping people buy and sell, managing properties, and developing new places to live and work. It mixes people skills, numbers, and big-picture vision.",
+    "dayToDay": "Show homes, negotiate deals, value properties, manage buildings, or plan whole new developments. Great for people who love working with others and enjoy the thrill of closing a deal.",
+    "jobs": [
+      "Real-estate agent",
+      "Property manager",
+      "Real-estate developer",
+      "Appraiser (values property)",
+      "Mortgage specialist",
+      "Commercial real-estate broker",
+      "Urban developer"
+    ],
+    "hs": "Math and communication classes, plus a part-time job that builds people skills — a license needs training, not a 4-year degree.",
+    "traits": [
+      "You’re good with people and enjoy negotiating",
+      "You like the mix of numbers and big decisions",
+      "You’re interested in homes, buildings, or cities"
+    ],
+    "surprising": [
+      "Real-estate drone photographer",
+      "Property \"flipper\" who fixes and resells homes",
+      "Commercial broker who leases skyscrapers",
+      "Real-estate data analyst spotting hot neighborhoods"
+    ],
+    "paths": [
+      "Get a real-estate license — months of study, not years of college",
+      "Start as an assistant to an agent or property manager and learn the trade",
+      "Business or finance degree for development and investment roles",
+      "Learn by investing small (even studying the market) before going big"
+    ],
+    "related": [
+      "finance",
+      "architecture",
+      "entrepreneur"
+    ],
+    "people": [
+      {
+        "name": "Barbara Corcoran",
+        "who": "She borrowed $1,000 to start a small real-estate business in New York and grew it into one of the city’s biggest, then sold it for millions. Famous from the show \"Shark Tank,\" she invests in new entrepreneurs. She says being told \"no\" only made her work harder.",
+        "wiki": "Barbara_Corcoran"
+      },
+      {
+        "name": "Don Peebles",
+        "who": "A real-estate developer who built a major company creating hotels, apartments, and office towers in big cities. He started young and became one of the most successful Black developers in America. He mentors others and speaks about building wealth through ownership.",
+        "wiki": "Don_Peebles"
+      },
+      {
+        "name": "William Levitt",
+        "who": "After World War II, he figured out how to build good houses quickly and affordably, using assembly-line methods to create whole new towns. His \"Levittowns\" helped millions of families own their first home. He reshaped how American suburbs were built.",
+        "wiki": "William_Levitt"
+      }
+    ]
+  },
+  {
+    "id": "beauty_style",
+    "title": "Beauty, Style & Personal Care",
+    "emoji": "💇",
+    "color": "#b0568a",
+    "sig": {
+      "english": 0.4,
+      "math": 0.3
+    },
+    "tagline": "Help people look and feel their best — a creative, hands-on business.",
+    "whatItIs": "This field is about style, self-expression, and making people feel confident — hair, makeup, skincare, nails, and fashion. Many roles are skilled trades you can start young, and many stylists run their own businesses.",
+    "dayToDay": "Work directly with people, use artistic skill and steady hands, keep up with trends, and often build a loyal following. Creative, social, and entrepreneurial — plenty of stylists become their own boss.",
+    "jobs": [
+      "Hairstylist / barber",
+      "Makeup artist",
+      "Esthetician (skincare)",
+      "Nail technician",
+      "Cosmetics entrepreneur",
+      "Fashion stylist",
+      "Salon or spa owner"
+    ],
+    "hs": "Art classes for an eye for design, plus cosmetology school or an apprenticeship — a licensed trade, no 4-year degree needed.",
+    "traits": [
+      "You’re creative and love working with people",
+      "You have an eye for style and detail",
+      "You’d enjoy building your own clients or brand"
+    ],
+    "surprising": [
+      "Special-effects makeup artist for films",
+      "Celebrity or editorial stylist",
+      "Product developer inventing new cosmetics",
+      "Content creator teaching beauty to millions"
+    ],
+    "paths": [
+      "Cosmetology or barber school + a license — often under a year",
+      "Apprentice under a working stylist and learn on the job",
+      "Build a following online showing your work",
+      "Grow from stylist to salon owner or your own product line"
+    ],
+    "related": [
+      "arts",
+      "entrepreneur",
+      "media_entertainment"
+    ],
+    "people": [
+      {
+        "name": "Madam C.J. Walker",
+        "who": "Born to parents who had been enslaved, she created a line of hair-care products for Black women and built it into a huge business — becoming one of America’s first self-made female millionaires. She employed and trained thousands of women. She gave generously to schools and causes.",
+        "wiki": "Madam_C._J._Walker"
+      },
+      {
+        "name": "Vidal Sassoon",
+        "who": "A hairstylist who revolutionized haircutting with bold, geometric styles that let hair fall into place naturally. He turned styling into an art form and built a global brand of salons and products. He started sweeping floors in a salon as a boy.",
+        "wiki": "Vidal_Sassoon"
+      },
+      {
+        "name": "Pat McGrath",
+        "who": "A self-taught makeup artist who became one of the most influential in the world, creating looks for top fashion shows and magazines. She launched her own makeup line that grew into a billion-dollar brand. She proved you don’t need formal training to reach the very top.",
+        "wiki": "Pat_McGrath_(make-up_artist)"
+      }
+    ]
+  },
+  {
+    "id": "sports_recreation",
+    "title": "Sports, Fitness & Recreation",
+    "emoji": "🏆",
+    "color": "#2a7ab0",
+    "sig": {
+      "science": 0.5,
+      "math": 0.3
+    },
+    "tagline": "Build a life around games, movement, and the great outdoors.",
+    "whatItIs": "This field is for people who love sports and activity — playing, coaching, officiating, running teams, keeping people fit, or guiding adventures outdoors. It’s about performance, teamwork, and helping people enjoy being active.",
+    "dayToDay": "Train and compete, coach and mentor others, plan events and leagues, lead outdoor trips, or run fitness programs. Active, people-focused work for those who can’t sit still.",
+    "jobs": [
+      "Professional or college athlete",
+      "Coach",
+      "Personal trainer",
+      "Referee / official",
+      "Sports manager / agent",
+      "Recreation director",
+      "Outdoor / adventure guide",
+      "Fitness entrepreneur"
+    ],
+    "hs": "Play a sport, help coach younger kids, and study biology or PE — and know that coaching and fitness certifications open doors fast.",
+    "traits": [
+      "You love sports, fitness, or the outdoors",
+      "You’re energetic and enjoy motivating others",
+      "You thrive as part of a team"
+    ],
+    "surprising": [
+      "Esports coach or pro gamer",
+      "Sports agent who represents athletes",
+      "Whitewater or mountain guide",
+      "Sports-team operations manager"
+    ],
+    "paths": [
+      "Coaching and personal-training certifications — a fast start",
+      "Kinesiology, sports management, or recreation degree",
+      "Rise through playing, then coaching or officiating",
+      "Start your own fitness, camp, or adventure business"
+    ],
+    "related": [
+      "sports_health",
+      "education",
+      "entrepreneur"
+    ],
+    "people": [
+      {
+        "name": "Jackie Robinson",
+        "who": "In 1947 he broke Major League Baseball’s color barrier, becoming the first African American to play in the modern major leagues. He faced cruel treatment with dignity and brilliant play, opening the game to everyone. His courage changed sports and the country.",
+        "wiki": "Jackie_Robinson"
+      },
+      {
+        "name": "Billie Jean King",
+        "who": "A tennis champion who won dozens of major titles and then fought for equal pay and respect for women in sports. Her famous 1973 match, the \"Battle of the Sexes,\" inspired millions. She has spent her life pushing for fairness on and off the court.",
+        "wiki": "Billie_Jean_King"
+      },
+      {
+        "name": "Pat Summitt",
+        "who": "One of the greatest coaches in any sport, she led the University of Tennessee women’s basketball team to more wins than almost any coach in college history. She demanded excellence and helped every player she coached graduate. She became a role model for coaches everywhere.",
+        "wiki": "Pat_Summitt"
+      }
+    ]
   }
 ];

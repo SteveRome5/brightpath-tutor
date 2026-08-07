@@ -242,6 +242,173 @@
         { q: 'Financial independence is best described as…', choices: ['Being famous', 'Having enough that money isn’t a constant worry and you have choices', 'Spending freely on wants'], a: 1, why: 'It’s about freedom and choices, not showing off.' },
         { q: 'The core formula is: earn, then…', choices: ['Spend it all', 'Spend less than you earn and invest the gap', 'Borrow more'], a: 1, why: 'Spend less than you earn, invest the difference, let it compound.' }
       ]
+    },
+
+    // ---------------- Money Sprouts (K–2) — added ----------------
+    {
+      id: 'making-change', band: 'sprouts', emoji: '🔁', title: 'Making Change',
+      blurb: 'What happens when you pay with too much.',
+      steps: [
+        { t: 'Change is money you get back', b: 'When something costs less than the money you hand over, the cashier gives you the extra back. That extra is called your change. If a toy costs 70¢ and you pay with $1 (100¢), you get 30¢ back.' },
+        { t: 'Count UP to find the change', b: 'The easy trick: start at the price and count up to what you paid. From 70¢: +10 = 80, +10 = 90, +10 = 100. That’s 30¢ of change. Counting up is how cashiers do it in their heads.', tip: 'To find change, count up from the price to the amount you paid.' },
+        { t: 'Check your change', b: 'Always glance at your change to make sure it’s right. It’s good practice — even grown-ups get shortchanged sometimes. A quick count keeps your money safe.' }
+      ],
+      quiz: [
+        { q: 'A snack costs 60¢. You pay with $1. How much change?', choices: ['30¢', '40¢', '60¢'], a: 1, why: 'Count up from 60 to 100 = 40¢ change.' },
+        { q: 'The best way to find change is to…', choices: ['Guess', 'Count up from the price to what you paid', 'Count down from zero'], a: 1, why: 'Counting up from the price is the cashier’s trick.' }
+      ]
+    },
+    {
+      id: 'earning-effort', band: 'sprouts', emoji: '🧹', title: 'Earning Money',
+      blurb: 'Money is a reward for helping and effort.',
+      steps: [
+        { t: 'Money is usually earned', b: 'Money doesn’t just appear — people earn it by doing helpful work. Kids can earn too: helping with chores, a lemonade stand, or a little job for a neighbor. Effort turns into money.' },
+        { t: 'Effort and value', b: 'Harder or more helpful work usually earns more. Watering a plant is quick; washing the whole car takes real effort — so the car earns more. Doing a great job makes people want to “hire” you again.', tip: 'Do a job well and people come back — that’s how earning grows.' },
+        { t: 'Earn, then choose', b: 'When you earn your own money, spending it feels different — you worked for it! That makes the save/spend/give choice matter more, and helps you pick what you really want.' }
+      ],
+      quiz: [
+        { q: 'The best way to earn more, doing chores, is to…', choices: ['Do the smallest job fast', 'Do helpful work well so people ask again', 'Refuse to help'], a: 1, why: 'Doing good, helpful work earns more and brings repeat “jobs.”' },
+        { q: 'Money is usually…', choices: ['Free if you ask', 'Earned by doing helpful work', 'Found on the ground'], a: 1, why: 'Money is earned through effort and helping.' }
+      ]
+    },
+
+    // ---------------- Money Growers (3–5) — added ----------------
+    {
+      id: 'giving-back', band: 'growers', emoji: '❤️', title: 'Giving Back',
+      blurb: 'Using some of your money to help others.',
+      steps: [
+        { t: 'Giving is part of a money plan', b: 'Lots of people set aside a little of their money to help others — a charity, a food bank, an animal shelter, or someone in need. It’s called giving or donating.' },
+        { t: 'A little adds up', b: 'You don’t need to be rich to give. If you set aside just 10¢ of every dollar, that’s $1 for every $10 you get. Small amounts from many people fund big, wonderful things.', tip: 'Even a small, regular gift makes a real difference — and feels great.' },
+        { t: 'Give on purpose', b: 'The best giving is planned, not random. Pick a cause you care about, decide how much, and give it gladly. Many people say giving is the most satisfying money they spend.' }
+      ],
+      quiz: [
+        { q: 'If you give 10¢ of every dollar, how much do you give from $10?', choices: ['$1', '$5', '10¢'], a: 0, why: '10¢ per dollar × 10 dollars = $1.' },
+        { q: 'The best kind of giving is…', choices: ['Random and rushed', 'Planned — a cause you care about', 'Only when someone forces you'], a: 1, why: 'Planned giving to a cause you care about is most meaningful.' }
+      ]
+    },
+    {
+      id: 'goals-plan', band: 'growers', emoji: '🎯', title: 'Set a Money Goal',
+      blurb: 'Turn a wish into a plan that works.',
+      steps: [
+        { t: 'A goal needs a number and a date', b: 'A wish is “I want a bike.” A goal is “I want a $120 bike by my birthday in 6 months.” A real goal has a price and a deadline — that’s what makes it reachable.' },
+        { t: 'Break it into small steps', b: '$120 in 6 months = $20 a month, or about $5 a week. Suddenly a big goal is a small weekly habit. Write it down and track it so you can watch it fill up.', tip: 'Big goal ÷ time = the small amount to save each week. That’s the whole secret.' },
+        { t: 'Protect the goal', b: 'The hard part is not spending your goal money on other stuff. Keeping it in a separate place (a jar, an envelope, a savings account) makes it easier to leave alone until you reach the finish line.' }
+      ],
+      quiz: [
+        { q: 'You want a $120 goal in 6 months. About how much per month?', choices: ['$20', '$60', '$120'], a: 0, why: '$120 ÷ 6 months = $20 a month.' },
+        { q: 'What turns a wish into a real goal?', choices: ['Hoping harder', 'A price and a deadline', 'Telling nobody'], a: 1, why: 'A number + a date makes a goal you can plan for.' }
+      ],
+      apply: { label: 'Practice earning toward a goal in the Bakery →', hash: '#game/bakery' }
+    },
+    {
+      id: 'ads-tricks', band: 'growers', emoji: '📺', title: 'Ads & Sneaky Tricks',
+      blurb: 'How companies try to get your money.',
+      steps: [
+        { t: 'Ads are made to make you want things', b: 'Ads aren’t just information — they’re designed to make you feel you NEED something. Bright colors, happy kids, cool music, a favorite character: all chosen to make you ask a grown-up to buy it.' },
+        { t: 'Spot the tricks', b: 'Watch for “limited time!”, “everyone has one!”, and toys that look way bigger or cooler than they really are. These push you to buy fast, before you think. A smart shopper slows down.', tip: 'When an ad makes you feel you must buy RIGHT NOW — that’s exactly when to pause.' },
+        { t: 'Ask three questions', b: 'Before wanting what an ad sells, ask: Do I really need it? Is it as good as it looks? Could I wait? Often the “want” fades in a day — and you keep your money.' }
+      ],
+      quiz: [
+        { q: 'The main goal of most ads is to…', choices: ['Teach you facts', 'Make you want to buy something', 'Tell the whole truth'], a: 1, why: 'Ads are built to create wants and get you to buy.' },
+        { q: '“Limited time — buy now!” is designed to make you…', choices: ['Slow down and think', 'Buy fast before you think', 'Save your money'], a: 1, why: 'Urgency tricks push you to buy before you consider it.' }
+      ]
+    },
+
+    // ---------------- Money Builders (6–8) — added ----------------
+    {
+      id: 'entrepreneur-basics', band: 'builders', emoji: '🚀', title: 'Start a Business',
+      blurb: 'Profit = what you make − what it costs.',
+      steps: [
+        { t: 'A business solves a problem for money', b: 'Every business trades something people want (a product or service) for money. A dog-walking business trades your time and effort; a bakery trades cupcakes. Step one is always: what problem do I solve?' },
+        { t: 'Profit is the goal', b: 'Profit = revenue − costs. If you sell $50 of lemonade (revenue) but spent $20 on lemons and cups (costs), your profit is $30. A business only works if revenue is bigger than costs.', tip: 'Revenue is money IN. Costs are money OUT. Profit is what’s left — the point of it all.' },
+        { t: 'Price and volume', b: 'You can grow profit two ways: charge a bit more per item, or sell more items. Great entrepreneurs test both — and watch their costs, because every dollar saved is a dollar of profit.' }
+      ],
+      quiz: [
+        { q: 'You earn $50 selling lemonade and spent $20 on supplies. Your profit is…', choices: ['$70', '$50', '$30'], a: 2, why: 'Profit = revenue − costs = $50 − $20 = $30.' },
+        { q: 'A business makes a profit only when…', choices: ['Costs are bigger than revenue', 'Revenue is bigger than costs', 'It’s very busy'], a: 1, why: 'Profit needs revenue (in) to beat costs (out).' }
+      ],
+      apply: { label: 'Run a business in the Lemonade Stand →', hash: '#game/lemonade' }
+    },
+    {
+      id: 'inflation', band: 'builders', emoji: '🎈', title: 'Inflation',
+      blurb: 'Why a dollar buys less over time.',
+      steps: [
+        { t: 'Prices tend to rise over time', b: 'Inflation means prices slowly go up year after year. Your grandparents may have paid a nickel for candy that costs a dollar now. The same money buys less than it used to.' },
+        { t: 'It quietly shrinks saved cash', b: 'If prices rise about 3% a year, $100 stuffed under a mattress still says $100 — but it BUYS about 3% less each year. Cash slowly loses power. That’s a big reason people invest instead of only holding cash.', tip: 'Money doing nothing slowly loses value to inflation. Money invested can outrun it.' },
+        { t: 'Beating inflation', b: 'To stay ahead, your money needs to grow at least as fast as prices rise. Savings accounts help a little; investing (with its higher long-term returns) is how people aim to beat inflation over many years.' }
+      ],
+      quiz: [
+        { q: 'Inflation means that over time, the same dollar…', choices: ['Buys more', 'Buys less', 'Stays exactly the same'], a: 1, why: 'Rising prices mean each dollar buys a little less.' },
+        { q: 'Why can cash under a mattress be risky long-term?', choices: ['It grows too fast', 'Inflation slowly cuts what it can buy', 'It earns too much interest'], a: 1, why: 'Idle cash loses buying power to inflation.' }
+      ]
+    },
+    {
+      id: 'paycheck', band: 'builders', emoji: '🧾', title: 'Your First Paycheck',
+      blurb: 'Why you don’t take home the whole amount.',
+      steps: [
+        { t: 'Gross pay vs. take-home pay', b: 'When you get a job, the wage they promise (say $15/hour) is your GROSS pay. But your paycheck is smaller than that, because some is taken out before you get it. What lands in your pocket is your NET, or take-home, pay.' },
+        { t: 'Where the rest goes', b: 'Money is withheld mostly for taxes (which fund shared services) and sometimes for things like health insurance or retirement savings. So a “$15/hour” job might take home more like $12–13 after withholding.', tip: 'Always think in take-home pay. The sticker wage isn’t what hits your account.' },
+        { t: 'Read your pay stub', b: 'A pay stub lists gross pay, each deduction, and net pay. Learning to read it means no surprises — and helps you budget with the real number you actually receive.' }
+      ],
+      quiz: [
+        { q: 'The money that actually lands in your pocket is called…', choices: ['Gross pay', 'Net (take-home) pay', 'Bonus pay'], a: 1, why: 'Net pay is what’s left after withholding — your real take-home.' },
+        { q: 'Most of what’s taken out of a paycheck goes to…', choices: ['Nothing', 'Taxes (and sometimes benefits)', 'The bank keeps it'], a: 1, why: 'Taxes are the biggest withholding, funding shared services.' }
+      ]
+    },
+    {
+      id: 'scams', band: 'builders', emoji: '🛡️', title: 'Scams & Smart Choices',
+      blurb: 'If it seems too good to be true, it is.',
+      steps: [
+        { t: 'Scams trick you out of money', b: 'A scam is a trick designed to take your money or information. Common ones: “You won a prize — just pay a small fee!”, fake stores, or a message pretending to be someone you trust.' },
+        { t: 'The golden rule', b: 'If an offer seems too good to be true, it almost always is. Real money doesn’t come from strangers for free. Free “prizes” that ask for payment, and urgent “act now!” messages, are giant red flags.', tip: 'Slow down, and never send money or personal info to someone you can’t verify.' },
+        { t: 'Protect yourself', b: 'Never share passwords or personal details with people who contact you first. When unsure, ask a trusted adult. Being a little skeptical isn’t rude — it’s smart, and it keeps your money safe.' }
+      ],
+      quiz: [
+        { q: 'An offer says you won $1,000 — just pay a $20 “fee” first. This is…', choices: ['A great deal', 'Almost certainly a scam', 'Free money'], a: 1, why: 'Real prizes never require you to pay first. Classic scam.' },
+        { q: 'The golden rule for spotting scams is…', choices: ['If it seems too good to be true, it is', 'Always say yes fast', 'Trust every message'], a: 0, why: 'Too-good-to-be-true offers are the biggest warning sign.' }
+      ]
+    },
+
+    // ---------------- Money Trailblazers (9–12) — added ----------------
+    {
+      id: 'college-loans', band: 'trailblazers', emoji: '🎓', title: 'Paying for College',
+      blurb: 'A big decision — with smart ways to fund it.',
+      steps: [
+        { t: 'College is an investment', b: 'College can open doors and raise lifetime earnings — but it costs money, and many people borrow to pay for it. Treat it like an investment: weigh the cost against what it helps you earn and do.' },
+        { t: 'Free money first', b: 'Not all college money must be repaid. Scholarships and grants are free — you never pay them back. Chase those hard before loans. Community college and in-state schools can cut costs dramatically for the same early credits.', tip: 'Exhaust free money (scholarships, grants) before borrowing a single dollar.' },
+        { t: 'Borrow with your eyes open', b: 'Student loans must be repaid with interest, often for years. A useful rule: try not to borrow more in total than you expect to earn in your first year of work. And remember — trade schools and apprenticeships can lead to great careers with little or no debt.' }
+      ],
+      quiz: [
+        { q: 'Which college money never has to be paid back?', choices: ['Student loans', 'Scholarships and grants', 'Credit cards'], a: 1, why: 'Scholarships and grants are free — loans must be repaid with interest.' },
+        { q: 'A smart borrowing guideline is to not borrow more than…', choices: ['You can imagine', 'About your expected first-year salary', 'Ten times your salary'], a: 1, why: 'Keeping total loans near one year’s starting pay keeps them manageable.' }
+      ]
+    },
+    {
+      id: 'insurance', band: 'trailblazers', emoji: '☂️', title: 'Insurance',
+      blurb: 'How people protect themselves from big surprises.',
+      steps: [
+        { t: 'Insurance shares risk', b: 'Insurance is a deal: you pay a small amount regularly (a premium), and if something bad and expensive happens — a car crash, a health emergency — the insurer helps pay the big bill. Many people’s small payments cover the few who have a disaster.' },
+        { t: 'Why it matters', b: 'A single emergency can cost thousands. Insurance turns a rare, huge, unpredictable cost into a small, steady, predictable one you can budget for. That’s protection against being wiped out by one bad day.', tip: 'Insurance trades a small certain cost now for protection against a huge cost later.' },
+        { t: 'Common kinds', b: 'Health, car, renters/home, and life insurance are the big ones adults use. You don’t insure small stuff you could easily replace — you insure the big risks that could set you back for years.' }
+      ],
+      quiz: [
+        { q: 'The main point of insurance is to…', choices: ['Make you rich', 'Protect you from rare but huge costs', 'Avoid ever paying anything'], a: 1, why: 'Insurance shields you from big, unpredictable expenses.' },
+        { q: 'You should generally insure…', choices: ['Small things you could easily replace', 'Big risks that could set you back for years', 'Nothing, ever'], a: 1, why: 'Insure the big risks; self-cover the small stuff.' }
+      ]
+    },
+    {
+      id: 'long-game', band: 'trailblazers', emoji: '⏳', title: 'The Long Game',
+      blurb: 'Why starting young is a superpower.',
+      steps: [
+        { t: 'Time is an investor’s best friend', b: 'Compounding needs time to work its magic — and teens have the most of it. Money invested at 18 has decades to snowball before money invested at 40 even starts.' },
+        { t: 'A jaw-dropping example', b: 'Invest $2,000 a year from age 18 to 25 (just 8 years, $16,000 total), then never add another dime. Thanks to compounding, that can grow to more than someone who invests $2,000 every year from 25 to 65. Starting early beat saving 4× as much.', tip: 'Because of compounding, WHEN you start can matter more than HOW MUCH you invest.' },
+        { t: 'Retirement, explained simply', b: 'Accounts like a 401(k) or IRA let money grow for decades with tax advantages. The lesson isn’t the account names — it’s this: start early, invest steadily, and let time do the heavy lifting.' }
+      ],
+      quiz: [
+        { q: 'For an investor, the most powerful advantage a teenager has is…', choices: ['Lots of money', 'Lots of time for compounding', 'A fancy app'], a: 1, why: 'Time lets compounding snowball — teens have the most of it.' },
+        { q: 'The big lesson of “the long game” is…', choices: ['Wait until you’re older to start', 'Start early and let time compound your money', 'Only invest a fortune'], a: 1, why: 'Starting early can beat investing much more, later.' }
+      ],
+      apply: { label: 'See compounding play out in Stable Street →', hash: '#game/market' }
     }
   ];
 
