@@ -66,6 +66,7 @@
     {
       id: 'saving-jar', band: 'sprouts', emoji: '🫙', title: 'Save, Spend, Give',
       blurb: 'Three jars, one great habit.',
+      sim: 'goal',
       steps: [
         { t: 'Split your money into three jars', b: 'When you get money, split it into three jars: SPEND (for small treats now), SAVE (for a bigger goal later), and GIVE (to help others). Even a little in each builds a great habit.' },
         { t: 'Saving reaches big goals', b: 'Say you want a $20 toy but only get $5 a week. If you save $5 each week, after 4 weeks you have $20 — goal reached! Saving is just being patient and letting your money pile up.', tip: 'A goal + a plan = money that grows toward something you really want.' },
@@ -95,6 +96,7 @@
     {
       id: 'budget', band: 'growers', emoji: '📋', title: 'Making a Budget',
       blurb: 'A budget is a plan so your money lasts.',
+      sim: 'budget',
       steps: [
         { t: 'A budget is a plan for money', b: 'A budget lists money coming IN (income) and money going OUT (spending). The goal is simple: don’t let “out” be bigger than “in.” If you earn $10 and spend $12, you’re short $2 — that’s the trouble a budget prevents.' },
         { t: 'Income minus expenses', b: 'Say you get $10 for the week. You plan: $4 snacks, $3 save, $1 give. That’s $8 out, so $2 is left over — a cushion. Planning BEFORE you spend keeps you in control.', tip: 'Pay your future self first: set aside savings BEFORE you spend on wants.' },
@@ -137,6 +139,7 @@
     {
       id: 'interest-grows', band: 'builders', emoji: '📈', title: 'Interest: Money That Grows',
       blurb: 'The most powerful idea in personal finance.',
+      sim: 'compound',
       steps: [
         { t: 'Interest is a percentage', b: 'Interest is usually written as a percent per year. 5% interest on $100 means you earn $5 in a year — you’d have $105. Percent just means “per hundred.”' },
         { t: 'Compound interest: growth on growth', b: 'Here’s the magic. Year 2, you earn 5% on $105 — that’s $5.25, not $5. Your interest earns its OWN interest. Over many years this snowballs. $100 at 7% roughly DOUBLES in about 10 years without you adding a cent.', tip: 'Rule of 72: divide 72 by the interest rate to estimate years to double. 72 ÷ 8 ≈ 9 years.' },
@@ -289,6 +292,7 @@
     {
       id: 'goals-plan', band: 'growers', emoji: '🎯', title: 'Set a Money Goal',
       blurb: 'Turn a wish into a plan that works.',
+      sim: 'goal',
       steps: [
         { t: 'A goal needs a number and a date', b: 'A wish is “I want a bike.” A goal is “I want a $120 bike by my birthday in 6 months.” A real goal has a price and a deadline — that’s what makes it reachable.' },
         { t: 'Break it into small steps', b: '$120 in 6 months = $20 a month, or about $5 a week. Suddenly a big goal is a small weekly habit. Write it down and track it so you can watch it fill up.', tip: 'Big goal ÷ time = the small amount to save each week. That’s the whole secret.' },
@@ -318,6 +322,7 @@
     {
       id: 'entrepreneur-basics', band: 'builders', emoji: '🚀', title: 'Start a Business',
       blurb: 'Profit = what you make − what it costs.',
+      sim: 'profit',
       steps: [
         { t: 'A business solves a problem for money', b: 'Every business trades something people want (a product or service) for money. A dog-walking business trades your time and effort; a bakery trades cupcakes. Step one is always: what problem do I solve?' },
         { t: 'Profit is the goal', b: 'Profit = revenue − costs. If you sell $50 of lemonade (revenue) but spent $20 on lemons and cups (costs), your profit is $30. A business only works if revenue is bigger than costs.', tip: 'Revenue is money IN. Costs are money OUT. Profit is what’s left — the point of it all.' },
@@ -399,6 +404,7 @@
     {
       id: 'long-game', band: 'trailblazers', emoji: '⏳', title: 'The Long Game',
       blurb: 'Why starting young is a superpower.',
+      sim: 'compound',
       steps: [
         { t: 'Time is an investor’s best friend', b: 'Compounding needs time to work its magic — and teens have the most of it. Money invested at 18 has decades to snowball before money invested at 40 even starts.' },
         { t: 'A jaw-dropping example', b: 'Invest $2,000 a year from age 18 to 25 (just 8 years, $16,000 total), then never add another dime. Thanks to compounding, that can grow to more than someone who invests $2,000 every year from 25 to 65. Starting early beat saving 4× as much.', tip: 'Because of compounding, WHEN you start can matter more than HOW MUCH you invest.' },
@@ -409,6 +415,119 @@
         { q: 'The big lesson of “the long game” is…', choices: ['Wait until you’re older to start', 'Start early and let time compound your money', 'Only invest a fortune'], a: 1, why: 'Starting early can beat investing much more, later.' }
       ],
       apply: { label: 'See compounding play out in Stable Street →', hash: '#game/market' }
+    },
+
+    // ---------------- Money Sprouts (K–2) — more ----------------
+    {
+      id: 'patience', band: 'sprouts', emoji: '⏳', title: 'Wait for It',
+      blurb: 'Sometimes waiting gets you something even better.',
+      steps: [
+        { t: 'The marshmallow choice', b: 'Imagine someone gives you one treat now — but says if you can wait a little while, you’ll get TWO. Waiting is hard! But learning to wait for something better is one of the most useful money skills there is.' },
+        { t: 'Patience beats “right now”', b: 'The same goes for money. You could spend $5 on candy today, or save it a few weeks and buy something you’ll enjoy much longer. Spending slows you down from reaching bigger, better goals.', tip: 'The ability to wait — to delay a small treat for a bigger reward — makes saving possible.' },
+        { t: 'A trick that helps', b: 'When you really want to buy something, wait one day first. Often the “I MUST have it” feeling fades, and you keep your money for something you’ll be happier with.' }
+      ],
+      quiz: [
+        { q: 'Waiting to buy something bigger later, instead of a small treat now, is called…', choices: ['Being patient (delayed gratification)', 'Being greedy', 'Wasting money'], a: 0, why: 'That’s delayed gratification — a superpower for saving.' },
+        { q: 'A good trick when you really want to buy something is to…', choices: ['Buy it instantly', 'Wait a day and see if you still want it', 'Buy two'], a: 1, why: 'Waiting a day often cools the urge and saves your money.' }
+      ]
+    },
+    {
+      id: 'fair-trade', band: 'sprouts', emoji: '🤝', title: 'Trading & Fair Deals',
+      blurb: 'When is a swap actually a good one?',
+      steps: [
+        { t: 'Trading is swapping value', b: 'Before money, people traded things directly — and we still trade today (swapping snacks, cards, or toys). A trade works when BOTH people feel they got something they wanted.' },
+        { t: 'A fair trade helps both sides', b: 'If you trade a toy you’re bored with for one your friend is bored with, you can BOTH end up happier — even though no new toys were made. That’s the magic of a good trade: value for both.', tip: 'A good deal isn’t about “winning.” It’s a swap where both people are glad they did it.' },
+        { t: 'Watch out for bad trades', b: 'A trade is unfair if one person is tricked or pressured, or gives up something much more valuable. Before you swap, ask: “Am I happy with this, and is it fair to us both?”' }
+      ],
+      quiz: [
+        { q: 'A GOOD trade is one where…', choices: ['One person wins and one loses', 'Both people are happy with what they got', 'Someone gets tricked'], a: 1, why: 'The best trades leave both people better off.' },
+        { q: 'Before making a swap, a smart question is…', choices: ['How can I trick them?', 'Is this fair, and am I happy with it?', 'Can I take it back later?'], a: 1, why: 'Fair and happy for both — that’s the test of a good deal.' }
+      ]
+    },
+
+    // ---------------- Money Growers (3–5) — more ----------------
+    {
+      id: 'opportunity-cost', band: 'growers', emoji: '🔀', title: 'Every Choice Has a Cost',
+      blurb: 'What you give up when you pick one thing.',
+      steps: [
+        { t: 'You can’t buy everything', b: 'Money is limited, so every time you spend on one thing, you give up something else you could have bought. That “something else you gave up” has a name: opportunity cost.' },
+        { t: 'The hidden price tag', b: 'If you spend $10 on a movie, the opportunity cost is the book or the game you DIDN’T buy with that $10. It’s not just about the money — it’s about the best thing you passed up.', tip: 'Opportunity cost = the next-best thing you gave up to get what you chose.' },
+        { t: 'Choosing on purpose', b: 'Smart spenders pause and ask: “Is this the BEST use of my money right now, out of everything I could do with it?” That one question leads to far fewer regrets.' }
+      ],
+      quiz: [
+        { q: 'You spend your only $10 on a movie. The opportunity cost is…', choices: ['The $10 bill', 'The next-best thing you could have bought instead', 'The movie ticket'], a: 1, why: 'Opportunity cost is the best alternative you gave up.' },
+        { q: 'Opportunity cost reminds us that…', choices: ['Money is unlimited', 'Every choice means giving something else up', 'Spending is always free'], a: 1, why: 'Choosing one thing means passing on another — that’s the real cost.' }
+      ]
+    },
+    {
+      id: 'track-money', band: 'growers', emoji: '📝', title: 'Keep Track of Your Money',
+      blurb: 'You can’t manage what you don’t measure.',
+      steps: [
+        { t: 'Where did it all go?', b: 'Ever had money, then wondered where it went? That happens when you don’t keep track. Writing down what comes in and what goes out turns a mystery into a clear picture.' },
+        { t: 'A simple money log', b: 'Keep a little list: money in (allowance, gifts, jobs) and money out (what you bought). Add it up now and then. Suddenly you can SEE your habits — and spot spending you didn’t even notice.', tip: 'Tracking your money is how you catch “leaks” — small buys that quietly add up.' },
+        { t: 'Knowledge is power', b: 'Once you can see where your money goes, you can make better choices — cutting back on things you don’t really care about, and keeping more for what you do.' }
+      ],
+      quiz: [
+        { q: 'Keeping a log of money in and money out helps you…', choices: ['See where your money actually goes', 'Spend faster', 'Hide your money'], a: 0, why: 'Tracking reveals your real habits so you can improve them.' },
+        { q: 'Small purchases you don’t notice are sometimes called…', choices: ['“Leaks”', 'Savings', 'Income'], a: 0, why: 'Little unnoticed buys are “leaks” that tracking helps you catch.' }
+      ]
+    },
+
+    // ---------------- Money Builders (6–8) — more ----------------
+    {
+      id: 'what-is-stock', band: 'builders', emoji: '📊', title: 'What’s a Stock?',
+      blurb: 'Owning a tiny slice of a real company.',
+      steps: [
+        { t: 'A stock is a piece of a company', b: 'Companies sometimes sell small pieces of themselves, called shares of stock, to raise money to grow. When you buy a share, you become a part-owner of that company — even if it’s a huge one.' },
+        { t: 'How you can gain (or lose)', b: 'If the company does well and becomes more valuable, your share can be worth more than you paid. If it struggles, your share can be worth less. So stocks can go up AND down — there’s reward, but also risk.', tip: 'A stock isn’t a magic money machine — it’s part-ownership that rises and falls with the business.' },
+        { t: 'Why people invest', b: 'Over long periods, owning stocks has historically grown money faster than a savings account — which is why patient, careful investing is a big part of building wealth. The key words are patient and careful.' }
+      ],
+      quiz: [
+        { q: 'When you buy a share of stock, you…', choices: ['Lend the company money for a year', 'Own a small piece of the company', 'Get free products'], a: 1, why: 'A share makes you a part-owner of the company.' },
+        { q: 'Stocks are different from a savings account because they…', choices: ['Can go up AND down in value', 'Never change', 'Are guaranteed to grow'], a: 0, why: 'Stocks carry risk — they can rise or fall.' }
+      ],
+      apply: { label: 'Buy your first shares in Stable Street →', hash: '#game/market' }
+    },
+    {
+      id: 'risk-reward', band: 'builders', emoji: '⚖️', title: 'Risk & Reward',
+      blurb: 'Bigger possible reward usually means bigger risk.',
+      steps: [
+        { t: 'Safe vs. risky', b: 'Some places to put money are very safe but grow slowly (a savings account). Others can grow faster but might lose value (stocks, a new business). Usually, the bigger the possible reward, the bigger the risk.' },
+        { t: 'Don’t bet it all on one thing', b: 'The smartest way to handle risk is to spread your money out — this is called diversifying. If you own many different things, one bad surprise can’t wipe you out. Never put money you NEED soon into something risky.', tip: 'Spreading money across many investments (diversifying) is the #1 way to tame risk.' },
+        { t: 'Match risk to time', b: 'Money you need next month should be safe. Money you won’t touch for decades can take more risk, because it has time to recover from dips. Time changes how much risk makes sense.' }
+      ],
+      quiz: [
+        { q: 'In general, an investment with a bigger possible reward also has…', choices: ['Bigger risk', 'No risk', 'Guaranteed returns'], a: 0, why: 'Higher potential reward almost always comes with higher risk.' },
+        { q: 'The best way to lower risk is to…', choices: ['Put everything in one hot pick', 'Spread money across many investments', 'Never save at all'], a: 1, why: 'Diversifying protects you when one thing goes wrong.' }
+      ]
+    },
+
+    // ---------------- Money Trailblazers (9–12) — more ----------------
+    {
+      id: 'build-credit', band: 'trailblazers', emoji: '🧱', title: 'Building Credit',
+      blurb: 'How to earn a good reputation with lenders.',
+      steps: [
+        { t: 'Credit is trust you build', b: 'A credit history is a record of borrowing small amounts and paying them back on time. Start with none, and lenders don’t know if they can trust you — so building a good history early really pays off.' },
+        { t: 'How to build it well', b: 'Common first steps as a young adult: a starter credit card used for small purchases and paid off IN FULL every month, or being added to a parent’s account. The golden rule is never spend more than you can pay back, and always pay on time.', tip: 'Use credit lightly, pay in full and on time — that’s how a strong score is built.' },
+        { t: 'Why it’s worth the effort', b: 'A strong credit history unlocks lower interest rates on cars and homes, easier apartment rentals, even better deals — potentially saving you tens of thousands of dollars over your life. It’s a reputation worth protecting.' }
+      ],
+      quiz: [
+        { q: 'The best way to build good credit with a starter card is to…', choices: ['Max it out', 'Make small purchases and pay it off in full, on time', 'Never pay it'], a: 1, why: 'Small charges paid in full and on time build a strong history.' },
+        { q: 'A strong credit history helps you get…', choices: ['Higher interest rates', 'Lower interest rates and better deals', 'Nothing useful'], a: 1, why: 'Good credit earns lower rates — big lifetime savings.' }
+      ]
+    },
+    {
+      id: 'net-worth', band: 'trailblazers', emoji: '📈', title: 'Net Worth',
+      blurb: 'The one number that shows your financial health.',
+      steps: [
+        { t: 'Assets minus debts', b: 'Net worth is simple: everything you OWN that has value (assets — cash, savings, investments) minus everything you OWE (debts — loans, credit-card balances). What’s left is your net worth.' },
+        { t: 'Growing the number', b: 'You grow net worth two ways: increase what you own (save and invest more) or decrease what you owe (pay down debt). Do both steadily and the number climbs — that’s literally what building wealth means.', tip: 'Wealth isn’t how much you earn — it’s how much you keep. Net worth measures that.' },
+        { t: 'A high income isn’t enough', b: 'Someone can earn a lot but owe even more and have a negative net worth. Someone with a modest income who saves steadily can build a positive one. The habits matter more than the paycheck.' }
+      ],
+      quiz: [
+        { q: 'Net worth is…', choices: ['Your yearly salary', 'What you own minus what you owe', 'The cash in your pocket'], a: 1, why: 'Net worth = assets − debts.' },
+        { q: 'You can raise your net worth by…', choices: ['Only earning more', 'Owning more and/or owing less', 'Borrowing more'], a: 1, why: 'Grow assets, shrink debts — either raises net worth.' }
+      ]
     }
   ];
 
@@ -516,11 +635,101 @@
         ${s.tip ? `<div style="margin-top:12px;background:#fff8e6;border:1px solid #f0d9a8;border-radius:10px;padding:10px 12px"><b>💡 Key idea:</b> ${esc(s.tip)}</div>` : ''}
         <div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px">
           <button class="btn ghost" id="fin-prev" ${stepI === 0 ? 'style="visibility:hidden"' : ''}>← Back</button>
-          <button class="btn green" id="fin-next">${stepI < u.steps.length - 1 ? 'Next →' : 'Check what you learned →'}</button>
+          <button class="btn green" id="fin-next">${stepI < u.steps.length - 1 ? 'Next →' : (u.sim ? '🧪 Try it yourself →' : 'Check what you learned →')}</button>
         </div>`);
       const nx = document.getElementById('fin-next'), pv = document.getElementById('fin-prev');
-      nx.onclick = () => { if (stepI < u.steps.length - 1) { stepI++; renderLearn(); } else { phase = 'quiz'; quizI = 0; renderQuiz(); } };
+      nx.onclick = () => { if (stepI < u.steps.length - 1) { stepI++; renderLearn(); } else if (u.sim) { phase = 'sim'; renderSim(); } else { phase = 'quiz'; quizI = 0; renderQuiz(); } };
       if (pv) pv.onclick = () => { if (stepI > 0) { stepI--; renderLearn(); } };
+    }
+
+    // Interactive money mini-sims — let kids play with the numbers before the quiz. Each sim is
+    // self-contained; inputs live-update an output. "Continue" moves on to the checks.
+    function renderSim() {
+      const money = n => '$' + (Math.round(n * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: (n % 1 ? 2 : 0), maximumFractionDigits: 2 });
+      const wrap = inner => shell(`
+        <div class="sk-bar" style="height:8px;margin:12px 0 16px"><span class="sk-fill hi" style="width:70%;background:${b.color}"></span></div>
+        <h3 style="margin:0 0 4px;color:${b.color}">🧪 Try it yourself</h3>
+        <p class="muted" style="margin:0 0 14px;font-size:.9rem">Slide the numbers and watch what happens — this is the idea in action.</p>
+        ${inner}
+        <div style="text-align:right;margin-top:18px"><button class="btn green" id="fin-simdone">Continue →</button></div>`);
+      const sty = 'width:100%;margin:6px 0 2px';
+      const outBox = 'background:#f2faf4;border:1px solid #cfe8d8;border-radius:12px;padding:14px 16px;margin-top:14px;text-align:center';
+
+      if (u.sim === 'compound') {
+        wrap(`
+          <label>Starting amount: <b id="s-amt">$1,000</b></label>
+          <input type="range" id="i-amt" min="100" max="10000" step="100" value="1000" style="${sty}">
+          <label>Years of growth: <b id="s-yrs">20</b></label>
+          <input type="range" id="i-yrs" min="1" max="40" step="1" value="20" style="${sty}">
+          <label>Interest rate: <b id="s-rate">7%</b></label>
+          <input type="range" id="i-rate" min="1" max="12" step="1" value="7" style="${sty}">
+          <div id="s-out" style="${outBox}"></div>`);
+        const calc = () => {
+          const P = +document.getElementById('i-amt').value, y = +document.getElementById('i-yrs').value, r = +document.getElementById('i-rate').value / 100;
+          const fv = P * Math.pow(1 + r, y); const growth = fv - P;
+          document.getElementById('s-amt').textContent = money(P);
+          document.getElementById('s-yrs').textContent = y;
+          document.getElementById('s-rate').textContent = r * 100 + '%';
+          const mult = (fv / P);
+          document.getElementById('s-out').innerHTML = `Grows to <b style="font-size:1.5rem;color:${b.color}">${money(fv)}</b><br><span class="muted">You added ${money(P)} and earned <b>${money(growth)}</b> in interest — your money ${mult >= 2 ? 'more than ' + (mult >= 3 ? 'tripled' : 'doubled') : 'grew'} without you lifting a finger.</span>`;
+        };
+        ['i-amt', 'i-yrs', 'i-rate'].forEach(id => document.getElementById(id).addEventListener('input', calc)); calc();
+
+      } else if (u.sim === 'budget') {
+        wrap(`
+          <p style="margin:0 0 6px">You get <b>$50</b> this week. Split it into Save, Spend, and Give:</p>
+          <label>💰 Save: <b id="s-save">$15</b></label>
+          <input type="range" id="i-save" min="0" max="50" step="1" value="15" style="${sty}">
+          <label>❤️ Give: <b id="s-give">$5</b></label>
+          <input type="range" id="i-give" min="0" max="25" step="1" value="5" style="${sty}">
+          <div id="s-out" style="${outBox}"></div>`);
+        const calc = () => {
+          let save = +document.getElementById('i-save').value, give = +document.getElementById('i-give').value;
+          if (save + give > 50) { give = Math.max(0, 50 - save); document.getElementById('i-give').value = give; }
+          const spend = 50 - save - give;
+          document.getElementById('s-save').textContent = money(save);
+          document.getElementById('s-give').textContent = money(give);
+          const pct = Math.round(save / 50 * 100);
+          document.getElementById('s-out').innerHTML = `Save <b>${money(save)}</b> · Spend <b>${money(spend)}</b> · Give <b>${money(give)}</b><br><span class="muted">${pct >= 20 ? '🌟 You’re saving ' + pct + '% — that’s a fantastic habit!' : 'You’re saving ' + pct + '%. Even a little adds up — try nudging Save up.'}</span>`;
+        };
+        ['i-save', 'i-give'].forEach(id => document.getElementById(id).addEventListener('input', calc)); calc();
+
+      } else if (u.sim === 'goal') {
+        wrap(`
+          <label>🎯 Goal price: <b id="s-goal">$120</b></label>
+          <input type="range" id="i-goal" min="10" max="500" step="5" value="120" style="${sty}">
+          <label>💵 Save each week: <b id="s-week">$10</b></label>
+          <input type="range" id="i-week" min="1" max="50" step="1" value="10" style="${sty}">
+          <div id="s-out" style="${outBox}"></div>`);
+        const calc = () => {
+          const g = +document.getElementById('i-goal').value, w = +document.getElementById('i-week').value;
+          const weeks = Math.ceil(g / w); const months = Math.round(weeks / 4.345 * 10) / 10;
+          document.getElementById('s-goal').textContent = money(g);
+          document.getElementById('s-week').textContent = money(w);
+          document.getElementById('s-out').innerHTML = `Reach your goal in <b style="font-size:1.5rem;color:${b.color}">${weeks} week${weeks === 1 ? '' : 's'}</b><br><span class="muted">That’s about ${months} month${months === 1 ? '' : 's'}. Save more each week and the finish line comes sooner!</span>`;
+        };
+        ['i-goal', 'i-week'].forEach(id => document.getElementById(id).addEventListener('input', calc)); calc();
+
+      } else if (u.sim === 'profit') {
+        wrap(`
+          <p style="margin:0 0 6px">Each cup costs you <b>$0.50</b> to make. You decide the rest:</p>
+          <label>🏷️ Price per cup: <b id="s-price">$1.00</b></label>
+          <input type="range" id="i-price" min="0.25" max="3" step="0.25" value="1" style="${sty}">
+          <label>🥤 Cups sold: <b id="s-cups">40</b></label>
+          <input type="range" id="i-cups" min="0" max="100" step="5" value="40" style="${sty}">
+          <div id="s-out" style="${outBox}"></div>`);
+        const calc = () => {
+          const price = +document.getElementById('i-price').value, cups = +document.getElementById('i-cups').value;
+          const rev = price * cups, cost = 0.5 * cups, profit = rev - cost;
+          document.getElementById('s-price').textContent = money(price);
+          document.getElementById('s-cups').textContent = cups;
+          document.getElementById('s-out').innerHTML = `Revenue ${money(rev)} − Costs ${money(cost)} = <b style="font-size:1.5rem;color:${profit >= 0 ? b.color : '#c0392b'}">${money(profit)} profit</b><br><span class="muted">${profit <= 0 ? 'Ouch — you’re not making money. Raise the price or sell more.' : 'Nice! Try raising the price or selling more — but if the price gets too high, fewer people buy.'}</span>`;
+        };
+        ['i-price', 'i-cups'].forEach(id => document.getElementById(id).addEventListener('input', calc)); calc();
+
+      } else { phase = 'quiz'; quizI = 0; renderQuiz(); return; }
+
+      const d = document.getElementById('fin-simdone'); if (d) d.onclick = () => { phase = 'quiz'; quizI = 0; renderQuiz(); };
     }
 
     function renderQuiz() {

@@ -1201,7 +1201,7 @@ route('landing', async () => {
           <p><b>28 real fields</b>, real role models, the surprising jobs inside each, and the many different paths in — college, trade school, apprenticeship, the military, or self-taught. For the curious kid who doesn't yet know what's out there.</p>
         </div>
         <div class="lab-card">
-          <div class="lab-shot" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#fff8e6,#ffe4a8);font-size:3.2rem">💰</div>
+          <div class="lab-shot"><img src="/shots/money-skills.webp" alt="The Money Skills course" loading="lazy"></div>
           <h3>💰 Money Skills <span style="font-size:.62rem;vertical-align:middle;background:#1f8a5f;color:#fff;padding:2px 7px;border-radius:20px;letter-spacing:.5px">NEW</span></h3>
           <p>An <b>optional K–12 financial-literacy course</b> most kids never get taught — needs vs. wants and saving as a kid, budgeting and banking in the middle years, then credit, taxes, investing and financial independence. It grows right alongside them.</p>
         </div>
