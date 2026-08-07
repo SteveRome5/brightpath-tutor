@@ -828,6 +828,20 @@ router.get('/family/money/:kidId', auth.requireParent, (req, res) => {
   res.json({ kid: { id: kid.id, name: kid.name }, done });
 });
 
+// Parent view of a child's OPTIONAL Growth Skills course progress + latest self-assessment
+// (read-only). Verifies ownership, then returns the growth-course state from game_progress.
+router.get('/family/growth/:kidId', auth.requireParent, (req, res) => {
+  const kidId = Number(req.params.kidId);
+  const kid = db.prepare('SELECT id, name FROM kids WHERE id=? AND parent_id=?').get(kidId, req.parent.id);
+  if (!kid) return res.status(404).json({ error: 'Not found' });
+  let done = {}, check = null;
+  try {
+    const row = db.prepare("SELECT data FROM game_progress WHERE kid_id=? AND game='growth'").get(kidId);
+    if (row && row.data) { const st = JSON.parse(row.data); if (st) { done = st.done || {}; check = st.check || null; } }
+  } catch (e) {}
+  res.json({ kid: { id: kid.id, name: kid.name }, done, check });
+});
+
 // ---------- Advanced Track: free-response, exam simulator, exam-readiness ----------
 // Ensure a track_progress row exists, apply a mutation, persist. Kept isolated from the ladder.
 function trackProgressRow(kidId, trackId) {
