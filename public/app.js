@@ -1941,6 +1941,7 @@ route('home', async () => {
       <div class="zone-card" onclick="location.hash='#trophies'"><span class="zemoji">🏆</span><b>Trophy Case</b><span class="muted">${playful() ? 'Your badges, trophies & next goals!' : 'Badges, certificates & milestones'}</span></div>
       <div class="zone-card" onclick="location.hash='#buddies'"><span class="zemoji">💌</span><b>Buddies</b><span class="muted">${playful() ? 'Cheer on your friends!' : 'See your crew’s streaks and send props'}</span></div>
       <div class="zone-card" onclick="location.hash='#money/${k.id}'"><span class="zemoji">💰</span><b>Money Skills</b><span class="muted">${playful() ? 'Optional bonus — learn real money smarts!' : 'Optional bonus course — real-world money & finance'}</span></div>
+      <div class="zone-card" onclick="location.hash='#growth/${k.id}'"><span class="zemoji">🌟</span><b>Growth Skills</b><span class="muted">${playful() ? 'Optional bonus — stories that make you a stronger learner!' : 'Optional bonus course — mindset & learning habits'}</span></div>
       ${k.grade >= 3 ? `<div class="zone-card" onclick="location.hash='#careers/${k.id}'"><span class="zemoji">🔭</span><b>Explore Futures</b><span class="muted">${playful() ? 'Discover cool jobs & the real people who do them!' : 'Real careers, what they involve, and people who do them'}</span></div>` : ''}
       ${k.grade >= 8 ? `<div class="zone-card exam-zone" onclick="location.hash='#exam'"><span class="zemoji">🎓</span><b>Advanced Track</b><span class="muted">AP free-response, exam simulator & honors — real challenge</span></div>` : ''}
     </div>
@@ -3392,6 +3393,34 @@ route('report', async (kidId) => {
           ${titles.length ? `<p class="muted" style="font-size:.82rem;margin-top:10px">Recently completed: ${titles.join(' · ')}</p>` : ''}`;
         const cont = document.querySelector('.container'); if (cont) cont.appendChild(card);
       } catch (e) { /* non-critical — never break the report */ }
+    })();
+    // Optional Growth Skills course + learner self-assessment — read-only parent view.
+    (async () => {
+      try {
+        const gp = await api(`/family/growth/${kidId}`);
+        const done = (gp && gp.done) || {}, check = gp && gp.check;
+        const ids = Object.keys(done);
+        if (!ids.length && !check) return;
+        const TOT = { sprouts: 4, roots: 4, strong: 4, trail: 4 };
+        const META = { sprouts: { l: 'Little Sprouts', e: '🌱' }, roots: { l: 'Growing Roots', e: '🌿' }, strong: { l: 'Building Strong', e: '💪' }, trail: { l: 'Trailblazers', e: '🚀' } };
+        const CHK = { effort: 'Shows up & gives best effort', persist: 'Keeps going when it’s hard', selftalk: 'Talks kindly to self', focus: 'Handles distractions', mistakes: 'Learns from mistakes', organized: 'Stays organized' };
+        const byBand = {}; ids.forEach(id => { const v = done[id], bd = v && v.band; if (bd) byBand[bd] = (byBand[bd] || 0) + 1; });
+        const rows = Object.keys(META).map(bid => { const n = byBand[bid] || 0, t = TOT[bid] || 0; if (!n) return ''; return `<div class="kid-row" style="font-size:.9rem"><span>${META[bid].e} ${META[bid].l}</span><span style="margin-left:auto">${n}/${t}${n >= t ? ' <span class="pill strength">🏅 certificate</span>' : ''}</span></div>`; }).join('');
+        let checkHtml = '';
+        if (check && check.ratings) {
+          const FACES = ['😟', '😕', '😐', '🙂', '😄'];
+          const goalT = check.goal ? (CHK[check.goal] || '') : '';
+          checkHtml = `<div style="margin-top:12px;background:#f3f7fc;border:1px solid #dbe6f2;border-radius:10px;padding:12px">
+            <b style="font-size:.9rem">🪞 ${esc(k.name)}'s self-check</b>
+            <div style="margin-top:8px">${Object.keys(CHK).filter(kk => check.ratings[kk]).map(kk => `<div class="kid-row" style="font-size:.84rem"><span>${esc(CHK[kk])}</span><span style="margin-left:auto">${FACES[(check.ratings[kk] || 1) - 1]} ${check.ratings[kk]}/5</span></div>`).join('')}</div>
+            ${goalT ? `<p class="muted" style="margin:8px 0 0;font-size:.82rem">🎯 Chose to grow: <b>${esc(goalT)}</b></p>` : ''}
+            <p class="muted" style="margin:6px 0 0;font-size:.75rem">Their own honest self-reflection — a great conversation starter, not a grade.</p></div>`;
+        }
+        const card = document.createElement('div'); card.className = 'card';
+        card.innerHTML = `<h3>🌟 Growth Skills <span class="muted" style="font-weight:400;font-size:.85rem">· optional bonus course</span></h3>
+          <p class="muted" style="margin:4px 0 10px">${esc(k.name)} has read <b>${ids.length} of 16</b> growth stories about mindset and learning habits. Doesn't affect the Gallop Score.</p>${rows}${checkHtml}`;
+        const cont = document.querySelector('.container'); if (cont) cont.appendChild(card);
+      } catch (e) { /* non-critical */ }
     })();
   }
   document.querySelectorAll('[data-retake]').forEach(b => b.onclick = async () => {
