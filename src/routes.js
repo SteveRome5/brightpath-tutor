@@ -160,6 +160,34 @@ const validSubject = s => typeof s === 'string' && Object.prototype.hasOwnProper
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+// First-touch acquisition attribution. The client sends whatever it captured on the landing page
+// (utm_* params, Google/Meta click ids, referrer host); we bucket it into ONE human-readable
+// channel so the admin can see paid vs organic at a glance. Order matters: an explicit paid signal
+// (gclid/fbclid or utm_medium=cpc) wins over a softer one (referrer). Everything is best-effort and
+// length-capped — attribution must never be able to break or block a signup.
+function deriveAcquisition(a) {
+  a = a || {};
+  const clip = (v, n) => (v == null ? null : String(v).slice(0, n));
+  const src = clip(a.utm_source, 60);
+  const med = (clip(a.utm_medium, 40) || '').toLowerCase();
+  const camp = clip(a.utm_campaign, 80);
+  const ref = clip(a.referrer, 200);
+  const refHost = (() => { try { return ref ? new URL(ref).hostname.replace(/^www\./, '') : ''; } catch (e) { return ''; } })();
+  const paidMed = /^(cpc|ppc|paid|paidsearch|paid_social|paidsocial|display)$/.test(med);
+  const social = /(instagram|facebook|fb|t\.co|twitter|x\.com|tiktok|youtube|linkedin|pinterest)/i;
+  let channel = 'Direct';
+  if (a.gclid || (paidMed && /google|bing|search/i.test(src || med))) channel = 'Paid – Google';
+  else if (a.fbclid || (paidMed && /instagram|facebook|meta|fb/i.test(src || ''))) channel = 'Paid – Meta';
+  else if (paidMed) channel = 'Paid – Other';
+  else if (med === 'email') channel = 'Email';
+  else if (/social/.test(med) || social.test(src || '') || social.test(refHost)) channel = 'Social';
+  else if (src || camp) channel = 'Campaign'; // tagged but not obviously paid/social
+  else if (/google|bing|duckduckgo|yahoo|ecosia/i.test(refHost)) channel = 'Organic search';
+  else if (refHost) channel = 'Referral';
+  // else stays 'Direct' (no params, no referrer — typed the URL or an untracked source)
+  return { acq_channel: channel, acq_source: src || (refHost || null), acq_campaign: camp, acq_referrer: ref };
+}
+
 // ---------- parent auth ----------
 router.post('/auth/signup', loginLimiter, (req, res) => {
   const { email, name, password } = req.body || {};
@@ -174,6 +202,13 @@ router.post('/auth/signup', loginLimiter, (req, res) => {
   try {
     const id = auth.createParent(email, name, password);
     auth.syncAdminFlag(db.prepare('SELECT * FROM parents WHERE id=?').get(id));
+    // First-touch acquisition: label where this family came from (paid vs organic vs social).
+    // Best-effort only — wrapped so a bad payload can never break a real signup.
+    try {
+      const acq = deriveAcquisition((req.body || {}).acq);
+      db.prepare('UPDATE parents SET acq_channel=?, acq_source=?, acq_campaign=?, acq_referrer=? WHERE id=?')
+        .run(acq.acq_channel, acq.acq_source, acq.acq_campaign, acq.acq_referrer, id);
+    } catch (e) {}
     // Record the parent's affirmative consent at signup (checkbox), part of the COPPA trail.
     if ((req.body || {}).consent) {
       try { db.recordConsent({ parentId: id, parentEmail: String(email).trim(), method: 'checkbox', detail: 'signup: parent/guardian 18+, agreed to Terms & Privacy Policy, consented to child data collection' }); } catch (e) {}
@@ -1083,6 +1118,16 @@ router.get('/admin/overview', auth.requireAdmin, (req, res) => {
       (SELECT COUNT(*) FROM activity_log a JOIN kids k2 ON a.kid_id=k2.id WHERE k2.parent_id=p.id AND a.ts >= datetime('now','-7 days')) AS weekAnswers
     FROM parents p WHERE ${pNot.replace(/^id/, 'p.id')} ORDER BY p.created_at DESC LIMIT 25`).all();
   const gradeBands = db.prepare(`SELECT CASE WHEN grade<=2 THEN 'K-2' WHEN grade<=5 THEN '3-5' WHEN grade<=8 THEN '6-8' ELSE '9-12' END AS band, COUNT(*) AS n FROM kids WHERE ${kNot} GROUP BY band`).all();
+  // Acquisition breakdown: per channel, how many families signed up, how many actually ACTIVATED
+  // (added a child who did at least one question), and how many convert to PAYING. This is the
+  // paid-vs-organic view — and, more useful, it shows which sources send buyers vs window-shoppers.
+  // 'Unknown' = accounts created before attribution shipped (no source was ever recorded).
+  const bySource = db.prepare(`SELECT COALESCE(p.acq_channel,'Unknown') AS channel,
+      COUNT(*) AS signups,
+      SUM(CASE WHEN p.sub_status='active' THEN 1 ELSE 0 END) AS paying,
+      SUM(CASE WHEN EXISTS(SELECT 1 FROM kids k JOIN activity_log a ON a.kid_id=k.id WHERE k.parent_id=p.id) THEN 1 ELSE 0 END) AS activated,
+      SUM(CASE WHEN p.created_at >= datetime('now','-14 days') THEN 1 ELSE 0 END) AS last14
+    FROM parents p WHERE ${pNot.replace(/^id/, 'p.id')} GROUP BY channel ORDER BY signups DESC`).all();
   // Expired-trial win-back worklist: parents whose 7-day trial lapsed without subscribing
   // (a trial never auto-flips status, so an expired trial stays sub_status='trial' with
   // trial_ends in the past). We surface who they are, whether they ever added a child /
@@ -1111,7 +1156,7 @@ router.get('/admin/overview', auth.requireAdmin, (req, res) => {
     emailHealth.failures = db.prepare(`SELECT kind, to_email, created_at, detail FROM email_log WHERE status IN ('failed','queued') AND ${nt} ORDER BY id DESC LIMIT 10`).all();
     emailHealth.recent = db.prepare(`SELECT kind, status, to_email, created_at FROM email_log WHERE ${nt} ORDER BY id DESC LIMIT 12`).all();
   } catch (e) { emailHealth.error = e.message; }
-  res.json({ totals, byStatus, mrr, signups, recent, gradeBands, expiredTrials, emailHealth });
+  res.json({ totals, byStatus, mrr, signups, recent, gradeBands, bySource, expiredTrials, emailHealth });
 });
 
 // CSV export of real families (admin)

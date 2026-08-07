@@ -372,7 +372,16 @@ for (const stmt of [
   "ALTER TABLE skill_state ADD COLUMN lesson_seen INTEGER DEFAULT 0",
   // Parent choice: require the lesson before questions on EVERY not-yet-mastered skill, not just
   // ones the child is failing. Default 0 (off) — a struggling skill always gates regardless of this.
-  "ALTER TABLE kids ADD COLUMN lessons_first INTEGER DEFAULT 0"
+  "ALTER TABLE kids ADD COLUMN lessons_first INTEGER DEFAULT 0",
+  // Acquisition attribution (first-touch): where a family came from, captured at signup from the
+  // landing URL's utm_* params + Google/Meta click IDs + referrer, then bucketed into a channel
+  // (e.g. 'Paid – Google', 'Paid – Meta', 'Social', 'Organic search', 'Referral', 'Direct').
+  // Lets us tell paid vs organic apart and measure conversion by source — the site never recorded
+  // this before, so every pre-existing account reads as null/'Unknown'.
+  "ALTER TABLE parents ADD COLUMN acq_channel TEXT",
+  "ALTER TABLE parents ADD COLUMN acq_source TEXT",
+  "ALTER TABLE parents ADD COLUMN acq_campaign TEXT",
+  "ALTER TABLE parents ADD COLUMN acq_referrer TEXT"
 ]) {
   try { db.exec(stmt); } catch (e) { /* column already exists */ }
 }
