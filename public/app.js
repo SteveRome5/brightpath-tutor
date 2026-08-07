@@ -4973,10 +4973,13 @@ route('careers', async (kidId) => {
       <div class="lesson-top"><b>${f.emoji} ${esc(f.title)}</b><button class="btn ghost small" id="cx-back">← All fields</button></div>
       <div class="card cx-detail" style="--cx:${f.color}">
         <div class="cx-hero"><span class="cx-hero-emoji">${f.emoji}</span><div><h2 style="margin:0">${esc(f.title)}</h2><p class="cx-hero-tag">${esc(f.tagline)}</p></div></div>
+        ${f.traits && f.traits.length ? `<div class="cx-block" style="background:${f.color}12;border-radius:12px;padding:12px 14px;margin-bottom:12px"><h4 style="margin-top:0">🧭 Is this you?</h4><ul style="margin:6px 0 0;padding-left:18px">${f.traits.map(t => `<li style="margin:4px 0">${esc(t)}</li>`).join('')}</ul></div>` : ''}
         <p class="cx-what">${esc(f.whatItIs)}</p>
         <div class="cx-block"><h4>👀 What you'd actually do</h4><p>${esc(f.dayToDay)}</p></div>
         <div class="cx-block"><h4>💼 Jobs in this field</h4><div class="cx-jobs">${f.jobs.map(j => `<span class="cx-job">${esc(j)}</span>`).join('')}</div></div>
-        <div class="cx-block cx-hs"><h4>🎓 Getting there</h4><p>${esc(f.hs)}</p></div>
+        ${f.surprising && f.surprising.length ? `<div class="cx-block"><h4>💡 Jobs you might not know exist</h4><div class="cx-jobs">${f.surprising.map(j => `<span class="cx-job" style="background:${f.color}1a;border-color:${f.color}55">${esc(j)}</span>`).join('')}</div></div>` : ''}
+        ${f.paths && f.paths.length ? `<div class="cx-block"><h4>🛤️ Different ways in</h4><p class="muted" style="margin:0 0 8px;font-size:.86rem">There’s no single road — real options for reaching this field:</p><ul style="margin:0;padding-left:18px">${f.paths.map(p => `<li style="margin:6px 0">${esc(p)}</li>`).join('')}</ul></div>` : ''}
+        <div class="cx-block cx-hs"><h4>🎓 In high school</h4><p>${esc(f.hs)}</p></div>
         <div class="cx-block"><h4>🌟 Real people doing this</h4>
           <div class="cx-people">${f.people.map(p => `
             <div class="cx-person">
@@ -4984,6 +4987,7 @@ route('careers', async (kidId) => {
               <div class="cx-person-who">${esc(p.who)}</div>
             </div>`).join('')}</div>
         </div>
+        ${f.related && f.related.length ? `<div class="cx-block"><h4>🔗 Explore related fields</h4><div class="cx-jobs">${f.related.map(rid => { const rf = FIELDS.find(x => x.id === rid); return rf ? `<button class="cx-job cx-related" data-rel="${rid}" style="cursor:pointer;background:#fff;border:1px solid ${rf.color}">${rf.emoji} ${esc(rf.title)} →</button>` : ''; }).join('')}</div></div>` : ''}
         ${(() => {
           // Career PATHWAY: turn "here's a cool job" into "here's how you build toward it."
           // Rank the subjects that matter most for this field and let the kid jump straight
@@ -5002,6 +5006,7 @@ route('careers', async (kidId) => {
     </div>`);
     wireChrome();
     $('#cx-back').onclick = () => { renderGrid(); };
+    document.querySelectorAll('.cx-related').forEach(b => b.onclick = () => { window.scrollTo(0, 0); showField(b.dataset.rel); });
   }
 });
 
