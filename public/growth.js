@@ -236,6 +236,120 @@
         { q: 'What is self-advocacy?', choices: ['Complaining loudly', 'Calmly telling the right person what you need', 'Keeping problems to yourself'], a: 1, why: 'It’s clearly and respectfully asking for what you need.' },
         { q: 'Speaking up for your needs is…', choices: ['A weakness', 'A real strength people use their whole lives', 'Being a problem'], a: 1, why: 'Self-advocacy is a lifelong strength — no one can help with a problem they don’t know about.' }
       ]
+    },
+
+    // ============ ROUND 2 — added stories ============
+
+    // ---------------- Little Sprouts (K–2) ----------------
+    {
+      id: 'really-listen', band: 'sprouts', emoji: '👂', title: 'Really Listen', skill: 'Listening & empathy',
+      blurb: 'Theo learns to hear his friend.',
+      steps: [
+        { t: 'Talking over', b: 'Theo’s friend Kai was telling a story about his lost dog. But Theo kept jumping in — "Guess what happened to ME!" Kai got quieter and quieter, and finally just stopped talking.' },
+        { t: 'Ears and heart open', b: 'Theo’s teacher said, "Listening isn’t just waiting for your turn. It’s really hearing your friend — their words AND their feelings." Theo tried again: he looked at Kai, stayed quiet, and asked, "Then what happened?"', tip: 'Real listening means paying attention to how someone feels — not just waiting for your turn to talk.' },
+        { t: 'A better friend', b: 'Kai’s face lit up and he finished his story. The two felt closer than ever. Theo learned that really listening is one of the kindest things you can do for someone.' }
+      ],
+      quiz: [
+        { q: 'What did Theo learn about listening?', choices: ['Wait for your turn to talk', 'Really hear your friend’s words AND feelings', 'Talk the loudest'], a: 1, why: 'Yes — real listening means hearing feelings, not just waiting to talk.' },
+        { q: 'A good listener…', choices: ['Interrupts a lot', 'Pays attention to how someone feels', 'Changes the subject'], a: 1, why: 'Paying attention to feelings is what makes a great listener.' }
+      ]
+    },
+    {
+      id: 'wonder-why', band: 'sprouts', emoji: '🔎', title: 'Wonder Why', skill: 'Curiosity',
+      blurb: 'Priya asks big questions.',
+      steps: [
+        { t: 'So many questions', b: 'Priya always wondered things: Why is the sky blue? How do bees know where to go? Sometimes she felt silly for asking so much. "Do I ask too many questions?" she worried.' },
+        { t: 'Questions are superpowers', b: 'Her grandpa laughed kindly. "Every discovery in the world started with someone wondering ‘why?’ Your questions aren’t silly — they’re how smart people learn." Priya smiled.', tip: 'Curiosity — asking "why" and "how" — is how we discover new things. Never stop wondering.' },
+        { t: 'The joy of finding out', b: 'Priya and Grandpa looked up why the sky is blue, together. She didn’t just get an answer — she got the thrill of finding out. Her curiosity made the whole world more interesting.' }
+      ],
+      quiz: [
+        { q: 'What did Priya learn about her questions?', choices: ['They were silly', 'They’re how smart people learn and discover', 'She should stop asking'], a: 1, why: 'Right — curiosity and questions are how we discover new things!' },
+        { q: 'Being curious means…', choices: ['Knowing everything already', 'Loving to ask why and find out', 'Never wondering'], a: 1, why: 'Curiosity is loving to wonder and find out. It’s a superpower.' }
+      ]
+    },
+
+    // ---------------- Growing Roots (3–5) ----------------
+    {
+      id: 'better-together', band: 'roots', emoji: '🤝', title: 'Better Together', skill: 'Teamwork',
+      blurb: 'Leo learns to share the work.',
+      steps: [
+        { t: 'Doing it all alone', b: 'For the group project, Leo tried to do everything himself — he didn’t trust anyone else to do it right. He got stressed and tired, and the project felt like a heavy backpack he carried alone.' },
+        { t: 'Everyone has a strength', b: 'His teacher pointed out that Maya was a great artist and Sam loved research. "A team works best when everyone does what they’re good at," she said. Leo let Maya draw and Sam dig up the facts.', tip: 'Great teams don’t just split work evenly — they match each job to what each person does best.' },
+        { t: 'A better project — together', b: 'The project turned out better than anything Leo could have made alone, and it was actually fun. He learned that asking teammates to help isn’t weakness — it’s how great things get built.' }
+      ],
+      quiz: [
+        { q: 'Why did the project turn out better?', choices: ['Leo did it all himself', 'Each person did what they were best at', 'They didn’t try'], a: 1, why: 'Teamwork means matching each job to each person’s strength!' },
+        { q: 'On a team, it’s smart to…', choices: ['Do everything yourself', 'Use everyone’s different strengths', 'Ignore your teammates'], a: 1, why: 'Using everyone’s strengths is what makes teams powerful.' }
+      ]
+    },
+    {
+      id: 'notice-good', band: 'roots', emoji: '☀️', title: 'Notice the Good', skill: 'Gratitude',
+      blurb: 'Nina stops comparing.',
+      steps: [
+        { t: 'The comparison trap', b: 'Nina kept looking at what other kids had — cooler shoes, a bigger house, more likes. The more she compared, the worse she felt, even though nothing bad had actually happened to her.' },
+        { t: 'Turn your eyes around', b: 'Her mom taught her a trick: each night, name three good things about YOUR own day. "Comparing looks at what you don’t have. Gratitude notices what you do." Nina decided to try it.', tip: 'Comparing your life to others quietly steals your joy. Noticing what’s good in your own day brings it back.' },
+        { t: 'A fuller heart', b: 'After a week of naming good things — a funny joke, a warm dinner, a friend’s laugh — Nina felt happier. Nothing in her life had changed except what she chose to notice.' }
+      ],
+      quiz: [
+        { q: 'What made Nina feel better?', choices: ['Getting cooler stuff', 'Noticing the good she already had', 'Comparing even more'], a: 1, why: 'Gratitude — noticing what’s good in your own life — brings joy back.' },
+        { q: 'Comparing yourself to others usually…', choices: ['Makes you happier', 'Steals your joy', 'Helps a lot'], a: 1, why: 'Comparison tends to steal joy; gratitude restores it.' }
+      ]
+    },
+
+    // ---------------- Strong Branches (6–8) ----------------
+    {
+      id: 'lead-way', band: 'strong', emoji: '🚀', title: 'Step Up to Lead', skill: 'Leadership',
+      blurb: 'Dev learns real leadership.',
+      steps: [
+        { t: 'Nobody’s moving', b: 'Dev’s group was stuck — everyone waited for someone else to start. Dev thought leadership meant bossing people around, so he stayed quiet, not wanting to be "that guy."' },
+        { t: 'Leading is serving', b: 'His coach told him: "A real leader doesn’t boss — they help the group move. Ask what needs doing, notice who’s quiet, give people a first step." Dev tried: "Okay — what if I take notes and Aria starts the outline?"', tip: 'Leadership isn’t about power. It’s about helping a group work together toward something good.' },
+        { t: 'The group comes alive', b: 'Once Dev gave people a starting point, the whole group got moving. He didn’t need to be loud or bossy — he just helped everyone find their part. That’s real leadership.' }
+      ],
+      quiz: [
+        { q: 'What is real leadership, according to the coach?', choices: ['Bossing people around', 'Helping a group work together', 'Being the loudest'], a: 1, why: 'Leadership is helping the group move forward together — not bossing.' },
+        { q: 'A good leader often…', choices: ['Ignores quiet people', 'Notices who’s quiet and gives them a first step', 'Does everything alone'], a: 1, why: 'Great leaders bring others in and help everyone find their part.' }
+      ]
+    },
+    {
+      id: 'stand-tall', band: 'strong', emoji: '🧭', title: 'Stand Tall', skill: 'Integrity',
+      blurb: 'Grace does the right thing.',
+      steps: [
+        { t: 'Everyone’s doing it', b: 'Grace’s friends were making fun of a new kid, laughing. Part of her wanted to join in so she’d fit in. It’s hard to be the only one who says no.' },
+        { t: 'Your inner compass', b: 'Grace remembered a question her dad taught her: "Will I feel proud of this later?" Making fun of someone failed that test. She took a breath and said, "Come on — that’s not cool. Let’s include him."', tip: 'Integrity is doing what’s right even when it’s hard or unpopular. Ask yourself: "Will I be proud of this later?"' },
+        { t: 'Quietly proud', b: 'A couple of friends looked surprised, but one nodded and agreed. The new kid got included. Grace felt something better than fitting in — she felt proud of who she was.' }
+      ],
+      quiz: [
+        { q: 'How did Grace decide what to do?', choices: ['She did what everyone else did', 'She asked if she’d be proud later', 'She stayed silent'], a: 1, why: 'Integrity means asking "will I be proud later?" — and acting on it.' },
+        { q: 'Integrity means…', choices: ['Doing right even when it’s unpopular', 'Always fitting in', 'Following the crowd'], a: 0, why: 'Integrity is doing the right thing even when it’s hard or unpopular.' }
+      ]
+    },
+
+    // ---------------- Trailblazers (9–12) ----------------
+    {
+      id: 'create-think', band: 'trail', emoji: '🎨', title: 'Think Different', skill: 'Creative thinking',
+      blurb: 'Sofia finds a new angle.',
+      steps: [
+        { t: 'The obvious answer', b: 'Sofia’s team needed to raise money for a trip, and everyone suggested the same tired idea: a bake sale. It had been done a hundred times and barely worked. Sofia sensed there had to be a better way.' },
+        { t: 'Ask a different question', b: 'Instead of "how do we sell baked goods?" Sofia asked, "what do people here actually WANT to pay for?" That reframe opened everything up — a dog-wash day, a talent show, a chore auction. Creative thinking often starts by changing the question.', tip: 'When you’re stuck, don’t just push harder on the obvious idea — change the question you’re asking. New questions reveal new answers.' },
+        { t: 'The winning idea', b: 'The team ran a "rent-a-student" chore day and raised triple their goal. The breakthrough didn’t come from working harder on the bake sale — it came from thinking about the problem differently.' }
+      ],
+      quiz: [
+        { q: 'How did Sofia find a better idea?', choices: ['She worked harder on the bake sale', 'She changed the question she was asking', 'She gave up'], a: 1, why: 'Creative thinking often means reframing the question, not forcing the obvious answer.' },
+        { q: 'When you’re stuck, a creative move is to…', choices: ['Repeat the obvious idea louder', 'Change the question you’re asking', 'Stop trying'], a: 1, why: 'A new question reveals new answers — that’s creative thinking.' }
+      ]
+    },
+    {
+      id: 'see-other-side', band: 'trail', emoji: '🤲', title: 'See the Other Side', skill: 'Empathy',
+      blurb: 'Aiden understands before reacting.',
+      steps: [
+        { t: 'Quick to judge', b: 'A coworker at Aiden’s part-time job kept showing up flustered and short with people. Aiden decided the guy was just rude and started avoiding him, tension building between them.' },
+        { t: 'Walk in their shoes', b: 'His manager mentioned the coworker was caring for a sick parent and barely sleeping. Suddenly the "rudeness" looked like exhaustion. Empathy means trying to understand what someone’s going through before deciding who they are.', tip: 'Before judging someone’s behavior, ask what might be going on underneath. Most "difficult" people are carrying something you can’t see.' },
+        { t: 'A real connection', b: 'Aiden started with a small kindness — covering a task, a genuine "you doing okay?" The coworker’s guard dropped, and they ended up a real team. Understanding people is a skill that changes everything — at work and in life.' }
+      ],
+      quiz: [
+        { q: 'What changed how Aiden saw his coworker?', choices: ['The coworker got louder', 'Understanding what he was going through', 'Nothing at all'], a: 1, why: 'Empathy — understanding what someone’s dealing with — changed everything.' },
+        { q: 'Empathy means…', choices: ['Judging quickly', 'Understanding what someone might be going through', 'Avoiding people'], a: 1, why: 'Empathy is seeking to understand before you judge.' }
+      ]
     }
   ];
 
