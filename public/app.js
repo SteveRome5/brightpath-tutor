@@ -1176,7 +1176,7 @@ route('landing', async () => {
           <div class="tour-cap active" data-step="0"><b>Taught, then practiced.</b> Every skill gets a guided lesson first — see it, hear it, do it — then the questions adapt to each answer. Never a question without a lesson in front of it.</div>
           <div class="tour-cap" data-step="1"><b>A world kids want to come back to.</b> Streaks, an avatar they build, daily goals, and their next lesson — all waiting the moment they log in.</div>
           <div class="tour-cap" data-step="2"><b>Games with a purpose.</b> Break games are earned by learning, not handed out — and you decide whether they're on and for how long, with a visible countdown so it's never a surprise.</div>
-          <div class="tour-cap" data-step="3"><b>Strengths that open doors.</b> Gallop turns what your child is good at into real career directions — 16 fields, real role models, and the classes that get them there.</div>
+          <div class="tour-cap" data-step="3"><b>Strengths that open doors.</b> Gallop turns what your child is good at into real career directions — 28 fields, real role models, and the classes that get them there.</div>
           <div class="tour-cap" data-step="4"><b>They invest for real (with pretend money).</b> Teens run a live-market portfolio, follow the news, and weigh risk — the math behind a margin, made real.</div>
           <div class="tour-cap" data-step="5"><b>Your command center.</b> Exactly where each child is ahead and where they need a hand, time on task, and one-tap controls — updated automatically.</div>
         </div>
@@ -1292,7 +1292,7 @@ route('landing', async () => {
         <h3>Strengths that open doors — the Career Center</h3>
         <p>Gallop notices what your child is good at, then opens a window onto where it can lead. The Career Center demystifies real careers — what an architect or an engineer <em>actually does all day</em>, the range of jobs inside each field, and the classes that get you there. Because most kids (and plenty of adults) have no idea these paths even exist.</p>
         <ul class="lp-check">
-          <li>Sixteen fields — from engineering, medicine, and AI to hospitality, the trades, the arts, and law.</li>
+          <li>Twenty-eight fields — from engineering, medicine, and AI to hospitality, the trades, the arts, and law.</li>
           <li>Real, accomplished role models in every field, each with a short story to read — from Maya Lin to José Andrés to Katherine Johnson.</li>
           <li>Personalized to your child's strengths, but fully explorable — a door-opener, never a limit. It grows with them from a light preview to a real plan.</li>
         </ul>
