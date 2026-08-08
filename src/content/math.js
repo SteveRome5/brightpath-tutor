@@ -289,9 +289,9 @@ const skills = [
         hint: `Think: ${a} groups of ${b}.`,
         explain: `${a} × ${b} = ${a * b}.`,
         whyWrong: {
-          [String(a + b)]: `Looks like you ADDED instead of multiplied: ${a} + ${b} = ${a + b}. But "${a} × ${b}" means ${a} groups of ${b} — add ${b} to itself ${a} times, which gives ${a * b}.`,
-          [String(a * b - b)]: `So close — that's only ${a - 1} groups of ${b}. There are ${a} groups, so add one more ${b}: ${a} × ${b} = ${a * b}.`,
-          [String(a * b + b)]: `Almost — that's ${a + 1} groups of ${b}. There are just ${a} groups: ${a} × ${b} = ${a * b}.`
+          [String(a + b)]: `Looks like you ADDED instead of multiplied. "${a} × ${b}" means ${a} groups of ${b} — that's adding ${b} to itself ${a} times, not just once. Work out all ${a} groups and try again.`,
+          [String(a * b - b)]: `So close — that's only ${a - 1} groups of ${b}. There are ${a} groups, so you're one group short. Add one more group of ${b} and try again.`,
+          [String(a * b + b)]: `Almost — that's ${a + 1} groups of ${b}, one group too many. There are just ${a} groups of ${b}. Take one group back off and try again.`
         }
       });
     }
@@ -334,8 +334,8 @@ const skills = [
           hint: `${den} parts minus the ${num} used.`,
           explain: `${den} − ${num} = ${left}, so ${left}/${den} is left.`,
           whyWrong: {
-            [`${num}/${den}`]: `That's the fraction you USED, not the fraction LEFT. Start with all ${den} parts and take away the ${num} used: ${den} − ${num} = ${left}. So ${left}/${den} is left.`,
-            [`${den}/${left}`]: `You flipped it. The bottom is always the total equal parts (${den}), and the top is how many are left (${left}). So it's ${left}/${den}.`
+            [`${num}/${den}`]: `That's the fraction you USED, not the fraction LEFT. Start with all ${den} parts and take away the ${num} you used — count how many parts are still there, put that over ${den}, and try again.`,
+            [`${den}/${left}`]: `You flipped it. The bottom is always the total equal parts; the top is how many are LEFT. Put them the right way round and try again.`
           }
         });
       }
@@ -347,9 +347,9 @@ const skills = [
         explain: `${num} out of ${den} parts = ${num}/${den}.`,
         whyWrong: {
           // The classic numerator/denominator reversal — name it explicitly.
-          [`${den}/${num}`]: `You reversed the two numbers. The TOP number is how many parts you used: ${num}. The BOTTOM is the total equal parts altogether: ${den}. So the fraction is ${num}/${den}, not ${den}/${num}.`,
-          [`${num}/${den + 1}`]: `Careful counting the bottom — the ${ctx.thing.split(' ')[0]} is split into ${den} equal parts, not ${den + 1}. The bottom is the total parts: ${den}. So it's ${num}/${den}.`,
-          [`${Math.min(num + 1, den)}/${den}`]: `Close! The bottom (${den}) is right. But the top is how many parts you used — that's ${num}, not ${num + 1}. So it's ${num}/${den}.`
+          [`${den}/${num}`]: `You've got the two numbers swapped. The TOP is how many parts you used; the BOTTOM is the total number of equal parts altogether. Flip your answer around and try again.`,
+          [`${num}/${den + 1}`]: `Careful with the bottom number — it should be the TOTAL number of equal parts the ${ctx.thing.split(' ')[0]} is split into. Recount them and try again.`,
+          [`${Math.min(num + 1, den)}/${den}`]: `Close — the bottom is right! But check the top: it's exactly how many parts you used. Recount just those and try again.`
         }
       });
     }
